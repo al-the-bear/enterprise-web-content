@@ -1032,6 +1032,65 @@
         box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
         transform: translateY(-2px);
       }
+      .hero-grid {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        gap: 40px;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        justify-content: space-between;
+      }
+      .hero-main {
+        flex: 1 1 420px;
+        min-width: 300px;
+      }
+      .hero-aside {
+        flex: 1 1 360px;
+        min-width: 260px;
+        max-width: 480px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .chip-section-title {
+        color: #fff;
+        font-size: 1rem;
+        font-weight: 700;
+        margin: 0 0 10px;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        height: 28px;
+        padding: 0 12px;
+        background: rgba(255,255,255,.10);
+        border: 1px solid rgba(255,255,255,.22);
+        border-radius: var(--r-pill);
+        color: #EAF2F9;
+        font-size: .78rem;
+        font-weight: 600;
+        line-height: 1;
+        white-space: nowrap;
+        text-decoration: none;
+        transition: background .12s ease, border-color .12s ease, transform .12s ease;
+      }
+      .chip:hover {
+        background: rgba(255,255,255,.20);
+        border-color: rgba(255,255,255,.45);
+        transform: translateY(-1px);
+      }
+      .hero-aside .chip-more {
+        margin: 4px 0 0;
+        color: #9FB6C9;
+        font-size: .72rem;
+        font-style: italic;
+      }
       .site-footer {
         border-top: 1px solid var(--line);
         background: var(--paper);
@@ -1304,7 +1363,7 @@
   <ellipse cx="80" cy="112" rx="6.5" ry="4.5" fill="#0E2841"/>
   <circle cx="128" cy="118" r="5" fill="url(#tom-s)"/><circle cx="140" cy="110" r="3" fill="#4EA72E" opacity=".8"/><circle cx="139" cy="124" r="2.4" fill="#0F9ED5" opacity=".7"/>
 </svg></span>
-             tom
+             Tom: Enterprise Flutter/Dart Platform
           </a>
           <div class="links">
             <a href="/">Home</a>
@@ -1331,79 +1390,47 @@
               <p>
                 Everything in this area shares one foundation and one principle: <strong>all Tom CLI tools are built on <code>tom_build_base</code></strong>. Shared command-line infrastructure is never reimplemented per tool; it is added to the base, published, and consumed. That keeps argument parsing, help, exit-code conventions, configuration, and console output uniform across every tool a developer touches.
               </p>
-              <h2>The components and modules</h2>
+              <h2>The two pillars</h2>
               <p>
-                The build foundation lives in the <code>basics</code> component — where <code>tom_build_kit</code> has now joined it as an official module; the broader DevOps tool set lives in the (currently parked) 
-                <code>devops</code> family and is described in prose.
+                The build tools centre on two modules of the <code>basics</code> component: the shared CLI framework 
+                <strong><code>tom_build_base</code></strong> and the build orchestrator <strong><code>tom_build_kit</code></strong>
+                 (the <code>buildkit</code> command) built on top of it.
               </p>
-              <h3>Foundation (in <code>basics</code>)</h3>
-              <ul>
-                <li>
-                  <strong><code>tom_build_base</code></strong> — the declarative CLI framework every other tool stands on.
-                </li>
-              </ul>
+              <h3><code>tom_build_base</code> — the foundation</h3>
               <p>
-                A tool author declares <em>what</em> their tool does — a <code>ToolDefinition</code> of commands and options — and the framework supplies 
+                <code>tom_build_base</code> is the declarative CLI framework every Tom tool stands on. A tool author declares 
+                <em>what</em> their tool does — a <code>ToolDefinition</code> of commands and options — and the framework supplies 
                 <em>how</em> it runs: argument parsing, help and shell completion, the standard navigation flags, console output, and the two-tier YAML configuration model. It also owns workspace 
-                <strong>traversal</strong> — detecting each folder's <em>natures</em> (Dart project, git repo, buildkit folder…), filtering by project/module selectors, and ordering by dependency build order — which is why every tool agrees on what the workspace is. New shared capability lands here first. - 
-                <strong><code>tom_build_kit</code></strong> (the <code>buildkit</code> binary) — the build orchestrator and the workhorse a developer drives day to day: cleanup, versioning, compilation, dependency resolution, publishing, and git workflows run as composable pipelines. It has 
-                <strong>moved into the <code>basics</code> component and is now considered official</strong> (no longer part of the parked DevOps family); its dedicated catalog tile will follow.
+                <strong>traversal</strong> — detecting each folder's <em>natures</em> (Dart project, git repo, buildkit folder…), filtering by project/module selectors, and ordering by dependency build order — which is why every tool agrees on what the workspace is. New shared capability lands here first, is published, and is then consumed; it is never duplicated downstream.
               </p>
-              <h3>Build and packaging (DevOps family)</h3>
-              <ul>
-                <li>
-                  <strong><code>tom_build</code></strong> (the <code>workspace_analyzer</code> binary) — scans the workspace, detects
-                </li>
-              </ul>
+              <h3><code>tom_build_kit</code> — the orchestrator</h3>
               <p>
-                each folder's natures, derives the dependency build order, and regenerates the workspace metadata the other tools read. - 
-                <strong><code>tom_build_cli</code></strong> (the <code>tom</code> binary) — the <code>tom</code> command surface, dispatching between Tom command mode and TomD4rt scripting. - 
-                <strong><code>tom_build_common</code></strong> — the shared build types and utilities the build framework sits on.
-              </p>
-              <h3>Quality, issues, and tracking</h3>
-              <ul>
-                <li>
-                  <strong><code>tom_test_kit</code></strong> (the <code>testkit</code> binary) — test-result tracking: the
-                </li>
-              </ul>
-              <p>
-                baseline → test → diff workflow that catches regressions and confirms fixes. - <strong><code>tom_issue_kit</code></strong>
-                 (the <code>issuekit</code> binary) — issue tracking integrated into the development workflow: create, analyze, assign, and verify issues, linking each to the test that proves it fixed.
-              </p>
-              <h3>Documentation tooling</h3>
-              <ul>
-                <li>
-                  <strong><code>tom_md2pdf</code></strong> / <strong><code>tom_md2latex</code></strong> — Markdown-to-PDF / Markdown-to-LaTeX
-                </li>
-              </ul>
-              <p>
-                converters for turning the framework's Markdown docs into typeset references (<code>md_pdf_converter</code>
-                 needs no system LaTeX; <code>md_latex_converter</code> produces PDFs via xelatex).
-              </p>
-              <h3>Deployment and integration</h3>
-              <ul>
-                <li>
-                  <strong><code>tom_deploy</code></strong> / <strong><code>tom_deploy_tools</code></strong> — the multi-cloud deployment model for
-                </li>
-              </ul>
-              <p>
-                server and web applications, and the <code>tom_deploy_tools</code> CLI front end that drives it. - <strong><code>tom_github_api</code></strong>
-                 — a typed GitHub REST client (auth, issues, repos, pull requests, releases) used by the workflow tooling and backing 
-                <code>issuekit</code>.
+                <code>tom_build_kit</code> is the package behind the <strong><code>buildkit</code></strong> command: the pipeline-based orchestrator for the whole Tom workspace, and the workhorse a developer drives day to day. It is the 
+                <strong>main build tool for Tom</strong>, and the intention is to make it usable for <strong>all kinds of projects</strong>, not just the framework itself.
               </p>
               <p>
-                Closely related foundation utilities also support the build tools without being build tools themselves — for example 
-                <code>tom_package_scanner</code> (derives a package's status, license, and links per repository, which the catalog and these very pages consume) and 
-                <code>tom_markdown_merge</code> (the non-destructive Markdown region merge that lets generators rewrite managed regions without clobbering hand-authored copy).
+                From a single invocation <code>buildkit</code> runs named build <strong>pipelines</strong> (sequences of steps defined in 
+                <code>buildkit_master.yaml</code>) and invokes individual build <strong>commands</strong> with <code>:command</code>
+                 syntax — <code>:versioner</code>, <code>:compiler</code>, <code>:runner</code>, <code>:cleanup</code>, 
+                <code>:dependencies</code>, <code>:publisher</code>, <code>:pubget</code>/<code>:pubupdate</code> — across a selection of projects in dependency order. It also drives 
+                <strong>git</strong> across every repository in the workspace with one command (<code>:gitstatus</code>, 
+                <code>:gitcommit</code>, <code>:gitsync</code>, branch/tag management and more), with a safe inner-/outer-first traversal order for nested repositories. A second, smaller binary — 
+                <strong><code>findproject</code></strong> — resolves a project by name, ID or folder and prints its path, so a shell wrapper can 
+                <code>cd</code> to it.
+              </p>
+              <p>
+                Like every Tom tool, <code>buildkit</code> is a thin command catalogue over <code>tom_build_base</code>: it declares 
+                <em>what</em> the commands are (<code>buildkitTool</code>) and <em>how</em> each one runs (its <code>CommandExecutor</code>s), and hands both to a 
+                <code>ToolRunner</code> from the base, which decides <em>where</em> they run (traversal) and <em>when</em>
+                 (pipeline order). It depends on the hosted <code>tom_build_base</code> from pub.dev — never a path override.
               </p>
               <h2>How it fits the rest of Tom</h2>
               <p>
-                The build tools are the <strong>operations and development surface</strong> that surrounds the framework. Alongside them sit the VS Code extension (for authoring) and a cloud provisioning layer (for operations) — together they are the parallel tooling lines in the framework overview. The build CLI builds and publishes the very components the other six areas are made of; 
-                <code>testkit</code> runs their test suites; the doc tools render their references. None of this ships inside a running Tom application, but all of it is what makes the rest of the framework buildable, testable, and shippable in a uniform way.
+                The build tools are the <strong>operations and development surface</strong> that surrounds the framework. Alongside them sit the VS Code extension (for authoring) and a cloud provisioning layer (for operations) — together they are the parallel tooling lines in the framework overview. 
+                <code>buildkit</code> builds and publishes the very components the other six areas are made of. None of this ships inside a running Tom application, but all of it is what makes the rest of the framework buildable, testable, and shippable in a uniform way.
               </p>
               <p>
-                &gt; <strong>Maturity note.</strong> <code>tom_build_base</code> and <code>tom_build_kit</code> — now both official &gt; modules of 
-                <code>basics</code> — have real, documented code and are in daily use across &gt; the workspace; <code>tom_build_kit</code>'s catalog tile is still to follow. The wider &gt; DevOps family is functional tooling that is not yet surfaced as components on &gt; this site.
+                &gt; <strong>Maturity note.</strong> <code>tom_build_base</code> and <code>tom_build_kit</code> have real, documented code &gt; and are in daily use across the workspace. The wider DevOps tool set is not yet &gt; published — and which parts of it will be is still open — so it is intentionally &gt; left out of this area until that is settled.
               </p>
             </div>
             <div class="grouplbl">In this area</div>
@@ -1418,6 +1445,18 @@
                 </div>
                 <!--@quick_info data={"name":"tom_build_base","id":"tom_build_base","version":"2.6.25","statusBadgeClass":"b-pub","statusLabel":"Published","roleLabel":"foundation","overview":"From the module readme.md file:","locLabel":"9.2k","testsLabel":"788","testLocLabel":"11.7k","docsCount":8,"refCount":1,"detailHref":"/modules/tom_build_base"}-->
                 <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_build_base" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-pub"><span class="d"></span>Published</span><h4 style="margin-top: 10px">tom_build_base <span class="tagrole">role: foundation</span></h4><div class="mono">tom_build_base · v2.6.25</div><p style="font-size: .86rem; margin: 10px 0 0">From the module readme.md file:</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">9.2k</div></div><div class="qs"><div class="k">Tests</div><div class="v">788</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">11.7k</div></div></div><div class="more"><span class="muted">8 docs · 1 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
+                <!--/@quick_info-->
+              </a>
+              <a class="tile works" style="text-decoration: none; color: inherit; display: block" href="/modules/tom_build_kit">
+                <div class="top"></div>
+                <h4>tom_build_kit <span class="badge b-works"><span class="d"></span>In the works</span></h4>
+                <div class="mono">tom_build_kit · v1.7.1</div>
+                <div class="metricline">7.6k loc · 182 tests · 5.1k test LOC</div>
+                <div class="desc">
+                  The package behind the `buildkit` command and Tom's main build tool — intended for all kinds of projects, not just the framework. It runs named build pipelines and individual build commands (versioner, compiler, runner, pubget, …) and drives git across every repository in the workspace, in dependency order, all built on tom_build_base.
+                </div>
+                <!--@quick_info data={"name":"tom_build_kit","id":"tom_build_kit","version":"1.7.1","statusBadgeClass":"b-works","statusLabel":"In the works","roleLabel":"–","overview":"From the module readme.md file:","locLabel":"7.6k","testsLabel":"182","testLocLabel":"5.1k","docsCount":12,"refCount":1,"detailHref":"/modules/tom_build_kit"}-->
+                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_build_kit" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-works"><span class="d"></span>In the works</span><h4 style="margin-top: 10px">tom_build_kit </h4><div class="mono">tom_build_kit · v1.7.1</div><p style="font-size: .86rem; margin: 10px 0 0">From the module readme.md file:</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">7.6k</div></div><div class="qs"><div class="k">Tests</div><div class="v">182</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">5.1k</div></div></div><div class="more"><span class="muted">12 docs · 1 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
                 <!--/@quick_info-->
               </a>
             </div>

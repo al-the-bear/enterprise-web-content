@@ -1032,6 +1032,65 @@
         box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
         transform: translateY(-2px);
       }
+      .hero-grid {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        gap: 40px;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        justify-content: space-between;
+      }
+      .hero-main {
+        flex: 1 1 420px;
+        min-width: 300px;
+      }
+      .hero-aside {
+        flex: 1 1 360px;
+        min-width: 260px;
+        max-width: 480px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .chip-section-title {
+        color: #fff;
+        font-size: 1rem;
+        font-weight: 700;
+        margin: 0 0 10px;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        height: 28px;
+        padding: 0 12px;
+        background: rgba(255,255,255,.10);
+        border: 1px solid rgba(255,255,255,.22);
+        border-radius: var(--r-pill);
+        color: #EAF2F9;
+        font-size: .78rem;
+        font-weight: 600;
+        line-height: 1;
+        white-space: nowrap;
+        text-decoration: none;
+        transition: background .12s ease, border-color .12s ease, transform .12s ease;
+      }
+      .chip:hover {
+        background: rgba(255,255,255,.20);
+        border-color: rgba(255,255,255,.45);
+        transform: translateY(-1px);
+      }
+      .hero-aside .chip-more {
+        margin: 4px 0 0;
+        color: #9FB6C9;
+        font-size: .72rem;
+        font-style: italic;
+      }
       .site-footer {
         border-top: 1px solid var(--line);
         background: var(--paper);
@@ -1304,7 +1363,7 @@
   <ellipse cx="80" cy="112" rx="6.5" ry="4.5" fill="#0E2841"/>
   <circle cx="128" cy="118" r="5" fill="url(#tom-s)"/><circle cx="140" cy="110" r="3" fill="#4EA72E" opacity=".8"/><circle cx="139" cy="124" r="2.4" fill="#0F9ED5" opacity=".7"/>
 </svg></span>
-             tom
+             Tom: Enterprise Flutter/Dart Platform
           </a>
           <div class="links">
             <a href="/">Home</a>
@@ -1330,7 +1389,8 @@
               </p>
               <p>
                 A small family of focused, dependency-light Dart packages that every other Tom component builds on: exception handling with traceable IDs, platform and console utilities, networking, the unified 
-                <strong>CLI / build framework</strong> (<code>tom_build_base</code>), cryptography, a unified messaging API, and a handful of documentation / workspace tools.
+                <strong>CLI / build framework</strong> (<code>tom_build_base</code>) and the <strong><code>buildkit</code> build orchestrator</strong>
+                 that runs on it (<code>tom_build_kit</code>), cryptography, a unified messaging API, and a handful of documentation / workspace tools.
               </p>
               <p>
                 <strong>This document is the map.</strong> It orients you to the whole <code>tom_ai/basics</code> repository and routes you to the one package you actually need — each package carries its own README with the full manual, and the runnable samples live in 
@@ -1351,6 +1411,7 @@
                  — platform detection, console output, and an HTTP client that abstract the host away. - <strong>Talk to flaky networks reliably</strong>
                  — HTTP retry with backoff and local server discovery. - <strong>Build your own CLI tools in minutes</strong>
                  — declare a tool, its commands and options once and get argument parsing, help, workspace traversal, pipelines and config for free (<code>tom_build_base</code>). - 
+                <strong>Drive the whole workspace from one command</strong> — <code>buildkit</code> runs cleanup, versioning, compile, dependency resolution, publishing and git workflows as composable pipelines across every package (<code>tom_build_kit</code>). - 
                 <strong>Secure your data</strong> — issue and verify JWTs, hash and check passwords, and do RSA round trips. - 
                 <strong>Send a message anywhere</strong> — one chat API over Telegram, WhatsApp, Signal and more. - <strong>Keep generated docs and workspace metadata honest</strong>
                  — non-destructive Markdown merges, workspace package scanning, and key generation.
@@ -1364,8 +1425,9 @@
               <p>
                 platform/console helpers, networking. Almost everything depends on these. - <strong>Build framework</strong>
                  — <code>tom_build_base</code> is the shared engine behind every Tom CLI tool (<code>buildkit</code>, 
-                <code>testkit</code>, <code>issuekit</code>, …); <code>tom_analyzer_shared</code> is the analyzer-summary cache that code generators sit on. - 
-                <strong>Crypto</strong> — security primitives, isolated so non-security code never pulls in the crypto dependency tree. - 
+                <code>testkit</code>, <code>issuekit</code>, …); <code>tom_build_kit</code> is the <code>buildkit</code>
+                 orchestrator built on it — the one package here that ships binaries; <code>tom_analyzer_shared</code>
+                 is the analyzer-summary cache that code generators sit on. - <strong>Crypto</strong> — security primitives, isolated so non-security code never pulls in the crypto dependency tree. - 
                 <strong>Messaging</strong> — a transport-agnostic chat abstraction. - <strong>Doc / workspace tooling</strong>
                  — utilities that operate on the workspace itself: Markdown merge, package scanning, key generation.
               </p>
@@ -1389,9 +1451,10 @@
               <p>---</p>
               <h2>Components</h2>
               <p>
-                Every package appears in exactly one row below, linked to its own README. There are no standalone binaries in this repository — each package is a library (<code>tom_build_base</code>
-                 and <code>tom_tools</code> ship their executables through the consuming CLI tools, not from here), so the 
-                <strong>Binary</strong> column is <code>—</code> throughout.
+                Every package appears in exactly one row below, linked to its own README. Only <code>tom_build_kit</code>
+                 ships standalone binaries (<code>buildkit</code>, <code>findproject</code>); the rest are libraries (<code>tom_build_base</code>
+                 and <code>tom_tools</code> ship their executables through the consuming CLI tools, not from here), so their 
+                <strong>Binary</strong> column is <code>—</code>.
               </p>
               <h3>Core utilities</h3>
               <table class="mdtable">
@@ -1430,6 +1493,15 @@
                       Unified CLI framework: workspace traversal, tool definition, pipeline execution, build configuration.
                     </td>
                     <td>—</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_basics/tree/main/tom_build_kit"><code>tom_build_kit</code></a>
+                    </td>
+                    <td>
+                      Build orchestration with pipelines — cleanup, versioning, compile, dependencies, publish and git workflows.
+                    </td>
+                    <td><code>buildkit</code>, <code>findproject</code></td>
                   </tr>
                   <tr>
                     <td>
@@ -1593,6 +1665,24 @@ void main() {
                     </td>
                   </tr>
                   <tr>
+                    <td>buildkit — user guide</td>
+                    <td>
+                      <a href="/docs?module=tom_build_kit&amp;path=doc%2Fbuildkit_user_guide.md"><code>tom_build_kit/doc/buildkit_user_guide.md</code></a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>buildkit — tools user guide</td>
+                    <td>
+                      <a href="/docs?module=tom_build_kit&amp;path=doc%2Ftools_user_guide.md"><code>tom_build_kit/doc/tools_user_guide.md</code></a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>buildkit — git guide mode</td>
+                    <td>
+                      <a href="/docs?module=tom_build_kit&amp;path=doc%2Fgit_guide_mode.md"><code>tom_build_kit/doc/git_guide_mode.md</code></a>
+                    </td>
+                  </tr>
+                  <tr>
                     <td>CLI tools — navigation model</td>
                     <td>
                       <a href="/docs?module=tom_build_base&amp;path=doc%2Fcli_tools_navigation.md"><code>tom_build_base/doc/cli_tools_navigation.md</code></a>
@@ -1641,6 +1731,8 @@ void main() {
 │
 ├── tom_build_base/           # unified CLI / build framework
 │   └── doc/                  # framework user guides
+├── tom_build_kit/            # buildkit orchestrator + pipelines (ships buildkit, findproject)
+│   └── doc/                  # buildkit + tools guides
 ├── tom_analyzer_shared/      # analyzer-summary caching for code generators
 │
 ├── tom_crypto/               # JWT, password hashing, RSA

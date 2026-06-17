@@ -1032,6 +1032,65 @@
         box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
         transform: translateY(-2px);
       }
+      .hero-grid {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        gap: 40px;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        justify-content: space-between;
+      }
+      .hero-main {
+        flex: 1 1 420px;
+        min-width: 300px;
+      }
+      .hero-aside {
+        flex: 1 1 360px;
+        min-width: 260px;
+        max-width: 480px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .chip-section-title {
+        color: #fff;
+        font-size: 1rem;
+        font-weight: 700;
+        margin: 0 0 10px;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        height: 28px;
+        padding: 0 12px;
+        background: rgba(255,255,255,.10);
+        border: 1px solid rgba(255,255,255,.22);
+        border-radius: var(--r-pill);
+        color: #EAF2F9;
+        font-size: .78rem;
+        font-weight: 600;
+        line-height: 1;
+        white-space: nowrap;
+        text-decoration: none;
+        transition: background .12s ease, border-color .12s ease, transform .12s ease;
+      }
+      .chip:hover {
+        background: rgba(255,255,255,.20);
+        border-color: rgba(255,255,255,.45);
+        transform: translateY(-1px);
+      }
+      .hero-aside .chip-more {
+        margin: 4px 0 0;
+        color: #9FB6C9;
+        font-size: .72rem;
+        font-style: italic;
+      }
       .site-footer {
         border-top: 1px solid var(--line);
         background: var(--paper);
@@ -1304,7 +1363,7 @@
   <ellipse cx="80" cy="112" rx="6.5" ry="4.5" fill="#0E2841"/>
   <circle cx="128" cy="118" r="5" fill="url(#tom-s)"/><circle cx="140" cy="110" r="3" fill="#4EA72E" opacity=".8"/><circle cx="139" cy="124" r="2.4" fill="#0F9ED5" opacity=".7"/>
 </svg></span>
-             tom
+             Tom: Enterprise Flutter/Dart Platform
           </a>
           <div class="links">
             <a href="/">Home</a>
@@ -1338,7 +1397,7 @@
               <div class="k">Status</div>
               <div class="v" style="font-size: 1.05rem; color: #D85F23">In the works</div>
             </div>
-            <div class="stat"><div class="k">LOC</div><div class="v">51.0k</div></div>
+            <div class="stat"><div class="k">LOC</div><div class="v">51.3k</div></div>
             <div class="stat"><div class="k">Tests</div><div class="v">33</div></div>
             <div class="stat"><div class="k">Test LOC</div><div class="v">548</div></div>
           </div>
@@ -1494,66 +1553,225 @@
           </div>
           <section class="section repodoc">
             <div class="pageprose">
-              <h1>Tom Core D4rt</h1>
+              <h1>tom_core_d4rt</h1>
               <p>
-                <code>tom_core_d4rt</code> is the <strong>D4rt scripting tool with full Tom Framework bridge support</strong>
-                 — an interactive REPL and headless script runner that exposes the core Tom packages to sandboxed DartScript code.
+                &gt; <strong>Attribution.</strong> The Tom Framework is developed by Peter Nicolai Alexis Kyaw. &gt; These packages are proprietary and internal (<code>publish_to: none</code>).
               </p>
               <p>
-                It builds on <code>tom_d4rt</code> (the interpreter) and <code>tom_d4rt_dcli</code> (the base REPL with shell/dcli bridges), adding generated bridges for a dozen Tom packages so scripts can call into the kernel, server, build, distributed, and document toolkits directly.
+                The <strong>D4rt scripting tool with full Tom Framework bridge support</strong> — an interactive REPL and headless script runner that exposes the core Tom packages to sandboxed DartScript code.
               </p>
+              <h2>Overview</h2>
               <p>
-                &gt; <strong>Proprietary / internal.</strong> This package is <code>publish_to: none</code> and is not &gt; distributed on pub.dev. See 
-                <a href="LICENSE"><code>LICENSE</code></a>.
+                <code>tom_core_d4rt</code> builds on <a href="https://pub.dev/packages/tom_d4rt"><code>tom_d4rt</code></a>
+                 (the interpreter) and <code>tom_d4rt_dcli</code> (the base REPL with shell/dcli bridges), adding <strong>generated bridges</strong>
+                 for a dozen Tom packages so scripts can call into the kernel, server, build, distributed, and document toolkits directly.
               </p>
-              <h2>What it does</h2>
+              <p>It ships two faces of the same bridge set:</p>
               <ul>
                 <li>
-                  <strong>Interactive REPL</strong> — launch <code>d4rt</code> for a live DartScript prompt with all Tom
+                  the <strong><code>d4rt</code> binary</strong> (<code>bin/d4rt.dart</code>) — a standalone REPL / script runner,
                 </li>
               </ul>
               <p>
-                bridges pre-registered, named sessions, replay, and <code>info</code>/<code>classes</code> introspection commands. - 
-                <strong>Headless script &amp; replay runner</strong> — execute a replay file and exit, for use in tests and automation. - 
-                <strong>VS Code integration</strong> — connects to the editor bridge (default port <code>19900</code>) so scripts can drive the running VS Code instance. - 
-                <strong>Programmatic API</strong> — <code>TomDartscriptBridges.register(interpreter)</code> wires every bridge into a 
-                <code>D4rt</code> instance you construct yourself.
+                and - a library entry point (<code>TomDartscriptBridges.register</code>) that the sibling <a href="/docs?module=tom_core_bridge&amp;path=README.md"><code>tom_core_bridge</code></a>
+                 package links into its <strong><code>core_bs</code></strong> VS Code bridge server (see <a href="#binaries-d4rt-and-core_bs">Binaries</a>
+                 below).
               </p>
-              <h2>Bridged packages</h2>
-              <p>
-                <code>TomDartscriptBridges.register(D4rt)</code> registers the <code>tom_d4rt_dcli</code> base bridges plus the following Tom packages (each is also exposed under its sub-package barrels for direct imports):
-              </p>
-              <table class="mdtable">
-                <thead><tr><th>Package</th><th>Domain</th></tr></thead>
-                <tbody>
-                  <tr><td><code>tom_basics</code></td><td>Core utilities, types, relaxers</td></tr>
-                  <tr><td><code>tom_reflection</code></td><td>Runtime reflection support</td></tr>
-                  <tr><td><code>tom_core_kernel</code></td><td>Kernel: context, crypto, logging, security, settings</td></tr>
-                  <tr><td><code>tom_core_server</code></td><td>Server: datasources, persistence, endpoints</td></tr>
-                  <tr><td><code>tom_build</code></td><td>Build system and workspace tooling</td></tr>
-                  <tr><td><code>tom_dist_ledger</code></td><td>Distributed ledger primitives</td></tr>
-                  <tr><td><code>tom_process_monitor</code></td><td>Process monitoring</td></tr>
-                  <tr><td><code>tom_doc_scanner</code></td><td>Markdown document scanning</td></tr>
-                  <tr><td><code>tom_doc_specs</code></td><td>Document schema specifications</td></tr>
-                  <tr><td><code>tom_md2latex</code></td><td>Markdown → LaTeX conversion</td></tr>
-                  <tr><td><code>tom_md2pdf</code></td><td>Markdown → PDF conversion</td></tr>
-                </tbody>
-              </table>
-              <h2>Getting started</h2>
+              <h2>Installation</h2>
+              <pre><code>dependencies:
+  tom_core_d4rt:
+    path: ../tom_core_d4rt</code></pre>
               <p>
                 This package generates its bridge code with <code>build_runner</code> (the <code>d4rtgen</code> builder configured in 
-                <code>buildkit.yaml</code>). After cloning the workspace and fetching dependencies, regenerate the bridges:
+                <code>buildkit.yaml</code>). After fetching dependencies, regenerate the bridges:
               </p>
               <pre><code>dart pub get
 dart run build_runner build --delete-conflicting-outputs</code></pre>
               <p>
                 See <a href="/docs?module=tom_core_d4rt&amp;path=doc%2Fbuild.md"><code>doc/build.md</code></a> for the full build and binary-compilation workflow.
               </p>
-              <h2>Run</h2>
-              <p>Run the REPL directly from source:</p>
-              <pre><code>dart run bin/d4rt.dart</code></pre>
+              <h2>Features</h2>
+              <table class="mdtable">
+                <thead><tr><th>Capability</th><th>What it gives you</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>Interactive REPL</td>
+                    <td>
+                      A live DartScript prompt with every Tom bridge pre-registered, named sessions, replay, and 
+                      <code>info</code>
+                      /
+                      <code>classes</code>
+                       introspection.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Headless runner</td>
+                    <td>Execute a replay file and exit — the pattern the bridge test suite uses.</td>
+                  </tr>
+                  <tr>
+                    <td>VS Code integration</td>
+                    <td>Scripts can drive the running editor over the bridge (default port <code>19900</code>).</td>
+                  </tr>
+                  <tr>
+                    <td>Programmatic API</td>
+                    <td>
+                      <code>TomDartscriptBridges.register(interpreter)</code>
+                       wires every bridge into a 
+                      <code>D4rt</code>
+                       instance you construct yourself.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3>Bridged packages (the 12 <code>lib/src/</code> groups)</h3>
               <p>
-                Or compile and run the <code>d4rt</code> binary produced by the build (it is emitted to <code>$TOM_BINARY_PATH/&lt;platform&gt;/d4rt</code>).
+                <code>TomDartscriptBridges.register(D4rt)</code> registers the <code>tom_d4rt_dcli</code> base bridges plus the following Tom packages. Each group lives under 
+                <code>lib/src/&lt;group&gt;/</code>, owns a generated <code>*_bridges.b.dart</code>, and is documented in its own 
+                <code>readme.md</code>; the bridges forward each package's API unchanged, so the per-package READMEs remain the authoritative API reference.
+              </p>
+              <table class="mdtable">
+                <thead><tr><th>Group</th><th>Bridge class</th><th>Bridges</th><th>Domain</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><code>cli</code></td>
+                    <td>— <em>(not a bridge)</em></td>
+                    <td>—</td>
+                    <td>
+                      REPL wiring (
+                      <code>D4rtRepl</code>
+                      ) + build-stamped 
+                      <code>TomVersionInfo</code>
+                       behind 
+                      <code>bin/d4rt.dart</code>
+                      .
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>tom_basics</code></td>
+                    <td><code>TomBasicsBridge</code></td>
+                    <td><a href="/docs?module=tom_basics&amp;path=README.md"><code>tom_basics</code></a></td>
+                    <td>Core utilities, types, relaxers</td>
+                  </tr>
+                  <tr>
+                    <td><code>tom_reflection</code></td>
+                    <td><code>TomReflectionBridge</code></td>
+                    <td><a href="/docs?module=tom_reflection&amp;path=README.md"><code>tom_reflection</code></a></td>
+                    <td>Runtime reflection support</td>
+                  </tr>
+                  <tr>
+                    <td><code>tom_core_kernel</code></td>
+                    <td><code>TomCoreKernelBridge</code></td>
+                    <td><a href="/docs?module=tom_core_kernel&amp;path=README.md"><code>tom_core_kernel</code></a></td>
+                    <td>Context, crypto, logging, security, settings</td>
+                  </tr>
+                  <tr>
+                    <td><code>tom_core_server</code></td>
+                    <td><code>TomCoreServerBridge</code></td>
+                    <td><a href="/docs?module=tom_core_server&amp;path=README.md"><code>tom_core_server</code></a></td>
+                    <td>Datasources, persistence, endpoints</td>
+                  </tr>
+                  <tr>
+                    <td><code>tom_build</code></td>
+                    <td><code>TomBuildBridge</code></td>
+                    <td><a href="/doc/tom_agent_container/tom_ai/devops/tom_build/README"><code>tom_build</code></a></td>
+                    <td>Build system and workspace tooling</td>
+                  </tr>
+                  <tr>
+                    <td><code>tom_dist_ledger</code></td>
+                    <td><code>TomDistLedgerBridge</code></td>
+                    <td>
+                      <a href="/doc/tom_agent_container/tom_ai/distributed/tom_dist_ledger/README"><code>tom_dist_ledger</code></a>
+                    </td>
+                    <td>Distributed ledger primitives</td>
+                  </tr>
+                  <tr>
+                    <td><code>tom_process_monitor</code></td>
+                    <td><code>TomProcessMonitorBridge</code></td>
+                    <td>
+                      <a href="/doc/tom_agent_container/tom_ai/distributed/tom_process_monitor/README"><code>tom_process_monitor</code></a>
+                    </td>
+                    <td>Process monitoring</td>
+                  </tr>
+                  <tr>
+                    <td><code>tom_doc_scanner</code></td>
+                    <td><code>TomDocScannerBridge</code></td>
+                    <td>
+                      <a href="/doc/tom_agent_container/tom_ai/ai_build/tom_doc_scanner/README"><code>tom_doc_scanner</code></a>
+                    </td>
+                    <td>Markdown document scanning</td>
+                  </tr>
+                  <tr>
+                    <td><code>tom_doc_specs</code></td>
+                    <td><code>TomDocSpecsBridge</code></td>
+                    <td><code>tom_doc_specs</code></td>
+                    <td>Document schema specifications</td>
+                  </tr>
+                  <tr>
+                    <td><code>tom_md2latex</code></td>
+                    <td><code>TomMd2latexBridge</code></td>
+                    <td><code>tom_md2latex</code></td>
+                    <td>Markdown → LaTeX conversion</td>
+                  </tr>
+                  <tr>
+                    <td><code>tom_md2pdf</code></td>
+                    <td><code>TomMd2pdfBridge</code></td>
+                    <td><code>tom_md2pdf</code></td>
+                    <td>Markdown → PDF conversion</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>
+                &gt; The <code>cli</code> group is the one non-bridge member: it holds the REPL &gt; (<code>D4rtRepl</code>) and the generated 
+                <code>TomVersionInfo</code>, not a package bridge. &gt; Twelve folders, eleven bridges.
+              </p>
+              <h2>Quick start</h2>
+              <p>Launch the REPL directly from source:</p>
+              <pre><code>dart run bin/d4rt.dart</code></pre>
+              <p>Inside the REPL, every Tom bridge is live. Introspect the kernel bridge and call into it:</p>
+              <pre><code>d4rt&gt; info tom_core_kernel        // lists the bridged kernel classes
+d4rt&gt; classes                     // lists every available class
+d4rt&gt; var s = TomString('hi');
+d4rt&gt; print(s.value);             // prints: hi</code></pre>
+              <h2>Binaries: <code>d4rt</code> and <code>core_bs</code></h2>
+              <p>
+                This package and its sibling <a href="/docs?module=tom_core_bridge&amp;path=README.md"><code>tom_core_bridge</code></a>
+                 emit the two binaries that carry the Tom bridge set:
+              </p>
+              <table class="mdtable">
+                <thead><tr><th>Binary</th><th>Owned by</th><th>What it is</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><code>d4rt</code></td>
+                    <td><code>tom_core_d4rt</code> (<code>bin/d4rt.dart</code>)</td>
+                    <td>Standalone REPL / script runner. Emitted to <code>$TOM_BINARY_PATH/&lt;platform-vs&gt;/d4rt</code>.</td>
+                  </tr>
+                  <tr>
+                    <td><code>core_bs</code></td>
+                    <td><code>tom_core_bridge</code> (<code>bin/core_bs.dart</code>)</td>
+                    <td>
+                      The VS Code bridge server (
+                      <code>tom_bs</code>
+                      ) 
+                      <strong>plus</strong>
+                       everything 
+                      <code>tom_core_d4rt</code>
+                       registers. Emitted to 
+                      <code>$TOM_BINARY_PATH/&lt;platform-vs&gt;/core_bs</code>
+                      .
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>
+                <code>core_bs</code> is just the base <code>tom_vscode_bridge</code> server with <code>TomDartscriptBridges.register</code>
+                 passed as an additional bridge registrar — so the Tom Framework bridge set defined here is reachable both from the command-line 
+                <code>d4rt</code> REPL and from inside a running VS Code instance via <code>core_bs</code>. Because <code>core_bs</code>
+                 links the generated bridge set, the two binaries share the same generation/compilation pipeline. See 
+                <a href="/docs?module=tom_core_bridge&amp;path=README.md"><code>tom_core_bridge/README.md</code></a>.
+              </p>
+              <h2>Run</h2>
+              <p>
+                Compile and run the <code>d4rt</code> binary produced by the build (emitted to <code>$TOM_BINARY_PATH/&lt;platform&gt;/d4rt</code>), or run from source as above.
               </p>
               <h3>CLI options</h3>
               <pre><code>Options
@@ -1569,10 +1787,6 @@ dart run build_runner build --delete-conflicting-outputs</code></pre>
   --dump-configuration      Dump registered bridges and configuration
   --debug                   Print init source and debug information
   -integration-server-port &lt;port&gt;  Override VS Code port (default: 19900)</code></pre>
-              <p>
-                Inside the REPL, use <code>info &lt;package&gt;</code> to inspect a bridged package and <code>classes</code>
-                 to list every available class.
-              </p>
               <h3>Headless / test mode</h3>
               <p>
                 Execute a replay script and exit (no interactive prompt) — the pattern used by the bridge test suite:
@@ -1590,7 +1804,68 @@ void main() {
   TomDartscriptBridges.register(interpreter);
   // All Tom bridges are now available to scripts run on this interpreter.
 }</code></pre>
-              <h2>Additional information</h2>
+              <h2>Architecture</h2>
+              <pre><code>bin/d4rt.dart                 thin entry point
+        │
+   lib/src/cli/               D4rtRepl + VSCodeIntegrationMixin + TomVersionInfo
+        │
+TomDartscriptBridges.register(D4rt)
+        │
+        ├── tom_d4rt_dcli base bridges (shell / dcli / VS Code API)
+        └── 11 generated package bridges (lib/src/&lt;group&gt;/*_bridges.b.dart)
+               tom_basics · tom_reflection · tom_core_kernel · tom_core_server
+               tom_build · tom_dist_ledger · tom_process_monitor
+               tom_doc_scanner · tom_doc_specs · tom_md2latex · tom_md2pdf</code></pre>
+              <table class="mdtable">
+                <thead><tr><th>Type</th><th>Responsibility</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><code>TomDartscriptBridges</code></td>
+                    <td>Registration class — wires the base + all package bridges into a <code>D4rt</code>.</td>
+                  </tr>
+                  <tr>
+                    <td><code>D4rtRepl</code></td>
+                    <td>
+                      The interactive REPL (
+                      <code>lib/src/cli/</code>
+                      ), extends 
+                      <code>D4rtReplBase</code>
+                       with VS Code integration and 
+                      <code>.d4rt</code>
+                      /
+                      <code>.dcli</code>
+                       replay.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>TomVersionInfo</code></td>
+                    <td>
+                      Build-stamped version constants surfaced by 
+                      <code>-v</code>
+                       (generated by the 
+                      <code>versioner</code>
+                       step).
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>Tom*Bridge</code></td>
+                    <td>One generated bridge container per upstream package (e.g. <code>TomCoreKernelBridge</code>).</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h2>Ecosystem</h2>
+              <pre><code>tom_d4rt (interpreter) · tom_d4rt_dcli (base REPL + bridges)
+                 │
+          tom_core_d4rt          ← you are here
+   (generated Tom Framework bridge set: TomDartscriptBridges)
+                 │
+        ┌────────┴────────┐
+   d4rt binary       tom_core_bridge → core_bs (VS Code bridge server)</code></pre>
+              <p>
+                <code>tom_core_d4rt</code> is the bridge layer of the Tom Framework: it makes the kernel, server, build, distributed, and document packages callable from sandboxed DartScript. See the 
+                <a href="/doc/tom_agent_container/tom_ai/core/README">repository map</a> for the full picture.
+              </p>
+              <h2>Further documentation</h2>
               <ul>
                 <li>
                   <a href="/docs?module=tom_core_d4rt&amp;path=doc%2Fbuild.md"><code>doc/build.md</code></a> — build, bridge generation, binary compilation.
@@ -1606,7 +1881,21 @@ void main() {
                   <a href="/docs?module=tom_core_d4rt&amp;path=doc%2Fd4rt_cli_api_design.md"><code>doc/d4rt_cli_api_design.md</code></a>
                    — forward-looking CLI / API design notes.
                 </li>
+                <li>Per-bridge generation notes under <a href="doc/"><code>doc/</code></a> — one markdown file per group</li>
               </ul>
+              <p>
+                (<code>doc/tom_core_kernel.md</code>, <code>doc/tom_core_server.md</code>, …). - <a href="/docs?module=tom_core_bridge&amp;path=README.md"><code>tom_core_bridge</code></a>
+                 — the <code>core_bs</code> VS Code bridge server that links this bridge set.
+              </p>
+              <h2>Status</h2>
+              <ul>
+                <li><strong>Version:</strong> 1.0.0</li>
+                <li><strong>Tests:</strong> 33 test cases across 3 suites (replay + dcli-compat; run with</li>
+              </ul>
+              <p>
+                <code>dart test</code> or the <code>bin/d4rtrun.b.dart</code> replay runner). - <strong>License:</strong>
+                 proprietary — see <a href="LICENSE">LICENSE</a>.
+              </p>
             </div>
           </section>
           <details class="licbox">
