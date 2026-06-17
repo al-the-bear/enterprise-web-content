@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1323,13 +1343,27 @@
                 <section id="TomRequestId" class="api-declaration">
                   <h3 class="api-decl-title">class TomRequestId</h3>
                   <code class="api-signature">class TomRequestId</code>
+                  <div class="api-doc">
+                    <p>A per-request correlation id.</p>
+                    <p>
+                      [tomDefaultAuthenticationMiddleware] creates one [TomRequestId] per incoming request and publishes it into the request zone (keyed by 
+                      <code>TomRequestId</code>), so any code running under that request can recover it with <code>getFromCurrentZone&lt;TomRequestId&gt;()</code>. It is the source of the 
+                      <code>requestUuid</code> stamped onto server exceptions ([TomServerException]) and of the request id surfaced by the endpoints pipeline.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
-                    <div id="TomRequestId.new" class="api-member"><div class="api-member-head"><code class="api-signature">TomRequestId.new()</code></div></div>
+                    <div id="TomRequestId.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomRequestId.new()</code></div>
+                      <div class="api-doc"><p>Creates a request id with a new random v4 [uuid].</p></div>
+                    </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="TomRequestId.uuid" class="api-member"><div class="api-member-head"><code class="api-signature">final String uuid</code></div></div>
+                    <div id="TomRequestId.uuid" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String uuid</code></div>
+                      <div class="api-doc"><p>A freshly generated v4 UUID identifying this request.</p></div>
+                    </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
@@ -1344,14 +1378,27 @@
                 <section id="TomRequestLogInfo" class="api-declaration">
                   <h3 class="api-decl-title">class TomRequestLogInfo</h3>
                   <code class="api-signature">class TomRequestLogInfo</code>
+                  <div class="api-doc">
+                    <p>Per-request logging state carried in the shelf request context.</p>
+                    <p>
+                      [contextSetupMiddleware] seeds one instance under [contextName] at the start of the pipeline; [tomLoggingMiddleware] reads it to decide whether to emit the access-log line and to mark it as logged. Set [shouldBeLogged] to 
+                      <code>false</code> (e.g. for health checks) to suppress the line.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomRequestLogInfo.new" class="api-member"><div class="api-member-head"><code class="api-signature">TomRequestLogInfo.new()</code></div></div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="TomRequestLogInfo.hasBeenLogged" class="api-member"><div class="api-member-head"><code class="api-signature">bool hasBeenLogged</code></div></div>
-                    <div id="TomRequestLogInfo.shouldBeLogged" class="api-member"><div class="api-member-head"><code class="api-signature">bool shouldBeLogged</code></div></div>
+                    <div id="TomRequestLogInfo.hasBeenLogged" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool hasBeenLogged</code></div>
+                      <div class="api-doc"><p>Whether the access-log line for this request has already been emitted.</p></div>
+                    </div>
+                    <div id="TomRequestLogInfo.shouldBeLogged" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool shouldBeLogged</code></div>
+                      <div class="api-doc"><p>Whether this request should produce an access-log line at all.</p></div>
+                    </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
@@ -1364,33 +1411,67 @@
                   </div>
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
-                    <div id="TomRequestLogInfo.contextName" class="api-member"><div class="api-member-head"><code class="api-signature">static String contextName</code></div></div>
+                    <div id="TomRequestLogInfo.contextName" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String contextName</code></div>
+                      <div class="api-doc"><p>The request-context key under which the [TomRequestLogInfo] is stored.</p></div>
+                    </div>
                   </div>
                 </section>
                 <section id="TomServer" class="api-declaration">
                   <h3 class="api-decl-title">class TomServer</h3>
                   <code class="api-signature">class TomServer</code>
+                  <div class="api-doc">
+                    <p>The HTTP entry point of a Tom server application.</p>
+                    <p>
+                      Built from a [TomBaseServerConfiguration], a [TomServer] assembles a shelf [Pipeline] — context setup, error handling, authentication, logging — in front of the endpoint [Router] and binds it to a socket in [start]. TLS, host/port, isolate sharing, compression, and the powered-by / server headers all come from the configuration. The error and authentication-error handlers translate thrown exceptions into JSON error responses and default to [errorHandler] unless overridden on the configuration.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomServer.new" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomServer.new(TomBaseServerConfiguration configuration)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Creates a server from [configuration], wiring the error, authentication- error, and logging handlers from it (falling back to the defaults).
+                        </p>
+                      </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
                     <div id="TomServer.configuration" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomBaseServerConfiguration configuration</code></div>
+                      <div class="api-doc"><p>The configuration that drives binding, TLS, and pipeline composition.</p></div>
                     </div>
                     <div id="TomServer.securityContext" class="api-member">
                       <div class="api-member-head"><code class="api-signature">SecurityContext? securityContext</code></div>
+                      <div class="api-doc"><p>The TLS security context, built from the configuration when SSL is on.</p></div>
                     </div>
-                    <div id="TomServer.router" class="api-member"><div class="api-member-head"><code class="api-signature">Router? router</code></div></div>
+                    <div id="TomServer.router" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Router? router</code></div>
+                      <div class="api-doc"><p>The endpoint router, initialised during [start].</p></div>
+                    </div>
                     <div id="TomServer.errorHandler" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Response? Function(Request, Object, StackTrace) errorHandler</code></div>
+                      <div class="api-doc">
+                        <p>Maps a thrown error to a JSON error response (HTTP 500).</p>
+                        <p>
+                          The body always carries <code>errorType</code>; a [TomException] additionally contributes <code>errorKey</code>, 
+                          <code>uuid</code>, <code>autoLog</code>, and <code>requestUuid</code>, and a [TomServerException] adds 
+                          <code>clientThrow</code>. Every response carries the <code>x-tom-error: true</code> header. Overridden by 
+                          <code>TomBaseServerConfiguration.errorHandler</code> when provided.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomServer.authenticationErrorHandler" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">Response? Function(Request, Object, StackTrace)?? authenticationErrorHandler</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Error handler applied by the outer pipeline layer (authentication phase).</p>
+                        <p>
+                          Defaults to the configuration's <code>authenticationErrorHandler</code>, falling back to [errorHandler].
+                        </p>
                       </div>
                     </div>
                     <div id="TomServer.loggingMiddleware" class="api-member">
@@ -1399,11 +1480,26 @@
                           FutureOr&lt;Response&gt; Function(Request) Function(FutureOr&lt;Response&gt; Function(Request)) loggingMiddleware
                         </code>
                       </div>
+                      <div class="api-doc">
+                        <p>
+                          The middleware that emits the per-request access log; from the configuration (defaults to [tomLoggingMiddleware]).
+                        </p>
+                      </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
-                    <div id="TomServer.start" class="api-member"><div class="api-member-head"><code class="api-signature">void start()</code></div></div>
+                    <div id="TomServer.start" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void start()</code></div>
+                      <div class="api-doc">
+                        <p>Initialises the router, composes the pipeline, and binds the socket.</p>
+                        <p>
+                          Builds the TLS [SecurityContext] (unless <code>noSsl</code>), resolves the listen address (<code>host</code>, or any-IPv4 when empty or 
+                          <code>listenToAnyIP</code>), optionally wraps the router in a [Cascade] with the configuration's pre/post handlers, then serves the assembled pipeline on the configured port (with 
+                          <code>shared</code> sockets when running multiple isolates). Fire-and-forget: it starts listening and logs the bound address; it does not return the [HttpServer].
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </section>
                 <section id="_handleError" class="api-declaration">
@@ -1411,33 +1507,76 @@
                   <code class="api-signature">
                     FutureOr&lt;Response&gt; Function(Request) Function(FutureOr&lt;Response&gt; Function(Request)) _handleError(Response? Function(Request, Object, StackTrace) errorHandler, String id)
                   </code>
+                  <div class="api-doc">
+                    <p>Wraps the inner handler so thrown errors are routed to [errorHandler].</p>
+                    <p>
+                      When the inner handler throws, the error and stack trace are logged and passed to [errorHandler]; a non-null result becomes the response, otherwise the error is rethrown to the next outer handler. [id] labels the layer for tracing. The pipeline installs two layers — an outer one (using the authentication error handler) and an inner one (using the main error handler) — see [TomServer.start].
+                    </p>
+                  </div>
                 </section>
                 <section id="contextSetupMiddleware" class="api-declaration">
                   <h3 class="api-decl-title">function contextSetupMiddleware</h3>
                   <code class="api-signature">
                     FutureOr&lt;Response&gt; Function(Request) Function(FutureOr&lt;Response&gt; Function(Request)) contextSetupMiddleware(String id, [Map&lt;String, Object&gt;? context])
                   </code>
-                  <div class="api-doc"><p>this middleware does nothing or just adds the provided context to the inner handler</p></div>
+                  <div class="api-doc">
+                    <p>A pass-through shelf [Middleware] that seeds the request [Request.context].</p>
+                    <p>
+                      If [context] is supplied, its entries are merged into a copy of the incoming request's context before the inner handler runs; otherwise the request is forwarded unchanged. [id] is a label for tracing. The default pipeline uses it to attach a fresh [TomRequestLogInfo] under [TomRequestLogInfo.contextName] (see [TomServer.start]).
+                    </p>
+                  </div>
                 </section>
                 <section id="extractAuthentication" class="api-declaration">
                   <h3 class="api-decl-title">function extractAuthentication</h3>
                   <code class="api-signature">(TomPrincipal?, TomClientJwtToken?) extractAuthentication(Request req)</code>
+                  <div class="api-doc">
+                    <p>Extracts the bearer credentials from a request's <code>Authorization</code> header.</p>
+                    <p>
+                      Reads the <code>Authorization</code> header and, when it carries a <code>Bearer &lt;jwt&gt;</code> token, parses it into a [TomClientJwtToken] and derives the [TomPrincipal] via [TomBearerAuthentication.convertTokenPayloadToPrincipal]. Returns a record 
+                      <code>(principal, token)</code>; either element is <code>null</code> when the header is absent, not a bearer token, or fails to parse. Parsing/derivation errors are swallowed (the corresponding element stays 
+                      <code>null</code>) so an invalid token is treated as "no credentials" rather than raising — authorization decisions are made downstream.
+                    </p>
+                  </div>
                 </section>
                 <section id="noopHandler" class="api-declaration">
                   <h3 class="api-decl-title">function noopHandler</h3>
                   <code class="api-signature">FutureOr&lt;Response&gt; Function(Request) noopHandler(String id, int statusCode)</code>
+                  <div class="api-doc">
+                    <p>A [Handler] that ignores the request and always replies with [statusCode].</p>
+                    <p>Useful as a terminal handler or a placeholder in a [Cascade]; [id] labels it for tracing.</p>
+                  </div>
                 </section>
                 <section id="tomDefaultAuthenticationMiddleware" class="api-declaration">
                   <h3 class="api-decl-title">function tomDefaultAuthenticationMiddleware</h3>
                   <code class="api-signature">
                     FutureOr&lt;Response&gt; Function(Request) Function(FutureOr&lt;Response&gt; Function(Request)) tomDefaultAuthenticationMiddleware(String id, [Map&lt;String, Object&gt;? context])
                   </code>
+                  <div class="api-doc">
+                    <p>The default authentication [Middleware] of a [TomServer].</p>
+                    <p>
+                      For each request it: 1. extracts bearer credentials with [extractAuthentication]; 2. resolves the effective [TomPrincipal] — preferring a principal cached for the client token by [TomAuthorizationCache], falling back to the one derived directly from the token; 3. runs the inner handler inside a [runZoned] scope whose [TomZoneValues] expose the shelf [Request], the ambient [TomExecutionContext], the resolved [TomPrincipal], the [TomClientJwtToken], and a fresh [TomRequestId] — making them recoverable anywhere in the request via 
+                      <code>getFromCurrentZone</code>.
+                    </p>
+                    <p>
+                      [id] labels the middleware for tracing; the optional [context] is merged into the request context before handling. Replace it via 
+                      <code>TomBaseServerConfiguration.authenticationMiddleware</code> to customise authentication.
+                    </p>
+                  </div>
                 </section>
                 <section id="tomLoggingMiddleware" class="api-declaration">
                   <h3 class="api-decl-title">function tomLoggingMiddleware</h3>
                   <code class="api-signature">
                     FutureOr&lt;Response&gt; Function(Request) Function(FutureOr&lt;Response&gt; Function(Request)) tomLoggingMiddleware()
                   </code>
+                  <div class="api-doc">
+                    <p>The default request-logging [Middleware] of a [TomServer].</p>
+                    <p>
+                      After the inner handler produces a response, it emits a single <code>HTTP/&lt;version&gt; [&lt;method&gt;] &lt;url&gt; ... &lt;status&gt;</code>
+                       info line — but only when the request's [TomRequestLogInfo] (read from the request context) has <code>shouldBeLogged == true</code>
+                       and has not already been logged, after which it marks <code>hasBeenLogged</code>. This one-shot guard prevents duplicate lines when the pipeline retries or re-enters. It is the default value of 
+                      <code>TomBaseServerConfiguration.loggingMiddleware</code>.
+                    </p>
+                  </div>
                 </section>
               </div>
             </div>

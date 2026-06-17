@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1316,10 +1336,12 @@
                 <div class="api-doc">
                   <p>Client side of the bidirectional RPC primitive (todo #4).</p>
                   <p>
-                    The bridge is normally client→server: the Dart client calls the extension and awaits a reply. The callback-bearing Agent SDK features (#5 Dart-defined tools, #6 `canUseTool`) need the reverse — the extension issues a request to *this* client mid-query and awaits the answer. [BridgeRequestDispatcher] is that client half: it recognises an incoming server→client request, routes it to a registered handler, and writes the handler's reply back as a JSON-RPC response.
+                    The bridge is normally client→server: the Dart client calls the extension and awaits a reply. The callback-bearing Agent SDK features (#5 Dart-defined tools, #6 
+                    <code>canUseTool</code>) need the reverse — the extension issues a request to <em>this</em> client mid-query and awaits the answer. [BridgeRequestDispatcher] is that client half: it recognises an incoming server→client request, routes it to a registered handler, and writes the handler's reply back as a JSON-RPC response.
                   </p>
                   <p>
-                    It is deliberately generic — it knows nothing about the Agent SDK — and the reply sink is injected so it is unit-testable without a socket. The matching extension half is `ServerToClientRpc` (`src/services/server-to-client-rpc.ts`).
+                    It is deliberately generic — it knows nothing about the Agent SDK — and the reply sink is injected so it is unit-testable without a socket. The matching extension half is 
+                    <code>ServerToClientRpc</code> (<code>src/services/server-to-client-rpc.ts</code>).
                   </p>
                 </div>
                 <section id="BridgeRequestDispatcher" class="api-declaration">
@@ -1370,10 +1392,12 @@
                       <div class="api-member-head"><code class="api-signature">bool maybeHandle(Map&lt;String, dynamic&gt; message)</code></div>
                       <div class="api-doc">
                         <p>
-                          If [message] is a server→client request (both `method` and `id` present), route it to its handler and return `true`; the reply is sent through the injected sink once the (possibly async) handler completes.
+                          If [message] is a server→client request (both <code>method</code> and <code>id</code> present), route it to its handler and return 
+                          <code>true</code>; the reply is sent through the injected sink once the (possibly async) handler completes.
                         </p>
                         <p>
-                          Returns `false` for anything that is not a request — responses (`id` but no `method`) and notifications (`method` but no `id`) — so the caller can fall through to its existing response/notification routing.
+                          Returns <code>false</code> for anything that is not a request — responses (<code>id</code> but no <code>method</code>) and notifications (<code>method</code>
+                           but no <code>id</code>) — so the caller can fall through to its existing response/notification routing.
                         </p>
                       </div>
                     </div>
@@ -1393,7 +1417,8 @@
                   <code class="api-signature">typedef BridgeRequestHandler = FutureOr&lt;Object?&gt; Function(Map&lt;String, dynamic&gt;)</code>
                   <div class="api-doc">
                     <p>
-                      A handler for an incoming server→client request `method`. Receives the request `params` and returns the JSON-encodable result (sync or async).
+                      A handler for an incoming server→client request <code>method</code>. Receives the request <code>params</code>
+                       and returns the JSON-encodable result (sync or async).
                     </p>
                   </div>
                 </section>

@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1330,7 +1350,8 @@
                     Dart mirror of the Agent SDK permission surface: [PermissionMode], the [CanUseTool] approval callback, its [PermissionResult] return value, and the [PermissionUpdate] rule mutations.
                   </p>
                   <p>
-                    These are caller-controlled values travelling Dart → extension, so the wire uses the SDK's camelCase field names (`updatedInput`, `toolUseID`, …) and the enums carry their exact SDK string values. Round-trip is `T.fromJson(t.toJson()).toJson() == t.toJson()`.
+                    These are caller-controlled values travelling Dart → extension, so the wire uses the SDK's camelCase field names (<code>updatedInput</code>, 
+                    <code>toolUseID</code>, …) and the enums carry their exact SDK string values. Round-trip is <code>T.fromJson(t.toJson()).toJson() == t.toJson()</code>.
                   </p>
                 </div>
                 <section id="CanUseToolContext" class="api-declaration">
@@ -1338,7 +1359,7 @@
                   <code class="api-signature">class CanUseToolContext</code>
                   <div class="api-doc">
                     <p>
-                      Context passed to a [CanUseTool] callback. Mirrors the SDK's `{ suggestions?, signal }` argument; the payload is kept opaque ([raw]) until the reverse-RPC wiring (todos #4–#6) gives it structure.
+                      Context passed to a [CanUseTool] callback. Mirrors the SDK's <code>{ suggestions?, signal }</code> argument; the payload is kept opaque ([raw]) until the reverse-RPC wiring (todos #4–#6) gives it structure.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1361,7 +1382,7 @@
                 <section id="PermissionAllow" class="api-declaration">
                   <h3 class="api-decl-title">class PermissionAllow</h3>
                   <code class="api-signature">final class PermissionAllow extends PermissionResult</code>
-                  <div class="api-doc"><p>Allow result (`behavior: 'allow'`).</p></div>
+                  <div class="api-doc"><p>Allow result (<code>behavior: 'allow'</code>).</p></div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="PermissionAllow.new" class="api-member">
@@ -1384,7 +1405,7 @@
                     </div>
                     <div id="PermissionAllow.toolUseId" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final String? toolUseId</code></div>
-                      <div class="api-doc"><p>The tool-use id this decision applies to (`toolUseID`).</p></div>
+                      <div class="api-doc"><p>The tool-use id this decision applies to (<code>toolUseID</code>).</p></div>
                     </div>
                     <div id="PermissionAllow.decisionClassification" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final PermissionDecisionClassification? decisionClassification</code></div>
@@ -1405,7 +1426,7 @@
                 <section id="PermissionDeny" class="api-declaration">
                   <h3 class="api-decl-title">class PermissionDeny</h3>
                   <code class="api-signature">final class PermissionDeny extends PermissionResult</code>
-                  <div class="api-doc"><p>Deny result (`behavior: 'deny'`).</p></div>
+                  <div class="api-doc"><p>Deny result (<code>behavior: 'deny'</code>).</p></div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="PermissionDeny.new" class="api-member">
@@ -1428,7 +1449,7 @@
                     </div>
                     <div id="PermissionDeny.toolUseId" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final String? toolUseId</code></div>
-                      <div class="api-doc"><p>The tool-use id this decision applies to (`toolUseID`).</p></div>
+                      <div class="api-doc"><p>The tool-use id this decision applies to (<code>toolUseID</code>).</p></div>
                     </div>
                     <div id="PermissionDeny.decisionClassification" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final PermissionDecisionClassification? decisionClassification</code></div>
@@ -1450,7 +1471,9 @@
                   <h3 class="api-decl-title">class PermissionResult</h3>
                   <code class="api-signature">abstract sealed class PermissionResult</code>
                   <div class="api-doc">
-                    <p>The result returned by a [CanUseTool] callback. Mirrors `PermissionResult` (an allow/deny union).</p>
+                    <p>
+                      The result returned by a [CanUseTool] callback. Mirrors <code>PermissionResult</code> (an allow/deny union).
+                    </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
@@ -1477,7 +1500,7 @@
                 <section id="PermissionRuleValue" class="api-declaration">
                   <h3 class="api-decl-title">class PermissionRuleValue</h3>
                   <code class="api-signature">class PermissionRuleValue</code>
-                  <div class="api-doc"><p>A single tool-permission rule. Mirrors `PermissionRuleValue`.</p></div>
+                  <div class="api-doc"><p>A single tool-permission rule. Mirrors <code>PermissionRuleValue</code>.</p></div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="PermissionRuleValue.new" class="api-member">
@@ -1514,7 +1537,7 @@
                 <section id="PermissionUpdate" class="api-declaration">
                   <h3 class="api-decl-title">class PermissionUpdate</h3>
                   <code class="api-signature">abstract sealed class PermissionUpdate</code>
-                  <div class="api-doc"><p>A permission-rule mutation. Mirrors `PermissionUpdate` (six variants).</p></div>
+                  <div class="api-doc"><p>A permission-rule mutation. Mirrors <code>PermissionUpdate</code> (six variants).</p></div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="PermissionUpdate.new" class="api-member"><div class="api-member-head"><code class="api-signature">const PermissionUpdate.new()</code></div></div>
@@ -1540,7 +1563,7 @@
                 <section id="PermissionUpdateDirectories" class="api-declaration">
                   <h3 class="api-decl-title">class PermissionUpdateDirectories</h3>
                   <code class="api-signature">final class PermissionUpdateDirectories extends PermissionUpdate</code>
-                  <div class="api-doc"><p>`addDirectories` / `removeDirectories` updates.</p></div>
+                  <div class="api-doc"><p><code>addDirectories</code> / <code>removeDirectories</code> updates.</p></div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="PermissionUpdateDirectories.new" class="api-member">
@@ -1588,7 +1611,7 @@
                 <section id="PermissionUpdateRules" class="api-declaration">
                   <h3 class="api-decl-title">class PermissionUpdateRules</h3>
                   <code class="api-signature">final class PermissionUpdateRules extends PermissionUpdate</code>
-                  <div class="api-doc"><p>`addRules` / `replaceRules` / `removeRules` updates.</p></div>
+                  <div class="api-doc"><p><code>addRules</code> / <code>replaceRules</code> / <code>removeRules</code> updates.</p></div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="PermissionUpdateRules.new" class="api-member">
@@ -1640,7 +1663,7 @@
                 <section id="PermissionUpdateSetMode" class="api-declaration">
                   <h3 class="api-decl-title">class PermissionUpdateSetMode</h3>
                   <code class="api-signature">final class PermissionUpdateSetMode extends PermissionUpdate</code>
-                  <div class="api-doc"><p>`setMode` update.</p></div>
+                  <div class="api-doc"><p><code>setMode</code> update.</p></div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="PermissionUpdateSetMode.new" class="api-member">
@@ -1676,7 +1699,7 @@
                 <section id="PermissionBehavior" class="api-declaration">
                   <h3 class="api-decl-title">enum PermissionBehavior</h3>
                   <code class="api-signature">enum PermissionBehavior</code>
-                  <div class="api-doc"><p>Behaviour applied by a permission rule. Mirrors `PermissionBehavior`.</p></div>
+                  <div class="api-doc"><p>Behaviour applied by a permission rule. Mirrors <code>PermissionBehavior</code>.</p></div>
                   <h4 class="api-group-title">Values</h4>
                   <div class="api-members">
                     <div id="PermissionBehavior.allow" class="api-member">
@@ -1721,22 +1744,22 @@
                   <code class="api-signature">enum PermissionDecisionClassification</code>
                   <div class="api-doc">
                     <p>
-                      Classification of a permission decision. Mirrors `PermissionDecisionClassification` (snake_case wire values).
+                      Classification of a permission decision. Mirrors <code>PermissionDecisionClassification</code> (snake_case wire values).
                     </p>
                   </div>
                   <h4 class="api-group-title">Values</h4>
                   <div class="api-members">
                     <div id="PermissionDecisionClassification.userTemporary" class="api-member">
                       <div class="api-member-head"><code class="api-signature">userTemporary</code></div>
-                      <div class="api-doc"><p>Temporary user grant (`user_temporary`).</p></div>
+                      <div class="api-doc"><p>Temporary user grant (<code>user_temporary</code>).</p></div>
                     </div>
                     <div id="PermissionDecisionClassification.userPermanent" class="api-member">
                       <div class="api-member-head"><code class="api-signature">userPermanent</code></div>
-                      <div class="api-doc"><p>Permanent user grant (`user_permanent`).</p></div>
+                      <div class="api-doc"><p>Permanent user grant (<code>user_permanent</code>).</p></div>
                     </div>
                     <div id="PermissionDecisionClassification.userReject" class="api-member">
                       <div class="api-member-head"><code class="api-signature">userReject</code></div>
-                      <div class="api-doc"><p>User rejection (`user_reject`).</p></div>
+                      <div class="api-doc"><p>User rejection (<code>user_reject</code>).</p></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1768,34 +1791,35 @@
                   <code class="api-signature">enum PermissionMode</code>
                   <div class="api-doc">
                     <p>
-                      Controls how tool executions are handled. Mirrors `PermissionMode` (six values; `default` is spelled [PermissionMode.default_] in Dart).
+                      Controls how tool executions are handled. Mirrors <code>PermissionMode</code> (six values; <code>default</code>
+                       is spelled [PermissionMode.default_] in Dart).
                     </p>
                   </div>
                   <h4 class="api-group-title">Values</h4>
                   <div class="api-members">
                     <div id="PermissionMode.default_" class="api-member">
                       <div class="api-member-head"><code class="api-signature">default_</code></div>
-                      <div class="api-doc"><p>Prompt for dangerous operations (`default`).</p></div>
+                      <div class="api-doc"><p>Prompt for dangerous operations (<code>default</code>).</p></div>
                     </div>
                     <div id="PermissionMode.acceptEdits" class="api-member">
                       <div class="api-member-head"><code class="api-signature">acceptEdits</code></div>
-                      <div class="api-doc"><p>Auto-accept file edits (`acceptEdits`).</p></div>
+                      <div class="api-doc"><p>Auto-accept file edits (<code>acceptEdits</code>).</p></div>
                     </div>
                     <div id="PermissionMode.bypassPermissions" class="api-member">
                       <div class="api-member-head"><code class="api-signature">bypassPermissions</code></div>
-                      <div class="api-doc"><p>Bypass all permission checks (`bypassPermissions`).</p></div>
+                      <div class="api-doc"><p>Bypass all permission checks (<code>bypassPermissions</code>).</p></div>
                     </div>
                     <div id="PermissionMode.plan" class="api-member">
                       <div class="api-member-head"><code class="api-signature">plan</code></div>
-                      <div class="api-doc"><p>Planning mode, no tool execution (`plan`).</p></div>
+                      <div class="api-doc"><p>Planning mode, no tool execution (<code>plan</code>).</p></div>
                     </div>
                     <div id="PermissionMode.dontAsk" class="api-member">
                       <div class="api-member-head"><code class="api-signature">dontAsk</code></div>
-                      <div class="api-doc"><p>Deny anything not pre-approved (`dontAsk`).</p></div>
+                      <div class="api-doc"><p>Deny anything not pre-approved (<code>dontAsk</code>).</p></div>
                     </div>
                     <div id="PermissionMode.auto" class="api-member">
                       <div class="api-member-head"><code class="api-signature">auto</code></div>
-                      <div class="api-doc"><p>Use a model classifier to approve/deny (`auto`).</p></div>
+                      <div class="api-doc"><p>Use a model classifier to approve/deny (<code>auto</code>).</p></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1832,7 +1856,7 @@
                 <section id="PermissionUpdateDestination" class="api-declaration">
                   <h3 class="api-decl-title">enum PermissionUpdateDestination</h3>
                   <code class="api-signature">enum PermissionUpdateDestination</code>
-                  <div class="api-doc"><p>Where a permission update is persisted. Mirrors `PermissionUpdateDestination`.</p></div>
+                  <div class="api-doc"><p>Where a permission update is persisted. Mirrors <code>PermissionUpdateDestination</code>.</p></div>
                   <h4 class="api-group-title">Values</h4>
                   <div class="api-members">
                     <div id="PermissionUpdateDestination.userSettings" class="api-member">
@@ -1886,7 +1910,7 @@
                     typedef CanUseTool = Future&lt;PermissionResult&gt; Function(String, Map&lt;String, dynamic&gt;, CanUseToolContext)
                   </code>
                   <div class="api-doc">
-                    <p>Tool-approval callback. Mirrors `CanUseTool`.</p>
+                    <p>Tool-approval callback. Mirrors <code>CanUseTool</code>.</p>
                     <p>
                       Declared here as part of the 1:1 type surface; the reverse-RPC dispatch that invokes it mid-query is wired in todo #6.
                     </p>

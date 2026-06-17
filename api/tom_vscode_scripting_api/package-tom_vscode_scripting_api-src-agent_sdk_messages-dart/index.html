@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1329,10 +1349,15 @@
                 <code class="api-import">import 'package:tom_vscode_scripting_api/src/agent_sdk_messages.dart';</code>
                 <div class="api-doc">
                   <p>
-                    Dart mirror of the Anthropic Agent SDK *output* surface: the `SDKMessage` union and content blocks streamed by `sdk.query()`.
+                    Dart mirror of the Anthropic Agent SDK <em>output</em> surface: the <code>SDKMessage</code> union and content blocks streamed by 
+                    <code>sdk.query()</code>.
                   </p>
                   <p>
-                    These values originate in the extension and cross the bridge unchanged, so the design (proposal §7.0.3) is **raw-preserving**: every message and block keeps its full original JSON in [raw], and `toJson()` returns it verbatim — nothing is lost even for fields this mirror does not type. The five primary message types are modelled with typed accessors; the long tail of `type: 'system'` subtypes collapses into [SdkSystemEvent], and any future top-level `type` lands in [SdkUnknownMessage].
+                    These values originate in the extension and cross the bridge unchanged, so the design (proposal §7.0.3) is 
+                    <strong>raw-preserving</strong>: every message and block keeps its full original JSON in [raw], and <code>toJson()</code>
+                     returns it verbatim — nothing is lost even for fields this mirror does not type. The five primary message types are modelled with typed accessors; the long tail of 
+                    <code>type: 'system'</code> subtypes collapses into [SdkSystemEvent], and any future top-level <code>type</code>
+                     lands in [SdkUnknownMessage].
                   </p>
                   <p>Wire field names are the SDK's own (snake_case on messages/blocks).</p>
                 </div>
@@ -1374,7 +1399,7 @@
                 <section id="SdkAssistantMessage" class="api-declaration">
                   <h3 class="api-decl-title">class SdkAssistantMessage</h3>
                   <code class="api-signature">final class SdkAssistantMessage extends SdkMessage</code>
-                  <div class="api-doc"><p>Mirrors `SDKAssistantMessage` (`type: 'assistant'`).</p></div>
+                  <div class="api-doc"><p>Mirrors <code>SDKAssistantMessage</code> (<code>type: 'assistant'</code>).</p></div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="SdkAssistantMessage.new" class="api-member">
@@ -1399,7 +1424,7 @@
                   <div class="api-doc">
                     <p>A single message yielded by an Agent SDK query stream.</p>
                     <p>
-                      Mirrors `SDKMessage`. Use [SdkMessage.fromJson] to parse a wire payload into the appropriate typed subclass; [toJson] always reproduces [raw].
+                      Mirrors <code>SDKMessage</code>. Use [SdkMessage.fromJson] to parse a wire payload into the appropriate typed subclass; [toJson] always reproduces [raw].
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1435,7 +1460,8 @@
                   <code class="api-signature">final class SdkPartialAssistantMessage extends SdkMessage</code>
                   <div class="api-doc">
                     <p>
-                      Mirrors `SDKPartialAssistantMessage` (`type: 'stream_event'`), emitted only when `includePartialMessages` is set.
+                      Mirrors <code>SDKPartialAssistantMessage</code> (<code>type: 'stream_event'</code>), emitted only when 
+                      <code>includePartialMessages</code> is set.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1455,7 +1481,9 @@
                 <section id="SdkResultMessage" class="api-declaration">
                   <h3 class="api-decl-title">class SdkResultMessage</h3>
                   <code class="api-signature">final class SdkResultMessage extends SdkMessage</code>
-                  <div class="api-doc"><p>Mirrors `SDKResultMessage` (`type: 'result'`, success or error subtype).</p></div>
+                  <div class="api-doc">
+                    <p>Mirrors <code>SDKResultMessage</code> (<code>type: 'result'</code>, success or error subtype).</p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="SdkResultMessage.new" class="api-member">
@@ -1482,7 +1510,8 @@
                   <code class="api-signature">final class SdkSystemEvent extends SdkMessage</code>
                   <div class="api-doc">
                     <p>
-                      Carrier for the long tail of `type: 'system'` events that are not `init` (e.g. `compact_boundary`, `status`, `task_progress`, `rate_limit`, …).
+                      Carrier for the long tail of <code>type: 'system'</code> events that are not <code>init</code> (e.g. 
+                      <code>compact_boundary</code>, <code>status</code>, <code>task_progress</code>, <code>rate_limit</code>, …).
                     </p>
                     <p>The [subtype] is exposed; the full payload remains in [raw].</p>
                   </div>
@@ -1500,7 +1529,9 @@
                 <section id="SdkSystemMessage" class="api-declaration">
                   <h3 class="api-decl-title">class SdkSystemMessage</h3>
                   <code class="api-signature">final class SdkSystemMessage extends SdkMessage</code>
-                  <div class="api-doc"><p>Mirrors `SDKSystemMessage` (`type: 'system'`, `subtype: 'init'`).</p></div>
+                  <div class="api-doc">
+                    <p>Mirrors <code>SDKSystemMessage</code> (<code>type: 'system'</code>, <code>subtype: 'init'</code>).</p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="SdkSystemMessage.new" class="api-member">
@@ -1528,7 +1559,7 @@
                   <code class="api-signature">final class SdkUnknownMessage extends SdkMessage</code>
                   <div class="api-doc">
                     <p>
-                      Forward-compatible fallback for any top-level `type` this mirror does not model. Preserves the full payload in [raw].
+                      Forward-compatible fallback for any top-level <code>type</code> this mirror does not model. Preserves the full payload in [raw].
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1541,7 +1572,7 @@
                 <section id="SdkUserMessage" class="api-declaration">
                   <h3 class="api-decl-title">class SdkUserMessage</h3>
                   <code class="api-signature">final class SdkUserMessage extends SdkMessage</code>
-                  <div class="api-doc"><p>Mirrors `SDKUserMessage` (`type: 'user'`, incl. the replay variant).</p></div>
+                  <div class="api-doc"><p>Mirrors <code>SDKUserMessage</code> (<code>type: 'user'</code>, incl. the replay variant).</p></div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="SdkUserMessage.new" class="api-member">
@@ -1563,7 +1594,7 @@
                 <section id="TextBlock" class="api-declaration">
                   <h3 class="api-decl-title">class TextBlock</h3>
                   <code class="api-signature">final class TextBlock extends ContentBlock</code>
-                  <div class="api-doc"><p>Mirrors a `text` content block.</p></div>
+                  <div class="api-doc"><p>Mirrors a <code>text</code> content block.</p></div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TextBlock.new" class="api-member">
@@ -1578,7 +1609,7 @@
                 <section id="ThinkingBlock" class="api-declaration">
                   <h3 class="api-decl-title">class ThinkingBlock</h3>
                   <code class="api-signature">final class ThinkingBlock extends ContentBlock</code>
-                  <div class="api-doc"><p>Mirrors a `thinking` content block.</p></div>
+                  <div class="api-doc"><p>Mirrors a <code>thinking</code> content block.</p></div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="ThinkingBlock.new" class="api-member">
@@ -1594,7 +1625,7 @@
                 <section id="ToolResultBlock" class="api-declaration">
                   <h3 class="api-decl-title">class ToolResultBlock</h3>
                   <code class="api-signature">final class ToolResultBlock extends ContentBlock</code>
-                  <div class="api-doc"><p>Mirrors a `tool_result` content block.</p></div>
+                  <div class="api-doc"><p>Mirrors a <code>tool_result</code> content block.</p></div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="ToolResultBlock.new" class="api-member">
@@ -1611,7 +1642,7 @@
                 <section id="ToolUseBlock" class="api-declaration">
                   <h3 class="api-decl-title">class ToolUseBlock</h3>
                   <code class="api-signature">final class ToolUseBlock extends ContentBlock</code>
-                  <div class="api-doc"><p>Mirrors a `tool_use` content block.</p></div>
+                  <div class="api-doc"><p>Mirrors a <code>tool_use</code> content block.</p></div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="ToolUseBlock.new" class="api-member">
@@ -1632,7 +1663,8 @@
                   <code class="api-signature">final class UnknownBlock extends ContentBlock</code>
                   <div class="api-doc">
                     <p>
-                      Forward-compatible fallback for any content block type this mirror does not model (`redacted_thinking`, `server_tool_use`, image, …).
+                      Forward-compatible fallback for any content block type this mirror does not model (<code>redacted_thinking</code>, 
+                      <code>server_tool_use</code>, image, …).
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1647,14 +1679,14 @@
                   <code class="api-signature">List&lt;ContentBlock&gt; _blocksOf(Object? content)</code>
                   <div class="api-doc">
                     <p>
-                      Parses a `message.content` value into typed blocks, ignoring non-list content (e.g. a plain string body).
+                      Parses a <code>message.content</code> value into typed blocks, ignoring non-list content (e.g. a plain string body).
                     </p>
                   </div>
                 </section>
                 <section id="_stringList" class="api-declaration">
                   <h3 class="api-decl-title">function _stringList</h3>
                   <code class="api-signature">List&lt;String&gt; _stringList(Object? value)</code>
-                  <div class="api-doc"><p>Coerces a JSON value into a `List&lt;String&gt;`, tolerating null/non-list.</p></div>
+                  <div class="api-doc"><p>Coerces a JSON value into a <code>List&lt;String&gt;</code>, tolerating null/non-list.</p></div>
                 </section>
               </div>
             </div>

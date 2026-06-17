@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1305,7 +1325,7 @@
               <span style="display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap"><span class="badge b-pub"><span class="d"></span>Published</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">role: foundation</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">license: MIT</span></span>
             </div>
             <h2>tom_d4rt</h2>
-            <div class="mono" style="color: #9FB6C9">tom_d4rt · v1.8.21</div>
+            <div class="mono" style="color: #9FB6C9">tom_d4rt · v1.8.24</div>
             <p style="margin-top: 10px">
               Executes Dart source at runtime without compilation, with bridging and a permission sandbox. The reference implementation of the D4rt runtime that the rest of the family tracks.
             </p>
@@ -1316,28 +1336,15 @@
           </div>
           <div class="statgrid">
             <div class="stat"><div class="k">Status</div><div class="v" style="font-size: 1.05rem; color: #0F7FB0">Published</div></div>
-            <div class="stat"><div class="k">LOC</div><div class="v">38.9k</div></div>
+            <div class="stat"><div class="k">LOC</div><div class="v">39.0k</div></div>
             <div class="stat"><div class="k">Tests</div><div class="v">2.0k</div></div>
-            <div class="stat"><div class="k">Test LOC</div><div class="v">32.8k</div></div>
+            <div class="stat"><div class="k">Test LOC</div><div class="v">32.9k</div></div>
           </div>
           <div class="dcols">
             <div>
               <div class="panel">
                 <h3>Overview</h3>
-                <p>
-                  `tom_d4rt` runs Dart source at runtime by walking the analyzer's parse tree in two
-                  passes — declaration, then interpretation — and calling the target entry point. It
-                  supports full-script `execute()` and REPL-style `eval()`.
-                  
-                  Scripts run inside an isolated scope chain. Sensitive operations — `dart:io`,
-                  isolates, process and network access — are blocked by default, and the host grants
-                  fine-grained permissions through a `grant()` API. This is what lets AI-generated
-                  code execute safely.
-                  
-                  It is the stable reference all existing projects depend on. Its bridge API is kept
-                  in 1:1 lockstep with the analyzer-free successor line (`tom_d4rt_ast`), so generated
-                  bridges run against either interpreter unchanged.
-                </p>
+                <p>From the module readme.md file:</p>
                 <h4 style="font-size: 1rem; margin-top: 18px">What it enables</h4>
                 <p style="margin: 0">Enables dynamic AI code execution, scripting in tom_brain and tom_flow, sandboxed Dart evaluation.</p>
               </div>
@@ -1399,15 +1406,15 @@
                 <div class="linkrow">
                   <span class="ic">📄</span>
                   <div class="linkmeta">
-                    <a class="linkname" href="/docs?module=tom_d4rt&amp;path=doc%2Fruntime_registration_surface.md">runtime_registration_surface.md</a>
-                    <span class="muted linkpath">doc/runtime_registration_surface.md</span>
+                    <a class="linkname" href="/docs?module=tom_d4rt&amp;path=doc%2Fmanual_bridge_interventions.md">manual_bridge_interventions.md</a>
+                    <span class="muted linkpath">doc/manual_bridge_interventions.md</span>
                   </div>
                 </div>
                 <div class="linkrow">
                   <span class="ic">📄</span>
                   <div class="linkmeta">
-                    <a class="linkname" href="/docs?module=tom_d4rt&amp;path=doc%2Ftestlog_20260523-1056-issue-analysis%2Ferror_analysis.md">error_analysis.md</a>
-                    <span class="muted linkpath">doc/testlog_20260523-1056-issue-analysis/error_analysis.md</span>
+                    <a class="linkname" href="/docs?module=tom_d4rt&amp;path=doc%2Fruntime_registration_surface.md">runtime_registration_surface.md</a>
+                    <span class="muted linkpath">doc/runtime_registration_surface.md</span>
                   </div>
                 </div>
                 <div class="licdocrow">
@@ -1437,46 +1444,78 @@
             <div class="pageprose">
               <h1>tom_d4rt</h1>
               <p>
+                &gt; <strong>Attribution.</strong> The <code>tom_d4rt</code> project is an extended clone of the original &gt; d4rt project by Moustapha Kodjo Amadou, initially published in 2025. The &gt; complete interpreter is based on his idea.
+              </p>
+              <p>
                 A secure, sandboxed Dart interpreter written in Dart — the analyzer-based reference implementation of the D4rt runtime.
               </p>
               <h2>Overview</h2>
               <p>
-                `tom_d4rt` executes Dart source code at runtime without compilation. It is built on top of the `analyzer` package, which provides a full parse tree (AST) for any Dart 3 source string. The interpreter walks that AST in two passes — a declaration pass that registers classes and mixins as placeholders, followed by an interpretation pass that evaluates imports, resolves members, and calls the target function.
+                <code>tom_d4rt</code> executes Dart source code at runtime without compilation. It is built on top of the 
+                <code>analyzer</code> package, which provides a full parse tree (AST) for any Dart 3 source string. The interpreter walks that AST in two passes — a declaration pass that registers classes and mixins as placeholders, followed by an interpretation pass that evaluates imports, resolves members, and calls the target function.
               </p>
               <p>Two execution modes are supported:</p>
               <ul>
                 <li>
-                  **`execute()`** — full-script, two-pass execution. Parses the source, runs both the `DeclarationVisitor` (pass 1) and `InterpreterVisitor` (pass 2), then calls the named entry point. Each call gets a fresh module loader and global environment.
+                  <strong><code>execute()</code></strong> — full-script, two-pass execution. Parses the source, runs both the 
+                  <code>DeclarationVisitor</code> (pass 1) and <code>InterpreterVisitor</code> (pass 2), then calls the named entry point. Each call gets a fresh module loader and global environment.
                 </li>
                 <li>
-                  **`eval()`** — REPL-style incremental evaluation. Reuses the `InterpreterVisitor` and `Environment` from the last `execute()` call, so previously defined variables and functions are still in scope.
+                  <strong><code>eval()</code></strong> — REPL-style incremental evaluation. Reuses the <code>InterpreterVisitor</code>
+                   and <code>Environment</code> from the last <code>execute()</code> call, so previously defined variables and functions are still in scope.
                 </li>
               </ul>
               <p>
-                Scripts run inside an isolated `Environment` scope chain. Sensitive operations — `dart:io`, `dart:isolate`, process execution, network access — are blocked by default. The host process grants fine-grained permissions via the `grant()` API.
+                Scripts run inside an isolated <code>Environment</code> scope chain. Sensitive operations — <code>dart:io</code>, 
+                <code>dart:isolate</code>, process execution, network access — are blocked by default. The host process grants fine-grained permissions via the 
+                <code>grant()</code> API.
               </p>
               <p>
-                `tom_d4rt` is the stable reference that all existing projects in this workspace depend on. Its public API (`D4rt`, `BridgedClass`, `BridgedEnumDefinition`, `D4`, and the permission classes) is kept in 1:1 lockstep with the analyzer-free successor line (`tom_d4rt_ast`) so that bridge code generated by `tom_d4rt_generator` works against either interpreter without modification.
+                <code>tom_d4rt</code> is the stable reference that all existing projects in this workspace depend on. Its public API (<code>D4rt</code>, 
+                <code>BridgedClass</code>, <code>BridgedEnumDefinition</code>, <code>D4</code>, and the permission classes) is kept in 1:1 lockstep with the analyzer-free successor line (<code>tom_d4rt_ast</code>) so that bridge code generated by 
+                <code>tom_d4rt_generator</code> works against either interpreter without modification.
               </p>
-              <h3>Analyzer-free successor line</h3>
-              <p>
-                For production embeddings where pulling in the `analyzer` package is undesirable (e.g., mobile apps, size-constrained builds), a parallel line is maintained in the same repository:
-              </p>
+              <h3>Source-based vs analyzer-free — which line to use</h3>
+              <p>D4rt ships in two execution families that share one bridge API:</p>
+              <ul>
+                <li>
+                  <strong>Source-based (analyzer)</strong> — <em>this package</em>, plus <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_dcli"><code>tom_d4rt_dcli</code></a>
+                   (REPL) and <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_flutter"><code>tom_d4rt_flutter</code></a>
+                   (Flutter Material bridges). The host parses Dart source with the <code>analyzer</code> package and interprets it directly.
+                </li>
+                <li>
+                  <strong>Analyzer-free (mirror AST)</strong> — <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_ast_model"><code>tom_ast_model</code></a>, 
+                  <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_ast"><code>tom_d4rt_ast</code></a>, 
+                  <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_ast_generator"><code>tom_ast_generator</code></a>, 
+                  <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_exec"><code>tom_d4rt_exec</code></a>, 
+                  <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_dcli_exec"><code>tom_dcli_exec</code></a>. These run from pre-compiled 
+                  <code>SAstNode</code> trees with <strong>no analyzer dependency</strong>:
+                </li>
+              </ul>
               <pre><code>tom_ast_model  ←  tom_d4rt_ast  ←  tom_ast_generator  ←  tom_d4rt_exec  ←  tom_dcli_exec</code></pre>
               <p>
-                `tom_d4rt_ast` replaces the analyzer with a hand-rolled AST model and shares the same bridge API surface. Both lines are kept in sync; any fix merged into `tom_d4rt` is back-ported to `tom_d4rt_ast` and vice versa.
+                <strong><code>tom_d4rt</code> is the stable reference and is usually the preferable choice.</strong> The analyzer-free line exists for the one case the analyzer cannot serve: the 
+                <strong>web</strong> (where the <code>analyzer</code> package is too large to ship) and <strong>on-the-fly / OTA UI updates</strong>, where a server compiles source to an AST bundle that a thin client interprets without redeploying. It is otherwise a complete alternative, but because the 
+                <strong>generated AST bundles are large</strong>, reach for it only when that web/OTA constraint actually applies.
+              </p>
+              <p>
+                <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_exec"><code>tom_d4rt_exec</code></a>
+                 is the analyzer-free counterpart of this package: a drop-in <code>D4rt</code>-style entry point that parses with the analyzer at build time and interprets via 
+                <code>tom_d4rt_ast</code> at run time. <code>tom_d4rt_ast</code> shares this package's bridge API surface, and both lines are kept in sync — any fix merged into 
+                <code>tom_d4rt</code> is back-ported to <code>tom_d4rt_ast</code> and vice versa.
               </p>
               <h2>Installation</h2>
               <pre><code>dependencies:
-  tom_d4rt: ^1.8.21</code></pre>
+  tom_d4rt: ^1.8.23</code></pre>
               <pre><code>dart pub add tom_d4rt</code></pre>
               <p>
-                Requires Dart SDK `^3.5.0`. The only runtime dependencies are `analyzer: ^8.0.0` and `pub_semver: ^2.2.0`.
+                Requires Dart SDK <code>^3.5.0</code>. The only runtime dependencies are <code>analyzer: ^8.0.0</code>
+                 and <code>pub_semver: ^2.2.0</code>.
               </p>
               <h2>Features</h2>
               <h3>Language coverage</h3>
               <p>
-                `tom_d4rt` passes all 20 areas of the Dart language overview test suite (1,680+ tests). Covered language constructs include:
+                <code>tom_d4rt</code> passes all 20 areas of the Dart language overview test suite (1,680+ tests). Covered language constructs include:
               </p>
               <table class="mdtable">
                 <thead><tr><th>Area</th><th>Details</th></tr></thead>
@@ -1484,32 +1523,64 @@
                   <tr>
                     <td>Classes</td>
                     <td>
-                      Declarations, constructors (factory, named, redirecting, `const`), inheritance, `super`, abstract/final/sealed/interface/base class modifiers
+                      Declarations, constructors (factory, named, redirecting, 
+                      <code>const</code>
+                      ), inheritance, 
+                      <code>super</code>
+                      , abstract/final/sealed/interface/base class modifiers
                     </td>
                   </tr>
-                  <tr><td>Mixins</td><td>`with`, mixin abstract method satisfaction, enum-with-mixin</td></tr>
+                  <tr><td>Mixins</td><td><code>with</code>, mixin abstract method satisfaction, enum-with-mixin</td></tr>
                   <tr>
                     <td>Generics</td>
                     <td>
-                      Generic classes and functions, type bounds, variance, F-bounded polymorphism, `is` checks with parameterized types
+                      Generic classes and functions, type bounds, variance, F-bounded polymorphism, 
+                      <code>is</code>
+                       checks with parameterized types
                     </td>
                   </tr>
                   <tr>
                     <td>Patterns</td>
                     <td>
-                      Destructuring, switch expressions and statements, logical-OR patterns, `when` guards, record patterns (named fields, shorthand `:name`)
+                      Destructuring, switch expressions and statements, logical-OR patterns, 
+                      <code>when</code>
+                       guards, record patterns (named fields, shorthand 
+                      <code>:name</code>
+                      )
                     </td>
                   </tr>
                   <tr>
                     <td>Records</td>
                     <td>
-                      Positional and named fields (up to 9 positional fields returned as native Dart records; larger records return `InterpretedRecord`)
+                      Positional and named fields (up to 9 positional fields returned as native Dart records; larger records return 
+                      <code>InterpretedRecord</code>
+                      )
                     </td>
                   </tr>
                   <tr>
                     <td>Async/await</td>
                     <td>
-                      `async`/`await`, `async*` generators, `sync*` generators, `await for`, `Future`, `Stream`, `StreamController`, `StreamTransformer`, `Timer`, `Completer`
+                      <code>async</code>
+                      /
+                      <code>await</code>
+                      , 
+                      <code>async*</code>
+                       generators, 
+                      <code>sync*</code>
+                       generators, 
+                      <code>await for</code>
+                      , 
+                      <code>Future</code>
+                      , 
+                      <code>Stream</code>
+                      , 
+                      <code>StreamController</code>
+                      , 
+                      <code>StreamTransformer</code>
+                      , 
+                      <code>Timer</code>
+                      , 
+                      <code>Completer</code>
                     </td>
                   </tr>
                   <tr>
@@ -1519,100 +1590,327 @@
                   <tr><td>Extension types</td><td>Dart 3.3+ inline classes / extension types</td></tr>
                   <tr>
                     <td>Enums</td>
-                    <td>Enhanced enums with members, enums with mixins, `.name`, `.index`, `.values`, `.byName`</td>
-                  </tr>
-                  <tr><td>Error handling</td><td>`try`/`catch`/`finally`, `rethrow`, custom exception classes</td></tr>
-                  <tr>
-                    <td>Operators</td>
                     <td>
-                      All arithmetic, comparison, bitwise, cascade (`..`, `?..`), spread, null-aware, type (`is`, `as`, `is!`)
+                      Enhanced enums with members, enums with mixins, 
+                      <code>.name</code>
+                      , 
+                      <code>.index</code>
+                      , 
+                      <code>.values</code>
+                      , 
+                      <code>.byName</code>
                     </td>
                   </tr>
                   <tr>
-                    <td>`late` variables</td>
-                    <td>Lazy initialization, `late final`, static and instance late fields, `LateInitializationError`</td>
+                    <td>Error handling</td>
+                    <td>
+                      <code>try</code>
+                      /
+                      <code>catch</code>
+                      /
+                      <code>finally</code>
+                      , 
+                      <code>rethrow</code>
+                      , custom exception classes
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Operators</td>
+                    <td>
+                      All arithmetic, comparison, bitwise, cascade (
+                      <code>..</code>
+                      , 
+                      <code>?..</code>
+                      ), spread, null-aware, type (
+                      <code>is</code>
+                      , 
+                      <code>as</code>
+                      , 
+                      <code>is!</code>
+                      )
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>late</code> variables</td>
+                    <td>
+                      Lazy initialization, 
+                      <code>late final</code>
+                      , static and instance late fields, 
+                      <code>LateInitializationError</code>
+                    </td>
                   </tr>
                   <tr>
                     <td>Control flow</td>
-                    <td>`if`/`else`, `for`, `for-in`, `while`, `do-while`, `switch`, `break`/`continue` with labels</td>
+                    <td>
+                      <code>if</code>
+                      /
+                      <code>else</code>
+                      , 
+                      <code>for</code>
+                      , 
+                      <code>for-in</code>
+                      , 
+                      <code>while</code>
+                      , 
+                      <code>do-while</code>
+                      , 
+                      <code>switch</code>
+                      , 
+                      <code>break</code>
+                      /
+                      <code>continue</code>
+                       with labels
+                    </td>
                   </tr>
                   <tr>
                     <td>Collections</td>
-                    <td>`List`, `Set`, `Map`, spread operator, collection-if / collection-for, `const` collections</td>
+                    <td>
+                      <code>List</code>
+                      , 
+                      <code>Set</code>
+                      , 
+                      <code>Map</code>
+                      , spread operator, collection-if / collection-for, 
+                      <code>const</code>
+                       collections
+                    </td>
                   </tr>
                   <tr>
                     <td>Null safety</td>
-                    <td>Full null-safety — nullable types, null-aware operators (`?.`, `??`, `??=`, `!`)</td>
+                    <td>
+                      Full null-safety — nullable types, null-aware operators (
+                      <code>?.</code>
+                      , 
+                      <code>??</code>
+                      , 
+                      <code>??=</code>
+                      , 
+                      <code>!</code>
+                      )
+                    </td>
                   </tr>
-                  <tr><td>`const`</td><td>Const expressions, const constructors, const fields, const collections</td></tr>
+                  <tr>
+                    <td><code>const</code></td>
+                    <td>Const expressions, const constructors, const fields, const collections</td>
+                  </tr>
                   <tr><td>Typedefs</td><td>Function and type typedefs</td></tr>
                   <tr><td>Annotations</td><td>Declaration annotations</td></tr>
                   <tr>
                     <td>Libraries</td>
-                    <td>`import`/`export` with `show`/`hide`, relative imports, multi-file source maps, file-system imports</td>
+                    <td>
+                      <code>import</code>
+                      /
+                      <code>export</code>
+                       with 
+                      <code>show</code>
+                      /
+                      <code>hide</code>
+                      , relative imports, multi-file source maps, file-system imports
+                    </td>
                   </tr>
                   <tr>
                     <td>Isolates</td>
                     <td>
-                      `Isolate`, `SendPort`, `ReceivePort`, `Capability` (communication bridged; spawning interpreted closures across isolate boundaries is a known limitation)
+                      <code>Isolate</code>
+                      , 
+                      <code>SendPort</code>
+                      , 
+                      <code>ReceivePort</code>
+                      , 
+                      <code>Capability</code>
+                       (communication bridged; spawning interpreted closures across isolate boundaries is a known limitation)
                     </td>
                   </tr>
                 </tbody>
               </table>
               <h3>Standard library bridges</h3>
-              <p>The following `dart:` libraries are bridged out of the box:</p>
+              <p>The following <code>dart:</code> libraries are bridged out of the box:</p>
               <table class="mdtable">
                 <thead><tr><th>Library</th><th>Key types</th></tr></thead>
                 <tbody>
                   <tr>
-                    <td>`dart:core`</td>
+                    <td><code>dart:core</code></td>
                     <td>
-                      `int`, `double`, `num`, `bool`, `String`, `StringBuffer`, `List`, `Map`, `Set`, `Iterable`, `Iterator`, `DateTime`, `Duration`, `RegExp`, `Uri`, `BigInt`, `Symbol`, `Runes`, `Enum`, `Function`, `Type`, `StackTrace`, `Error`, and all standard exceptions
+                      <code>int</code>
+                      , 
+                      <code>double</code>
+                      , 
+                      <code>num</code>
+                      , 
+                      <code>bool</code>
+                      , 
+                      <code>String</code>
+                      , 
+                      <code>StringBuffer</code>
+                      , 
+                      <code>List</code>
+                      , 
+                      <code>Map</code>
+                      , 
+                      <code>Set</code>
+                      , 
+                      <code>Iterable</code>
+                      , 
+                      <code>Iterator</code>
+                      , 
+                      <code>DateTime</code>
+                      , 
+                      <code>Duration</code>
+                      , 
+                      <code>RegExp</code>
+                      , 
+                      <code>Uri</code>
+                      , 
+                      <code>BigInt</code>
+                      , 
+                      <code>Symbol</code>
+                      , 
+                      <code>Runes</code>
+                      , 
+                      <code>Enum</code>
+                      , 
+                      <code>Function</code>
+                      , 
+                      <code>Type</code>
+                      , 
+                      <code>StackTrace</code>
+                      , 
+                      <code>Error</code>
+                      , and all standard exceptions
                     </td>
                   </tr>
                   <tr>
-                    <td>`dart:async`</td>
+                    <td><code>dart:async</code></td>
                     <td>
-                      `Future`, `Stream`, `StreamController`, `StreamSubscription`, `StreamTransformer`, `Completer`, `Timer`
+                      <code>Future</code>
+                      , 
+                      <code>Stream</code>
+                      , 
+                      <code>StreamController</code>
+                      , 
+                      <code>StreamSubscription</code>
+                      , 
+                      <code>StreamTransformer</code>
+                      , 
+                      <code>Completer</code>
+                      , 
+                      <code>Timer</code>
                     </td>
                   </tr>
                   <tr>
-                    <td>`dart:collection`</td>
+                    <td><code>dart:collection</code></td>
                     <td>
-                      `HashMap`, `HashSet`, `LinkedHashMap`, `LinkedList`, `ListQueue`, `Queue`, `SplayTreeMap`, `UnmodifiableListView`
+                      <code>HashMap</code>
+                      , 
+                      <code>HashSet</code>
+                      , 
+                      <code>LinkedHashMap</code>
+                      , 
+                      <code>LinkedList</code>
+                      , 
+                      <code>ListQueue</code>
+                      , 
+                      <code>Queue</code>
+                      , 
+                      <code>SplayTreeMap</code>
+                      , 
+                      <code>UnmodifiableListView</code>
                     </td>
                   </tr>
                   <tr>
-                    <td>`dart:convert`</td>
+                    <td><code>dart:convert</code></td>
                     <td>
-                      `jsonEncode`/`jsonDecode`, `base64Encode`/`base64Decode`, `utf8`, `ascii`, `latin1`, `LineSplitter`, `HtmlEscape`, codecs and converters
+                      <code>jsonEncode</code>
+                      /
+                      <code>jsonDecode</code>
+                      , 
+                      <code>base64Encode</code>
+                      /
+                      <code>base64Decode</code>
+                      , 
+                      <code>utf8</code>
+                      , 
+                      <code>ascii</code>
+                      , 
+                      <code>latin1</code>
+                      , 
+                      <code>LineSplitter</code>
+                      , 
+                      <code>HtmlEscape</code>
+                      , codecs and converters
                     </td>
                   </tr>
                   <tr>
-                    <td>`dart:math`</td>
-                    <td>`min`, `max`, `sqrt`, `pow`, `log`, `sin`, `cos`, `tan`, `Random`, constants (`pi`, `e`, `ln2`, …)</td>
-                  </tr>
-                  <tr>
-                    <td>`dart:typed_data`</td>
+                    <td><code>dart:math</code></td>
                     <td>
-                      `Uint8List`, `Int16List`, `Float32List`, `ByteData`, `ByteBuffer`, `Endian` — eagerly registered so Flutter bridge code that uses `ByteData` without an explicit import works out of the box
+                      <code>min</code>
+                      , 
+                      <code>max</code>
+                      , 
+                      <code>sqrt</code>
+                      , 
+                      <code>pow</code>
+                      , 
+                      <code>log</code>
+                      , 
+                      <code>sin</code>
+                      , 
+                      <code>cos</code>
+                      , 
+                      <code>tan</code>
+                      , 
+                      <code>Random</code>
+                      , constants (
+                      <code>pi</code>
+                      , 
+                      <code>e</code>
+                      , 
+                      <code>ln2</code>
+                      , …)
                     </td>
                   </tr>
                   <tr>
-                    <td>`dart:io`</td>
+                    <td><code>dart:typed_data</code></td>
                     <td>
-                      File, Directory, HttpClient, Socket, Process, IOSink, Stdin/Stdout — available only after `grant(FilesystemPermission.any)` / `grant(NetworkPermission.any)`
+                      <code>Uint8List</code>
+                      , 
+                      <code>Int16List</code>
+                      , 
+                      <code>Float32List</code>
+                      , 
+                      <code>ByteData</code>
+                      , 
+                      <code>ByteBuffer</code>
+                      , 
+                      <code>Endian</code>
+                       — eagerly registered so Flutter bridge code that uses 
+                      <code>ByteData</code>
+                       without an explicit import works out of the box
                     </td>
                   </tr>
-                  <tr><td>`dart:isolate`</td><td>Available only after `grant(IsolatePermission.any)`</td></tr>
+                  <tr>
+                    <td><code>dart:io</code></td>
+                    <td>
+                      File, Directory, HttpClient, Socket, Process, IOSink, Stdin/Stdout — available only after 
+                      <code>grant(FilesystemPermission.any)</code>
+                       / 
+                      <code>grant(NetworkPermission.any)</code>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>dart:isolate</code></td>
+                    <td>Available only after <code>grant(IsolatePermission.any)</code></td>
+                  </tr>
                 </tbody>
               </table>
               <p>
-                External `dart:` URIs not in the list above are checked for registered bridge content before raising an error, allowing embedding projects to supply bridges for `dart:ui` or other platform libraries.
+                External <code>dart:</code> URIs not in the list above are checked for registered bridge content before raising an error, allowing embedding projects to supply bridges for 
+                <code>dart:ui</code> or other platform libraries.
               </p>
               <h3>Bridging native code</h3>
               <p>
-                Any native Dart class, enum, top-level function, or variable can be exposed to interpreted scripts by registering it before execution. The `tom_d4rt_generator` package automates bridge creation from annotated source files.
+                Any native Dart class, enum, top-level function, or variable can be exposed to interpreted scripts by registering it before execution. The 
+                <code>tom_d4rt_generator</code> package automates bridge creation from annotated source files.
               </p>
               <h3>Permission sandboxing</h3>
               <p>
@@ -1645,10 +1943,75 @@ void main() {
   );
   print(result); // Hello Alice, you are 30
 }</code></pre>
+              <h2>Example projects</h2>
+              <p>
+                Runnable, self-contained samples live in <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_samples"><code>tom_d4rt_samples/</code></a>. They are ordered as a learning path — each one introduces exactly one new capability on top of the last:
+              </p>
+              <table class="mdtable">
+                <thead><tr><th>Sample</th><th>What it teaches</th><th>Interpreter</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_samples/d4rt_introduction_sample">d4rt_introduction_sample</a>
+                    </td>
+                    <td>
+                      Run multi-file D4rt programs with 
+                      <strong>nothing but the interpreter</strong>
+                       — no bridges, no host wiring. Includes shebang launchers (
+                      <code>#!/usr/bin/env run_example</code>
+                      ). Start here.
+                    </td>
+                    <td><code>tom_d4rt</code></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_samples/d4rt_advanced_sample">d4rt_advanced_sample</a>
+                    </td>
+                    <td>
+                      Cross the first boundary: bridge a 
+                      <strong>native Dart library</strong>
+                       into scripts using 
+                      <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_generator"><code>tom_d4rt_generator</code></a>
+                      .
+                    </td>
+                    <td><code>tom_d4rt</code></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_samples/d4rt_userbridges_sample">d4rt_userbridges_sample</a>
+                    </td>
+                    <td>Hand-write <code>D4UserBridge</code> overrides for what the generator can't bridge automatically.</td>
+                    <td><code>tom_d4rt</code></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_samples/d4rt_dcli_sample">d4rt_dcli_sample</a>
+                    </td>
+                    <td>
+                      Shell scripting plus your own bridges via the 
+                      <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_dcli"><code>tom_d4rt_dcli</code></a>
+                       REPL.
+                    </td>
+                    <td><code>tom_d4rt</code></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_samples/d4rt_flutter_sample">d4rt_flutter_sample</a>
+                    </td>
+                    <td>Interpret a live Flutter UI from source at runtime.</td>
+                    <td><code>tom_d4rt_flutter</code></td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>
+                If you are new to D4rt, clone the <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_samples/d4rt_introduction_sample">introduction sample</a>
+                 and run one of its examples directly — it is the shortest path from "installed" to "running a script".
+              </p>
               <h2>Usage</h2>
               <h3>Full-script execution</h3>
               <p>
-                `execute()` always initializes a fresh `ModuleLoader` and `Environment`. Every call is independent unless you explicitly use `continuedExecute()` or `eval()`.
+                <code>execute()</code> always initializes a fresh <code>ModuleLoader</code> and <code>Environment</code>. Every call is independent unless you explicitly use 
+                <code>continuedExecute()</code> or <code>eval()</code>.
               </p>
               <pre><code>final d4rt = D4rt();
 
@@ -1687,11 +2050,11 @@ d4rt.execute(
   allowFileSystemImports: true,
 );</code></pre>
               <p>
-                `continuedExecute()` reuses the existing environment from a prior `execute()` call, letting you add declarations without resetting state.
+                <code>continuedExecute()</code> reuses the existing environment from a prior <code>execute()</code> call, letting you add declarations without resetting state.
               </p>
               <h3>REPL-style evaluation</h3>
               <p>
-                After calling `execute()` to establish a context, `eval()` evaluates expressions and statements incrementally in the same environment:
+                After calling <code>execute()</code> to establish a context, <code>eval()</code> evaluates expressions and statements incrementally in the same environment:
               </p>
               <pre><code>final d4rt = D4rt();
 
@@ -1708,14 +2071,16 @@ print(d4rt.eval('counter')); // 2
 d4rt.eval('int doubled() =&gt; counter * 2;');
 print(d4rt.eval('doubled()')); // 4</code></pre>
               <p>
-                `eval()` first tries to parse the string as a top-level declaration. If that succeeds, it registers the declaration and returns `null`. Otherwise it wraps the string in `dynamic __eval__() { return &lt;expr&gt;; }` and executes it, returning the value.
+                <code>eval()</code> first tries to parse the string as a top-level declaration. If that succeeds, it registers the declaration and returns 
+                <code>null</code>. Otherwise it wraps the string in <code>dynamic __eval__() { return &lt;expr&gt;; }</code>
+                 and executes it, returning the value.
               </p>
               <p>
-                To reset the session between REPL interactions without rebuilding the bridge registrations, call `resetScriptDeclarations()`.
+                To reset the session between REPL interactions without rebuilding the bridge registrations, call <code>resetScriptDeclarations()</code>.
               </p>
               <h3>Code introspection</h3>
               <p>
-                `analyze()` parses source and returns an `IntrospectionResult` describing all top-level declarations without executing any function:
+                <code>analyze()</code> parses source and returns an <code>IntrospectionResult</code> describing all top-level declarations without executing any function:
               </p>
               <pre><code>final result = d4rt.analyze(source: '''
   class Person {
@@ -1734,7 +2099,7 @@ print(result.functions); // [FunctionInfo(add)]
 print(result.variables); // [VariableInfo(greeting)]</code></pre>
               <h3>Registering bridged classes</h3>
               <p>
-                A `BridgedClass` adapts a native Dart class for use inside interpreted scripts. Constructors, instance methods, instance getters/setters, static methods, and static getters/setters are all expressed as Dart closures with a standard adapter signature.
+                A <code>BridgedClass</code> adapts a native Dart class for use inside interpreted scripts. Constructors, instance methods, instance getters/setters, static methods, and static getters/setters are all expressed as Dart closures with a standard adapter signature.
               </p>
               <pre><code>import 'package:tom_d4rt/tom_d4rt.dart';
 
@@ -1788,59 +2153,91 @@ void main() {
 
   print(result); // 16
 }</code></pre>
-              <p>Additional registration methods on `D4rt`:</p>
+              <p>Additional registration methods on <code>D4rt</code>:</p>
               <table class="mdtable">
                 <thead><tr><th>Method</th><th>Purpose</th></tr></thead>
                 <tbody>
-                  <tr><td>`registerBridgedEnum(def, library)`</td><td>Expose a native `enum` to scripts</td></tr>
-                  <tr><td>`registerBridgedExtension(def, library)`</td><td>Expose a Dart extension to scripts</td></tr>
-                  <tr><td>`registertopLevelFunction(name, fn, library)`</td><td>Expose a top-level function</td></tr>
-                  <tr><td>`registerGlobalVariable(name, value, library)`</td><td>Expose a top-level variable (eager)</td></tr>
                   <tr>
-                    <td>`registerGlobalGetter(name, getter, library)`</td>
+                    <td><code>registerBridgedEnum(def, library)</code></td>
+                    <td>Expose a native <code>enum</code> to scripts</td>
+                  </tr>
+                  <tr>
+                    <td><code>registerBridgedExtension(def, library)</code></td>
+                    <td>Expose a Dart extension to scripts</td>
+                  </tr>
+                  <tr>
+                    <td><code>registertopLevelFunction(name, fn, library)</code></td>
+                    <td>Expose a top-level function</td>
+                  </tr>
+                  <tr>
+                    <td><code>registerGlobalVariable(name, value, library)</code></td>
+                    <td>Expose a top-level variable (eager)</td>
+                  </tr>
+                  <tr>
+                    <td><code>registerGlobalGetter(name, getter, library)</code></td>
                     <td>Expose a top-level variable (lazy, evaluated on access)</td>
                   </tr>
-                  <tr><td>`registerGlobalSetter(name, setter, library)`</td><td>Expose a top-level setter</td></tr>
-                  <tr><td>`registerClassAlias(alias, target, library)`</td><td>Register a `typedef`-style class alias</td></tr>
+                  <tr><td><code>registerGlobalSetter(name, setter, library)</code></td><td>Expose a top-level setter</td></tr>
                   <tr>
-                    <td>`registerFunctionTypedef(name, library)`</td>
+                    <td><code>registerClassAlias(alias, target, library)</code></td>
+                    <td>Register a <code>typedef</code>-style class alias</td>
+                  </tr>
+                  <tr>
+                    <td><code>registerFunctionTypedef(name, library)</code></td>
                     <td>Register a function typedef name for type resolution</td>
                   </tr>
                   <tr>
-                    <td>`registerLibraryReExport(source, target, {show, hide})`</td>
-                    <td>Mirror `export` directives so scripts that import a barrel get all re-exported symbols</td>
+                    <td><code>registerLibraryReExport(source, target, {show, hide})</code></td>
+                    <td>Mirror <code>export</code> directives so scripts that import a barrel get all re-exported symbols</td>
                   </tr>
                   <tr>
-                    <td>`registerExtensions(packageName, body)`</td>
+                    <td><code>registerExtensions(packageName, body)</code></td>
                     <td>Queue a post-registration callback for relaxers / proxy factories</td>
                   </tr>
                   <tr>
-                    <td>`finalizeBridges()`</td>
-                    <td>Run all queued extension callbacks (called automatically on first `execute`/`eval`)</td>
+                    <td><code>finalizeBridges()</code></td>
+                    <td>
+                      Run all queued extension callbacks (called automatically on first 
+                      <code>execute</code>
+                      /
+                      <code>eval</code>
+                      )
+                    </td>
                   </tr>
                   <tr>
-                    <td>`registerRelaxerFactory(baseTypeName, factory)`</td>
+                    <td><code>registerRelaxerFactory(baseTypeName, factory)</code></td>
                     <td>Register a relaxer that coerces interpreted values into a native parameterized bridged type</td>
                   </tr>
                   <tr>
-                    <td>`registerInterfaceProxy(bridgedTypeName, factory)`</td>
+                    <td><code>registerInterfaceProxy(bridgedTypeName, factory)</code></td>
                     <td>Register a proxy so an interpreted instance can satisfy a bridged abstract interface</td>
                   </tr>
                   <tr>
-                    <td>`registerGenericConstructor(className, ctorName, factory)`</td>
+                    <td><code>registerGenericConstructor(className, ctorName, factory)</code></td>
                     <td>Register a factory that builds a native generic bridged instance from interpreted args + type args</td>
                   </tr>
                   <tr>
-                    <td>`warmup()`</td>
+                    <td><code>warmup()</code></td>
                     <td>Finalize bridges and JIT-warm the parser/interpreter with a throwaway build</td>
                   </tr>
                 </tbody>
               </table>
               <p>
-                The three facades (`registerRelaxerFactory` / `registerInterfaceProxy` / `registerGenericConstructor`) are thin wrappers over the static `D4` registries, meant to be called from inside a `registerExtensions` body so they run once at finalize time, in package order, after the standard bridges are wired up. See the [User Guide → Extension Registration and Facades](doc/d4rt_user_guide.md#extension-registration-and-facades) for the full contract. Set `D4.usageLogEnabled = true` (or the env var `D4RT_LOG_RELAXER_USAGE`) to audit which relaxers/proxies are hit at runtime.
+                The three facades (<code>registerRelaxerFactory</code> / <code>registerInterfaceProxy</code> / <code>registerGenericConstructor</code>) are thin wrappers over the static 
+                <code>D4</code> registries, meant to be called from inside a <code>registerExtensions</code> body so they run once at finalize time, in package order, after the standard bridges are wired up. See the 
+                <a href="/docs?module=tom_d4rt&amp;path=doc%2Fd4rt_user_guide.md#extension-registration-and-facades">User Guide → Extension Registration and Facades</a>
+                 for the full contract. Set <code>D4.usageLogEnabled = true</code> (or the env var <code>D4RT_LOG_RELAXER_USAGE</code>) to audit which relaxers/proxies are hit at runtime.
               </p>
               <p>
-                For large bridge surfaces, use `tom_d4rt_generator` to generate all adapter boilerplate from annotated native source. Duplicated registrations are safely deduplicated via `sourceUri` tracking.
+                For large bridge surfaces, use <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_generator"><code>tom_d4rt_generator</code></a>
+                 to generate all adapter boilerplate from annotated native source. Duplicated registrations are safely deduplicated via 
+                <code>sourceUri</code> tracking.
+              </p>
+              <p>
+                For the complete registration reference see the <a href="/docs?module=tom_d4rt&amp;path=doc%2FBRIDGING_GUIDE.md">Bridging Guide</a>; for a worked end-to-end example, the 
+                <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_samples/d4rt_advanced_sample">d4rt_advanced_sample</a>
+                 bridges a native library with the generator, and the <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_samples/d4rt_userbridges_sample">d4rt_userbridges_sample</a>
+                 shows hand-written overrides.
               </p>
               <h3>Permission system</h3>
               <p>
@@ -1870,58 +2267,82 @@ d4rt.grant(IsolatePermission.any);
 d4rt.grant(DangerousPermission.codeEvaluation);
 d4rt.grant(DangerousPermission.nativePlugins);</code></pre>
               <p>
-                Permissions can be revoked at any time with `d4rt.revoke(permission)`. Check the current set with `d4rt.hasPermission(permission)` or `d4rt.checkPermission(operation)`.
+                Permissions can be revoked at any time with <code>d4rt.revoke(permission)</code>. Check the current set with 
+                <code>d4rt.hasPermission(permission)</code> or <code>d4rt.checkPermission(operation)</code>.
               </p>
               <p>The full permission class hierarchy:</p>
               <table class="mdtable">
                 <thead><tr><th>Class</th><th>Static constants</th><th>Factory constructors</th></tr></thead>
                 <tbody>
                   <tr>
-                    <td>`FilesystemPermission`</td>
-                    <td>`.read`, `.write`, `.execute`, `.any`</td>
-                    <td>`.readPath(p)`, `.writePath(p)`, `.executePath(p)`, `.path(p)`</td>
+                    <td><code>FilesystemPermission</code></td>
+                    <td><code>.read</code>, <code>.write</code>, <code>.execute</code>, <code>.any</code></td>
+                    <td>
+                      <code>.readPath(p)</code>
+                      , 
+                      <code>.writePath(p)</code>
+                      , 
+                      <code>.executePath(p)</code>
+                      , 
+                      <code>.path(p)</code>
+                    </td>
                   </tr>
                   <tr>
-                    <td>`NetworkPermission`</td>
-                    <td>`.connect`, `.listen`, `.bind`, `.any`</td>
-                    <td>`.connectTo(host)`, `.connectToPort(host, port)`, `.listenOn(port)`</td>
+                    <td><code>NetworkPermission</code></td>
+                    <td><code>.connect</code>, <code>.listen</code>, <code>.bind</code>, <code>.any</code></td>
+                    <td><code>.connectTo(host)</code>, <code>.connectToPort(host, port)</code>, <code>.listenOn(port)</code></td>
                   </tr>
                   <tr>
-                    <td>`ProcessRunPermission`</td>
-                    <td>`.any`</td>
-                    <td>`.command(cmd)`, `.commandWithArgs(cmd, args)`</td>
+                    <td><code>ProcessRunPermission</code></td>
+                    <td><code>.any</code></td>
+                    <td><code>.command(cmd)</code>, <code>.commandWithArgs(cmd, args)</code></td>
                   </tr>
-                  <tr><td>`IsolatePermission`</td><td>`.spawn`, `.communicate`, `.any`</td><td>—</td></tr>
-                  <tr><td>`DangerousPermission`</td><td>`.codeEvaluation`, `.nativePlugins`, `.any`</td><td>—</td></tr>
+                  <tr>
+                    <td><code>IsolatePermission</code></td>
+                    <td><code>.spawn</code>, <code>.communicate</code>, <code>.any</code></td>
+                    <td>—</td>
+                  </tr>
+                  <tr>
+                    <td><code>DangerousPermission</code></td>
+                    <td><code>.codeEvaluation</code>, <code>.nativePlugins</code>, <code>.any</code></td>
+                    <td>—</td>
+                  </tr>
                 </tbody>
               </table>
               <h3>D4 bridge helper</h3>
-              <p>The `D4` class provides static utilities used in generated and hand-written bridge adapters:</p>
+              <p>
+                The <code>D4</code> class provides static utilities used in generated and hand-written bridge adapters:
+              </p>
               <ul>
-                <li>**Type coercion**: `D4.coerceList&lt;T&gt;(raw)`, `D4.coerceMap&lt;K,V&gt;(raw)`</li>
                 <li>
-                  **Argument extraction**: `D4.getRequiredArg&lt;T&gt;(positional, index, name, className)`, `D4.getOptionalArg&lt;T&gt;(...)`, `D4.getNamedArg&lt;T&gt;(named, name, className)`
+                  <strong>Type coercion</strong>: <code>D4.coerceList&lt;T&gt;(raw)</code>, <code>D4.coerceMap&lt;K,V&gt;(raw)</code>
                 </li>
                 <li>
-                  **Target validation**: `D4.validateTarget&lt;T&gt;(target, className)` — ensures the receiver is of the expected native type before calling instance methods
-                </li>
-                <li>**Arity checking**: `D4.checkArity(positional, expected, methodName)`</li>
-                <li>
-                  **Callback bridging**: `D4.callInterpreterCallback(visitor, fn, args)` — dispatches a call from a native callback into the interpreter
+                  <strong>Argument extraction</strong>: <code>D4.getRequiredArg&lt;T&gt;(positional, index, name, className)</code>, 
+                  <code>D4.getOptionalArg&lt;T&gt;(...)</code>, <code>D4.getNamedArg&lt;T&gt;(named, name, className)</code>
                 </li>
                 <li>
-                  **Active visitor**: `D4.withActiveVisitor(visitor, body)` — sets the thread-local active visitor used by interface-proxy factories
+                  <strong>Target validation</strong>: <code>D4.validateTarget&lt;T&gt;(target, className)</code> — ensures the receiver is of the expected native type before calling instance methods
+                </li>
+                <li><strong>Arity checking</strong>: <code>D4.checkArity(positional, expected, methodName)</code></li>
+                <li>
+                  <strong>Callback bridging</strong>: <code>D4.callInterpreterCallback(visitor, fn, args)</code> — dispatches a call from a native callback into the interpreter
                 </li>
                 <li>
-                  **Generic wrappers**: `D4.registerGenericTypeWrapper&lt;T&gt;(factory)`, `D4.extractBridgedArg&lt;T&gt;(raw, visitor)` for covariant generic type resolution
+                  <strong>Active visitor</strong>: <code>D4.withActiveVisitor(visitor, body)</code> — sets the thread-local active visitor used by interface-proxy factories
+                </li>
+                <li>
+                  <strong>Generic wrappers</strong>: <code>D4.registerGenericTypeWrapper&lt;T&gt;(factory)</code>, <code>D4.extractBridgedArg&lt;T&gt;(raw, visitor)</code>
+                   for covariant generic type resolution
                 </li>
               </ul>
               <h3>Configuration inspection</h3>
               <p>
-                `d4rt.getConfiguration()` returns a `D4rtConfiguration` snapshot listing all registered bridges, granted permissions, global variables and getters, and global functions. `d4rt.getEnvironmentState()` returns an `EnvironmentState` with the names of variables, bridged classes, and bridged enums currently live in the global scope.
+                <code>d4rt.getConfiguration()</code> returns a <code>D4rtConfiguration</code> snapshot listing all registered bridges, granted permissions, global variables and getters, and global functions. 
+                <code>d4rt.getEnvironmentState()</code> returns an <code>EnvironmentState</code> with the names of variables, bridged classes, and bridged enums currently live in the global scope.
               </p>
               <p>
-                `d4rt.validateRegistrations(source: ...)` runs a full parse and import pass in error-collection mode, returning a list of registration conflict messages without aborting on the first error.
+                <code>d4rt.validateRegistrations(source: ...)</code> runs a full parse and import pass in error-collection mode, returning a list of registration conflict messages without aborting on the first error.
               </p>
               <h2>Architecture</h2>
               <h3>Two-pass execution</h3>
@@ -1945,50 +2366,75 @@ d4rt.grant(DangerousPermission.nativePlugins);</code></pre>
           7. Call named entry point</code></pre>
               <h3>Environment</h3>
               <p>
-                `Environment` is a lexical scope chain backed by a `Map&lt;String, Object?&gt;`. Each function call or block creates a child `Environment` that delegates lookups to its enclosing scope. The global environment holds stdlib bridges, user-registered bridges, and top-level script declarations. `InterpreterVisitor` carries a reference to the current `Environment` and updates it as it walks the AST.
+                <code>Environment</code> is a lexical scope chain backed by a <code>Map&lt;String, Object?&gt;</code>. Each function call or block creates a child 
+                <code>Environment</code> that delegates lookups to its enclosing scope. The global environment holds stdlib bridges, user-registered bridges, and top-level script declarations. 
+                <code>InterpreterVisitor</code> carries a reference to the current <code>Environment</code> and updates it as it walks the AST.
               </p>
               <h3>Bridging system</h3>
               <p>
-                A `BridgedClass` wraps a native Dart type. When the interpreter encounters `new MyNative()` or a method call on a `BridgedInstance`, it looks up the registered `BridgedClass` and invokes the corresponding adapter closure. The adapter receives an `InterpreterVisitor` (for re-entering the interpreter from callbacks), the native target object, and the evaluated argument lists.
+                A <code>BridgedClass</code> wraps a native Dart type. When the interpreter encounters <code>new MyNative()</code>
+                 or a method call on a <code>BridgedInstance</code>, it looks up the registered <code>BridgedClass</code>
+                 and invokes the corresponding adapter closure. The adapter receives an <code>InterpreterVisitor</code>
+                 (for re-entering the interpreter from callbacks), the native target object, and the evaluated argument lists.
               </p>
               <p>
-                `BridgedInstance` wraps a native value and carries a reference to its `BridgedClass`. It exposes `get`, `set`, and `call` dispatch and handles all Dart operators (`+`, `-`, `[]`, `[]=`, `==`, etc.).
+                <code>BridgedInstance</code> wraps a native value and carries a reference to its <code>BridgedClass</code>. It exposes 
+                <code>get</code>, <code>set</code>, and <code>call</code> dispatch and handles all Dart operators (<code>+</code>, 
+                <code>-</code>, <code>[]</code>, <code>[]=</code>, <code>==</code>, etc.).
               </p>
               <p>
-                `BridgedEnumDefinition` exposes native `Enum` values, including `.name`, `.index`, `.values`, and `.byName`, as well as custom methods and getters.
+                <code>BridgedEnumDefinition</code> exposes native <code>Enum</code> values, including <code>.name</code>, 
+                <code>.index</code>, <code>.values</code>, and <code>.byName</code>, as well as custom methods and getters.
               </p>
               <p>
-                `BridgedExtensionDefinition` exposes extension methods so they are discoverable by `Environment.findExtensionMember`.
+                <code>BridgedExtensionDefinition</code> exposes extension methods so they are discoverable by <code>Environment.findExtensionMember</code>.
               </p>
               <h3>Module loader</h3>
               <p>
-                `ModuleLoader` manages a map of package URI to source string. When an `import` directive is processed, it parses the target source, runs pass 1 and pass 2 in that module's own `Environment`, and merges the exported names (respecting `show`/`hide`) into the importing scope. Bridged libraries are registered into a per-module environment without requiring a source string. `registerLibraryReExport` lets bridge packages model `export` directives so transitive re-exports are automatically resolved.
+                <code>ModuleLoader</code> manages a map of package URI to source string. When an <code>import</code> directive is processed, it parses the target source, runs pass 1 and pass 2 in that module's own 
+                <code>Environment</code>, and merges the exported names (respecting <code>show</code>/<code>hide</code>) into the importing scope. Bridged libraries are registered into a per-module environment without requiring a source string. 
+                <code>registerLibraryReExport</code> lets bridge packages model <code>export</code> directives so transitive re-exports are automatically resolved.
               </p>
-              <h3>Key types exposed from `package:tom_d4rt/tom_d4rt.dart`</h3>
+              <h3>Key types exposed from <code>package:tom_d4rt/tom_d4rt.dart</code></h3>
               <table class="mdtable">
                 <thead><tr><th>Type</th><th>Role</th></tr></thead>
                 <tbody>
-                  <tr><td>`D4rt`</td><td>Main interpreter class — entry point for all execution</td></tr>
+                  <tr><td><code>D4rt</code></td><td>Main interpreter class — entry point for all execution</td></tr>
                   <tr>
-                    <td>`InterpreterVisitor`</td>
-                    <td>AST visitor that drives interpretation; accessible via `d4rt.visitor`</td>
+                    <td><code>InterpreterVisitor</code></td>
+                    <td>AST visitor that drives interpretation; accessible via <code>d4rt.visitor</code></td>
                   </tr>
-                  <tr><td>`DeclarationVisitor`</td><td>Pass-1 AST visitor that seeds class placeholders</td></tr>
-                  <tr><td>`Environment`</td><td>Lexical scope chain</td></tr>
-                  <tr><td>`BridgedClass`</td><td>Adapter descriptor for a native class</td></tr>
-                  <tr><td>`BridgedInstance`</td><td>Runtime wrapper around a native object</td></tr>
-                  <tr><td>`BridgedEnumDefinition`</td><td>Adapter descriptor for a native enum</td></tr>
-                  <tr><td>`BridgedExtensionDefinition`</td><td>Adapter descriptor for a native extension</td></tr>
-                  <tr><td>`D4`</td><td>Static helpers for generated bridge adapters</td></tr>
-                  <tr><td>`Permission` (and subclasses)</td><td>Sandbox permission objects</td></tr>
-                  <tr><td>`IntrospectionResult`</td><td>Output of `d4rt.analyze()`</td></tr>
-                  <tr><td>`ScriptExecutionResult`</td><td>Structured result from file-based script execution</td></tr>
-                  <tr><td>`D4rtConfiguration`</td><td>Snapshot of all registered bridges and permissions</td></tr>
-                  <tr><td>`RuntimeD4rtException`</td><td>Thrown for interpreter-level errors</td></tr>
-                  <tr><td>`SourceCodeD4rtException`</td><td>Thrown for parse errors in the source</td></tr>
+                  <tr><td><code>DeclarationVisitor</code></td><td>Pass-1 AST visitor that seeds class placeholders</td></tr>
+                  <tr><td><code>Environment</code></td><td>Lexical scope chain</td></tr>
+                  <tr><td><code>BridgedClass</code></td><td>Adapter descriptor for a native class</td></tr>
+                  <tr><td><code>BridgedInstance</code></td><td>Runtime wrapper around a native object</td></tr>
+                  <tr><td><code>BridgedEnumDefinition</code></td><td>Adapter descriptor for a native enum</td></tr>
+                  <tr><td><code>BridgedExtensionDefinition</code></td><td>Adapter descriptor for a native extension</td></tr>
+                  <tr><td><code>D4</code></td><td>Static helpers for generated bridge adapters</td></tr>
+                  <tr><td><code>Permission</code> (and subclasses)</td><td>Sandbox permission objects</td></tr>
+                  <tr><td><code>IntrospectionResult</code></td><td>Output of <code>d4rt.analyze()</code></td></tr>
+                  <tr>
+                    <td><code>ScriptExecutionResult</code></td>
+                    <td>Structured result from file-based script execution</td>
+                  </tr>
+                  <tr><td><code>D4rtConfiguration</code></td><td>Snapshot of all registered bridges and permissions</td></tr>
+                  <tr><td><code>RuntimeD4rtException</code></td><td>Thrown for interpreter-level errors</td></tr>
+                  <tr><td><code>SourceCodeD4rtException</code></td><td>Thrown for parse errors in the source</td></tr>
                   <tr>
                     <td>
-                      `LibraryVariable`, `LibraryGetter`, `LibrarySetter`, `LibraryFunction`, `LibraryClass`, `LibraryEnum`, `LibraryExtension`
+                      <code>LibraryVariable</code>
+                      , 
+                      <code>LibraryGetter</code>
+                      , 
+                      <code>LibrarySetter</code>
+                      , 
+                      <code>LibraryFunction</code>
+                      , 
+                      <code>LibraryClass</code>
+                      , 
+                      <code>LibraryEnum</code>
+                      , 
+                      <code>LibraryExtension</code>
                     </td>
                     <td>Wrappers used when registering bridge elements under a library URI</td>
                   </tr>
@@ -2008,31 +2454,56 @@ d4rt.grant(DangerousPermission.nativePlugins);</code></pre>
 Analyzer-free parallel line (same bridge API, no analyzer dependency):
    tom_ast_model  ←  tom_d4rt_ast  ←  tom_ast_generator  ←  tom_d4rt_exec  ←  tom_dcli_exec</code></pre>
               <p>
-                Bridges generated by `tom_d4rt_generator` (or its AST-line counterpart `tom_ast_generator`) compile against this package's API. Both generators produce code that calls identical `registerBridgedClass` / `registerBridgedEnum` / `registerExtensions` / `finalizeBridges` sequences, so a bridge package works against either the `tom_d4rt` or `tom_d4rt_ast` interpreter without branching.
+                Bridges generated by <code>tom_d4rt_generator</code> (or its AST-line counterpart <code>tom_ast_generator</code>) compile against this package's API. Both generators produce code that calls identical 
+                <code>registerBridgedClass</code> / <code>registerBridgedEnum</code> / <code>registerExtensions</code>
+                 / <code>finalizeBridges</code> sequences, so a bridge package works against either the <code>tom_d4rt</code>
+                 or <code>tom_d4rt_ast</code> interpreter without branching.
               </p>
-              <h2>Documentation</h2>
+              <h2>Further documentation</h2>
+              <p>
+                This package's own guides (in <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/doc"><code>doc/</code></a>):
+              </p>
               <ul>
                 <li>
-                  [User Guide](doc/d4rt_user_guide.md) — execution modes, configuration, multi-file scripts, extension registration &amp; facades
-                </li>
-                <li>[Bridging Guide](doc/BRIDGING_GUIDE.md) — detailed coverage of every registration API</li>
-                <li>
-                  [Advanced Bridging Guide](doc/advanced_bridging_user_guide.md) — D4 helper class, type coercion, argument extraction, interface proxies, generic constructors
+                  <a href="/docs?module=tom_d4rt&amp;path=doc%2Fd4rt_user_guide.md">User Guide</a> — execution modes, configuration, multi-file scripts, extension registration &amp; facades
                 </li>
                 <li>
-                  [Limitations](doc/d4rt_limitations.md) — **canonical** interpreter limitations reference. Every AST-variant, exec, and Flutter project links back to this file for shared interpreter limits and documents only its own deltas.
+                  <a href="/docs?module=tom_d4rt&amp;path=doc%2FBRIDGING_GUIDE.md">Bridging Guide</a> — detailed coverage of every registration API
                 </li>
                 <li>
-                  [Bridge Generator User Guide](../tom_d4rt_generator/doc/bridgegenerator_user_guide.md) — automated bridge generation from annotated source
+                  <a href="/docs?module=tom_d4rt&amp;path=doc%2Fadvanced_bridging_user_guide.md">Advanced Bridging Guide</a>
+                   — D4 helper class, type coercion, argument extraction, interface proxies, generic constructors
+                </li>
+                <li>
+                  <a href="/docs?module=tom_d4rt&amp;path=doc%2Fd4rt_limitations.md">Limitations</a> — <strong>canonical</strong>
+                   interpreter limitations reference. Every AST-variant, exec, and Flutter project links back to this file for shared interpreter limits and documents only its own deltas.
+                </li>
+                <li>
+                  <a href="/docs?module=tom_d4rt&amp;path=doc%2Fissues.md">Issues</a> — tracked interpreter issues and their status
+                </li>
+              </ul>
+              <p>Related packages (don't duplicate — follow the link):</p>
+              <ul>
+                <li>
+                  <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_generator">tom_d4rt_generator</a>
+                   — automated <code>BridgedClass</code> / <code>BridgedEnumDefinition</code> generation from annotated source (<a href="/docs?module=tom_d4rt_generator&amp;path=doc%2Fbridgegenerator_user_guide.md">user guide</a>)
+                </li>
+                <li>
+                  <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_dcli">tom_d4rt_dcli</a> — DCli REPL and 
+                  <code>*.dcli.dart</code> script runner built on this interpreter
+                </li>
+                <li>
+                  <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_exec">tom_d4rt_exec</a> — <strong>see also:</strong>
+                   the analyzer-free counterpart of this package, for web / OTA embeddings (see <a href="#source-based-vs-analyzer-free--which-line-to-use">Source-based vs analyzer-free</a>)
                 </li>
               </ul>
               <h2>Status</h2>
-              <p>Stable. Published at **1.8.21** on pub.dev.</p>
+              <p>Stable. Published at <strong>1.8.23</strong> on pub.dev.</p>
               <p>
-                The test suite covers 1,680+ tests (all passing; 2 known `Won't Fix` limitations for records with &gt;9 positional fields and for spawning interpreted closures across isolate boundaries).
+                The test suite covers 1,680+ tests (all passing; 2 known <code>Won't Fix</code> limitations for records with &gt;9 positional fields and for spawning interpreted closures across isolate boundaries).
               </p>
               <p>
-                Repository: [github.com/al-the-bear/tom_d4rt — tom_d4rt](https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt)
+                Repository: <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt">github.com/al-the-bear/tom_d4rt — tom_d4rt</a>
               </p>
             </div>
           </section>

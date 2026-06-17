@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1316,17 +1336,22 @@
                       Immutable, hash-indexed string-keyed map for member/declaration tables that are fully populated during declaration wiring and never mutated afterwards (perf T6, plan_2 §6 / round-1 plan 5c).
                     </p>
                     <p>
-                      Lifecycle is two-phase and a [FrozenNameMap] is a drop-in `Map&lt;String, V&gt;`, so read sites need no changes:
+                      Lifecycle is two-phase and a [FrozenNameMap] is a drop-in <code>Map&lt;String, V&gt;</code>, so read sites need no changes:
                     </p>
-                    <ul><li>**Building** — behaves like a normal mutable map (delegates to an</li></ul>
+                    <ul><li><strong>Building</strong> — behaves like a normal mutable map (delegates to an</li></ul>
                     <p>
-                      internal [LinkedHashMap]). The wiring code fills it via `[]=`. * **Frozen** — after [freeze] the entries are compacted into three parallel arrays sorted by `key.hashCode`. A lookup binary-searches the hash array (branch-friendly int compares) and only falls back to `==` across the rare hashCode-collision run. Mutation throws.
+                      internal [LinkedHashMap]). The wiring code fills it via <code>[]=</code>. <em> </em><em>Frozen</em>* — after [freeze] the entries are compacted into three parallel arrays sorted by 
+                      <code>key.hashCode</code>. A lookup binary-searches the hash array (branch-friendly int compares) and only falls back to 
+                      <code>==</code> across the rare hashCode-collision run. Mutation throws.
                     </p>
                     <p>
-                      Why this shape: the steady-state member tables are read far more than they are written (exactly once, at declaration time). A sorted parallel layout removes the `LinkedHashMap` bucket/hash-bookkeeping overhead and turns the string `==` that dominates `_OneByteString.==` into integer compares everywhere except true hashCode collisions.
+                      Why this shape: the steady-state member tables are read far more than they are written (exactly once, at declaration time). A sorted parallel layout removes the 
+                      <code>LinkedHashMap</code> bucket/hash-bookkeeping overhead and turns the string <code>==</code> that dominates 
+                      <code>_OneByteString.==</code> into integer compares everywhere except true hashCode collisions.
                     </p>
                     <p>
-                      Hashes are stored as a plain `List&lt;int&gt;` rather than an `Int32List` so the full (possibly 64-bit, possibly negative) `String.hashCode` is kept verbatim — truncating to 32 bits would require masking the search target identically and buys nothing for the small tables involved here.
+                      Hashes are stored as a plain <code>List&lt;int&gt;</code> rather than an <code>Int32List</code> so the full (possibly 64-bit, possibly negative) 
+                      <code>String.hashCode</code> is kept verbatim — truncating to 32 bits would require masking the search target identically and buys nothing for the small tables involved here.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1337,11 +1362,11 @@
                   <div class="api-members">
                     <div id="FrozenNameMap._builder" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Map&lt;String, V&gt;? _builder</code></div>
-                      <div class="api-doc"><p>Mutable backing while building; set to `null` once [freeze] runs.</p></div>
+                      <div class="api-doc"><p>Mutable backing while building; set to <code>null</code> once [freeze] runs.</p></div>
                     </div>
                     <div id="FrozenNameMap._hashes" class="api-member">
                       <div class="api-member-head"><code class="api-signature">List&lt;int&gt;? _hashes</code></div>
-                      <div class="api-doc"><p>Sorted (ascending) `key.hashCode`s once frozen.</p></div>
+                      <div class="api-doc"><p>Sorted (ascending) <code>key.hashCode</code>s once frozen.</p></div>
                     </div>
                     <div id="FrozenNameMap._names" class="api-member">
                       <div class="api-member-head"><code class="api-signature">List&lt;String&gt;? _names</code></div>
@@ -1369,7 +1394,7 @@
                     </div>
                     <div id="FrozenNameMap._indexOf" class="api-member">
                       <div class="api-member-head"><code class="api-signature">int _indexOf(String key)</code></div>
-                      <div class="api-doc"><p>Index of [key] in the frozen arrays, or `-1` if absent. Only valid after [freeze].</p></div>
+                      <div class="api-doc"><p>Index of [key] in the frozen arrays, or <code>-1</code> if absent. Only valid after [freeze].</p></div>
                     </div>
                     <div id="FrozenNameMap.containsKey" class="api-member">
                       <div class="api-member-head">

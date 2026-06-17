@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1305,7 +1325,10 @@
               <span style="display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap"><span class="badge b-works"><span class="d"></span>In the works</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">license: proprietary</span></span>
             </div>
             <h2>tom_core_kernel</h2>
-            <div class="mono" style="color: #9FB6C9">tom_core_kernel · v1.0.0</div>
+            <div class="mono" style="color: #9FB6C9">tom_core_kernel · v1.1.0</div>
+            <p style="margin-top: 10px">
+              The base both Tom app halves rest on: dependency injection / bean locator, the observable/reactive system, security, logging, isolate pooling, settings, JSON, timezone handling, and the reflection glue for runtime auto-assembly.
+            </p>
             <div style="margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap"><a class="btn btn-ghost" href="/modules/tom_core_kernel#license">See License</a></div>
           </div>
           <div class="statgrid">
@@ -1313,15 +1336,15 @@
               <div class="k">Status</div>
               <div class="v" style="font-size: 1.05rem; color: #D85F23">In the works</div>
             </div>
-            <div class="stat"><div class="k">LOC</div><div class="v">6.4k</div></div>
-            <div class="stat"><div class="k">Tests</div><div class="v">1.4k</div></div>
-            <div class="stat"><div class="k">Test LOC</div><div class="v">234.0k</div></div>
+            <div class="stat"><div class="k">LOC</div><div class="v">6.5k</div></div>
+            <div class="stat"><div class="k">Tests</div><div class="v">1.5k</div></div>
+            <div class="stat"><div class="k">Test LOC</div><div class="v">236.4k</div></div>
           </div>
           <div class="dcols">
             <div>
               <div class="panel">
                 <h3>Overview</h3>
-                <p>No overview yet.</p>
+                <p>From the module readme.md file:</p>
                 <h4 style="font-size: 1rem; margin-top: 18px">What it enables</h4>
                 <p class="muted" style="margin: 0">No downstream modules declared yet.</p>
               </div>
@@ -1432,6 +1455,13 @@
                 <div class="linkrow">
                   <span class="ic">📄</span>
                   <div class="linkmeta">
+                    <a class="linkname" href="/docs?module=tom_core_kernel&amp;path=doc%2Fscope_ids%2Fscope_ids.md">scope_ids.md</a>
+                    <span class="muted linkpath">doc/scope_ids/scope_ids.md</span>
+                  </div>
+                </div>
+                <div class="linkrow">
+                  <span class="ic">📄</span>
+                  <div class="linkmeta">
                     <a class="linkname" href="/docs?module=tom_core_kernel&amp;path=doc%2Fsecurity%2Fsecurity.md">security.md</a>
                     <span class="muted linkpath">doc/security/security.md</span>
                   </div>
@@ -1482,28 +1512,352 @@
           </div>
           <section class="section repodoc">
             <div class="pageprose">
+              <h1>tom_core_kernel</h1>
               <p>
-                &lt;!-- This README describes the package. If you publish this package to pub.dev, this README's contents appear on the landing page for your package.
+                &gt; <strong>Attribution.</strong> The Tom Framework is developed by Peter Nicolai Alexis Kyaw. &gt; These packages are proprietary and internal (<code>publish_to: none</code>).
               </p>
               <p>
-                For information about how to write a good package README, see the guide for [writing package pages](https://dart.dev/tools/pub/writing-package-pages).
+                Core kernel library for the Tom Framework — the platform-neutral building blocks every other Tom layer is composed from.
+              </p>
+              <h2>Overview</h2>
+              <p>
+                <code>tom_core_kernel</code> is the foundation of the Tom Framework. It carries no UI and no server runtime, so it runs unchanged on any Dart target — CLI, server, Flutter, or the 
+                <a href="/docs?module=tom_core_d4rt&amp;path=README.md"><code>d4rt</code></a> interpreter. Everything layered above it (the 
+                <a href="/docs?module=tom_core_server&amp;path=README.md">server stack</a>, the <a href="/docs?module=tom_core_flutter&amp;path=README.md">Flutter</a>
+                 / <a href="/docs?module=tom_flutter_ui&amp;path=README.md">UI</a> layers, the DartScript bridge) depends on the contracts defined here.
               </p>
               <p>
-                For general information about developing packages, see the Dart guide for [creating packages](https://dart.dev/guides/libraries/create-packages) and the Flutter guide for [developing packages and plugins](https://flutter.dev/to/develop-packages). --&gt;
+                The kernel is <strong>reflection-aware</strong>: it builds on <a href="/docs?module=tom_reflection&amp;path=README.md"><code>tom_reflection</code></a>
+                 so observable objects, security principals, and resource trees can be introspected and serialized without hand-written boilerplate. Conceptually it provides five things:
               </p>
+              <ul>
+                <li><strong>Observable state</strong> — values and objects that notify observers on change, with</li>
+              </ul>
               <p>
-                TODO: Put a short description of the package here that helps potential users know whether this package might be useful for them.
+                a terse operator syntax (<code>|</code> set, <code>~</code> read, <code>&gt;&gt;</code> observe). - <strong>Ambient context</strong>
+                 — zone-propagated execution context and hierarchical scope identifiers, so a deeply nested call can resolve "where am I" without threading parameters through every frame. - 
+                <strong>Dependency injection</strong> — a reflection-driven bean container. - <strong>Security</strong>
+                 — authentication, a layered access-control model, bearer-token auth, and a four-state authorization model (<code>TomAuthState</code>). - 
+                <strong>Runtime utilities</strong> — logging (including isolate/remote), an isolate worker pool, JSON tree helpers, resource providers, settings, timezone-aware timestamps, and ordered shutdown.
+              </p>
+              <h2>Installation</h2>
+              <p>
+                This package is internal to the Tom workspace and consumed by path (it is <code>publish_to: none</code>), so there is no 
+                <code>dart pub add</code> line. Add it as a path dependency:
+              </p>
+              <pre><code>dependencies:
+  tom_core_kernel:
+    path: ../tom_core_kernel</code></pre>
+              <p>Then import the single barrel:</p>
+              <pre><code>import 'package:tom_core_kernel/tom_core_kernel.dart';</code></pre>
+              <p>
+                The barrel re-exports <a href="/docs?module=tom_basics&amp;path=README.md"><code>tom_basics</code></a>, 
+                <a href="/docs?module=tom_crypto&amp;path=README.md"><code>tom_crypto</code></a> and <a href="/docs?module=tom_reflection&amp;path=README.md"><code>tom_reflection</code></a>, so one import covers the common surface. 
+                <strong>SDK:</strong> Dart <code>^3.10.0</code>. Modules that use reflection require a <code>dart run build_runner build</code>
+                 to generate <code>*.reflection.dart</code>.
               </p>
               <h2>Features</h2>
-              <p>TODO: List what your package can do. Maybe include images, gifs, or videos.</p>
-              <h2>Getting started</h2>
-              <p>TODO: List prerequisites and provide or point to information on how to start using the package.</p>
-              <h2>Usage</h2>
-              <p>TODO: Include short and useful examples for package users. Add longer examples to `/example` folder.</p>
-              <pre><code>const like = 'sample';</code></pre>
-              <h2>Additional information</h2>
+              <h3>Observable state (<code>observable</code>)</h3>
+              <table class="mdtable">
+                <thead><tr><th>Type</th><th>Responsibility</th></tr></thead>
+                <tbody>
+                  <tr><td><code>TomObject&lt;T&gt;</code></td><td>Base observable holding a single typed value</td></tr>
+                  <tr>
+                    <td><code>TomString</code> / <code>TomInt</code> / <code>TomDouble</code> / <code>TomBool</code></td>
+                    <td>Typed scalar observables</td>
+                  </tr>
+                  <tr>
+                    <td><code>TomClass</code> / <code>TomList</code> / <code>TomMap</code></td>
+                    <td>Observable composites</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3>Context &amp; scope (<code>context</code>, <code>scope_ids</code>)</h3>
+              <table class="mdtable">
+                <thead><tr><th>Type</th><th>Responsibility</th></tr></thead>
+                <tbody>
+                  <tr><td><code>TomExecutionContext</code></td><td>Ambient, zone-propagated execution context</td></tr>
+                  <tr><td><code>TomContextEntry&lt;T&gt;</code></td><td>A typed value carried on the context</td></tr>
+                  <tr>
+                    <td><code>TomScope</code> / <code>InScopeBuilder</code></td>
+                    <td>Hierarchical, zone-propagated scope identifiers</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3>Dependency injection (<code>beanlocator</code>)</h3>
+              <table class="mdtable">
+                <thead><tr><th>Type</th><th>Responsibility</th></tr></thead>
+                <tbody>
+                  <tr><td><code>TomComponent</code></td><td>A registrable framework component</td></tr>
+                  <tr><td><code>TomBean&lt;T&gt;</code></td><td>A located/injected bean instance</td></tr>
+                </tbody>
+              </table>
+              <h3>Security (<code>security</code>)</h3>
+              <table class="mdtable">
+                <thead><tr><th>Type</th><th>Responsibility</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><code>TomAuthorization</code> / <code>TomAuthState</code></td>
+                    <td>Authorization decisions and the four-state model</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <code>TomAccessControl</code>
+                       (+ 
+                      <code>TomNoAccess</code>
+                      , 
+                      <code>TomPublicAccess</code>
+                      , 
+                      <code>TomAuthenticatedAccess</code>
+                      , 
+                      <code>TomGuestAccess</code>
+                      )
+                    </td>
+                    <td>Layered access-control rules</td>
+                  </tr>
+                  <tr><td><code>TomBearerAuthentication</code></td><td>Bearer-token authentication</td></tr>
+                  <tr>
+                    <td>
+                      <code>TomAccessControlInformation</code>
+                      , 
+                      <code>TomGroup</code>
+                      , 
+                      <code>TomRole</code>
+                      , 
+                      <code>TomEntitlement</code>
+                    </td>
+                    <td>Principal / ACI model</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3>Runtime utilities</h3>
+              <table class="mdtable">
+                <thead><tr><th>Module</th><th>Key types</th><th>What it does</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><code>logging</code></td>
+                    <td>isolate &amp; remote log output/server</td>
+                    <td>Structured logging across isolates and the wire</td>
+                  </tr>
+                  <tr>
+                    <td><code>isolate_pooling</code></td>
+                    <td>
+                      <code>TomWorker</code>
+                      , 
+                      <code>TomWorkerPool</code>
+                      , 
+                      <code>TomExecutor</code>
+                      , 
+                      <code>TomCommand</code>
+                    </td>
+                    <td>Worker-pool execution across isolates</td>
+                  </tr>
+                  <tr>
+                    <td><code>json</code></td>
+                    <td>map-merge, pretty-print helpers</td>
+                    <td>JSON tree merge/serialization utilities</td>
+                  </tr>
+                  <tr>
+                    <td><code>resources</code></td>
+                    <td><code>TomTextResourceProvider</code>, <code>TomConfigResourceProvider</code></td>
+                    <td>Text and configuration resource resolution</td>
+                  </tr>
+                  <tr><td><code>settings</code></td><td>client settings/authorization</td><td>Settings management</td></tr>
+                  <tr>
+                    <td><code>shutdown_cleanup</code></td>
+                    <td><code>TomShutdownCleanup</code>, <code>TomDisposable</code>, <code>TomClosable</code></td>
+                    <td>Ordered shutdown / cleanup hooks</td>
+                  </tr>
+                  <tr>
+                    <td><code>timezoned</code></td>
+                    <td><code>DateTimestamp</code>, timezone tables</td>
+                    <td>Timezone-aware date/time</td>
+                  </tr>
+                  <tr>
+                    <td><code>http_connection</code></td>
+                    <td>server connection, endpoints, headers</td>
+                    <td>HTTP connection helpers</td>
+                  </tr>
+                  <tr>
+                    <td><code>little_things</code></td>
+                    <td>zone helpers, formatting, <code>TomException</code></td>
+                    <td>Small cross-cutting utilities</td>
+                  </tr>
+                  <tr>
+                    <td><code>reflection</code></td>
+                    <td>reflection bootstrap</td>
+                    <td>Reflection support built on <code>tom_reflection</code></td>
+                  </tr>
+                </tbody>
+              </table>
+              <h2>Quick start</h2>
+              <p>Observable state with automatic observer propagation:</p>
+              <pre><code>import 'package:tom_core_kernel/tom_core_kernel.dart';
+
+void main() {
+  final count = TomInt(0);
+  count &gt;&gt; (obs) =&gt; print('changed to ${~count}');
+  count | 5; // prints: changed to 5
+}</code></pre>
               <p>
-                TODO: Tell users more about the package: where to find more information, how to contribute to the package, how to file issues, what response they can expect from the package authors, and more.
+                <code>|</code> sets the value, <code>~</code> reads it, and <code>&gt;&gt;</code> registers an observer that fires on every change.
+              </p>
+              <h2>Example projects</h2>
+              <p>
+                Every module ships a runnable sample folder under <a href="example/"><code>example/</code></a>, and a top-level 
+                <a href="example/run_all_samples.dart"><code>run_all_samples.dart</code></a> runs them all.
+              </p>
+              <table class="mdtable">
+                <thead><tr><th>Sample</th><th>Demonstrates</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><a href="example/observable/"><code>example/observable/</code></a></td>
+                    <td>Observable scalars, composites, and observers</td>
+                  </tr>
+                  <tr>
+                    <td><a href="example/beanlocator/"><code>example/beanlocator/</code></a></td>
+                    <td>Registering and locating beans</td>
+                  </tr>
+                  <tr>
+                    <td><a href="example/context/"><code>example/context/</code></a></td>
+                    <td>Execution context &amp; context entries</td>
+                  </tr>
+                  <tr>
+                    <td><a href="example/scope_ids/"><code>example/scope_ids/</code></a></td>
+                    <td>Hierarchical scope paths</td>
+                  </tr>
+                  <tr>
+                    <td><a href="example/security/"><code>example/security/</code></a></td>
+                    <td>Access controls, authorization, bearer auth</td>
+                  </tr>
+                  <tr>
+                    <td><a href="example/crypto/"><code>example/crypto/</code></a></td>
+                    <td>JWT / hashing helpers (via <code>tom_crypto</code>)</td>
+                  </tr>
+                  <tr>
+                    <td><a href="example/isolate_pooling/"><code>example/isolate_pooling/</code></a></td>
+                    <td>Worker-pool execution</td>
+                  </tr>
+                  <tr>
+                    <td><a href="example/logging/"><code>example/logging/</code></a></td>
+                    <td>Structured / isolate / remote logging</td>
+                  </tr>
+                  <tr>
+                    <td><a href="example/resources/"><code>example/resources/</code></a></td>
+                    <td>Text &amp; config resource providers</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="example/json/"><code>example/json/</code></a>
+                       · 
+                      <a href="example/timezoned/"><code>example/timezoned/</code></a>
+                       · 
+                      <a href="example/settings/"><code>example/settings/</code></a>
+                       · 
+                      <a href="example/shutdown_cleanup/"><code>example/shutdown_cleanup/</code></a>
+                       · 
+                      <a href="example/http_connection/"><code>example/http_connection/</code></a>
+                       · 
+                      <a href="example/little_things/"><code>example/little_things/</code></a>
+                       · 
+                      <a href="example/reflection/"><code>example/reflection/</code></a>
+                    </td>
+                    <td>The remaining utility modules</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>Run the whole set:</p>
+              <pre><code>dart run build_runner build      # generate reflection (once / on signature change)
+dart run example/run_all_samples.dart</code></pre>
+              <p>
+                &gt; <strong>Cross-package sample.</strong> Beyond these per-module examples, the shared &gt; <code>tom_core_samples/todo_domain</code>
+                 project (forthcoming) models one &gt; todo-management domain on this kernel's reflection — the single entity set &gt; every Tom Core sample reuses. See the &gt; 
+                <a href="/doc/tom_agent_container/tom_ai/core/tom_core_samples/README">samples map</a> for the full learning path.
+              </p>
+              <h2>Usage</h2>
+              <h3>Namespacing with zone-propagated scopes</h3>
+              <pre><code>TomScope.withScope('checkout', () {
+  TomScope.withScope('orderForm', () {
+    print(TomScope.current.getScopePath()); // checkout.orderForm
+  });
+});</code></pre>
+              <h3>Resolving text resources</h3>
+              <pre><code>TomTextResourceProvider.setAppResourceProvider(
+  TomTextResourceProvider.from({'greeting': 'Hello, {name}!'}),
+);</code></pre>
+              <h3>Locating a bean</h3>
+              <p>
+                Components are registered as <code>TomComponent</code>s and resolved as <code>TomBean&lt;T&gt;</code>s through the locator — the container wires dependencies by reflected type rather than by manual construction.
+              </p>
+              <h3>Ordered shutdown</h3>
+              <p>
+                <code>TomShutdownCleanup</code> registers <code>TomDisposable</code> / <code>TomClosable</code> resources and tears them down in a deterministic order on process exit.
+              </p>
+              <h2>Architecture</h2>
+              <pre><code>                tom_core_kernel
+                      │
+   ┌──────────┬───────┼────────┬───────────┐
+observable  context  security  resources   runtime utils
+ (TomObject) (scope) (TomAuth*) (providers) (logging, isolates,
+                                             json, settings,
+                                             shutdown, timezoned)
+                      │
+              tom_reflection  ← introspection / serialization
+              tom_basics · tom_crypto</code></pre>
+              <p>
+                The kernel is a single package with one barrel; modules live under <code>lib/src/tombase/&lt;module&gt;/</code>
+                 and are mutually low-coupled — context/scope and observable underpin the rest, security builds on both, and the runtime utilities are largely independent.
+              </p>
+              <table class="mdtable">
+                <thead><tr><th>Type</th><th>Responsibility</th></tr></thead>
+                <tbody>
+                  <tr><td><code>TomObject&lt;T&gt;</code></td><td>Observable value, the unit of reactive state</td></tr>
+                  <tr><td><code>TomScope</code></td><td>Zone-propagated hierarchical scope identifier</td></tr>
+                  <tr><td><code>TomExecutionContext</code></td><td>Ambient context carried through a call tree</td></tr>
+                  <tr>
+                    <td><code>TomAuthorization</code> / <code>TomAuthState</code></td>
+                    <td>Authorization decision + four-state model</td>
+                  </tr>
+                  <tr><td><code>TomAccessControl</code></td><td>Base access-control rule</td></tr>
+                  <tr>
+                    <td><code>TomBean&lt;T&gt;</code> / <code>TomComponent</code></td>
+                    <td>DI bean / registrable component</td>
+                  </tr>
+                  <tr><td><code>TomWorker</code> / <code>TomWorkerPool</code></td><td>Isolate worker-pool execution</td></tr>
+                  <tr><td><code>TomTextResourceProvider</code></td><td>Text resource resolution</td></tr>
+                  <tr><td><code>TomShutdownCleanup</code></td><td>Ordered teardown registry</td></tr>
+                </tbody>
+              </table>
+              <h2>Ecosystem</h2>
+              <pre><code>tom_basics · tom_crypto · tom_reflection
+                 │
+          tom_core_kernel        ← you are here
+        ┌────────┼─────────┐
+tom_core_server  tom_core_flutter  tom_core_d4rt
+                 │                   (bridges the kernel into d4rt scripts)
+          tom_flutter_ui</code></pre>
+              <p>
+                <code>tom_core_kernel</code> sits directly on the basics/crypto/reflection foundation and is the common dependency of the server, Flutter, and DartScript layers. See the 
+                <a href="/doc/tom_agent_container/tom_ai/core/README">repository map</a> for the full picture.
+              </p>
+              <h2>Further documentation</h2>
+              <ul><li>Per-module guides under <a href="doc/"><code>doc/</code></a> — one folder per module</li></ul>
+              <p>
+                (<code>doc/observable/</code>, <code>doc/security/</code>, <code>doc/scope_ids/</code>, …). - <a href="/docs?module=tom_core_server&amp;path=README.md"><code>tom_core_server</code></a>
+                 — the server runtime built on this kernel. - <a href="/docs?module=tom_core_flutter&amp;path=README.md"><code>tom_core_flutter</code></a>
+                 / <a href="/docs?module=tom_flutter_ui&amp;path=README.md"><code>tom_flutter_ui</code></a> — the client/UI layers. - 
+                <a href="/docs?module=tom_core_d4rt&amp;path=README.md"><code>tom_core_d4rt</code></a> — exposes these types to 
+                <code>d4rt</code> scripts.
+              </p>
+              <h2>Status</h2>
+              <ul>
+                <li><strong>Version:</strong> 1.1.0</li>
+                <li>
+                  <strong>Tests:</strong> 1,464 test cases across 17 module suites (run with <code>testkit :test</code>
+                </li>
+              </ul>
+              <p>
+                or <code>dart test</code>). - <strong>License:</strong> proprietary — see <a href="LICENSE">LICENSE</a>.
               </p>
             </div>
           </section>

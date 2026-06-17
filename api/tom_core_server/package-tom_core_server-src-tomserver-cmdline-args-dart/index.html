@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1311,31 +1331,109 @@
                 <section id="TomArgs" class="api-declaration">
                   <h3 class="api-decl-title">class TomArgs</h3>
                   <code class="api-signature">class TomArgs</code>
+                  <div class="api-doc">
+                    <p>
+                      Parses <code>key=value</code> command-line arguments and converts string values to their natural Dart types.
+                    </p>
+                    <p>
+                      All members are static; the class is a namespace, not a value type. Three entry points share the same value-conversion rules (see [convertToObjectMap] for the exact table):
+                    </p>
+                    <ul>
+                      <li>[fillFromArgs] populates a reflected configuration object from <code>argv</code>.</li>
+                      <li>[parseArgsToMap] returns the arguments as a loose <code>Map&lt;String, dynamic&gt;</code>.</li>
+                      <li>[convertToObjectMap] converts an existing string map (e.g.</li>
+                    </ul>
+                    <p><code>Platform.environment</code>) using the same rules.</p>
+                    <p>
+                      An argument with no <code>=</code> is treated as a flag. Note the two map-producing paths differ in how they encode a bare flag: [parseArgsToMap] stores the boolean 
+                      <code>true</code>, whereas [fillFromArgs] stores the string <code>"true"</code> (the reflection layer coerces it to the target field's type on assignment).
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomArgs.new" class="api-member"><div class="api-member-head"><code class="api-signature">TomArgs.new()</code></div></div>
                   </div>
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
-                    <div id="TomArgs.intPattern" class="api-member"><div class="api-member-head"><code class="api-signature">static RegExp intPattern</code></div></div>
-                    <div id="TomArgs.doublePattern" class="api-member"><div class="api-member-head"><code class="api-signature">static RegExp doublePattern</code></div></div>
+                    <div id="TomArgs.intPattern" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static RegExp intPattern</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Matches a run of digits. A value is parsed as an <code>int</code> only when this pattern matches the 
+                          <em>whole</em> string, so a leading sign or trailing text keeps the value a <code>String</code> (e.g. 
+                          <code>-5</code> and <code>12px</code> stay strings).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomArgs.doublePattern" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static RegExp doublePattern</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Matches a decimal number (<code>digits . digits?</code>). A value is parsed as a <code>double</code> only when this pattern matches the 
+                          <em>whole</em> string and it is not already an <code>int</code>; a leading sign or a missing integer part keeps the value a 
+                          <code>String</code> (e.g. <code>-1.5</code> and <code>.5</code> stay strings).
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomArgs.fillFromArgs" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">static T fillFromArgs&lt;T extends Object&gt;(List&lt;String&gt; args, T fillIn)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Fills [fillIn] from <code>key=value</code> [args] using reflection and returns it.</p>
+                        <p>
+                          Each <code>key=value</code> argument becomes a field assignment on [fillIn]: the key names the field and the value is type-converted (see [convertToObjectMap]). A bare flag (<code>--verbose</code>) is recorded as the string 
+                          <code>"true"</code>, which the reflection layer coerces to the field's declared type.
+                        </p>
+                        <p>
+                          [T] must be a type registered with the reflection system (<code>tomReflectionInfo.setValues</code> performs the assignment); unknown keys that do not map to a field are ignored by the reflection layer.
+                        </p>
                       </div>
                     </div>
                     <div id="TomArgs.parseArgsToMap" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">static Map&lt;String, dynamic&gt; parseArgsToMap(List&lt;String&gt; args)</code>
                       </div>
+                      <div class="api-doc">
+                        <p>Parses <code>key=value</code> [args] into a loose map, type-converting each value.</p>
+                        <p>
+                          <code>key=value</code> becomes <code>key -&gt; convertedValue</code> (see [convertToObjectMap] for the conversion table); a bare flag becomes 
+                          <code>flag -&gt; true</code> (boolean).
+                        </p>
+                      </div>
                     </div>
                     <div id="TomArgs.convertToObjectMap" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">static Map&lt;String, dynamic&gt; convertToObjectMap(Map&lt;String, String&gt; map)</code>
                       </div>
+                      <div class="api-doc">
+                        <p>Converts every value in a string [map] to its natural Dart type.</p>
+                        <p>
+                          Useful for normalising an environment map such as <code>Platform.environment</code>. Each value is converted as follows:
+                        </p>
+                        <table class="mdtable">
+                          <thead><tr><th>Input</th><th>Result</th></tr></thead>
+                          <tbody>
+                            <tr><td><code>"true"</code> / <code>null</code></td><td><code>bool</code> <code>true</code></td></tr>
+                            <tr><td><code>"false"</code></td><td><code>bool</code> <code>false</code></td></tr>
+                            <tr>
+                              <td>starts with <code>"</code> or <code>'</code></td>
+                              <td>the unquoted contents (first/last char dropped)</td>
+                            </tr>
+                            <tr><td>all digits</td><td><code>int</code></td></tr>
+                            <tr><td>decimal number</td><td><code>double</code></td></tr>
+                            <tr><td>anything else</td><td>the original <code>String</code></td></tr>
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                     <div id="TomArgs._convertString" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static Object _convertString(String? value)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Converts a single string [value] to its natural Dart type. See [convertToObjectMap] for the conversion table.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>

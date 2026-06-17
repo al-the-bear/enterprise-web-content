@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1347,7 +1367,8 @@
                       </div>
                       <div class="api-doc">
                         <p>
-                          Check if path matches any of the patterns (for exclude filters). Uses substring matching - *flutter* matches any path containing 'flutter'.
+                          Check if path matches any of the patterns (for exclude filters). Uses substring matching - <em>flutter</em>
+                           matches any path containing 'flutter'.
                         </p>
                       </div>
                     </div>
@@ -1358,10 +1379,24 @@
                       <div class="api-doc">
                         <p>Check if a folder matches any project pattern by ID, name, or folder name glob.</p>
                         <p>
-                          This is the unified matching method used for `--project` / `-p` filtering. Resolution order: project ID → project name → folder name (glob) → relative path pattern (for patterns with '/').
+                          This is the unified matching method used for <code>--project</code> / <code>-p</code> filtering. Resolution order: project ID → project name → folder name (glob) → relative path pattern (for patterns with '/').
                         </p>
                         <p>
                           When [executionRoot] is provided, patterns containing '/' are matched against the folder's path relative to the execution root.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="FilterPipeline._matchesFullPath" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">bool _matchesFullPath(String folderPath, List&lt;String&gt; patterns)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Match a folder's full path against any pattern interpreted as a complete filesystem path (typically an absolute 
+                          <code>--project</code> argument).
+                        </p>
+                        <p>
+                          The comparison is separator-agnostic: both the pattern and the folder path are normalised to forward slashes first, so a Windows backslash path and a POSIX-style path both resolve to the same folder.
                         </p>
                       </div>
                     </div>
@@ -1372,7 +1407,7 @@
                       <div class="api-doc">
                         <p>Match a relative path against path-based patterns.</p>
                         <p>
-                          Only considers patterns that contain '/' (directory separators). Uses [Glob] matching for pattern evaluation.
+                          Only considers patterns that contain a directory separator. Both the path and the pattern are normalised to forward slashes before [Glob] matching, so Windows backslash separators behave the same as POSIX ones.
                         </p>
                       </div>
                     </div>
@@ -1432,9 +1467,22 @@
                       <div class="api-doc">
                         <p>Whether a pattern is path-based (contains directory separators).</p>
                         <p>
-                          Path patterns like `core/*`, `devops/**`, `**/tom_core_*` must be matched against relative paths, not just the folder basename.
+                          Path patterns like <code>core/*</code>, <code>devops/**</code>, <code>**/tom_core_*</code> must be matched against relative paths, not just the folder basename. Both POSIX (<code>/</code>) and Windows (<code>\</code>) separators are recognised so that absolute paths passed on Windows (e.g. 
+                          <code>C:\repo\_build</code>) are still treated as paths.
                         </p>
                       </div>
+                    </div>
+                    <div id="FilterPipeline._normalizeSeparators" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String _normalizeSeparators(String path)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Normalise a path to use forward slashes and drop a trailing separator, so comparisons are independent of the platform's separator style.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="FilterPipeline._pathEquals" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static bool _pathEquals(String a, String b)</code></div>
+                      <div class="api-doc"><p>Platform-aware path equality (case-insensitive on Windows).</p></div>
                     </div>
                   </div>
                 </section>
@@ -1480,6 +1528,18 @@
                       <div class="api-doc">
                         <p>Sort git repos by outer-first order.</p>
                         <p>Parent repos come before nested repos (submodules).</p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="FolderSorter._pathDepth" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static int _pathDepth(String path)</code></div>
+                      <div class="api-doc">
+                        <p>Counts the nesting depth of a path, independent of the host platform's path separator.</p>
+                        <p>
+                          Why: ordering must be correct for both POSIX (<code>/a/b</code>) and Windows (<code>C:\a\b</code>) style paths regardless of where the tool runs. Splitting on only [p.separator] would yield depth 1 for foreign-separator paths on Windows, collapsing the ordering. Empty segments (leading separators, doubled separators) are ignored so equivalent paths compare equally.
+                        </p>
                       </div>
                     </div>
                   </div>

@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1313,16 +1333,35 @@
                 <section id="TomQuerySentenceCompiler" class="api-declaration">
                   <h3 class="api-decl-title">class TomQuerySentenceCompiler</h3>
                   <code class="api-signature">class TomQuerySentenceCompiler extends TomTypedPersistenceBase with TomQueryBuilder</code>
+                  <div class="api-doc">
+                    <p>Compiles a Spring-Data-style <em>query sentence</em> into a [TomQuery].</p>
+                    <p>
+                      A query sentence is a whitespace-separated phrase such as <code>find by name = :name order by age desc</code>, 
+                      <code>count by status IS IN ( :s )</code>, or <code>delete by id = $id</code>. The first word selects the query kind (<code>find</code>
+                       → [TomSelect], <code>count</code> → [TomCount], <code>delete</code> → [TomDelete]); the part before 
+                      <code>by</code> carries options (<code>distinct</code>, <code>top</code>/<code>first</code> N); the part after 
+                      <code>by</code> is the predicate, optionally followed by an <code>order by &lt;fields&gt; [asc|desc]</code>
+                       clause. The predicate is parsed against the entity's resolved columns (via [TomQueryBuilder] and [TomAnnotationAnalyzer]) into a [TomOperator] tree.
+                    </p>
+                    <p>
+                      Throws [TomQuerySyntaxException] for a malformed sentence (unknown kind, both <code>top</code> and <code>first</code>, a misplaced order direction, etc.).
+                    </p>
+                    <p>
+                      (The select/count/delete branches currently build their option fields independently; unifying them is a tracked follow-up.)
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomQuerySentenceCompiler.new" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomQuerySentenceCompiler.new(List&lt;Type&gt; types)</code></div>
+                      <div class="api-doc"><p>Creates a compiler for the given entity [types] (the first is primary).</p></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
                     <div id="TomQuerySentenceCompiler.compileQuerySentence" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomQuery compileQuerySentence(String qs)</code></div>
+                      <div class="api-doc"><p>Parses query sentence [qs] into a [TomSelect], [TomCount], or [TomDelete].</p></div>
                     </div>
                     <div id="TomQuerySentenceCompiler._analyseOrderByClause" class="api-member">
                       <div class="api-member-head">

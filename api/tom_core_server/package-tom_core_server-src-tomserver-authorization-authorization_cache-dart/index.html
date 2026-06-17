@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1320,6 +1340,17 @@
                 <section id="TomAuthorizationCache" class="api-declaration">
                   <h3 class="api-decl-title">class TomAuthorizationCache</h3>
                   <code class="api-signature">class TomAuthorizationCache</code>
+                  <div class="api-doc">
+                    <p>
+                      Caches the [TomPrincipal] resolved for an authentication token so that the authorization lookup runs once per token rather than on every request.
+                    </p>
+                    <p>
+                      The cache lives in the <strong>main isolate</strong> and is keyed by the JWT token string. Worker isolates do not hold their own copy: [getPrincipal] and [storePrincipal] detect when they run off the main isolate and forward the request to the creator isolate via [TomWorker.executeInCreator], where the [TomAuthorizationCacheExecutor] services the [TomAuthorizationCacheStoreMessage] / [TomAuthorizationCacheRetrieveMessage] against the single shared map.
+                    </p>
+                    <p>
+                      A periodic timer evicts entries whose [TomAuthorizationCacheEntry.deletionTime] has passed once an hour; reads also reject an expired entry by throwing a [TomAuthorizationCacheException].
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomAuthorizationCache.new" class="api-member"><div class="api-member-head"><code class="api-signature">TomAuthorizationCache.new()</code></div></div>
@@ -1339,12 +1370,28 @@
                       <div class="api-member-head">
                         <code class="api-signature">static Future&lt;TomPrincipal?&gt; getPrincipal(TomClientJwtToken authenticationToken)</code>
                       </div>
+                      <div class="api-doc">
+                        <p>
+                          Returns the cached principal for [authenticationToken], or <code>null</code> if no entry exists (a cache miss).
+                        </p>
+                        <p>
+                          Throws [TomAuthorizationCacheException] when an entry exists but has expired — the caller should treat that as a prompt to re-authorize. When called from a worker isolate the lookup is forwarded to the main isolate.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomAuthorizationCache.storePrincipal" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
                           static Future&lt;int&gt; storePrincipal(TomClientJwtToken authenticationToken, TomPrincipal authorizedPrincipal)
                         </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Stores [authorizedPrincipal] under [authenticationToken], using the token's <code>validUntil</code> payload claim as the entry's expiry.
+                        </p>
+                        <p>
+                          When called from a worker isolate the store is forwarded to the main isolate. Always returns <code>0</code>.
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -1354,8 +1401,9 @@
                   <code class="api-signature">class TomAuthorizationCacheEntry</code>
                   <div class="api-doc">
                     <p>
-                      this class with cache the authorization tokens received during calls to getSettingsAndAssociateWithAuthorization so the information is available for subsequent calls the information is stored in the main isolate to make it accessible from all requests
+                      A single entry in the [TomAuthorizationCache]: the authorized [TomPrincipal] paired with the [deletionTime] at which it should be considered stale and evicted.
                     </p>
+                    <p>When no explicit deletion time is supplied the entry lives for one day.</p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
@@ -1363,19 +1411,42 @@
                       <div class="api-member-head">
                         <code class="api-signature">TomAuthorizationCacheEntry.new(TomPrincipal authorizedPrincipal, [DateTime? deletionTime])</code>
                       </div>
+                      <div class="api-doc">
+                        <p>
+                          Creates an entry for [authorizedPrincipal]. [deletionTime] defaults to one day from now when omitted.
+                        </p>
+                      </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="TomAuthorizationCacheEntry.deletionTime" class="api-member"><div class="api-member-head"><code class="api-signature">DateTime deletionTime</code></div></div>
+                    <div id="TomAuthorizationCacheEntry.deletionTime" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">DateTime deletionTime</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The instant after which this entry is expired and may be evicted. Set to the token's <code>validUntil</code>
+                           when stored via [TomAuthorizationCache.storePrincipal].
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomAuthorizationCacheEntry.authorizedPrincipal" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomPrincipal authorizedPrincipal</code></div>
+                      <div class="api-doc"><p>The principal resolved for the associated authentication token.</p></div>
                     </div>
                   </div>
                 </section>
                 <section id="TomAuthorizationCacheException" class="api-declaration">
                   <h3 class="api-decl-title">class TomAuthorizationCacheException</h3>
                   <code class="api-signature">class TomAuthorizationCacheException extends TomException</code>
+                  <div class="api-doc">
+                    <p>
+                      Raised by [TomAuthorizationCache] when a cached principal cannot be returned — currently when a matching entry exists but its expiry has already passed.
+                    </p>
+                    <p>
+                      The distinct type lets a caller catch it specifically: an expired principal is a signal that the client should re-authorize, as opposed to a cache miss (which simply returns 
+                      <code>null</code>).
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomAuthorizationCacheException.new" class="api-member">
@@ -1390,6 +1461,11 @@
                 <section id="TomAuthorizationCacheExecutor" class="api-declaration">
                   <h3 class="api-decl-title">class TomAuthorizationCacheExecutor</h3>
                   <code class="api-signature">class TomAuthorizationCacheExecutor extends TomExecutor</code>
+                  <div class="api-doc">
+                    <p>
+                      Runs in the main isolate and services the [TomAuthorizationCacheStoreMessage] and [TomAuthorizationCacheRetrieveMessage] commands forwarded from worker isolates, delegating to [TomAuthorizationCache]. Returns [TomExecutor.noResult] for any other command.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomAuthorizationCacheExecutor.new" class="api-member">
@@ -1409,6 +1485,11 @@
                 <section id="TomAuthorizationCacheRetrieveMessage" class="api-declaration">
                   <h3 class="api-decl-title">class TomAuthorizationCacheRetrieveMessage</h3>
                   <code class="api-signature">class TomAuthorizationCacheRetrieveMessage</code>
+                  <div class="api-doc">
+                    <p>
+                      Cross-isolate command asking the main isolate to return the cached principal for [authenticationToken]. Handled by [TomAuthorizationCacheExecutor].
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomAuthorizationCacheRetrieveMessage.new" class="api-member">
@@ -1427,6 +1508,11 @@
                 <section id="TomAuthorizationCacheStoreMessage" class="api-declaration">
                   <h3 class="api-decl-title">class TomAuthorizationCacheStoreMessage</h3>
                   <code class="api-signature">class TomAuthorizationCacheStoreMessage</code>
+                  <div class="api-doc">
+                    <p>
+                      Cross-isolate command asking the main isolate to store [authorizedPrincipal] for [authenticationToken]. Handled by [TomAuthorizationCacheExecutor].
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomAuthorizationCacheStoreMessage.new" class="api-member">

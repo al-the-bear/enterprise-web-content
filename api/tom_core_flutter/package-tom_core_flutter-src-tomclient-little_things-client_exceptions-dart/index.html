@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1316,6 +1336,15 @@
                 <section id="TomClientException" class="api-declaration">
                   <h3 class="api-decl-title">class TomClientException</h3>
                   <code class="api-signature">class TomClientException extends TomException</code>
+                  <div class="api-doc">
+                    <p>An exception originating on the client side of a Tom application.</p>
+                    <p>
+                      <code>TomClientException</code> is a thin semantic subtype of the kernel [TomException]: it carries the same 
+                      <code>key</code> / <code>defaultUserMessage</code> / <code>parameters</code> / <code>stack</code> / <code>rootException</code>
+                       / <code>autoLog</code> payload but lets client code distinguish failures raised in the Flutter client from those surfaced by lower layers (server, kernel) via a simple 
+                      <code>is TomClientException</code> check.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomClientException.new" class="api-member">
@@ -1324,12 +1353,21 @@
                           TomClientException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, Object? stack, Object? rootException, bool autoLog = false})
                         </code>
                       </div>
+                      <div class="api-doc"><p>Creates a client-side exception. See [TomException] for the meaning of each argument.</p></div>
                     </div>
                   </div>
                 </section>
                 <section id="TomClientUIException" class="api-declaration">
                   <h3 class="api-decl-title">class TomClientUIException</h3>
                   <code class="api-signature">class TomClientUIException extends TomClientException</code>
+                  <div class="api-doc">
+                    <p>A client exception that is meant to be shown to the user in the UI.</p>
+                    <p>
+                      <code>TomClientUIException</code> narrows [TomClientException] to errors whose <code>defaultUserMessage</code>
+                       is safe and intended for display. Consumers commonly branch on its type — e.g. <code>if (e is TomClientUIException) rethrow;</code>
+                       to let a presentable error bubble up to the UI while wrapping non-presentable ones — so the distinct type, not just the message, is the contract.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomClientUIException.new" class="api-member">
@@ -1338,6 +1376,7 @@
                           TomClientUIException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, Object? stack, Object? rootException, bool autoLog = false})
                         </code>
                       </div>
+                      <div class="api-doc"><p>Creates a user-facing client exception. See [TomException] for the meaning of each argument.</p></div>
                     </div>
                   </div>
                 </section>

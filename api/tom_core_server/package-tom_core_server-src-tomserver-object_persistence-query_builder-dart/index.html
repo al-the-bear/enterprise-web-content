@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1311,17 +1331,29 @@
                 <section id="TomQueryBuilder" class="api-declaration">
                   <h3 class="api-decl-title">mixin TomQueryBuilder</h3>
                   <code class="api-signature">mixin TomQueryBuilder on Object</code>
+                  <div class="api-doc">
+                    <p>A fluent factory for the [TomOperator] expression tree.</p>
+                    <p>
+                      Each method constructs one node of a query predicate (or a literal, parameter, or column reference) so callers can assemble a type-safe SQL expression without naming the concrete operator classes. Mixed into the repositories and the query-sentence compiler, which then render the tree through a [TomStandardSqlDialect].
+                    </p>
+                    <p>
+                      Predicate builders return <code>TomOperator&lt;TomDbBool&gt;</code>; literal/column/parameter builders return the matching SQL-typed operator (<code>TomOperator&lt;TomDbInt&gt;</code>, 
+                      <code>TomOperator&lt;TomDbString&gt;</code>, …).
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
                     <div id="TomQueryBuilder.isNull" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">TomOperator&lt;TomDbBool&gt; isNull&lt;T&gt;(TomOperator&lt;T&gt; what)</code>
                       </div>
+                      <div class="api-doc"><p><code>&lt;what&gt; IS NULL</code>.</p></div>
                     </div>
                     <div id="TomQueryBuilder.isNotNull" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">TomOperator&lt;TomDbBool&gt; isNotNull&lt;T&gt;(TomOperator&lt;T&gt; what)</code>
                       </div>
+                      <div class="api-doc"><p><code>&lt;what&gt; IS NOT NULL</code>.</p></div>
                     </div>
                     <div id="TomQueryBuilder.isIn" class="api-member">
                       <div class="api-member-head">
@@ -1329,6 +1361,7 @@
                           TomOperator&lt;TomDbBool&gt; isIn&lt;T&gt;(TomOperator&lt;T&gt; what, List&lt;TomOperator&lt;T&gt;&gt; choices)
                         </code>
                       </div>
+                      <div class="api-doc"><p><code>&lt;what&gt; IN (&lt;choices...&gt;)</code>.</p></div>
                     </div>
                     <div id="TomQueryBuilder.between" class="api-member">
                       <div class="api-member-head">
@@ -1336,6 +1369,7 @@
                           TomOperator&lt;TomDbBool&gt; between&lt;T&gt;(TomOperator&lt;T&gt; what, List&lt;TomOperator&lt;T&gt;&gt; betweenLimits)
                         </code>
                       </div>
+                      <div class="api-doc"><p><code>&lt;what&gt; BETWEEN &lt;lo&gt; AND &lt;hi&gt;</code> (exactly two [betweenLimits]).</p></div>
                     </div>
                     <div id="TomQueryBuilder.like" class="api-member">
                       <div class="api-member-head">
@@ -1343,6 +1377,7 @@
                           TomOperator&lt;TomDbBool&gt; like(TomOperator&lt;TomDbString&gt; text, TomOperator&lt;TomDbString&gt; test)
                         </code>
                       </div>
+                      <div class="api-doc"><p><code>&lt;text&gt; LIKE &lt;test&gt;</code>.</p></div>
                     </div>
                     <div id="TomQueryBuilder.notLike" class="api-member">
                       <div class="api-member-head">
@@ -1350,6 +1385,7 @@
                           TomOperator&lt;TomDbBool&gt; notLike(TomOperator&lt;TomDbString&gt; text, TomOperator&lt;TomDbString&gt; test)
                         </code>
                       </div>
+                      <div class="api-doc"><p><code>&lt;text&gt; NOT LIKE &lt;test&gt;</code>.</p></div>
                     </div>
                     <div id="TomQueryBuilder.regexp" class="api-member">
                       <div class="api-member-head">
@@ -1357,9 +1393,11 @@
                           TomOperator&lt;TomDbBool&gt; regexp(TomOperator&lt;TomDbString&gt; text, TomOperator&lt;TomDbString&gt; test)
                         </code>
                       </div>
+                      <div class="api-doc"><p><code>&lt;text&gt; REGEXP &lt;test&gt;</code>.</p></div>
                     </div>
                     <div id="TomQueryBuilder.group" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomOperator&lt;T&gt; group&lt;T&gt;(TomOperator&lt;T&gt; operant)</code></div>
+                      <div class="api-doc"><p><code>( &lt;operant&gt; )</code>.</p></div>
                     </div>
                     <div id="TomQueryBuilder.eq" class="api-member">
                       <div class="api-member-head">
@@ -1367,6 +1405,7 @@
                           TomOperator&lt;TomDbBool&gt; eq&lt;T&gt;(TomOperator&lt;T&gt; operant1, TomOperator&lt;T&gt; operant2)
                         </code>
                       </div>
+                      <div class="api-doc"><p><code>&lt;operant1&gt; = &lt;operant2&gt;</code>.</p></div>
                     </div>
                     <div id="TomQueryBuilder.neq" class="api-member">
                       <div class="api-member-head">
@@ -1374,6 +1413,7 @@
                           TomOperator&lt;TomDbBool&gt; neq&lt;T&gt;(TomOperator&lt;T&gt; operant1, TomOperator&lt;T&gt; operant2)
                         </code>
                       </div>
+                      <div class="api-doc"><p><code>&lt;operant1&gt; &lt;&gt; &lt;operant2&gt;</code>.</p></div>
                     </div>
                     <div id="TomQueryBuilder.lt" class="api-member">
                       <div class="api-member-head">
@@ -1381,6 +1421,7 @@
                           TomOperator&lt;TomDbBool&gt; lt&lt;T&gt;(TomOperator&lt;T&gt; operant1, TomOperator&lt;T&gt; operant2)
                         </code>
                       </div>
+                      <div class="api-doc"><p><code>&lt;operant1&gt; &lt; &lt;operant2&gt;</code>.</p></div>
                     </div>
                     <div id="TomQueryBuilder.lte" class="api-member">
                       <div class="api-member-head">
@@ -1388,6 +1429,7 @@
                           TomOperator&lt;TomDbBool&gt; lte&lt;T&gt;(TomOperator&lt;T&gt; operant1, TomOperator&lt;T&gt; operant2)
                         </code>
                       </div>
+                      <div class="api-doc"><p><code>&lt;operant1&gt; &lt;= &lt;operant2&gt;</code>.</p></div>
                     </div>
                     <div id="TomQueryBuilder.gt" class="api-member">
                       <div class="api-member-head">
@@ -1395,6 +1437,7 @@
                           TomOperator&lt;TomDbBool&gt; gt&lt;T&gt;(TomOperator&lt;T&gt; operant1, TomOperator&lt;T&gt; operant2)
                         </code>
                       </div>
+                      <div class="api-doc"><p><code>&lt;operant1&gt; &gt; &lt;operant2&gt;</code>.</p></div>
                     </div>
                     <div id="TomQueryBuilder.gte" class="api-member">
                       <div class="api-member-head">
@@ -1402,72 +1445,89 @@
                           TomOperator&lt;TomDbBool&gt; gte&lt;T&gt;(TomOperator&lt;T&gt; operant1, TomOperator&lt;T&gt; operant2)
                         </code>
                       </div>
+                      <div class="api-doc"><p><code>&lt;operant1&gt; &gt;= &lt;operant2&gt;</code>.</p></div>
                     </div>
                     <div id="TomQueryBuilder.not" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">TomOperator&lt;TomDbBool&gt; not(TomOperator&lt;TomDbBool&gt; operant1)</code>
                       </div>
+                      <div class="api-doc"><p><code>NOT &lt;operant1&gt;</code>.</p></div>
                     </div>
                     <div id="TomQueryBuilder.and" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">TomOperator&lt;TomDbBool&gt; and(List&lt;TomOperator&lt;TomDbBool&gt;&gt; operant1)</code>
                       </div>
+                      <div class="api-doc"><p>The [operant1] predicates joined with <code> AND </code>.</p></div>
                     </div>
                     <div id="TomQueryBuilder.or" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">TomOperator&lt;TomDbBool&gt; or(List&lt;TomOperator&lt;TomDbBool&gt;&gt; operant1)</code>
                       </div>
+                      <div class="api-doc"><p>The [operant1] predicates joined with <code> OR </code>.</p></div>
                     </div>
                     <div id="TomQueryBuilder.text" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomOperator&lt;TomDbString&gt; text(String text)</code></div>
+                      <div class="api-doc"><p>A string literal.</p></div>
                     </div>
                     <div id="TomQueryBuilder.intOp" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomOperator&lt;TomDbInt&gt; intOp(int value)</code></div>
+                      <div class="api-doc"><p>An integer literal.</p></div>
                     </div>
                     <div id="TomQueryBuilder.doubleOp" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomOperator&lt;TomDbDouble&gt; doubleOp(double value)</code></div>
+                      <div class="api-doc"><p>A double literal.</p></div>
                     </div>
                     <div id="TomQueryBuilder.boolOp" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomOperator&lt;TomDbBool&gt; boolOp(bool value)</code></div>
+                      <div class="api-doc"><p>A boolean literal.</p></div>
                     </div>
                     <div id="TomQueryBuilder.dateTimeOp" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomOperator&lt;TomDbDateTime&gt; dateTimeOp(DateTime value)</code></div>
+                      <div class="api-doc"><p>A timestamp literal.</p></div>
                     </div>
                     <div id="TomQueryBuilder.dateOp" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomOperator&lt;TomDbDate&gt; dateOp(DateTime value)</code></div>
+                      <div class="api-doc"><p>A date literal.</p></div>
                     </div>
                     <div id="TomQueryBuilder.p" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomOperator&lt;T&gt; p&lt;T&gt;(String parameterName)</code></div>
+                      <div class="api-doc"><p>A named positional parameter placeholder (<code>:parameterName</code>).</p></div>
                     </div>
                     <div id="TomQueryBuilder.textF" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">TomOperator&lt;TomDbString&gt; textF(String fieldName, TomColumnInformation columnInformation)</code>
                       </div>
+                      <div class="api-doc"><p>A reference to a <code>String</code> column.</p></div>
                     </div>
                     <div id="TomQueryBuilder.intF" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">TomOperator&lt;TomDbInt&gt; intF(String fieldName, TomColumnInformation columnInformation)</code>
                       </div>
+                      <div class="api-doc"><p>A reference to an <code>int</code> column.</p></div>
                     </div>
                     <div id="TomQueryBuilder.doubleF" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">TomOperator&lt;TomDbDouble&gt; doubleF(String fieldName, TomColumnInformation columnInformation)</code>
                       </div>
+                      <div class="api-doc"><p>A reference to a <code>double</code> column.</p></div>
                     </div>
                     <div id="TomQueryBuilder.boolF" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">TomOperator&lt;TomDbBool&gt; boolF(String fieldName, TomColumnInformation columnInformation)</code>
                       </div>
+                      <div class="api-doc"><p>A reference to a <code>bool</code> column.</p></div>
                     </div>
                     <div id="TomQueryBuilder.dateTimeF" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">TomOperator&lt;TomDbDateTime&gt; dateTimeF(String fieldName, TomColumnInformation columnInformation)</code>
                       </div>
+                      <div class="api-doc"><p>A reference to a timestamp column.</p></div>
                     </div>
                     <div id="TomQueryBuilder.dateF" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">TomOperator&lt;TomDbDate&gt; dateF(String fieldName, TomColumnInformation columnInformation)</code>
                       </div>
+                      <div class="api-doc"><p>A reference to a date column.</p></div>
                     </div>
                   </div>
                 </section>

@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1324,15 +1344,7 @@
             <div>
               <div class="panel">
                 <h3>Overview</h3>
-                <p>
-                  `tom_basics_network` adds the networking primitives Tom applications reuse
-                  rather than reimplement. Its HTTP retry layer applies configurable
-                  exponential backoff, attempt limits, and retry conditions via
-                  `RetryConfig`, hardening calls against transient failures.
-                  
-                  It also provides network-based server discovery for distributed Tom
-                  deployments, letting components locate peers without hard-coded addresses.
-                </p>
+                <p>From the module readme.md file:</p>
                 <h4 style="font-size: 1rem; margin-top: 18px">What it enables</h4>
                 <p style="margin: 0">Enables Resilient HTTP calls, Configurable retry backoff, Server discovery.</p>
               </div>
@@ -1383,27 +1395,525 @@
             <div class="pageprose">
               <h1>tom_basics_network</h1>
               <p>
-                Network utilities for Tom applications — HTTP retry with exponential backoff and network server discovery.
+                &gt; Part of the <strong>Tom framework</strong> by al-the-bear. &gt; © 2024–2026 Peter Nicolai Alexis Kyaw — BSD-3-Clause, see 
+                <a href="https://github.com/al-the-bear/tom_basics/blob/main/tom_basics_network/LICENSE">LICENSE</a>.
               </p>
-              <h2>Features</h2>
+              <p>
+                Network utilities for Tom applications — HTTP retry with exponential backoff and LAN server discovery.
+              </p>
+              <p>
+                <code>tom_basics_network</code> packages the two networking concerns that almost every distributed Tom application needs but that the standard 
+                <code>http</code> package leaves to the caller: <strong>surviving transient failures</strong> and <strong>finding a peer on the local network without a configured address</strong>. It is a small, focused, pure-Dart package — two independent subsystems, no shared state, no platform plugins — built directly on 
+                <code>package:http</code> and <code>dart:io</code>.
+              </p>
+              <p>
+                The two subsystems are deliberately decoupled. You can take <code>withRetry</code> to wrap any <code>Future</code>-returning operation and never touch discovery, or use 
+                <code>ServerDiscovery</code> to locate a server and hand the URL to your own client. They share a package only because they share an audience: code that talks to other machines over an unreliable link.
+              </p>
+              <p>---</p>
+              <h2>Overview</h2>
+              <p>
+                A networked operation fails for two broad reasons. Either the <em>transport</em> hiccuped — a dropped socket, a timeout, a server that returned 
+                <code>503</code> because it was briefly overloaded — or something is <em>actually wrong</em> — a <code>404</code>, a malformed request, an authentication failure. The first kind is worth retrying; the second is not. Retrying a 
+                <code>400</code> just wastes time and hammers the server.
+              </p>
+              <p><code>tom_basics_network</code> encodes that distinction:</p>
               <ul>
                 <li>
-                  **HTTP Retry** — Automatic retry logic with configurable exponential backoff, max attempts, and retry conditions via `RetryConfig`.
+                  <strong>HTTP retry</strong> (<code>withRetry</code>, <code>RetryConfig</code>, <code>RetryableResponse</code>) — wraps an
                 </li>
-                <li>**Server Discovery** — Network-based server discovery for distributed Tom applications.</li>
               </ul>
-              <h2>Getting Started</h2>
+              <p>
+                operation in a backoff loop that retries <em>only</em> transient transport errors and <em>only</em> retryable HTTP status codes (<code>5xx</code>, 
+                <code>408</code>, <code>429</code>), and surfaces a single <code>RetryExhaustedException</code> when the budget runs out. - 
+                <strong>Server discovery</strong> (<code>ServerDiscovery</code>, <code>DiscoveryOptions</code>, <code>DiscoveredServer</code>) — probes 
+                <code>localhost</code>, this machine's own LAN addresses, and (optionally) the whole <code>/24</code>
+                 subnet for a Tom server answering a known status endpoint, returning the first match, all matches, or throwing if none respond.
+              </p>
+              <p>
+                Neither subsystem holds state between calls. <code>withRetry</code> is a top-level function; <code>ServerDiscovery</code>
+                 exposes only static methods. Configuration is passed in per call as immutable value objects (<code>RetryConfig</code>, 
+                <code>DiscoveryOptions</code>), so the same code is safe to call concurrently from multiple isolates.
+              </p>
+              <p>---</p>
+              <h2>Installation</h2>
               <pre><code>dependencies:
-  tom_basics_network: ^1.0.0</code></pre>
-              <h2>Usage</h2>
+  tom_basics_network: ^1.0.1</code></pre>
+              <p>Or from the command line:</p>
+              <pre><code>dart pub add tom_basics_network</code></pre>
+              <p>Then import the single entry point:</p>
+              <pre><code>import 'package:tom_basics_network/tom_basics_network.dart';</code></pre>
+              <p>
+                Requires Dart SDK <code>^3.10.4</code>. The package depends only on <a href="https://pub.dev/packages/http"><code>package:http</code></a>; everything else comes from the Dart core libraries (<code>dart:io</code>, 
+                <code>dart:async</code>). It runs on any platform with <code>dart:io</code> (desktop, server, CLI) — server discovery uses 
+                <code>dart:io</code> networking and is not available on the web.
+              </p>
+              <p>---</p>
+              <h2>Features</h2>
+              <h3>HTTP retry</h3>
+              <table class="mdtable">
+                <thead><tr><th>API</th><th>Kind</th><th>Purpose</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><code>withRetry&lt;T&gt;</code></td>
+                    <td>function</td>
+                    <td>Run an operation, retrying transient failures with backoff</td>
+                  </tr>
+                  <tr>
+                    <td><code>RetryConfig</code></td>
+                    <td>class</td>
+                    <td>Per-call retry policy: delay schedule + retry callback</td>
+                  </tr>
+                  <tr>
+                    <td><code>RetryConfig.defaultConfig</code></td>
+                    <td>const</td>
+                    <td>The default policy (5 retries: 2/4/8/16/32 s)</td>
+                  </tr>
+                  <tr>
+                    <td><code>kDefaultRetryDelaysMs</code></td>
+                    <td>const list</td>
+                    <td>The default backoff schedule in milliseconds</td>
+                  </tr>
+                  <tr>
+                    <td><code>RetryExhaustedException</code></td>
+                    <td>exception</td>
+                    <td>Thrown when every retry has failed</td>
+                  </tr>
+                  <tr>
+                    <td><code>RetryableResponse</code></td>
+                    <td>extension</td>
+                    <td><code>http.Response.isRetryable</code> for status-code checks</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3>Server discovery</h3>
+              <table class="mdtable">
+                <thead><tr><th>API</th><th>Kind</th><th>Purpose</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><code>ServerDiscovery.discover</code></td>
+                    <td>static</td>
+                    <td>First server found, or <code>null</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>ServerDiscovery.discoverOrThrow</code></td>
+                    <td>static</td>
+                    <td>First server found, or throw</td>
+                  </tr>
+                  <tr><td><code>ServerDiscovery.discoverAll</code></td><td>static</td><td>Every reachable server</td></tr>
+                  <tr>
+                    <td><code>ServerDiscovery.getLocalIpAddresses</code></td>
+                    <td>static</td>
+                    <td>This machine's non-loopback IPv4 addresses</td>
+                  </tr>
+                  <tr>
+                    <td><code>ServerDiscovery.getSubnetAddresses</code></td>
+                    <td>static</td>
+                    <td>The 253 other hosts in a <code>/24</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>DiscoveryOptions</code></td>
+                    <td>class</td>
+                    <td>Port, timeout, concurrency, subnet toggle, validator</td>
+                  </tr>
+                  <tr>
+                    <td><code>DiscoveredServer</code></td>
+                    <td>class</td>
+                    <td>A found server: URL + parsed status payload</td>
+                  </tr>
+                  <tr>
+                    <td><code>DiscoveryFailedException</code></td>
+                    <td>exception</td>
+                    <td>Thrown by <code>discoverOrThrow</code> when nothing answers</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>---</p>
+              <h2>Quick start</h2>
+              <h3>Retry a flaky request</h3>
+              <pre><code>import 'package:http/http.dart' as http;
+import 'package:tom_basics_network/tom_basics_network.dart';
+
+Future&lt;String&gt; fetchScore() =&gt; withRetry(() async {
+      final response = await http.get(Uri.parse('https://example.com/score'));
+      if (response.isRetryable) {
+        // A 5xx/408/429 — throw so withRetry backs off and tries again.
+        throw http.ClientException('transient ${response.statusCode}');
+      }
+      return response.body;
+    });</code></pre>
+              <p>
+                With no <code>RetryConfig</code>, <code>withRetry</code> uses <code>RetryConfig.defaultConfig</code>: up to five retries spaced 2 s, 4 s, 8 s, 16 s, 32 s apart. A 
+                <code>ClientException</code> is one of the error types it treats as transient, so the call above retries on those status codes and rethrows anything else immediately.
+              </p>
+              <h3>See the backoff schedule</h3>
               <pre><code>import 'package:tom_basics_network/tom_basics_network.dart';
 
-final config = RetryConfig(
-  maxAttempts: 3,
-  initialDelay: Duration(milliseconds: 500),
+void main() {
+  final schedule = kDefaultRetryDelaysMs.map((ms) =&gt; '${ms / 1000}s').join(', ');
+  print('Default retry schedule: $schedule');
+}</code></pre>
+              <p>Output:</p>
+              <pre><code>Default retry schedule: 2.0s, 4.0s, 8.0s, 16.0s, 32.0s</code></pre>
+              <h3>Find a Tom server on the LAN</h3>
+              <pre><code>import 'package:tom_basics_network/tom_basics_network.dart';
+
+Future&lt;void&gt; main() async {
+  final server = await ServerDiscovery.discover();
+  if (server == null) {
+    print('No server responded.');
+    return;
+  }
+  print('Found ${server.service} v${server.version} at ${server.serverUrl}');
+}</code></pre>
+              <p>
+                <code>discover()</code> returns the first server that answers <code>GET /status</code> with <code>200</code>
+                 and a JSON object, scanning <code>localhost</code> first, then this machine's LAN addresses, then the rest of the 
+                <code>/24</code>. It returns <code>null</code> rather than throwing when nothing answers — see <a href="#fail-loudly-when-no-server-is-found"><code>discoverOrThrow</code></a>
+                 for the throwing variant.
+              </p>
+              <p>---</p>
+              <h2>Example projects</h2>
+              <table class="mdtable">
+                <thead><tr><th>Example</th><th>What it shows</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_basics/blob/main/tom_basics_network/example/tom_basics_network_example.dart"><code>example/tom_basics_network_example.dart</code></a>
+                    </td>
+                    <td>The default and a custom retry schedule, printed</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_basics/tree/main/tom_basics_samples/tom_basics_network_sample"><code>tom_basics_network_sample</code></a>
+                    </td>
+                    <td>
+                      The full retry-with-backoff and server-discovery surface, end to end. 
+                      <em>(article-grade sample, seven runnable examples, runs offline)</em>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>Run the local example with:</p>
+              <pre><code>dart run example/tom_basics_network_example.dart</code></pre>
+              <p>
+                For the full worked tour — retry, exhaustion, the retryable set, the default backoff schedule, server discovery and subnet arithmetic — see the 
+                <a href="https://github.com/al-the-bear/tom_basics/tree/main/tom_basics_samples/tom_basics_network_sample"><code>tom_basics_network_sample</code></a>; the usage sections below are the inline reference.
+              </p>
+              <p>---</p>
+              <h2>Usage</h2>
+              <h3>HTTP retry</h3>
+              <h4>What counts as retryable</h4>
+              <p><code>withRetry</code> retries an operation when it throws one of these <em>transport</em> errors:</p>
+              <ul>
+                <li><code>SocketException</code> — connection refused / reset / no route</li>
+                <li><code>HttpException</code> — a <code>dart:io</code> HTTP-layer failure</li>
+                <li><code>TimeoutException</code> — the operation took too long</li>
+                <li><code>http.ClientException</code> — a <code>package:http</code> transport failure</li>
+                <li><code>OSError</code> — a lower-level OS networking error</li>
+              </ul>
+              <p>
+                Anything else — an <code>ArgumentError</code>, a <code>FormatException</code>, a thrown <code>404</code>
+                 handler — is <strong>not</strong> retried and propagates immediately. The point is to retry the network, not your bugs.
+              </p>
+              <p>
+                For HTTP <em>status codes</em>, the <code>RetryableResponse</code> extension classifies a response without you memorising the numbers:
+              </p>
+              <pre><code>import 'package:http/http.dart' as http;
+import 'package:tom_basics_network/tom_basics_network.dart';
+
+bool worthRetrying(http.Response r) =&gt; r.isRetryable;
+// true for 500–599, 408 (Request Timeout), 429 (Too Many Requests)
+// false for 200, 404, 400, 401, ...</code></pre>
+              <p>
+                Because <code>withRetry</code> reacts to <em>thrown</em> errors, the idiom is to inspect the response and throw a transient error when 
+                <code>isRetryable</code> is true (as in the quick-start example), letting non-retryable responses return normally.
+              </p>
+              <h4>Configuring the backoff</h4>
+              <p><code>RetryConfig</code> carries two things: the delay schedule and an optional callback.</p>
+              <pre><code>import 'package:tom_basics_network/tom_basics_network.dart';
+
+const fastConfig = RetryConfig(
+  // Three retries: 100 ms, 200 ms, 400 ms.
+  retryDelaysMs: [100, 200, 400],
+  onRetry: _logRetry,
+);
+
+void _logRetry(int attempt, Object error, Duration nextDelay) {
+  print('attempt $attempt failed ($error); retrying in '
+      '${nextDelay.inMilliseconds}ms');
+}</code></pre>
+              <p>
+                The length of <code>retryDelaysMs</code> <em>is</em> the retry budget: a list of three delays means the operation runs at most four times (one initial attempt plus three retries). 
+                <code>onRetry</code> fires once before each backoff sleep, receiving the 1-based attempt number, the error that triggered the retry, and the delay about to be waited — useful for logging or metrics without changing the control flow.
+              </p>
+              <h4>Narrowing what gets retried</h4>
+              <p>
+                Pass a <code>shouldRetry</code> predicate to override the default transport-error set. When supplied, an error is retried only if 
+                <strong>both</strong> <code>shouldRetry(error)</code> returns true <em>and</em> the error is in the built-in retryable set:
+              </p>
+              <pre><code>import 'dart:io';
+import 'package:tom_basics_network/tom_basics_network.dart';
+
+final result = await withRetry(
+  _doRequest,
+  shouldRetry: (error) =&gt; error is SocketException, // timeouts won't retry
 );</code></pre>
-              <h2>License</h2>
-              <p>BSD-3-Clause — see [LICENSE](LICENSE) for details.</p>
+              <p>
+                This lets you be <em>stricter</em> than the default (retry connection failures but not timeouts, say). It cannot make a non-transport error retryable — that set is the floor.
+              </p>
+              <h4>When retries run out</h4>
+              <p>
+                After the last delay, <code>withRetry</code> gives up by throwing <code>RetryExhaustedException</code>, which packages the final failure for inspection:
+              </p>
+              <pre><code>import 'package:tom_basics_network/tom_basics_network.dart';
+
+try {
+  await withRetry(_doRequest, config: const RetryConfig(retryDelaysMs: [50, 50]));
+} on RetryExhaustedException catch (e) {
+  print('Gave up after ${e.attempts} attempts; last error: ${e.lastError}');
+  // e.lastStackTrace is available for logging the original failure site.
+}</code></pre>
+              <table class="mdtable">
+                <thead><tr><th>Field</th><th>Type</th><th>Meaning</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><code>lastError</code></td>
+                    <td><code>Object</code></td>
+                    <td>The error from the final failed attempt</td>
+                  </tr>
+                  <tr>
+                    <td><code>lastStackTrace</code></td>
+                    <td><code>StackTrace?</code></td>
+                    <td>Where that error was thrown</td>
+                  </tr>
+                  <tr>
+                    <td><code>attempts</code></td>
+                    <td><code>int</code></td>
+                    <td>Total attempts made (initial + retries)</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3>Server discovery</h3>
+              <h4>How a scan proceeds</h4>
+              <p>
+                <code>ServerDiscovery</code> looks for a Tom server by probing candidate hosts in order of likelihood:
+              </p>
+              <pre><code>ServerDiscovery.discover(options)
+        │
+        ├─ 1. localhost            (the same machine)
+        ├─ 2. local IPv4 addresses (this host's LAN interfaces)
+        └─ 3. /24 subnet           (the other 253 hosts) — only if scanSubnet
+                 │
+                 └─ for each candidate: GET http://&lt;host&gt;:&lt;port&gt;&lt;statusPath&gt;
+                        expect 200 + JSON object → DiscoveredServer</code></pre>
+              <p>
+                Each probe is a single <code>GET</code> to <code>http://&lt;host&gt;:&lt;port&gt;&lt;statusPath&gt;</code>
+                 with a short timeout. A host qualifies when it answers <code>200</code> with a JSON object body; that object becomes the 
+                <code>DiscoveredServer.status</code> map. Subnet scanning is batched so no more than <code>maxConcurrent</code>
+                 probes are in flight at once.
+              </p>
+              <h4>Choosing the right entry point</h4>
+              <pre><code>import 'package:tom_basics_network/tom_basics_network.dart';
+
+// Best effort — null when nothing answers.
+final maybe = await ServerDiscovery.discover();
+
+// Every server on the network (e.g. to pick or list them).
+final all = await ServerDiscovery.discoverAll();
+print('Found ${all.length} server(s).');</code></pre>
+              <p>
+                &lt;a id="fail-loudly-when-no-server-is-found"&gt;&lt;/a&gt; When a missing server is a hard error, <code>discoverOrThrow</code>
+                 saves you the null-check:
+              </p>
+              <pre><code>import 'package:tom_basics_network/tom_basics_network.dart';
+
+try {
+  final server = await ServerDiscovery.discoverOrThrow();
+  print('Connected to ${server.serverUrl}');
+} on DiscoveryFailedException catch (e) {
+  print('Discovery failed: $e');
+}</code></pre>
+              <h4>Tuning the scan</h4>
+              <p>
+                <code>DiscoveryOptions</code> controls every knob; all fields have defaults and <code>copyWith</code>
+                 makes per-call tweaks ergonomic:
+              </p>
+              <pre><code>import 'package:tom_basics_network/tom_basics_network.dart';
+
+const base = DiscoveryOptions(
+  port: 8080,           // default 19880
+  scanSubnet: false,    // localhost + local IPs only — fast, no subnet sweep
+);
+
+final verbose = base.copyWith(
+  timeout: const Duration(seconds: 1),
+  logger: print,       // trace each candidate as it is probed
+);</code></pre>
+              <table class="mdtable">
+                <thead><tr><th>Field</th><th>Default</th><th>Purpose</th></tr></thead>
+                <tbody>
+                  <tr><td><code>port</code></td><td><code>19880</code></td><td>TCP port probed on each host</td></tr>
+                  <tr>
+                    <td><code>timeout</code></td>
+                    <td><code>500 ms</code></td>
+                    <td>Per-host connection/response timeout</td>
+                  </tr>
+                  <tr>
+                    <td><code>scanSubnet</code></td>
+                    <td><code>true</code></td>
+                    <td>Whether to sweep the <code>/24</code> after local checks</td>
+                  </tr>
+                  <tr>
+                    <td><code>maxConcurrent</code></td>
+                    <td><code>20</code></td>
+                    <td>Max simultaneous probes during a subnet sweep</td>
+                  </tr>
+                  <tr>
+                    <td><code>statusPath</code></td>
+                    <td><code>/status</code></td>
+                    <td>Path appended to each candidate URL</td>
+                  </tr>
+                  <tr>
+                    <td><code>logger</code></td>
+                    <td><code>null</code></td>
+                    <td>Optional <code>void Function(String)</code> progress trace</td>
+                  </tr>
+                  <tr>
+                    <td><code>statusValidator</code></td>
+                    <td><code>null</code></td>
+                    <td>Optional extra check on the parsed status map</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>
+                Use <code>statusValidator</code> to reject servers that answer but aren't the one you want — for example, requiring a specific 
+                <code>service</code> name:
+              </p>
+              <pre><code>import 'package:tom_basics_network/tom_basics_network.dart';
+
+const options = DiscoveryOptions(
+  statusValidator: _isLedgerService,
+);
+
+bool _isLedgerService(Map&lt;String, dynamic&gt; status) =&gt;
+    status['service'] == 'tom_dist_ledger';</code></pre>
+              <h4>Reading a discovered server</h4>
+              <p>
+                <code>DiscoveredServer</code> pairs the URL with the parsed status payload and surfaces the common fields as typed getters:
+              </p>
+              <pre><code>import 'package:tom_basics_network/tom_basics_network.dart';
+
+void describe(DiscoveredServer s) {
+  print('URL:     ${s.serverUrl}');
+  print('Service: ${s.service}');   // status['service']
+  print('Version: ${s.version}');   // status['version']
+  print('Port:    ${s.port}');      // status['port']
+  // Anything else is in s.status, the raw decoded JSON map.
+}</code></pre>
+              <h4>Working with addresses directly</h4>
+              <p>The two address helpers that drive the scan are public, so you can reuse them for your own probing:</p>
+              <pre><code>import 'package:tom_basics_network/tom_basics_network.dart';
+
+Future&lt;void&gt; main() async {
+  final mine = await ServerDiscovery.getLocalIpAddresses();
+  print('This host: $mine');
+
+  // Every other host in a /24, excluding the address you pass in.
+  final peers = ServerDiscovery.getSubnetAddresses('192.168.1.100');
+  print('${peers.length} candidates'); // 253: .1 … .254 minus .100
+}</code></pre>
+              <p>---</p>
+              <h2>Architecture</h2>
+              <pre><code>package:tom_basics_network/tom_basics_network.dart   (single entry point)
+        │
+        ├── src/http_retry.dart
+        │     withRetry&lt;T&gt;()  ──uses──▶ RetryConfig ──holds──▶ delays + onRetry
+        │         │
+        │         ├─ classifies errors  (SocketException, TimeoutException, …)
+        │         ├─ RetryableResponse   (status-code helper on http.Response)
+        │         └─ throws RetryExhaustedException when the budget is spent
+        │
+        └── src/server_discovery.dart
+              ServerDiscovery (static)
+                  │  discover / discoverOrThrow / discoverAll
+                  ├─ getLocalIpAddresses / getSubnetAddresses
+                  ├─ probes GET &lt;host&gt;:&lt;port&gt;&lt;statusPath&gt;
+                  └─ DiscoveryOptions → DiscoveredServer | DiscoveryFailedException</code></pre>
+              <p>
+                The package exposes no mutable singletons and no initialisation step. Both subsystems are pure functions over immutable configuration, which keeps them trivially testable and isolate-safe.
+              </p>
+              <table class="mdtable">
+                <thead><tr><th>Type</th><th>Role</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><code>withRetry&lt;T&gt;</code></td>
+                    <td>The retry loop; the only stateful logic, scoped to one call</td>
+                  </tr>
+                  <tr>
+                    <td><code>RetryConfig</code></td>
+                    <td>Immutable retry policy (delays + <code>onRetry</code> callback)</td>
+                  </tr>
+                  <tr>
+                    <td><code>RetryExhaustedException</code></td>
+                    <td>Carries the final error, stack trace, attempt count</td>
+                  </tr>
+                  <tr><td><code>RetryableResponse</code></td><td>Extension classifying HTTP status codes</td></tr>
+                  <tr><td><code>ServerDiscovery</code></td><td>Static façade over the probe/scan logic</td></tr>
+                  <tr><td><code>DiscoveryOptions</code></td><td>Immutable scan policy with <code>copyWith</code></td></tr>
+                  <tr><td><code>DiscoveredServer</code></td><td>A result: URL plus parsed status map</td></tr>
+                  <tr>
+                    <td><code>DiscoveryFailedException</code></td>
+                    <td>Raised by <code>discoverOrThrow</code> on an empty scan</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>---</p>
+              <h2>Ecosystem</h2>
+              <p>
+                <code>tom_basics_network</code> is one of the <a href="https://github.com/al-the-bear/tom_basics/tree/main"><code>tom_ai/basics</code></a>
+                 foundation packages:
+              </p>
+              <ul>
+                <li>
+                  <a href="https://github.com/al-the-bear/tom_basics/tree/main"><code>tom_basics</code></a> — exceptions, logging, the platform seam, and
+                </li>
+              </ul>
+              <p>
+                the runtime model that the rest of the basics layer builds on. - <a href="https://github.com/al-the-bear/tom_basics/tree/main/tom_basics_console"><code>tom_basics_console</code></a>
+                 — the standalone/server platform implementation, including an IO-based HTTP client that pairs naturally with 
+                <code>withRetry</code>.
+              </p>
+              <p>
+                This package depends on neither — it stands alone on <code>package:http</code> and <code>dart:io</code>
+                 — but it is built to sit alongside them in a Tom application. A typical server uses <code>tom_basics_console</code>
+                 for its platform layer, <code>withRetry</code> to harden its outbound calls, and <code>ServerDiscovery</code>
+                 to locate its peers.
+              </p>
+              <p>---</p>
+              <h2>Further documentation</h2>
+              <ul>
+                <li>
+                  <a href="https://github.com/al-the-bear/tom_basics/blob/main/tom_basics_network/example/tom_basics_network_example.dart"><code>example/tom_basics_network_example.dart</code></a>
+                </li>
+              </ul>
+              <p>
+                — runnable demonstration of the retry schedule. - <a href="https://github.com/al-the-bear/tom_basics/blob/main/tom_basics_network/test/tom_basics_network_test.dart"><code>test/tom_basics_network_test.dart</code></a>
+                 — the behavioural specification: retry success/exhaustion, error classification, subnet maths, and option defaults. - 
+                <a href="/doc/tom_agent_container/tom_ai/basics/README"><code>../README.md</code></a> — the <code>tom_ai/basics</code>
+                 package map.
+              </p>
+              <p>---</p>
+              <h2>Status</h2>
+              <ul>
+                <li><strong>Version:</strong> 1.0.1</li>
+                <li><strong>Tests:</strong> 12 passing (<code>dart test</code>) — <code>RetryConfig</code>,</li>
+              </ul>
+              <p>
+                <code>RetryExhaustedException</code>, <code>withRetry</code>, and <code>ServerDiscovery</code>. - <strong>Analysis:</strong>
+                 clean under <code>package:lints</code> (<code>dart analyze</code> — no issues). - <strong>Platforms:</strong>
+                 any Dart runtime with <code>dart:io</code> (desktop, server, CLI).
+              </p>
             </div>
           </section>
           <details class="licbox">

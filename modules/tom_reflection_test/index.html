@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1307,7 +1327,7 @@
             <h2>tom_reflection_test</h2>
             <div class="mono" style="color: #9FB6C9">tom_reflection_test · v1.0.1</div>
             <p style="margin-top: 10px">
-              Tests for the `tom_reflection` standalone reflection generator.
+              The end-to-end fixture suite for `tom_reflection`: 72 fixtures, each paired with its committed expected `*.reflection.dart`, so it catches both runtime-behaviour regressions and generator-output drift. The reference oracle for `tom_reflection_generator` correctness.
               
             </p>
             <div style="margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap"><a class="btn btn-ghost" href="/modules/tom_reflection_test#license">See License</a></div>
@@ -1325,10 +1345,7 @@
             <div>
               <div class="panel">
                 <h3>Overview</h3>
-                <p>
-                  Tests for the `tom_reflection` standalone reflection generator.
-                  
-                </p>
+                <p>From the module readme.md file:</p>
                 <h4 style="font-size: 1rem; margin-top: 18px">What it enables</h4>
                 <p class="muted" style="margin: 0">No downstream modules declared yet.</p>
               </div>
@@ -1377,28 +1394,278 @@
           </div>
           <section class="section repodoc">
             <div class="pageprose">
+              <h1>tom_reflection_test</h1>
               <p>
-                &lt;!-- This README describes the package. If you publish this package to pub.dev, this README's contents appear on the landing page for your package.
+                &gt; Part of the Tom Framework reflection toolkit. <strong>Derived from the &gt; <a href="https://pub.dev/packages/reflectable"><code>reflectable</code></a> package by the Dart team</strong>
+                 &gt; (<a href="https://github.com/google/reflectable.dart"><code>google/reflectable.dart</code></a>, &gt; "Copyright (c) 2015, Dart", BSD-3-Clause); Tom-specific refactoring, fixes and &gt; enhancements © 2024–2026 Peter Nicolai Alexis Kyaw, released under the same &gt; BSD-3-Clause terms. See 
+                <a href="LICENSE"><code>LICENSE</code></a> and <a href="NOTICE"><code>NOTICE</code></a>.
               </p>
               <p>
-                For information about how to write a good package README, see the guide for [writing package pages](https://dart.dev/tools/pub/writing-package-pages).
+                The <strong>end-to-end fixture suite</strong> for engine 1 of the Tom reflection toolkit. It proves that 
+                <a href="/docs?module=tom_reflection_generator&amp;path=README.md"><code>tom_reflection_generator</code></a>
+                 emits correct <code>*.reflection.dart</code> for <a href="/docs?module=tom_reflection&amp;path=README.md"><code>tom_reflection</code></a>, across the whole capability and language surface.
               </p>
               <p>
-                For general information about developing packages, see the Dart guide for [creating packages](https://dart.dev/guides/libraries/create-packages) and the Flutter guide for [developing packages and plugins](https://flutter.dev/to/develop-packages). --&gt;
+                &gt; <strong>These are test fixtures, not user-facing samples.</strong> Each <code>test/*_test.dart</code>
+                 &gt; is a generation + behaviour check, paired with a committed &gt; <code>test/*_test.reflection.dart</code>
+                 that the generator must reproduce. If you want to &gt; <em>learn</em> the API, go to the teaching samples instead: &gt; 
+                <a href="/doc/tom_agent_container/tom_ai/reflection/tom_reflection_samples/README"><code>tom_reflection_samples</code></a>
+                 — start with &gt; <a href="/doc/tom_agent_container/tom_ai/reflection/tom_reflection_samples/reflection_introduction_sample/README"><code>reflection_introduction_sample</code></a>.
+              </p>
+              <p>This package is <code>publish_to: none</code>; it ships no public API.</p>
+              <h2>What it covers</h2>
+              <p>
+                Each fixture is a self-contained Dart file that declares a reflector with some set of capabilities, annotates target classes, and asserts that reflection over the generated mirror data behaves correctly. The committed 
+                <code>*_test.reflection.dart</code> next to it is the <strong>expected generator output</strong> — so the suite catches both 
+                <em>behaviour</em> regressions (a mirror returns the wrong thing) and <em>generation</em> regressions (the generator emits different code).
+              </p>
+              <table class="mdtable">
+                <thead><tr><th>Category</th><th>Representative fixtures</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>Basic invocation</td>
+                    <td>
+                      <code>basic_test</code>
+                      , 
+                      <code>reflect_test</code>
+                      , 
+                      <code>invoke_test</code>
+                      , 
+                      <code>invoker_test</code>
+                      , 
+                      <code>invoker_operator_test</code>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Capabilities</td>
+                    <td>
+                      <code>capabilities_test</code>
+                      , 
+                      <code>invoke_capabilities_test</code>
+                      , 
+                      <code>member_capability_test</code>
+                      , 
+                      <code>no_such_capability_test</code>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Declarations &amp; members</td>
+                    <td>
+                      <code>declarations_test</code>
+                      , 
+                      <code>field_test</code>
+                      , 
+                      <code>multi_field_test</code>
+                      , 
+                      <code>class_property_test</code>
+                      , 
+                      <code>inherited_variable_test</code>
+                      , 
+                      <code>library_declarations_test</code>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Accessors</td>
+                    <td><code>implicit_getter_setter_test</code>, <code>corresponding_setter_test</code></td>
+                  </tr>
+                  <tr>
+                    <td>Parameters</td>
+                    <td><code>parameter_test</code>, <code>parameter_mirrors_test</code>, <code>default_values_test</code></td>
+                  </tr>
+                  <tr>
+                    <td>Construction</td>
+                    <td>
+                      <code>new_instance_test</code>
+                      , 
+                      <code>new_instance_default_values_test</code>
+                      , 
+                      <code>new_instance_optional_arguments_test</code>
+                      , 
+                      <code>new_instance_native_test</code>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Static members</td>
+                    <td>
+                      <code>static_members_test</code>
+                      , 
+                      <code>static_type_arguments_test</code>
+                      , 
+                      <code>mixin_application_static_invoke_test</code>
+                      , 
+                      <code>mixin_static_const_test</code>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Type relations</td>
+                    <td>
+                      <code>type_relations_test</code>
+                      , 
+                      <code>no_type_relations_test</code>
+                      , 
+                      <code>subtype_test</code>
+                      , 
+                      <code>subtype_quantify_test</code>
+                      , 
+                      <code>superinterfaces_test</code>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Generics</td>
+                    <td>
+                      <code>generic_instantiation_test</code>
+                      , 
+                      <code>generic_mixin_test</code>
+                      , 
+                      <code>expanding_generics_test</code>
+                      , 
+                      <code>literal_type_arguments_test</code>
+                      , 
+                      <code>type_variable_test</code>
+                      , 
+                      <code>nullability_test</code>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Reflected type</td>
+                    <td>
+                      <code>reflected_type_test</code>
+                      , 
+                      <code>reflected_type_void_test</code>
+                      , 
+                      <code>dynamic_reflected_type_test</code>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Metadata</td>
+                    <td>
+                      <code>metadata_test</code>
+                      , 
+                      <code>metadata_subtype_test</code>
+                      , 
+                      <code>metadata_name_clash_test</code>
+                      , 
+                      <code>prefixed_annotation_test</code>
+                    </td>
+                  </tr>
+                  <tr><td>Mixins</td><td><code>mixin_test</code>, <code>mixin_application_static_member_test</code></td></tr>
+                  <tr>
+                    <td>Libraries / prefixes / exports</td>
+                    <td>
+                      <code>libraries_test</code>
+                      , 
+                      <code>export_test</code>
+                      , 
+                      <code>exported_main_test</code>
+                      , 
+                      <code>three_files_test</code>
+                      , 
+                      <code>use_prefix_test</code>
+                      , 
+                      <code>original_prefix_test</code>
+                      , 
+                      <code>prefixed_reflector_test</code>
+                      , 
+                      <code>name_clash_test</code>
+                    </td>
+                  </tr>
+                  <tr><td>Enums</td><td><code>enum_test</code></td></tr>
+                  <tr>
+                    <td>Meta-reflectors &amp; quantifiers</td>
+                    <td>
+                      <code>meta_reflector_test</code>
+                      , 
+                      <code>meta_reflectors_test</code>
+                      , 
+                      <code>global_quantify_test</code>
+                      , 
+                      <code>reflectors_test</code>
+                      , 
+                      <code>unused_reflector_test</code>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Edge cases &amp; regressions</td>
+                    <td>
+                      <code>issue_255_test</code>
+                      , 
+                      <code>no_such_method_test</code>
+                      , 
+                      <code>private_class_test</code>
+                      , 
+                      <code>proxy_test</code>
+                      , 
+                      <code>serialize_test</code>
+                      , 
+                      <code>delegate_test</code>
+                      , 
+                      <code>function_type_annotation_test</code>
+                      , 
+                      <code>polymer_basic_needs_test</code>
+                      , 
+                      <code>annotated_classes_test</code>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>
+                <strong>72 fixtures</strong> in total (each with its committed expected <code>*.reflection.dart</code>).
+              </p>
+              <h2>Running the suite</h2>
+              <p>From this package's root:</p>
+              <pre><code>testkit :test          # run all fixtures, append a result column to the baseline
+testkit :baseline      # start a fresh baseline CSV</code></pre>
+              <p>
+                <code>testkit</code> is the workspace standard (use it instead of <code>dart test</code>); baselines land in the gitignored 
+                <code>testlog/</code>. To target a subset:
+              </p>
+              <pre><code>testkit :test --test-args="--name 'capabilit'"</code></pre>
+              <h2>Regenerating the fixtures</h2>
+              <p>
+                The committed <code>*_test.reflection.dart</code> files are <strong>build outputs</strong> — never hand-edit them. Regenerate via 
+                <code>build_runner</code>, configured by this package's <code>build.yaml</code> (which generates for 
+                <code>test/**_test.dart</code>):
+              </p>
+              <pre><code>dart run build_runner build --delete-conflicting-outputs
+# or via the standalone CLI:
+reflectiongenerator build "test/**_test.dart"</code></pre>
+              <p>
+                &gt; <strong>Regenerate only on signature changes.</strong> Touching a fixture's <em>body</em> does not &gt; require regeneration; only changes to the reflected 
+                <strong>shape</strong> (members, types, &gt; capabilities, annotations) do. After regenerating, run <code>testkit :test</code>
+                 and &gt; commit the regenerated files together with the source change so the expected &gt; output stays in lockstep.
               </p>
               <p>
-                TODO: Put a short description of the package here that helps potential users know whether this package might be useful for them.
+                When this suite is used to <strong>validate the generator</strong>, generate the output to a scratch location and diff it against the committed reference — a mismatch on any fixture (other than known SDK-version drift in type strings) is a generator regression.
               </p>
-              <h2>Features</h2>
-              <p>TODO: List what your package can do. Maybe include images, gifs, or videos.</p>
-              <h2>Getting started</h2>
-              <p>TODO: List prerequisites and provide or point to information on how to start using the package.</p>
-              <h2>Usage</h2>
-              <p>TODO: Include short and useful examples for package users. Add longer examples to `/example` folder.</p>
-              <pre><code>const like = 'sample';</code></pre>
-              <h2>Additional information</h2>
+              <h2>Architecture</h2>
+              <pre><code>test/&lt;name&gt;_test.dart              fixture source: reflector + annotated classes + assertions
+test/&lt;name&gt;_test.reflection.dart   committed expected generator output (regenerated, not edited)
+build.yaml                         generate_for: test/**_test.dart  → *.reflection.dart</code></pre>
               <p>
-                TODO: Tell users more about the package: where to find more information, how to contribute to the package, how to file issues, what response they can expect from the package authors, and more.
+                There are no library files under <code>lib/</code>; the package exists purely to exercise the generator/runtime pair end to end.
+              </p>
+              <h2>Ecosystem</h2>
+              <pre><code>tom_reflection            runtime mirror library  ─┐
+tom_reflection_generator  emits *.reflection.dart ─┤── both exercised end-to-end by
+                                                    └► tom_reflection_test  (THIS PACKAGE)</code></pre>
+              <p>
+                For the build-time <em>structural</em> engine and its own checks, see <a href="/docs?module=tom_reflector&amp;path=README.md"><code>tom_reflector</code></a>. Repo map and engine selection: 
+                <a href="/doc/tom_agent_container/tom_ai/reflection/README"><code>../README.md</code></a>.
+              </p>
+              <h2>Status</h2>
+              <ul>
+                <li><strong>Version:</strong> 1.0.1 (<code>publish_to: none</code>).</li>
+                <li><strong>SDK:</strong> Dart <code>^3.10.4</code>.</li>
+                <li><strong>Fixtures:</strong> 72 <code>*_test.dart</code> suites, each with a committed expected</li>
+              </ul>
+              <p>
+                <code>*_test.reflection.dart</code>. - <strong>Role:</strong> the reference oracle for engine-1 generator correctness.
+              </p>
+              <h2>License</h2>
+              <p>
+                BSD-3-Clause. Derived from the <a href="https://pub.dev/packages/reflectable"><code>reflectable</code></a>
+                 package by the Dart team (<a href="https://github.com/google/reflectable.dart"><code>google/reflectable.dart</code></a>, "Copyright (c) 2015, Dart") — retaining the upstream copyright alongside Tom's modifications (© 2024–2026 Peter Nicolai Alexis Kyaw), released under the same BSD-3-Clause terms. See 
+                <a href="LICENSE"><code>LICENSE</code></a> and <a href="NOTICE"><code>NOTICE</code></a>.
               </p>
             </div>
           </section>

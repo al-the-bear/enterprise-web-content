@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1327,10 +1347,12 @@
                 <div class="api-doc">
                   <p>Workspace discovery across VS Code CLI bridge ports.</p>
                   <p>
-                    Multiple VS Code windows each run a CLI Integration Server on a distinct port in the inclusive range [defaultVSCodeBridgePort]–[maxVSCodeBridgePort]. [findBridgePortForWorkspace] scans that range, asks each responsive bridge which workspace its window has open (a lightweight window-identity handshake over `workspace.getInfoVce`), and returns the first port whose workspace matches the requested name.
+                    Multiple VS Code windows each run a CLI Integration Server on a distinct port in the inclusive range [defaultVSCodeBridgePort]–[maxVSCodeBridgePort]. [findBridgePortForWorkspace] scans that range, asks each responsive bridge which workspace its window has open (a lightweight window-identity handshake over 
+                    <code>workspace.getInfoVce</code>), and returns the first port whose workspace matches the requested name.
                   </p>
                   <p>
-                    The production transport (`VSCodeBridgeClient.isAvailable` for probing and a `workspace.getInfoVce` round-trip for identity) is injected through the [probe] / [fetchIdentity] seams so the scan can be tested against faked per-port bridges.
+                    The production transport (<code>VSCodeBridgeClient.isAvailable</code> for probing and a <code>workspace.getInfoVce</code>
+                     round-trip for identity) is injected through the [probe] / [fetchIdentity] seams so the scan can be tested against faked per-port bridges.
                   </p>
                 </div>
                 <section id="BridgeWorkspaceNotFoundException" class="api-declaration">
@@ -1389,10 +1411,11 @@
                   <code class="api-signature">typedef BridgeIdentityFetcher = Future&lt;String?&gt; Function(String, int)</code>
                   <div class="api-doc">
                     <p>
-                      Fetches the workspace identity name reported by the bridge on [host]:[port], or `null` if the bridge does not answer / has no identifiable workspace.
+                      Fetches the workspace identity name reported by the bridge on [host]:[port], or <code>null</code> if the bridge does not answer / has no identifiable workspace.
                     </p>
                     <p>
-                      The identity name is the open `.code-workspace` file's name, or the workspace root folder basename when no `.code-workspace` is open.
+                      The identity name is the open <code>.code-workspace</code> file's name, or the workspace root folder basename when no 
+                      <code>.code-workspace</code> is open.
                     </p>
                   </div>
                 </section>
@@ -1407,7 +1430,7 @@
                 <section id="_basename" class="api-declaration">
                   <h3 class="api-decl-title">function _basename</h3>
                   <code class="api-signature">String _basename(String path)</code>
-                  <div class="api-doc"><p>Returns the final path segment of [path], handling both `/` and `\`.</p></div>
+                  <div class="api-doc"><p>Returns the final path segment of [path], handling both <code>/</code> and <code>\</code>.</p></div>
                 </section>
                 <section id="_defaultAdapterFactory" class="api-declaration">
                   <h3 class="api-decl-title">function _defaultAdapterFactory</h3>
@@ -1425,7 +1448,7 @@
                   <div class="api-doc">
                     <p>Derives the canonical workspace identity name from a [WorkspaceInfo].</p>
                     <p>
-                      Prefers the open `.code-workspace` file's name, then the reported workspace name, then the root folder basename.
+                      Prefers the open <code>.code-workspace</code> file's name, then the reported workspace name, then the root folder basename.
                     </p>
                   </div>
                 </section>
@@ -1439,7 +1462,9 @@
                       Resolves the bridge port for the workspace named [name] (via [findBridgePortForWorkspace]) and returns a connected adapter bound to it.
                     </p>
                     <p>
-                      The adapter is connected before returning; if the resolved bridge cannot be connected a [StateError] is thrown. When [initializeVSCode] is `true`, the returned adapter is also promoted to the global [VSCode] singleton so `VSCode.instance` targets that window. The [BridgeWorkspaceNotFoundException] raised by the underlying scan when no window matches [name] propagates unchanged.
+                      The adapter is connected before returning; if the resolved bridge cannot be connected a [StateError] is thrown. When [initializeVSCode] is 
+                      <code>true</code>, the returned adapter is also promoted to the global [VSCode] singleton so <code>VSCode.instance</code>
+                       targets that window. The [BridgeWorkspaceNotFoundException] raised by the underlying scan when no window matches [name] propagates unchanged.
                     </p>
                   </div>
                 </section>
@@ -1448,7 +1473,9 @@
                   <code class="api-signature">Future&lt;String?&gt; fetchBridgeWorkspaceName(String host, int port)</code>
                   <div class="api-doc">
                     <p>
-                      Default [BridgeIdentityFetcher] — connects to the bridge on [host]:[port], issues a `workspace.getInfoVce` window-identity handshake, and derives the workspace name from the result. Returns `null` if the bridge cannot be reached or yields no identifiable workspace.
+                      Default [BridgeIdentityFetcher] — connects to the bridge on [host]:[port], issues a <code>workspace.getInfoVce</code>
+                       window-identity handshake, and derives the workspace name from the result. Returns <code>null</code>
+                       if the bridge cannot be reached or yields no identifiable workspace.
                     </p>
                   </div>
                 </section>
@@ -1460,7 +1487,8 @@
                   <div class="api-doc">
                     <p>Scans the CLI bridge port range for the window whose workspace matches [name] and returns its port.</p>
                     <p>
-                      Ports are probed in ascending order from [minPort] to [maxPort] (inclusive, defaulting to the full [defaultVSCodeBridgePort]–[maxVSCodeBridgePort] range). For each responsive port the bridge's workspace identity is fetched and compared to [name] (normalised so the bare workspace name, a `.code-workspace` filename, and VS Code's `" (Workspace)"` multi-root suffix all match each other). The first matching port is returned.
+                      Ports are probed in ascending order from [minPort] to [maxPort] (inclusive, defaulting to the full [defaultVSCodeBridgePort]–[maxVSCodeBridgePort] range). For each responsive port the bridge's workspace identity is fetched and compared to [name] (normalised so the bare workspace name, a 
+                      <code>.code-workspace</code> filename, and VS Code's <code>" (Workspace)"</code> multi-root suffix all match each other). The first matching port is returned.
                     </p>
                     <p>
                       Throws a [BridgeWorkspaceNotFoundException] if no responsive bridge in the range reports a matching workspace.
@@ -1472,7 +1500,8 @@
                   <code class="api-signature">String normalizeWorkspaceName(String value)</code>
                   <div class="api-doc">
                     <p>
-                      Normalises a workspace name for comparison: trims whitespace, drops a trailing `.code-workspace` extension, and strips VS Code's `" (Workspace)"` multi-root suffix.
+                      Normalises a workspace name for comparison: trims whitespace, drops a trailing <code>.code-workspace</code>
+                       extension, and strips VS Code's <code>" (Workspace)"</code> multi-root suffix.
                     </p>
                   </div>
                 </section>
@@ -1482,7 +1511,9 @@
                     Future&lt;Map&lt;int, String&gt;&gt; scanBridgePorts({String host = '127.0.0.1', int minPort = defaultVSCodeBridgePort, int maxPort = maxVSCodeBridgePort, Future&lt;bool&gt; Function(String, int) probe = _defaultProbe, Future&lt;String?&gt; Function(String, int) fetchIdentity = fetchBridgeWorkspaceName})
                   </code>
                   <div class="api-doc">
-                    <p>Scans the CLI bridge port range and returns a `port → workspace` table for every responsive bridge.</p>
+                    <p>
+                      Scans the CLI bridge port range and returns a <code>port → workspace</code> table for every responsive bridge.
+                    </p>
                     <p>
                       Ports are probed in ascending order from [minPort] to [maxPort] (inclusive, defaulting to the full [defaultVSCodeBridgePort]–[maxVSCodeBridgePort] range). Each responsive bridge's workspace identity is fetched; ports with no bridge (or no identifiable workspace) are omitted. The returned map preserves ascending port order.
                     </p>

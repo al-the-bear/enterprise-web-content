@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1362,6 +1382,9 @@ final value = functionEnv.get('globalVar');</code></pre>
                     <div id="Environment._bridgedClassesRaw" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Map&lt;String, BridgedClass&gt;? _bridgedClassesRaw</code></div>
                     </div>
+                    <div id="Environment._shadowedBridgesRaw" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Map&lt;String, List&lt;BridgedClass&gt;&gt;? _shadowedBridgesRaw</code></div>
+                    </div>
                     <div id="Environment._bridgedClassesLookupByTypeRaw" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Map&lt;Type, BridgedClass&gt;? _bridgedClassesLookupByTypeRaw</code></div>
                     </div>
@@ -1404,6 +1427,9 @@ final value = functionEnv.get('globalVar');</code></pre>
                     <div id="Environment._bridgedClassesOrNew" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Map&lt;String, BridgedClass&gt; _bridgedClassesOrNew</code></div>
                     </div>
+                    <div id="Environment._shadowedBridgesOrNew" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Map&lt;String, List&lt;BridgedClass&gt;&gt; _shadowedBridgesOrNew</code></div>
+                    </div>
                     <div id="Environment._bridgedClassesLookupByTypeOrNew" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Map&lt;Type, BridgedClass&gt; _bridgedClassesLookupByTypeOrNew</code></div>
                     </div>
@@ -1426,7 +1452,9 @@ final value = functionEnv.get('globalVar');</code></pre>
                       <div class="api-member-head"><code class="api-signature">InterpretedClass? staticFieldSnapshotOwner</code></div>
                       <div class="api-doc">
                         <p>
-                          OPEN B.9 — when this environment is the top execution scope of a static member, it holds *snapshots* of the owner class's static fields so that bare-identifier reads resolve without a class prefix. This marker records the owning class so that a bare-identifier *write* to one of those snapshotted fields can be propagated back to the class's authoritative static slot (`InterpretedClass.setStaticField`). Without it, the write would only mutate the discarded local snapshot and never survive the call.
+                          OPEN B.9 — when this environment is the top execution scope of a static member, it holds <em>snapshots</em>
+                           of the owner class's static fields so that bare-identifier reads resolve without a class prefix. This marker records the owning class so that a bare-identifier 
+                          <em>write</em> to one of those snapshotted fields can be propagated back to the class's authoritative static slot (<code>InterpretedClass.setStaticField</code>). Without it, the write would only mutate the discarded local snapshot and never survive the call.
                         </p>
                         <p>
                           Only set on the static-member execution environment itself; a shadowing local declared in a nested block lives in a different (unmarked) environment, so the propagation stays shadow-safe.
@@ -1455,7 +1483,8 @@ final value = functionEnv.get('globalVar');</code></pre>
                           If a name is already defined or conflicts with a bridged type, a warning will be logged. Removes [name] from this environment's local [_values] map.
                         </p>
                         <p>
-                          Used by [D4rt.resetScriptDeclarations] (interpreter_unfixable.md §U28) to evict script-declared entries between `execute` / `executeBundle` calls while preserving the bridge maps. Returns whether an entry was removed. Does NOT walk the enclosing scope chain.
+                          Used by [D4rt.resetScriptDeclarations] (interpreter_unfixable.md §U28) to evict script-declared entries between 
+                          <code>execute</code> / <code>executeBundle</code> calls while preserving the bridge maps. Returns whether an entry was removed. Does NOT walk the enclosing scope chain.
                         </p>
                         <p>
                           Note: this only mutates [_values]. [_bridgedClasses], [_bridgedEnums], and [_bridgedClassesLookupByType] are left intact — bridge registrations survive a reset by design.
@@ -1472,7 +1501,8 @@ final value = functionEnv.get('globalVar');</code></pre>
                           Writes [value] into this frame's slot array at [slot] and records the [name]→[slot] mapping, growing/allocating [_slots] lazily.
                         </p>
                         <p>
-                          S3b is **additive**: the caller still calls [define] to keep the name binding in [_values]; this records the parallel slot so the debug parity assert can validate the two views. The [name] is kept so a later [assign] to the same local keeps the slot in sync (the resolver only slots read-only locals, but async-init resume and late initialization set the value through a path other than the original `define`).
+                          S3b is <strong>additive</strong>: the caller still calls [define] to keep the name binding in [_values]; this records the parallel slot so the debug parity assert can validate the two views. The [name] is kept so a later [assign] to the same local keeps the slot in sync (the resolver only slots read-only locals, but async-init resume and late initialization set the value through a path other than the original 
+                          <code>define</code>).
                         </p>
                       </div>
                     </div>
@@ -1510,7 +1540,32 @@ final value = functionEnv.get('globalVar');</code></pre>
                       <div class="api-member-head"><code class="api-signature">BridgedClass? findBridgedClassByName(String name)</code></div>
                       <div class="api-doc">
                         <p>
-                          Looks up a bridged class by name, walking the enclosing scope chain. Returns null if no bridge with [name] is registered in this environment or any of its parents. Used by the property-access supertype-walk fallback in `interpreter_visitor.dart` to resolve getters/methods that are declared on a supertype bridge when the leaf bridge has no matching adapter (e.g. `_AnimatedEvaluation` wraps as `AnimationWithParentMixin`, whose bridge lacks `value`; the walk falls back to the `Animation` bridge where `value` is declared).
+                          Looks up a bridged class by name, walking the enclosing scope chain. Returns null if no bridge with [name] is registered in this environment or any of its parents. Used by the property-access supertype-walk fallback in 
+                          <code>interpreter_visitor.dart</code> to resolve getters/methods that are declared on a supertype bridge when the leaf bridge has no matching adapter (e.g. 
+                          <code>_AnimatedEvaluation</code> wraps as <code>AnimationWithParentMixin</code>, whose bridge lacks <code>value</code>; the walk falls back to the 
+                          <code>Animation</code> bridge where <code>value</code> is declared).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="Environment._recordShadowedBridge" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">void _recordShadowedBridge(String name, BridgedClass? prior, BridgedClass replacement)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Stashes a same-name bridge that a new registration is about to displace, so static/constructor resolution can fall back to it (two packages exporting an identically named class). No-op when [prior] is null or is the same instance as [replacement]. Also drops [replacement] from the shadow list, since it is becoming the primary.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="Environment.findAllBridgedClassesByName" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">List&lt;BridgedClass&gt; findAllBridgedClassesByName(String name)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Returns every bridged class registered under [name] across the scope chain — the primary (last-wins) bridge of each scope first, followed by any same-name bridges it displaced.
+                        </p>
+                        <p>
+                          Used by static/constructor resolution to disambiguate identically named bridges from different packages (e.g. two libraries each exporting a 
+                          <code>MarkdownParser</code>): when the primary bridge lacks the requested member, the caller can fall back to a sibling that declares it. Returns an empty list when no bridge with [name] is registered.
                         </p>
                       </div>
                     </div>
@@ -1519,10 +1574,13 @@ final value = functionEnv.get('globalVar');</code></pre>
                       <div class="api-doc">
                         <p>Pre-registers a bridge's native-type mapping for runtime type resolution.</p>
                         <p>
-                          Unlike [defineBridge], this does NOT add [bridgedClass.name] to the lexical scope (`_bridgedClasses`). It only populates `_bridgedClassesLookupByType` so that [toBridgedInstance] can wrap native objects returned by bridge methods (e.g. `GestureSettings` returned by `GestureSettings.copyWith()`) regardless of whether the script's imports have been processed yet.
+                          Unlike [defineBridge], this does NOT add [bridgedClass.name] to the lexical scope (<code>_bridgedClasses</code>). It only populates 
+                          <code>_bridgedClassesLookupByType</code> so that [toBridgedInstance] can wrap native objects returned by bridge methods (e.g. 
+                          <code>GestureSettings</code> returned by <code>GestureSettings.copyWith()</code>) regardless of whether the script's imports have been processed yet.
                         </p>
                         <p>
-                          Call this on `globalEnvironment` at interpreter-init time (after `ModuleLoader` is created but before any script runs) so that all registered bridges are available for native-object wrapping. The module-level [defineBridge] calls at import time will overwrite the type entry if necessary, but the type entry is always present.
+                          Call this on <code>globalEnvironment</code> at interpreter-init time (after <code>ModuleLoader</code>
+                           is created but before any script runs) so that all registered bridges are available for native-object wrapping. The module-level [defineBridge] calls at import time will overwrite the type entry if necessary, but the type entry is always present.
                         </p>
                         <p>Mirrors the type-population step of [D4rtRunner._registerBridgedDefinitions].</p>
                       </div>
@@ -1534,9 +1592,13 @@ final value = functionEnv.get('globalVar');</code></pre>
                           Propagates every bridge registered in this environment's type lookup to [target] for native-object resolution.
                         </p>
                         <p>
-                          Use case: stdlib modules (dart:math, dart:io, …) live in isolated per-stdlib environments to avoid lexical name collisions, but their native types (e.g. `_Random`) must still be discoverable from `globalEnvironment.toBridgedInstance` when a script passes a native instance through an interpreted function. Calling `stdlibEnv.propagateBridgeTypesTo(globalEnvironment)` after registration mirrors the type→bridge mapping without leaking the lexical name `Random` into globalEnvironment.
+                          Use case: stdlib modules (dart:math, dart:io, …) live in isolated per-stdlib environments to avoid lexical name collisions, but their native types (e.g. 
+                          <code>_Random</code>) must still be discoverable from <code>globalEnvironment.toBridgedInstance</code>
+                           when a script passes a native instance through an interpreted function. Calling <code>stdlibEnv.propagateBridgeTypesTo(globalEnvironment)</code>
+                           after registration mirrors the type→bridge mapping without leaking the lexical name <code>Random</code>
+                           into globalEnvironment.
                         </p>
-                        <p>Mirror of `tom_d4rt_ast` `Environment.propagateBridgeTypesTo`.</p>
+                        <p>Mirror of <code>tom_d4rt_ast</code> <code>Environment.propagateBridgeTypesTo</code>.</p>
                       </div>
                     </div>
                     <div id="Environment.defineBridgeAlias" class="api-member">
@@ -1546,7 +1608,8 @@ final value = functionEnv.get('globalVar');</code></pre>
                           GEN-078: Registers a class alias that maps [aliasName] to an existing bridged class registered under [targetName].
                         </p>
                         <p>
-                          This allows deprecated type alias names (e.g., `MaterialStateProperty`) to resolve to their canonical bridged class (e.g., `WidgetStateProperty`).
+                          This allows deprecated type alias names (e.g., <code>MaterialStateProperty</code>) to resolve to their canonical bridged class (e.g., 
+                          <code>WidgetStateProperty</code>).
                         </p>
                       </div>
                     </div>
@@ -1561,7 +1624,10 @@ final value = functionEnv.get('globalVar');</code></pre>
                           Returns a [BridgedInstance] if a bridge is found for the object's type, otherwise throws a [D4rtException] (caller should handle).
                         </p>
                         <p>
-                          Resolution order: 1. Direct lookup by [Type] (most specific — bridges with explicit [BridgedClass.nativeType]). 2. [BridgedClass.isAssignable] iteration — keeps the LAST match across all enclosing environments. Bridges register general→specific, so the last match is the most specific (e.g., CupertinoTextThemeData wins over Diagnosticable). Required to disambiguate native types whose name happens to be a prefix of another bridge's name — e.g., `StringCharacters implements Characters`: without this step the name-prefix fallback in [toBridgedClass] would wrap it as `String`. Bucket #11 fix. 3. [toBridgedClass] name-based fallbacks (private impl types, generic suffix matching, `*Impl` prefix matching). Used only when neither direct type lookup nor isAssignable found a bridge.
+                          Resolution order: 1. Direct lookup by [Type] (most specific — bridges with explicit [BridgedClass.nativeType]). 2. [BridgedClass.isAssignable] iteration — keeps the LAST match across all enclosing environments. Bridges register general→specific, so the last match is the most specific (e.g., CupertinoTextThemeData wins over Diagnosticable). Required to disambiguate native types whose name happens to be a prefix of another bridge's name — e.g., 
+                          <code>StringCharacters implements Characters</code>: without this step the name-prefix fallback in [toBridgedClass] would wrap it as 
+                          <code>String</code>. Bucket #11 fix. 3. [toBridgedClass] name-based fallbacks (private impl types, generic suffix matching, 
+                          <code>*Impl</code> prefix matching). Used only when neither direct type lookup nor isAssignable found a bridge.
                         </p>
                       </div>
                     </div>
@@ -1571,13 +1637,15 @@ final value = functionEnv.get('globalVar');</code></pre>
                       </div>
                       <div class="api-doc">
                         <p>
-                          From a list of `isAssignable` matches, return the "most specific" candidates — typically a single concrete type plus possibly unrelated mixins. Order is preserved so the caller can apply LAST-wins for tie-breaking among the leaves.
+                          From a list of <code>isAssignable</code> matches, return the "most specific" candidates — typically a single concrete type plus possibly unrelated mixins. Order is preserved so the caller can apply LAST-wins for tie-breaking among the leaves.
                         </p>
                         <p>
-                          **GEN-115 (Phase 1)** — When the generator-emitted [BridgedClass.hierarchyDepth] is populated for at least one match (`depth &gt; 0`), specificity is decided by an O(n) `argmax(depth)` walk. This is exact-semantically equivalent to a Dart `is`-chain walk picking the most-specific declared type, and replaces the O(n²) name-based supertype-union walk that depended on the hand-maintained `_supertypeRegistry`.
+                          <strong>GEN-115 (Phase 1)</strong> — When the generator-emitted [BridgedClass.hierarchyDepth] is populated for at least one match (<code>depth &gt; 0</code>), specificity is decided by an O(n) 
+                          <code>argmax(depth)</code> walk. This is exact-semantically equivalent to a Dart <code>is</code>-chain walk picking the most-specific declared type, and replaces the O(n²) name-based supertype-union walk that depended on the hand-maintained 
+                          <code>_supertypeRegistry</code>.
                         </p>
                         <p>
-                          When every match has `depth == 0` (the legacy default for hand-written or not-yet-regenerated bridges) the resolver falls back to the older D2 algorithm: build the union of supertype names across all matches via [BridgedClass.transitiveSupertypeNames] and drop any match whose name appears in that union (it is an ancestor of another match).
+                          When every match has <code>depth == 0</code> (the legacy default for hand-written or not-yet-regenerated bridges) the resolver falls back to the older D2 algorithm: build the union of supertype names across all matches via [BridgedClass.transitiveSupertypeNames] and drop any match whose name appears in that union (it is an ancestor of another match).
                         </p>
                       </div>
                     </div>
@@ -1590,10 +1658,14 @@ final value = functionEnv.get('globalVar');</code></pre>
                       </div>
                       <div class="api-doc">
                         <p>
-                          Finds the bridged class whose `nativeNames` contains the LONGEST entry that is a prefix of [nativeTypeName].
+                          Finds the bridged class whose <code>nativeNames</code> contains the LONGEST entry that is a prefix of [nativeTypeName].
                         </p>
                         <p>
-                          Cluster HASHSET fix: When multiple bridges declare overlapping native name prefixes (e.g. Set has `_HashSet`, Iterator has `_HashSetIterator`), the previous `firstWhereOrNull` would match whichever bridge was registered first — typically Set, since it registers before Iterator in `core.dart`. That made `_HashSetIterator` resolve to Set's bridge and fail with `Bridged class 'Set' has no instance method named 'moveNext'`. Choosing the longest prefix means an exact `_HashSetIterator` entry on Iterator wins over Set's shorter `_HashSet` prefix.
+                          Cluster HASHSET fix: When multiple bridges declare overlapping native name prefixes (e.g. Set has <code>_HashSet</code>, Iterator has 
+                          <code>_HashSetIterator</code>), the previous <code>firstWhereOrNull</code> would match whichever bridge was registered first — typically Set, since it registers before Iterator in 
+                          <code>core.dart</code>. That made <code>_HashSetIterator</code> resolve to Set's bridge and fail with 
+                          <code>Bridged class 'Set' has no instance method named 'moveNext'</code>. Choosing the longest prefix means an exact 
+                          <code>_HashSetIterator</code> entry on Iterator wins over Set's shorter <code>_HashSet</code> prefix.
                         </p>
                       </div>
                     </div>
@@ -1622,10 +1694,12 @@ final value = functionEnv.get('globalVar');</code></pre>
                       <div class="api-member-head"><code class="api-signature">dynamic get(String name)</code></div>
                       <div class="api-doc">
                         <p>
-                          Retrieves the value associated with [name], throwing `RuntimeD4rtException("Undefined variable: ...")` when it is absent.
+                          Retrieves the value associated with [name], throwing <code>RuntimeD4rtException("Undefined variable: ...")</code>
+                           when it is absent.
                         </p>
                         <p>
-                          Thin wrapper over [lookup]: this is the throwing contract the bulk of the interpreter relies on. Resolution callers that fall back on a miss (e.g. implicit-`this` member access in [InterpreterVisitor.visitSimpleIdentifier]) should call [lookup] directly to avoid the cost of constructing, throwing and catching an exception — with its stack-trace capture — on every miss.
+                          Thin wrapper over [lookup]: this is the throwing contract the bulk of the interpreter relies on. Resolution callers that fall back on a miss (e.g. implicit-<code>this</code>
+                           member access in [InterpreterVisitor.visitSimpleIdentifier]) should call [lookup] directly to avoid the cost of constructing, throwing and catching an exception — with its stack-trace capture — on every miss.
                         </p>
                       </div>
                     </div>
@@ -1636,7 +1710,9 @@ final value = functionEnv.get('globalVar');</code></pre>
                           Non-throwing variant of [get]: resolves [name] across the lexical chain (locals, bridged classes/enums, prefixed imports) and returns [kNotFound] instead of throwing when nothing matches.
                         </p>
                         <p>
-                          Why this exists: the lexical → implicit-`this` fallback in [InterpreterVisitor.visitSimpleIdentifier] runs on every bare-identifier read. For an instance-member reference (a field/getter named without `this.`) the lexical probe necessarily misses, and the old throwing [get] turned that routine miss into a thrown+caught `RuntimeD4rtException` with a captured stack trace — thousands per second under an animation loop, dominating both CPU and allocation. Returning a sentinel keeps the miss on the normal return path. (The rare malformed-prefix errors below still throw — they are genuine errors, not "not found".)
+                          Why this exists: the lexical → implicit-<code>this</code> fallback in [InterpreterVisitor.visitSimpleIdentifier] runs on every bare-identifier read. For an instance-member reference (a field/getter named without 
+                          <code>this.</code>) the lexical probe necessarily misses, and the old throwing [get] turned that routine miss into a thrown+caught 
+                          <code>RuntimeD4rtException</code> with a captured stack trace — thousands per second under an animation loop, dominating both CPU and allocation. Returning a sentinel keeps the miss on the normal return path. (The rare malformed-prefix errors below still throw — they are genuine errors, not "not found".)
                         </p>
                       </div>
                     </div>
@@ -1679,7 +1755,8 @@ final value = functionEnv.get('globalVar');</code></pre>
                       <div class="api-member-head"><code class="api-signature">Callable? _findNullableExtensionMember(String name)</code></div>
                       <div class="api-doc">
                         <p>
-                          G-DOV-10/11 FIX: Find extension members for null targets by checking extensions declared with nullable on-types (e.g., `extension on String?`).
+                          G-DOV-10/11 FIX: Find extension members for null targets by checking extensions declared with nullable on-types (e.g., 
+                          <code>extension on String?</code>).
                         </p>
                       </div>
                     </div>
@@ -1688,9 +1765,10 @@ final value = functionEnv.get('globalVar');</code></pre>
                         <code class="api-signature">bool _matchesExtensionType(RuntimeType targetType, RuntimeType extensionOnType, {Object? value})</code>
                       </div>
                       <div class="api-doc">
-                        <p>Checks if a target type matches an extension's `on` type.</p>
+                        <p>Checks if a target type matches an extension's <code>on</code> type.</p>
                         <p>
-                          This relaxes the matching for raw types (types without type arguments): - If target type is `List` (no type args) and extension is on `List&lt;T&gt;`, allow match - The extension itself handles type constraints at runtime
+                          This relaxes the matching for raw types (types without type arguments): - If target type is <code>List</code>
+                           (no type args) and extension is on <code>List&lt;T&gt;</code>, allow match - The extension itself handles type constraints at runtime
                         </p>
                       </div>
                     </div>
@@ -1704,7 +1782,8 @@ final value = functionEnv.get('globalVar');</code></pre>
                       <div class="api-doc">
                         <p>Creates a shallow copy of this environment, optionally filtering symbols.</p>
                         <p>
-                          If [showNames] is provided, only symbols (values, bridged classes, enums, prefixed imports) whose names are in [showNames] will be included in the new environment. If [hideNames] is provided, all symbols will be included *except* those whose names are in [hideNames].
+                          If [showNames] is provided, only symbols (values, bridged classes, enums, prefixed imports) whose names are in [showNames] will be included in the new environment. If [hideNames] is provided, all symbols will be included 
+                          <em>except</em> those whose names are in [hideNames].
                         </p>
                         <p>It is an error to provide both [showNames] and [hideNames]. Unnamed extensions are always copied.</p>
                       </div>
@@ -1720,7 +1799,9 @@ final value = functionEnv.get('globalVar');</code></pre>
                           Imports definitions from another environment into this one. Can be filtered using [show] or [hide] combinators. If no filter is provided, all symbols from [other] are merged. This method directly modifies the current environment.
                         </p>
                         <p>
-                          When [errorOnConflict] is true (used by `export` directives merging into a library's exported environment — see Cluster EXPORT, I-MISC-40/41), duplicate symbols with non-identical definitions raise a `RuntimeD4rtException('Name conflict in environment: ...')` instead of silently overwriting. The default `false` preserves the import-wins semantics expected of regular `import` directives.
+                          When [errorOnConflict] is true (used by <code>export</code> directives merging into a library's exported environment — see Cluster EXPORT, I-MISC-40/41), duplicate symbols with non-identical definitions raise a 
+                          <code>RuntimeD4rtException('Name conflict in environment: ...')</code> instead of silently overwriting. The default 
+                          <code>false</code> preserves the import-wins semantics expected of regular <code>import</code> directives.
                         </p>
                       </div>
                     </div>
@@ -1736,7 +1817,7 @@ final value = functionEnv.get('globalVar');</code></pre>
                       <div class="api-member-head"><code class="api-signature">static Object _unset</code></div>
                       <div class="api-doc">
                         <p>
-                          Sentinel for an allocated-but-unwritten slot — distinct from a real `null` binding, so a stale read is detectable in debug.
+                          Sentinel for an allocated-but-unwritten slot — distinct from a real <code>null</code> binding, so a stale read is detectable in debug.
                         </p>
                       </div>
                     </div>
@@ -1744,7 +1825,8 @@ final value = functionEnv.get('globalVar');</code></pre>
                       <div class="api-member-head"><code class="api-signature">static Object kNotFound</code></div>
                       <div class="api-doc">
                         <p>
-                          Sentinel returned by [lookup] when [name] resolves to no binding in the whole chain. A fresh identity object so it can never collide with a real stored value (including `null`). Lets callers on the hot path distinguish "absent" from "present-but-null" WITHOUT throwing — see [lookup].
+                          Sentinel returned by [lookup] when [name] resolves to no binding in the whole chain. A fresh identity object so it can never collide with a real stored value (including 
+                          <code>null</code>). Lets callers on the hot path distinguish "absent" from "present-but-null" WITHOUT throwing — see [lookup].
                         </p>
                       </div>
                     </div>

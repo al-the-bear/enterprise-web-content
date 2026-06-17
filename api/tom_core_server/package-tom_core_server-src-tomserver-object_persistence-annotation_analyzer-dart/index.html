@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1317,6 +1337,12 @@
                 <section id="TomAnnotationAnalyzerException" class="api-declaration">
                   <h3 class="api-decl-title">class TomAnnotationAnalyzerException</h3>
                   <code class="api-signature">class TomAnnotationAnalyzerException extends TomServerException</code>
+                  <div class="api-doc">
+                    <p>
+                      Thrown when an entity's persistence metadata cannot be resolved (e.g. the type is not registered with 
+                      <code>tomReflector</code>, or has no <code>@TomDbTable</code>).
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomAnnotationAnalyzerException.new" class="api-member">
@@ -1325,12 +1351,19 @@
                           TomAnnotationAnalyzerException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, Object? stack, Object? rootException, bool autoLog = false})
                         </code>
                       </div>
+                      <div class="api-doc"><p>Creates an annotation-analyzer exception.</p></div>
                     </div>
                   </div>
                 </section>
                 <section id="TomAnnotationAnalyzerSyntaxException" class="api-declaration">
                   <h3 class="api-decl-title">class TomAnnotationAnalyzerSyntaxException</h3>
                   <code class="api-signature">class TomAnnotationAnalyzerSyntaxException extends TomServerException</code>
+                  <div class="api-doc">
+                    <p>
+                      Thrown when an entity's persistence annotations are present but malformed (e.g. a <code>@TomDbColumn</code>
+                       on a non-variable declaration, or an unresolvable column name).
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomAnnotationAnalyzerSyntaxException.new" class="api-member">
@@ -1339,37 +1372,69 @@
                           TomAnnotationAnalyzerSyntaxException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, Object? stack, Object? rootException, bool autoLog = false})
                         </code>
                       </div>
+                      <div class="api-doc"><p>Creates an annotation-analyzer syntax exception.</p></div>
                     </div>
                   </div>
                 </section>
                 <section id="TomAnnotationAnalyzer" class="api-declaration">
                   <h3 class="api-decl-title">mixin TomAnnotationAnalyzer</h3>
                   <code class="api-signature">mixin TomAnnotationAnalyzer on Object</code>
+                  <div class="api-doc">
+                    <p>
+                      Resolves the persistence metadata of an entity type from its reflection annotations (<code>@TomDbTable</code>, 
+                      <code>@TomDbColumn</code>, <code>@TomEntityId</code>, <code>@TomReference</code>).
+                    </p>
+                    <p>
+                      Mixed into the typed-persistence base, its static methods read the <code>tomReflector</code> [ClassMirror] of an entity and translate its annotations into a [TomTypePersistenceInfo] / [TomColumnInformation]. Results are memoised in the per-type [mirrorCache], [tableCache], and [columnInfoCache].
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
                     <div id="TomAnnotationAnalyzer.mirrorCache" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static Map&lt;Type, ClassMirror&lt;dynamic&gt;?&gt; mirrorCache</code></div>
+                      <div class="api-doc"><p>Cache of resolved class mirrors per entity type (<code>null</code> = not reflectable).</p></div>
                     </div>
                     <div id="TomAnnotationAnalyzer.tableCache" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static Map&lt;Type, TomDbTable?&gt; tableCache</code></div>
+                      <div class="api-doc"><p>Cache of resolved <code>@TomDbTable</code> annotations per entity type.</p></div>
                     </div>
                     <div id="TomAnnotationAnalyzer.columnInfoCache" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">static Map&lt;Type, List&lt;TomColumnInformation&gt;?&gt; columnInfoCache</code>
                       </div>
+                      <div class="api-doc"><p>Cache of resolved column metadata lists per entity type.</p></div>
                     </div>
                     <div id="TomAnnotationAnalyzer.analysePersistentType" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static TomTypePersistenceInfo analysePersistentType(Type T)</code></div>
+                      <div class="api-doc">
+                        <p>Resolves the full persistence metadata (table + columns) for entity [T].</p>
+                        <p>
+                          Throws [TomAnnotationAnalyzerException] if the type is not reflectable, has no table annotation, or its columns cannot be resolved.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomAnnotationAnalyzer.findMirror" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static ClassMirror&lt;dynamic&gt;? findMirror(Type dbType)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Returns the cached/looked-up [ClassMirror] for [dbType], or <code>null</code> when it is not registered with 
+                          <code>tomReflector</code>.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomAnnotationAnalyzer.findTable" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static TomDbTable? findTable(Type dbType)</code></div>
+                      <div class="api-doc"><p>Returns the <code>@TomDbTable</code> annotation on [dbType], or <code>null</code> if absent.</p></div>
                     </div>
                     <div id="TomAnnotationAnalyzer.getPersistentColumns" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">static List&lt;TomColumnInformation&gt;? getPersistentColumns(Type dbType)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Returns the persistence metadata for every annotated field of [dbType] (each <code>@TomDbColumn</code>
+                           / <code>@TomReference</code>), or <code>null</code> if [dbType] is not reflectable. Throws [TomAnnotationAnalyzerSyntaxException] for an annotation on a non-variable declaration.
+                        </p>
                       </div>
                     </div>
                     <div id="TomAnnotationAnalyzer._getColumnInfo" class="api-member">
@@ -1384,6 +1449,12 @@
                         <code class="api-signature">
                           static TomColumnInformation determineColumn(String name, List&lt;TomTypePersistenceInfo&gt; persistenceInfo)
                         </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Finds the [TomColumnInformation] matching [name] across [persistenceInfo], trying in order: fully-qualified 
+                          <code>table.column</code>, <code>type.field</code>, the query field name, then a case-insensitive field-name match. Throws [TomAnnotationAnalyzerSyntaxException] when nothing matches.
+                        </p>
                       </div>
                     </div>
                   </div>

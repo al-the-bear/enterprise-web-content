@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1320,7 +1340,8 @@
                   <div class="api-doc">
                     <p>A transportable unit containing an entry point and all required modules.</p>
                     <p>
-                      [AstBundle] is the primary distribution format for pre-parsed D4rt scripts. It encapsulates one or more [SCompilationUnit] modules that can be executed by `D4rtRunner` without requiring the Dart analyzer.
+                      [AstBundle] is the primary distribution format for pre-parsed D4rt scripts. It encapsulates one or more [SCompilationUnit] modules that can be executed by 
+                      <code>D4rtRunner</code> without requiring the Dart analyzer.
                     </p>
                     <h2>Serialization Formats</h2>
                     <table class="mdtable">
@@ -1328,7 +1349,7 @@
                       <tbody>
                         <tr><td>JSON</td><td>[toJson] / [fromJson]</td><td>Debugging, tool integration</td></tr>
                         <tr><td>Bytes</td><td>[toBytes] / [fromBytes]</td><td>Network transfer, in-memory</td></tr>
-                        <tr><td>ZIP</td><td>[toZip] / [fromZip]</td><td>File distribution (`.ast`)</td></tr>
+                        <tr><td>ZIP</td><td>[toZip] / [fromZip]</td><td>File distribution (<code>.ast</code>)</td></tr>
                         <tr><td>File</td><td>[saveToFile] / [fromFile]</td><td>Disk I/O with auto-detection</td></tr>
                       </tbody>
                     </table>
@@ -1356,7 +1377,7 @@ runner.execute(ast: loaded.entryPoint);</code></pre>
                       <div class="api-doc">
                         <p>Creates an [AstBundle] with the given entry point and modules.</p>
                         <p>
-                          Optionally includes [sources] — a map from module URI to Dart source code. When `null` (the default), no source is bundled.
+                          Optionally includes [sources] — a map from module URI to Dart source code. When <code>null</code> (the default), no source is bundled.
                         </p>
                         <p>Throws [ArgumentD4rtException] if [entryPointUri] is not present in [modules].</p>
                       </div>
@@ -1390,7 +1411,7 @@ runner.execute(ast: loaded.entryPoint);</code></pre>
                       <div class="api-doc">
                         <p>Loads a bundle from a file.</p>
                         <p>
-                          Auto-detects the format based on file content magic bytes: - ZIP archive (standard `.ast` files) - Gzip-compressed JSON - Plain JSON (fallback)
+                          Auto-detects the format based on file content magic bytes: - ZIP archive (standard <code>.ast</code> files) - Gzip-compressed JSON - Plain JSON (fallback)
                         </p>
                         <p>Throws [ArgumentD4rtException] if the file doesn't exist, is empty, or has an unrecognized format.</p>
                       </div>
@@ -1411,7 +1432,7 @@ runner.execute(ast: loaded.entryPoint);</code></pre>
                       <div class="api-doc">
                         <p>Optional Dart source code for each module, keyed by URI.</p>
                         <p>
-                          When non-null, the source code is included alongside the compiled AST in both JSON and ZIP serialization formats. This is opt-in and disabled by default (`null`).
+                          When non-null, the source code is included alongside the compiled AST in both JSON and ZIP serialization formats. This is opt-in and disabled by default (<code>null</code>).
                         </p>
                       </div>
                     </div>
@@ -1444,7 +1465,8 @@ runner.execute(ast: loaded.entryPoint);</code></pre>
                       <div class="api-doc">
                         <p>Serializes this bundle as a ZIP archive.</p>
                         <p>
-                          The archive follows the `.ast` bundle specification: - `manifest.json` — plain JSON with metadata and file-to-URI mapping - `N.ast.json` — gzip-compressed JSON for each module - `N.src.dart` — plain-text source code (only when [sources] is non-null)
+                          The archive follows the <code>.ast</code> bundle specification: - <code>manifest.json</code> — plain JSON with metadata and file-to-URI mapping - 
+                          <code>N.ast.json</code> — gzip-compressed JSON for each module - <code>N.src.dart</code> — plain-text source code (only when [sources] is non-null)
                         </p>
                         <p>
                           Module entries are pre-compressed with gzip and stored without additional ZIP-level compression, allowing individual modules to be extracted and used standalone.
@@ -1549,11 +1571,11 @@ runner.execute(ast: loaded.entryPoint);</code></pre>
                     </div>
                     <div id="AstBundleFormat.zipMagicBytes" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static List&lt;int&gt; zipMagicBytes</code></div>
-                      <div class="api-doc"><p>ZIP file signature bytes (`PK\x03\x04`).</p></div>
+                      <div class="api-doc"><p>ZIP file signature bytes (<code>PK\x03\x04</code>).</p></div>
                     </div>
                     <div id="AstBundleFormat.gzipMagicBytes" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static List&lt;int&gt; gzipMagicBytes</code></div>
-                      <div class="api-doc"><p>Gzip file signature bytes (`\x1f\x8b`).</p></div>
+                      <div class="api-doc"><p>Gzip file signature bytes (<code>\x1f\x8b</code>).</p></div>
                     </div>
                   </div>
                 </section>
@@ -1602,18 +1624,19 @@ runner.execute(ast: loaded.entryPoint);</code></pre>
                     </div>
                     <div id="AstBundleManifest.entryPoint" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final String entryPoint</code></div>
-                      <div class="api-doc"><p>URI of the entry point module (e.g. `bin/main.dart`).</p></div>
+                      <div class="api-doc"><p>URI of the entry point module (e.g. <code>bin/main.dart</code>).</p></div>
                     </div>
                     <div id="AstBundleManifest.files" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final Map&lt;String, String&gt; files</code></div>
-                      <div class="api-doc"><p>Mapping from archive file name (e.g. `0.ast.json`) to module URI.</p></div>
+                      <div class="api-doc"><p>Mapping from archive file name (e.g. <code>0.ast.json</code>) to module URI.</p></div>
                     </div>
                     <div id="AstBundleManifest.sourceFiles" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final Map&lt;String, String&gt;? sourceFiles</code></div>
                       <div class="api-doc">
-                        <p>Optional mapping from source file name (e.g. `0.src.dart`) to module URI.</p>
+                        <p>Optional mapping from source file name (e.g. <code>0.src.dart</code>) to module URI.</p>
                         <p>
-                          When present, the archive contains Dart source code alongside the compiled AST modules. This is opt-in and `null` by default.
+                          When present, the archive contains Dart source code alongside the compiled AST modules. This is opt-in and 
+                          <code>null</code> by default.
                         </p>
                       </div>
                     </div>

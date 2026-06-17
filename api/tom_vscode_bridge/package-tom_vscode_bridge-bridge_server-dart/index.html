@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1443,7 +1463,9 @@ VSCodeBridgeServer(
                       </div>
                       <div class="api-doc">
                         <p>
-                          Broadcast stream of server→client messages the VS Code extension pushes to the bridge as part of an Agent SDK query — the `agentSdk.chunk` streaming notification and the `agentSdk.toolCall` / `agentSdk.canUseTool` reverse-RPC requests. These belong to the out-of-process Agent SDK transport that started the query, not to the bridge's own request switch, so [_handleMessage] forwards them here and the [CliIntegrationServer] relays them to the originating CLI client.
+                          Broadcast stream of server→client messages the VS Code extension pushes to the bridge as part of an Agent SDK query — the 
+                          <code>agentSdk.chunk</code> streaming notification and the <code>agentSdk.toolCall</code> / <code>agentSdk.canUseTool</code>
+                           reverse-RPC requests. These belong to the out-of-process Agent SDK transport that started the query, not to the bridge's own request switch, so [_handleMessage] forwards them here and the [CliIntegrationServer] relays them to the originating CLI client.
                         </p>
                       </div>
                     </div>
@@ -1564,10 +1586,12 @@ VSCodeBridgeServer(
                       <div class="api-member-head"><code class="api-signature">void forwardReplyToExtension(Map&lt;String, dynamic&gt; reply)</code></div>
                       <div class="api-doc">
                         <p>
-                          Forwards a CLI client's reply to a relayed Agent SDK reverse-RPC request (`agentSdk.toolCall` / `agentSdk.canUseTool`) back to the VS Code extension verbatim.
+                          Forwards a CLI client's reply to a relayed Agent SDK reverse-RPC request (<code>agentSdk.toolCall</code>
+                           / <code>agentSdk.canUseTool</code>) back to the VS Code extension verbatim.
                         </p>
                         <p>
-                          The reply keeps the extension's original request `id` so the extension's `ServerToClientRpc` correlates it; the bridge is a pass-through and does not own that `id`. Called by [CliIntegrationServer] when a CLI client answers a request that was relayed via [extensionPushMessages].
+                          The reply keeps the extension's original request <code>id</code> so the extension's <code>ServerToClientRpc</code>
+                           correlates it; the bridge is a pass-through and does not own that <code>id</code>. Called by [CliIntegrationServer] when a CLI client answers a request that was relayed via [extensionPushMessages].
                         </p>
                       </div>
                     </div>
@@ -1632,7 +1656,9 @@ VSCodeBridgeServer(
                       </div>
                       <div class="api-doc">
                         <p>Start the Tom Process Monitor and verify all related processes are running.</p>
-                        <p>The Process Monitor starts as a detached process at: `~/.tom/bin/darwin_arm64/Tom Process Monitor`</p>
+                        <p>
+                          The Process Monitor starts as a detached process at: <code>~/.tom/bin/darwin_arm64/Tom Process Monitor</code>
+                        </p>
                         <p>
                           After starting, waits 3 seconds and checks if: - Process Monitor is alive - Watcher is alive - Ledger Server is alive
                         </p>
@@ -1682,7 +1708,9 @@ VSCodeBridgeServer(
                       <div class="api-member-head"><code class="api-signature">static Set&lt;String&gt; _agentSdkPushMethods</code></div>
                       <div class="api-doc">
                         <p>
-                          Methods the extension pushes to the bridge as Agent SDK server→client traffic. `agentSdk.chunk` is a notification (no `id`); `agentSdk.toolCall` and `agentSdk.canUseTool` are reverse-RPC requests (with `id`). All three are relayed to the originating CLI client rather than dispatched against the bridge's request switch (which would throw "Unknown method").
+                          Methods the extension pushes to the bridge as Agent SDK server→client traffic. <code>agentSdk.chunk</code>
+                           is a notification (no <code>id</code>); <code>agentSdk.toolCall</code> and <code>agentSdk.canUseTool</code>
+                           are reverse-RPC requests (with <code>id</code>). All three are relayed to the originating CLI client rather than dispatched against the bridge's request switch (which would throw "Unknown method").
                         </p>
                       </div>
                     </div>

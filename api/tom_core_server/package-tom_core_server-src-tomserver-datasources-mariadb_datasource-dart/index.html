@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1319,6 +1339,13 @@
                 <section id="MariaDbDatasource" class="api-declaration">
                   <h3 class="api-decl-title">class MariaDbDatasource</h3>
                   <code class="api-signature">class MariaDbDatasource implements TomDataSource</code>
+                  <div class="api-doc">
+                    <p>A MariaDB / MySQL [TomDataSource] driver (registered for the <code>"mariadb"</code> type).</p>
+                    <p>
+                      Connection settings ([username], [password], [host], [port], [databaseName], [timeOut]) are filled from the configuration map by reflection in [initialize], which then opens the [connection]. The driver implements the full data-source surface — [prepareStatement], [executeQuery] (with reflection-based row→object mapping), [executeCommand] — and participates in transactions via plain 
+                      <code>START TRANSACTION</code> / <code>COMMIT</code> / <code>ROLLBACK</code> (see [MariaDbXADatasource] for the XA variant).
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="MariaDbDatasource.new" class="api-member"><div class="api-member-head"><code class="api-signature">MariaDbDatasource.new()</code></div></div>
@@ -1331,19 +1358,48 @@
                     <div id="MariaDbDatasource.sqlDialect" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomStandardSqlDialect sqlDialect</code></div>
                     </div>
-                    <div id="MariaDbDatasource.username" class="api-member"><div class="api-member-head"><code class="api-signature">String username</code></div></div>
-                    <div id="MariaDbDatasource.password" class="api-member"><div class="api-member-head"><code class="api-signature">String password</code></div></div>
-                    <div id="MariaDbDatasource.host" class="api-member"><div class="api-member-head"><code class="api-signature">String host</code></div></div>
-                    <div id="MariaDbDatasource.port" class="api-member"><div class="api-member-head"><code class="api-signature">int port</code></div></div>
-                    <div id="MariaDbDatasource.databaseName" class="api-member"><div class="api-member-head"><code class="api-signature">String databaseName</code></div></div>
-                    <div id="MariaDbDatasource.timeOut" class="api-member"><div class="api-member-head"><code class="api-signature">int timeOut</code></div></div>
-                    <div id="MariaDbDatasource.connection" class="api-member"><div class="api-member-head"><code class="api-signature">MySQLConnection? connection</code></div></div>
+                    <div id="MariaDbDatasource.username" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String username</code></div>
+                      <div class="api-doc"><p>The connection user name.</p></div>
+                    </div>
+                    <div id="MariaDbDatasource.password" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String password</code></div>
+                      <div class="api-doc"><p>The connection password.</p></div>
+                    </div>
+                    <div id="MariaDbDatasource.host" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String host</code></div>
+                      <div class="api-doc"><p>The database host.</p></div>
+                    </div>
+                    <div id="MariaDbDatasource.port" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">int port</code></div>
+                      <div class="api-doc"><p>The database port (<code>-1</code> until configured).</p></div>
+                    </div>
+                    <div id="MariaDbDatasource.databaseName" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String databaseName</code></div>
+                      <div class="api-doc"><p>The schema / database name (empty selects no default schema).</p></div>
+                    </div>
+                    <div id="MariaDbDatasource.timeOut" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">int timeOut</code></div>
+                      <div class="api-doc"><p>The connect timeout in milliseconds.</p></div>
+                    </div>
+                    <div id="MariaDbDatasource.connection" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">MySQLConnection? connection</code></div>
+                      <div class="api-doc"><p>The live MySQL connection (<code>null</code> until [connect] succeeds).</p></div>
+                    </div>
                     <div id="MariaDbDatasource.connected" class="api-member"><div class="api-member-head"><code class="api-signature">bool connected</code></div></div>
                     <div id="MariaDbDatasource._transactional" class="api-member"><div class="api-member-head"><code class="api-signature">bool _transactional</code></div></div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
-                    <div id="MariaDbDatasource.connect" class="api-member"><div class="api-member-head"><code class="api-signature">Future&lt;void&gt; connect()</code></div></div>
+                    <div id="MariaDbDatasource.connect" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;void&gt; connect()</code></div>
+                      <div class="api-doc">
+                        <p>Opens a connection using the configured settings.</p>
+                        <p>
+                          Throws a [MariadbDatasourceException] if the connection cannot be created or remains unconnected after the attempt.
+                        </p>
+                      </div>
+                    </div>
                     <div id="MariaDbDatasource.prepareStatement" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
@@ -1451,6 +1507,17 @@
                 <section id="MariaDbXADatasource" class="api-declaration">
                   <h3 class="api-decl-title">class MariaDbXADatasource</h3>
                   <code class="api-signature">class MariaDbXADatasource extends MariaDbDatasource</code>
+                  <div class="api-doc">
+                    <p>
+                      A MariaDB [TomDataSource] that uses <strong>XA (distributed) transactions</strong> (registered for the 
+                      <code>"mariadb_xa"</code> type).
+                    </p>
+                    <p>
+                      It inherits all connection and execution behaviour from [MariaDbDatasource] but overrides the transaction lifecycle to issue 
+                      <code>XA START</code> / <code>XA END</code> + <code>XA PREPARE</code> / <code>XA COMMIT</code> / <code>XA ROLLBACK</code>
+                       against a per-transaction branch id, so this data source can take part in a two-phase commit across multiple resources.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="MariaDbXADatasource.new" class="api-member"><div class="api-member-head"><code class="api-signature">MariaDbXADatasource.new()</code></div></div>
@@ -1490,6 +1557,7 @@
                 <section id="MariadbDatasourceException" class="api-declaration">
                   <h3 class="api-decl-title">class MariadbDatasourceException</h3>
                   <code class="api-signature">class MariadbDatasourceException extends TomServerException</code>
+                  <div class="api-doc"><p>Thrown for MariaDB data-source failures (connect, execute, result mapping).</p></div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="MariadbDatasourceException.new" class="api-member">
@@ -1498,12 +1566,22 @@
                           MariadbDatasourceException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, Object? stack, Object? rootException, bool autoLog = false})
                         </code>
                       </div>
+                      <div class="api-doc">
+                        <p>
+                          Creates the exception with a message [key] and [defaultUserMessage]; the remaining parameters mirror [TomServerException].
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>
                 <section id="MariadbPreparedStatement" class="api-declaration">
                   <h3 class="api-decl-title">class MariadbPreparedStatement</h3>
                   <code class="api-signature">class MariadbPreparedStatement&lt;T extends Object&gt; extends TomPreparedStatement&lt;T&gt;</code>
+                  <div class="api-doc">
+                    <p>
+                      A MariaDB-backed [TomPreparedStatement]: wraps a server-side <code>PreparedStmt</code>, the ordered [parameterList] its placeholders expect, the owning [datasource], and the optional [resultType] used to map result rows.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="MariadbPreparedStatement.new" class="api-member">
@@ -1512,19 +1590,37 @@
                           MariadbPreparedStatement.new(PreparedStmt preparedStmt, List&lt;String&gt; parameterList, MariaDbDatasource datasource, Type? resultType, String command)
                         </code>
                       </div>
+                      <div class="api-doc">
+                        <p>
+                          Wraps the prepared [preparedStmt] with its [parameterList], owning [datasource], [resultType] and original [command].
+                        </p>
+                      </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
                     <div id="MariadbPreparedStatement.datasource" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final MariaDbDatasource datasource</code></div>
+                      <div class="api-doc"><p>The data source that prepared and runs this statement.</p></div>
                     </div>
-                    <div id="MariadbPreparedStatement.preparedStmt" class="api-member"><div class="api-member-head"><code class="api-signature">PreparedStmt preparedStmt</code></div></div>
+                    <div id="MariadbPreparedStatement.preparedStmt" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">PreparedStmt preparedStmt</code></div>
+                      <div class="api-doc"><p>The live server-side prepared statement handle (replaced on reconnect).</p></div>
+                    </div>
                     <div id="MariadbPreparedStatement.parameterList" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final List&lt;String&gt; parameterList</code></div>
+                      <div class="api-doc">
+                        <p>The placeholder names in positional order, mapping <code>params</code> to <code>?</code> slots.</p>
+                      </div>
                     </div>
-                    <div id="MariadbPreparedStatement.resultType" class="api-member"><div class="api-member-head"><code class="api-signature">final Type? resultType</code></div></div>
-                    <div id="MariadbPreparedStatement.command" class="api-member"><div class="api-member-head"><code class="api-signature">final String command</code></div></div>
+                    <div id="MariadbPreparedStatement.resultType" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Type? resultType</code></div>
+                      <div class="api-doc"><p>The type result rows are mapped to (defaults to <code>T</code>).</p></div>
+                    </div>
+                    <div id="MariadbPreparedStatement.command" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String command</code></div>
+                      <div class="api-doc"><p>The compiled SQL command (kept so the statement can be re-prepared).</p></div>
+                    </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
@@ -1552,6 +1648,11 @@
                 <section id="MariadbPreparedStatementException" class="api-declaration">
                   <h3 class="api-decl-title">class MariadbPreparedStatementException</h3>
                   <code class="api-signature">class MariadbPreparedStatementException extends TomServerException</code>
+                  <div class="api-doc">
+                    <p>
+                      Thrown when a MariaDB prepared statement fails (e.g. a closed connection), signalling that a single reconnect-and-retry may recover it.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="MariadbPreparedStatementException.new" class="api-member">
@@ -1559,6 +1660,11 @@
                         <code class="api-signature">
                           MariadbPreparedStatementException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, Object? stack, Object? rootException, bool autoLog = false})
                         </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Creates the exception with a message [key] and [defaultUserMessage]; the remaining parameters mirror [TomServerException].
+                        </p>
                       </div>
                     </div>
                   </div>

@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1302,15 +1322,16 @@
           <div class="dhead" style="margin-top: 24px">
             <a class="back" href="/components/basics">← Basics</a>
             <div style="margin-top: 12px">
-              <span style="display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap"><span class="badge b-works"><span class="d"></span>In the works</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">role: extension</span></span>
+              <span style="display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap"><span class="badge b-works"><span class="d"></span>In the works</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">role: extension</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">license: BSD-3-Clause</span></span>
             </div>
             <h2>tom_package_scanner</h2>
             <div class="mono" style="color: #9FB6C9">tom_package_scanner · v1.0.0</div>
             <p style="margin-top: 10px">
-              Scans a workspace's framework repos and, for each Dart package, derives its publication status, license token, version, description, and external links into a `PackageInfo`.
+              Scans a workspace's framework repos and, for each Dart or TypeScript package, derives its publication status, license token, version, description, and external links into a `PackageInfo` — statically, with no process or network calls.
             </p>
             <div style="margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap">
               <a class="btn btn-ghost" target="_blank" rel="noopener noreferrer" href="https://github.com/al-the-bear/tom_basics">View repository →</a>
+              <a class="btn btn-ghost" href="/modules/tom_package_scanner#license">See License</a>
             </div>
           </div>
           <div class="statgrid">
@@ -1326,17 +1347,7 @@
             <div>
               <div class="panel">
                 <h3>Overview</h3>
-                <p>
-                  `tom_package_scanner` walks a workspace's framework repositories and, for
-                  each Dart package, derives a `PackageInfo`: its four-state publication
-                  status, license token, version, description, and external links.
-                  Discovery is one level deep — the direct child folders carrying a
-                  `pubspec.yaml` — and results are sorted for diff-friendly output.
-                  
-                  Built on `tom_build_base`'s folder-nature detection and extracted from the
-                  website's module generator, it is the single scanner that both the
-                  module-index generator and the status-report generator share.
-                </p>
+                <p>From the module readme.md file:</p>
                 <h4 style="font-size: 1rem; margin-top: 18px">What it enables</h4>
                 <p style="margin: 0">Enables Package status detection, Module index generation, Status report generation.</p>
               </div>
@@ -1360,6 +1371,15 @@
                     <span class="muted linkpath">README.md</span>
                   </div>
                 </div>
+                <div class="licdocrow">
+                  <div class="linkrow">
+                    <span class="ic">📜</span>
+                    <div class="linkmeta">
+                      <a class="linkname" href="/docs?module=tom_package_scanner&amp;path=LICENSE">license.md</a>
+                      <span class="muted linkpath">LICENSE</span>
+                    </div>
+                  </div>
+                </div>
               </div>
               <div class="panel">
                 <h3 style="font-size: 1.05rem">API</h3>
@@ -1376,111 +1396,502 @@
           </div>
           <section class="section repodoc">
             <div class="pageprose">
-              <h1>tom_package_scanner</h1>
+              <h1>Tom Package Scanner</h1>
               <p>
-                Scan a workspace's framework repos and, for each Dart package, derive a `PackageInfo`: its publication **status**, license token, version, description and external links. Built on [`tom_build_base`](../tom_build_base)'s `NatureDetector`.
+                &gt; Part of the <strong>Tom framework</strong> by al-the-bear. &gt; © 2024–2026 Peter Nicolai Alexis Kyaw — BSD-3-Clause, see 
+                <a href="https://github.com/al-the-bear/tom_basics/blob/main/tom_package_scanner/LICENSE">LICENSE</a>.
               </p>
               <p>
-                Extracted from the website's `gen_modules` generator (`enterprise_flutter_web`, spec §12 todo 7) so that both the module-index generator and the status-report generator are thin users of one scanner.
+                Static workspace scanner: walks a framework repo's direct-child packages — Dart <strong>and</strong> TypeScript — and derives, for each, a publication 
+                <strong>status</strong>, license token, version, description and external links. Built on <a href="https://github.com/al-the-bear/tom_basics/tree/main/tom_build_base"><code>tom_build_base</code></a>'s folder scanning and nature detection. Powers the website's module-index generators.
               </p>
-              <h2>Usage</h2>
+              <p>---</p>
+              <h2>Overview</h2>
+              <p>
+                A multi-repo framework like Tom faces a recurring documentation problem: <strong>what is the real state of every package in the tree?</strong>
+                 Which packages are released, which are published to pub.dev, which are working-but-unpublished, and which are still empty stubs? Answering that by hand goes stale the moment a package changes; answering it by running 
+                <code>dart pub</code>/<code>gh</code>/<code>dart test</code> per package is slow and needs network access.
+              </p>
+              <p>
+                <code>tom_package_scanner</code> answers it <strong>statically</strong>. Point a <a href="#packagescanner"><code>PackageScanner</code></a>
+                 at a workspace root, name a repo, and it returns one <a href="#packageinfo"><code>PackageInfo</code></a>
+                 per discovered package — each carrying a derived <a href="#the-status-ladder"><code>ComponentStatus</code></a>, a classified license token, static 
+                <a href="#display-metrics">code metrics</a>, and the metadata the website needs to render a module entry. The scanner makes 
+                <strong>no process calls and no network requests</strong>: whether a repo is public is supplied by the caller, so the status logic stays pure and unit-testable against fixture trees.
+              </p>
+              <p>The four things it produces for every package:</p>
+              <table class="mdtable">
+                <thead><tr><th>Output</th><th>Type</th><th>What it answers</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Status</strong></td>
+                    <td><code>ComponentStatus</code></td>
+                    <td>Released? published? working? a stub? — the <a href="#the-status-ladder">status ladder</a></td>
+                  </tr>
+                  <tr>
+                    <td><strong>License</strong></td>
+                    <td><code>String?</code></td>
+                    <td>A canonical SPDX-or-closed <a href="#license-token">token</a>, or <code>null</code> when unknown</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Metrics</strong></td>
+                    <td><code>PackageMetrics</code></td>
+                    <td>
+                      Static 
+                      <code>lib/</code>
+                      /
+                      <code>src/</code>
+                       LOC, test-call count, test LOC (
+                      <a href="#display-metrics">§4.2.2</a>
+                      )
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><strong>Metadata</strong></td>
+                    <td>name, version, description, links</td>
+                    <td>Harvested from <code>pubspec.yaml</code> / <code>package.json</code></td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>
+                The scanner was extracted from the website's <code>gen_modules</code> generator (<code>enterprise_flutter_web</code>, spec §12 todo 7) so that both the module-index generator and the status-report generator are thin users of 
+                <strong>one</strong> scanner — the single source of truth for "what's in the tree".
+              </p>
+              <p>
+                &gt; <strong>Dart and TypeScript.</strong> Discovery covers both ecosystems: a child folder is a &gt; package if it has a 
+                <code>pubspec.yaml</code> (Dart) <strong>or</strong> both <code>package.json</code> and &gt; <code>tsconfig.json</code>
+                 (TypeScript). TypeScript packages are never pub-publishable, so &gt; they never reach the <code>published</code>
+                 rung — they top out at <code>released</code>/<code>works</code> on &gt; their <code>src/</code> size. See 
+                <a href="#scanning-typescript-packages">Scanning TypeScript packages</a>.
+              </p>
+              <p>---</p>
+              <h2>Installation</h2>
+              <p>
+                This is a <strong>workspace-internal</strong> package (<code>publish_to: none</code>); it is consumed by path, not from pub.dev:
+              </p>
+              <pre><code>dependencies:
+  tom_package_scanner:
+    path: ../../basics/tom_package_scanner</code></pre>
+              <p>
+                It depends (by path) on <a href="https://github.com/al-the-bear/tom_basics/tree/main/tom_build_base"><code>tom_build_base</code></a>
+                 for folder scanning and nature detection, plus <code>path</code> and <code>yaml</code>. Requires the Dart SDK 
+                <code>^3.10.4</code>. The scanner reads the filesystem (<code>dart:io</code>) but never spawns a process and never touches the network.
+              </p>
+              <p>---</p>
+              <h2>Features</h2>
+              <table class="mdtable">
+                <thead><tr><th>Capability</th><th>API</th><th>Notes</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>Scan a repo's packages</td>
+                    <td><code>PackageScanner.scanRepo(repo, repoIsPublic:)</code></td>
+                    <td>Returns <code>List&lt;PackageInfo&gt;</code>, sorted by folder name</td>
+                  </tr>
+                  <tr>
+                    <td>Derive publication status</td>
+                    <td><code>PackageInfo.status</code> / <code>.statusReason</code></td>
+                    <td><code>released</code> / <code>published</code> / <code>works</code> / <code>not_started</code></td>
+                  </tr>
+                  <tr>
+                    <td>Classify a license body</td>
+                    <td><code>classifyLicense(text)</code></td>
+                    <td>SPDX-or-closed token, or <code>null</code></td>
+                  </tr>
+                  <tr>
+                    <td>Validate a license token</td>
+                    <td><code>isValidLicenseToken(token)</code> / <code>validLicenseTokens</code></td>
+                    <td>The website's accepted vocabulary</td>
+                  </tr>
+                  <tr>
+                    <td>Static code metrics</td>
+                    <td><code>PackageInfo.metrics</code></td>
+                    <td><code>loc</code>, <code>tests</code>, <code>testLoc</code> — no <code>dart test</code></td>
+                  </tr>
+                  <tr>
+                    <td>Capture metadata</td>
+                    <td><code>PackageInfo.name/.version/.description/.links</code></td>
+                    <td>From <code>pubspec.yaml</code> / <code>package.json</code></td>
+                  </tr>
+                  <tr>
+                    <td>Flag missing project config</td>
+                    <td><code>PackageInfo.hasProjectYaml</code></td>
+                    <td><code>false</code> when no <code>tom_project.yaml</code></td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>---</p>
+              <h2>Quick start</h2>
+              <p>Scan one repo and print each package's derived status:</p>
               <pre><code>import 'package:tom_package_scanner/tom_package_scanner.dart';
 
-final scanner = PackageScanner(
-  sourceRoot: '../..',                       // filesystem base
-  pathPrefix: 'tom_agent_container/tom_ai',  // recorded in component paths
-  locThreshold: 200,
-);
+void main() {
+  final scanner = PackageScanner(
+    sourceRoot: '../..',                       // filesystem base for repo trees
+    pathPrefix: 'tom_agent_container/tom_ai',  // recorded in component paths
+    locThreshold: 200,                         // lib/ LOC above which = "works"
+  );
 
-// includedRepos are public by construction (the seed intersects with
-// `gh repo list --visibility public`), so repoIsPublic is true for them.
-final packages = scanner.scanRepo('d4rt', repoIsPublic: true);
-for (final pkg in packages) {
-  print('${pkg.sourcePath}: ${pkg.status.yamlValue} (${pkg.statusReason})');
+  // includedRepos are public by construction (the website seed intersects with
+  // `gh repo list --visibility public`), so repoIsPublic is true for them.
+  final packages = scanner.scanRepo('d4rt', repoIsPublic: true);
+
+  for (final pkg in packages) {
+    print('${pkg.dirName.padRight(14)} '
+        '${pkg.status.yamlValue.padRight(12)} ${pkg.statusReason}');
+  }
 }</code></pre>
               <p>
-                Discovery is **one level deep**: the direct child folders of a repo that carry a `pubspec.yaml` are its packages (matching the license-audit convention). The result is sorted by folder name for stable, diff-friendly output.
+                Output — one line per discovered package, sorted by folder name, each labelled with its derived status and a human-readable reason:
               </p>
-              <h2>Status ladder</h2>
+              <pre><code>tom_internal   works        lib/ 250 LOC
+tom_pub        published    public repo; pub version 1.2.3
+tom_released   released     release marker
+tom_stub       not_started  stub (10 LOC ≤ 200)
+tom_ts_ext     works        src/ 250 LOC</code></pre>
+              <p>Each row is a <a href="#packageinfo"><code>PackageInfo</code></a>. Inspecting one in full:</p>
+              <pre><code>sourcePath : tom_agent_container/tom_ai/d4rt/tom_pub
+name       : tom_pub
+status     : published
+version    : 1.2.3
+license    : null
+metrics    : PackageMetrics(loc: 5, tests: 0, testLoc: 0)
+links      : {repository: https://github.com/al-the-bear/d4rt}</code></pre>
+              <p>---</p>
+              <h2>Example projects</h2>
+              <table class="mdtable">
+                <thead><tr><th>Example</th><th>What it shows</th></tr></thead>
+                <tbody>
+                  <tr><td><a href="#quick-start">Quick start</a></td><td>Scan a repo; read each package's status</td></tr>
+                  <tr>
+                    <td><a href="#the-status-ladder">The status ladder</a></td>
+                    <td>The four rungs and how the first match wins</td>
+                  </tr>
+                  <tr>
+                    <td><a href="#license-token">License token</a></td>
+                    <td><code>classifyLicense</code> vocabulary and curated overrides</td>
+                  </tr>
+                  <tr><td><a href="#display-metrics">Display metrics</a></td><td>Static LOC / test counts</td></tr>
+                  <tr>
+                    <td><a href="#scanning-typescript-packages">Scanning TypeScript packages</a></td>
+                    <td><code>package.json</code> + <code>tsconfig.json</code> discovery</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_basics/blob/main/tom_package_scanner/test/package_scanner_test.dart"><code>test/package_scanner_test.dart</code></a>
+                    </td>
+                    <td>35 fixture-tree cases covering every rule</td>
+                  </tr>
+                </tbody>
+              </table>
               <p>
-                `scanRepo` derives one of four `ComponentStatus` values (spec §4.2.1), checked top-to-bottom — the first match wins:
+                &gt; This package has no standalone <code>example/</code> program — it is a library consumed by &gt; the website's 
+                <code>gen_modules</code> / <code>gen_status_report</code> generators. The runnable test &gt; suite is the executable reference for every rule below: it scaffolds fixture &gt; trees in a temp dir and asserts each status branch, license source, metric, and &gt; the Dart/TypeScript discovery rules.
+              </p>
+              <p>---</p>
+              <h2>Usage</h2>
+              <h3>The status ladder</h3>
+              <p>
+                <code>scanRepo</code> derives one of four <code>ComponentStatus</code> values (spec §4.2.1), checked top-to-bottom — 
+                <strong>the first match wins</strong>:
               </p>
               <table class="mdtable">
                 <thead><tr><th>Status</th><th>Condition</th><th>Reason string</th></tr></thead>
                 <tbody>
                   <tr>
-                    <td>`released`</td>
-                    <td>`tom_project.yaml` `release.state: released`, **or** a `release.md` in the package dir</td>
-                    <td>`release marker`</td>
+                    <td><code>released</code></td>
+                    <td>
+                      <code>tom_project.yaml</code>
+                       
+                      <code>release.state: released</code>
+                      , 
+                      <strong>or</strong>
+                       a 
+                      <code>release.md</code>
+                       in the package dir
+                    </td>
+                    <td><code>release marker</code></td>
                   </tr>
                   <tr>
-                    <td>`published`</td>
-                    <td>`repoIsPublic` **and** the package is publishable (`publish_to` ≠ `none` and a version is set)</td>
-                    <td>`public repo; pub version X`</td>
+                    <td><code>published</code></td>
+                    <td>
+                      <code>repoIsPublic</code>
+                       
+                      <strong>and</strong>
+                       the package is publishable (
+                      <code>publish_to</code>
+                       ≠ 
+                      <code>none</code>
+                       and a version is set)
+                    </td>
+                    <td><code>public repo; pub version X</code></td>
                   </tr>
                   <tr>
-                    <td>`works`</td>
-                    <td>real `lib/` code — non-blank, non-comment LOC **above** `locThreshold`</td>
-                    <td>`lib/ NNN LOC`</td>
+                    <td><code>works</code></td>
+                    <td>real source — non-blank, non-comment LOC <strong>above</strong> <code>locThreshold</code></td>
+                    <td><code>lib/ NNN LOC</code> (<code>src/</code> for TypeScript)</td>
                   </tr>
                   <tr>
-                    <td>`not_started`</td>
-                    <td>path missing, no `lib/`, or a `lib/` stub at/below the threshold</td>
-                    <td>`no lib/` / `stub (NN LOC ≤ 200)`</td>
+                    <td><code>not_started</code></td>
+                    <td>path missing, no source dir, or a source stub at/below the threshold</td>
+                    <td><code>no lib/</code> / <code>stub (NN LOC ≤ 200)</code></td>
                   </tr>
                 </tbody>
               </table>
               <p>
-                LOC counting walks `lib/**/*.dart`, skipping blank lines, full-line `//` comments, and generated files (`*.g.dart`, `*.freezed.dart`, `*.options.dart`).
+                The same package set, demonstrating each rung (from the <a href="#quick-start">quick start</a>): <code>tom_released</code>
+                 carries a release marker, <code>tom_pub</code> is a real pub package in a public repo, <code>tom_internal</code>
+                 is real code but <code>publish_to: none</code>, and <code>tom_stub</code> is a 10-line stub.
               </p>
+              <pre><code>scanner.scanRepo('d4rt', repoIsPublic: true);
+// tom_released → released   (release marker)
+// tom_pub      → published  (public repo; pub version 1.2.3)
+// tom_internal → works      (lib/ 250 LOC)
+// tom_stub     → not_started (stub (10 LOC ≤ 200))</code></pre>
               <p>
-                &gt; **`published` vs. `publish_to: none`.** A package marked `publish_to: none` &gt; (e.g. an internal library that lives in a public repo) is **not** `published` &gt; — it falls through to `works` / `not_started` on its `lib/` size. This is a &gt; deliberate refinement of the spec §5.1 example, which classified a &gt; `publish_to: none` package as published; "published" here means *a real pub &gt; package*, which is the more useful signal for the public site.
+                <code>repoIsPublic</code> only gates the <code>published</code> rung. The <strong>same</strong> publishable package in a private repo falls through to its 
+                <code>lib/</code> size:
               </p>
-              <h2>License token</h2>
+              <pre><code>scanner.scanRepo('d4rt', repoIsPublic: false);
+// tom_pub → not_started   (5-line lib/, no longer "published")</code></pre>
               <p>
-                `PackageInfo.license` prefers a human-curated `tom_project.yaml license:`; when absent it classifies the package's `LICENSE` / `license.md` body via `classifyLicense` (body-driven, SPDX-or-closed vocabulary — the single source of truth, re-exported by the website's `tool/seed/license_classifier.dart`). Unrecognised or absent licenses yield `null`.
+                &gt; <strong><code>published</code> vs. <code>publish_to: none</code>.</strong> A package marked <code>publish_to: none</code>
+                 &gt; (an internal library that happens to live in a public repo) is <strong>not</strong> &gt; <code>published</code>
+                 — it falls through to <code>works</code> / <code>not_started</code> on its source size. &gt; This is a deliberate refinement of the spec §5.1 example: "published" here &gt; means 
+                <em>a real pub package</em>, the more useful signal for the public site.
               </p>
-              <h2>Display metrics</h2>
+              <h3>License token</h3>
               <p>
-                `PackageInfo.metrics` carries three **statically-measured** display metrics (spec §4.2.2) — the scanner runs no `dart test` and makes no process calls, so all three are counted directly off the source tree:
+                <code>PackageInfo.license</code> prefers a human-curated <code>tom_project.yaml license:</code>; when absent it classifies the package's 
+                <code>LICENSE</code> / <code>license.md</code> body via <code>classifyLicense</code>. Classification is 
+                <strong>body-driven, not header-driven</strong> — a BSD/MIT body that opens with "All rights reserved." (the Dart-SDK style) is still classified by its grant clauses, so open-source licenses are checked before the proprietary fall-throughs:
+              </p>
+              <pre><code>classifyLicense('MIT License\n\nPermission is hereby granted, free of charge');
+// → 'MIT'
+classifyLicense('Redistribution and use in source and binary forms\n'
+    'Neither the name');                                  // → 'BSD-3-Clause'
+classifyLicense('Apache License\nVersion 2.0');           // → 'Apache-2.0'
+classifyLicense('TODO: Add your license here');           // → null  (placeholder)</code></pre>
+              <p>
+                The accepted vocabulary is a small SPDX set plus two closed-license tokens (<code>proprietary</code>, 
+                <code>all-rights-reserved</code>); anything else returns <code>null</code> so a human can be flagged rather than guessed at:
+              </p>
+              <pre><code>validLicenseTokens.contains('BSD-3-Clause'); // true
+isValidLicenseToken('proprietary');          // true
+isValidLicenseToken('not-a-license');        // false</code></pre>
+              <p>
+                <code>classifyLicense</code> is the <strong>single source of truth</strong> for license classification across the website tooling; the website's 
+                <code>tool/seed/license_classifier.dart</code> re-exports it.
+              </p>
+              <h3>Display metrics</h3>
+              <p>
+                <code>PackageInfo.metrics</code> carries three <strong>statically-measured</strong> display metrics (spec §4.2.2) — the scanner runs no 
+                <code>dart test</code> and makes no process calls, so all three are counted directly off the source tree:
               </p>
               <table class="mdtable">
                 <thead><tr><th>Metric</th><th>Definition</th></tr></thead>
                 <tbody>
                   <tr>
-                    <td>`loc`</td>
+                    <td><code>loc</code></td>
                     <td>
-                      non-blank, non-`//`-comment Dart lines in `lib/`, excluding generated files (`*.g.dart`, `*.freezed.dart`, `*.options.dart`). This is the **same** count the `works` &gt;`locThreshold` rule uses, so the status ladder and the displayed LOC never disagree.
+                      non-blank, non-
+                      <code>//</code>
+                      -comment source lines in 
+                      <code>lib/</code>
+                       (Dart) or 
+                      <code>src/</code>
+                       (TypeScript), excluding generated files (
+                      <code>*.g.dart</code>
+                      , 
+                      <code>*.freezed.dart</code>
+                      , 
+                      <code>*.options.dart</code>
+                      ) and TypeScript declarations (
+                      <code>*.d.ts</code>
+                      ). 
+                      <strong>The same count the <code>works</code> &gt;<code>locThreshold</code> rule uses</strong>
+                      , so the ladder and the displayed LOC never disagree.
                     </td>
                   </tr>
                   <tr>
-                    <td>`tests`</td>
+                    <td><code>tests</code></td>
                     <td>
-                      count of `test(` / `testWidgets(` invocations under `test/` (lines that are full-line comments are ignored). A static approximation of the test-case count.
+                      count of 
+                      <code>test(</code>
+                       / 
+                      <code>testWidgets(</code>
+                       (Dart) or 
+                      <code>test(</code>
+                       / 
+                      <code>it(</code>
+                       (TypeScript) invocations under 
+                      <code>test/</code>
+                      ; full-line-comment lines are ignored. A static approximation of the test-case count.
                     </td>
                   </tr>
                   <tr>
-                    <td>`testLoc`</td>
-                    <td>
-                      non-blank, non-comment Dart lines in `test/`, counted exactly like `loc` (generated files excluded) for a like-for-like comparison.
-                    </td>
+                    <td><code>testLoc</code></td>
+                    <td>non-blank, non-comment test-dir lines, counted exactly like <code>loc</code>.</td>
                   </tr>
                 </tbody>
               </table>
               <p>
-                These are display-only and never feed status, **except** `loc`, which also drives the &gt;200-line rule above. `gen_modules` writes them per component plus a summed module-level rollup; `gen_status_report` surfaces them as the LOC / Tests / Test LOC columns.
+                These are display-only and never feed status, <strong>except</strong> <code>loc</code>, which also drives the &gt;<code>locThreshold</code>
+                 rule. <code>gen_modules</code> writes them per component plus a summed module-level rollup; <code>gen_status_report</code>
+                 surfaces them as the LOC / Tests / Test LOC columns.
               </p>
-              <h2>Tolerating a missing `tom_project.yaml`</h2>
+              <h3>Scanning TypeScript packages</h3>
               <p>
-                Eight Dart packages in the included repos have no `tom_project.yaml`. The scanner synthesises their record from `pubspec.yaml` and the `LICENSE` body alone; `PackageInfo.hasProjectYaml` is `false` so callers can flag them.
+                A child folder counts as a TypeScript package when it has <strong>both</strong> <code>package.json</code>
+                 and <code>tsconfig.json</code> (and no <code>pubspec.yaml</code> — a folder with both is described as Dart). TypeScript packages differ from Dart on three points:
               </p>
-              <h2>Tests</h2>
-              <pre><code>dart test   # or: testkit :test</code></pre>
+              <ul>
+                <li>
+                  <strong>Never <code>published</code>.</strong> They are not pub packages, so <code>publishTo</code> is always
+                </li>
+              </ul>
               <p>
-                Fixture trees under `test/fixtures/` exercise each status branch (stub, real-`lib/`, public publishable, release marker) and the missing-`tom_project.yaml` case.
+                <code>null</code> and the ladder skips the <code>published</code> rung — they top out at <code>released</code>/<code>works</code>. - 
+                <strong>Metrics come from <code>src/</code>.</strong> <code>loc</code> counts production <code>src/*.ts</code>, excluding 
+                <code>*.d.ts</code> declarations and <code>*.test.ts</code> / <code>*.spec.ts</code> test files; tests and 
+                <code>testLoc</code> come from those test files plus any sibling <code>test/</code> dir. - <strong>Name is the folder name.</strong>
+                 npm names can be scoped/aliased (<code>@tom/ext</code>); the folder is the stable identifier the rest of the catalog keys on.
+              </p>
+              <pre><code>// A folder with package.json + tsconfig.json + a 250-line src/extension.ts:
+final ext = scanner.scanRepo('vscode', repoIsPublic: true).single;
+ext.dirName;       // 'tom_ext'   (folder name, not the npm @tom/ext)
+ext.publishTo;     // null        (never a pub package)
+ext.status;        // ComponentStatus.works
+ext.statusReason;  // 'src/ 250 LOC'</code></pre>
+              <p>
+                Curated <code>tom_project.yaml license:</code> still wins over the <code>package.json</code> <code>license</code>
+                 field, exactly as for Dart.
+              </p>
+              <h3>Tolerating a missing <code>tom_project.yaml</code></h3>
+              <p>
+                Not every package carries a <code>tom_project.yaml</code>. The scanner synthesises the record from <code>pubspec.yaml</code>
+                 / <code>package.json</code> and the <code>LICENSE</code> body alone, and sets <code>PackageInfo.hasProjectYaml = false</code>
+                 so callers can flag those packages for a human to triage.
+              </p>
+              <p>---</p>
+              <h2>Architecture</h2>
+              <pre><code>package:tom_package_scanner/tom_package_scanner.dart
+│
+├── PackageScanner                       the engine (sourceRoot, pathPrefix, locThreshold)
+│   └── scanRepo(repo, repoIsPublic:) → List&lt;PackageInfo&gt;
+│         ├── discovers Dart (pubspec.yaml) + TypeScript (package.json+tsconfig.json) dirs
+│         ├── derives ComponentStatus via the status ladder
+│         ├── measures PackageMetrics (static LOC / test counts)
+│         └── resolves the license token
+│
+├── PackageInfo                          one immutable per-package record
+├── ComponentStatus                      released / published / works / not_started
+├── PackageMetrics                       loc / tests / testLoc (all static)
+└── classifyLicense / validLicenseTokens the shared license vocabulary
+            │
+            └── delegates folder scanning + nature detection to
+                package:tom_build_base
+                ├── NatureDetector       DartProjectFolder / TomBuildFolder
+                └── FsFolder             filesystem folder model</code></pre>
+              <table class="mdtable">
+                <thead><tr><th>Type / member</th><th>Role</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><code>PackageScanner</code></td>
+                    <td>The engine — scans a repo's direct-child packages, no process/network I/O</td>
+                  </tr>
+                  <tr>
+                    <td><code>PackageInfo</code></td>
+                    <td>Immutable per-package record (status, license, metrics, metadata, links)</td>
+                  </tr>
+                  <tr>
+                    <td><code>ComponentStatus</code></td>
+                    <td>The four-rung publication ladder with canonical <code>yamlValue</code> tokens</td>
+                  </tr>
+                  <tr>
+                    <td><code>PackageMetrics</code></td>
+                    <td>Static <code>loc</code> / <code>tests</code> / <code>testLoc</code> counts (§4.2.2)</td>
+                  </tr>
+                  <tr><td><code>classifyLicense</code></td><td>Body-driven license-text → canonical token</td></tr>
+                  <tr>
+                    <td><code>validLicenseTokens</code> / <code>isValidLicenseToken</code></td>
+                    <td>The accepted SPDX-or-closed vocabulary</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>
+                The scanner holds only its three configuration fields and does no process or network I/O: it reads the filesystem and returns value objects. Whether a repo is public is the caller's input, keeping the status logic pure.
+              </p>
+              <p>---</p>
+              <h2>Ecosystem</h2>
+              <p>
+                <code>tom_package_scanner</code> is one of the foundational packages under <a href="https://github.com/al-the-bear/tom_basics/tree/main"><code>tom_ai/basics/</code></a>. All 
+                <code>tom_ai/basics/</code> packages share a single repository, <a href="https://github.com/al-the-bear/tom_basics"><code>tom_basics</code></a>. It builds on 
+                <a href="https://github.com/al-the-bear/tom_basics/tree/main/tom_build_base"><code>tom_build_base</code></a>
+                 (folder scanning + nature detection) and is consumed by the website's <code>gen_modules</code> and <code>gen_status_report</code>
+                 generators (<code>enterprise_flutter_web</code>), which turn its <code>PackageInfo</code> records into the public module index and status report. Its 
+                <code>classifyLicense</code> is re-exported by the website's license-seed tooling as the single classification source of truth.
+              </p>
+              <p>---</p>
+              <h2>Further documentation</h2>
+              <ul>
+                <li>
+                  <a href="https://github.com/al-the-bear/tom_basics/blob/main/tom_package_scanner/LICENSE">LICENSE</a>
+                   — BSD-3-Clause licence text.
+                </li>
+                <li>
+                  <a href="https://github.com/al-the-bear/tom_basics/blob/main/tom_package_scanner/test/package_scanner_test.dart"><code>test/package_scanner_test.dart</code></a>
+                   — 35
+                </li>
+              </ul>
+              <p>
+                fixture-tree cases that double as the executable specification. - <a href="https://github.com/al-the-bear/tom_basics/tree/main/tom_build_base"><code>tom_build_base</code></a>
+                 — the folder-scanning / nature-detection foundation this package builds on. - <a href="/docs?module=tom_package_scanner&amp;path=CHANGELOG.md">CHANGELOG.md</a>
+                 — release history. - Source library docs — <code>PackageScanner</code>, <code>PackageInfo</code>, <code>ComponentStatus</code>, 
+                <code>PackageMetrics</code> and <code>classifyLicense</code> carry dartdoc with the full rule set and spec references (§4.2.1 / §4.2.2 / §12).
+              </p>
+              <p>---</p>
+              <h2>Status</h2>
+              <p>
+                Stable (<code>1.0.0</code>). Workspace-internal (<code>publish_to: none</code>), consumed by path. The public surface is one engine class plus four value/helper types; all 35 tests pass and 
+                <code>dart analyze</code> is clean. No process calls, no network — the scan is pure filesystem reads against the caller-supplied 
+                <code>repoIsPublic</code> signal.
               </p>
             </div>
           </section>
+          <details class="licbox">
+            <summary>License</summary>
+            <pre id="license" class="lictext">BSD 3-Clause License
+
+Copyright (c) 2024-2026, Peter Nicolai Alexis Kyaw
+Find me on LinkedIn under Alexis Kyaw
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its
+   contributors may be used to endorse or promote products derived from
+   this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+</pre>
+          </details>
         </div>
       </main>
       <footer class="site-footer">

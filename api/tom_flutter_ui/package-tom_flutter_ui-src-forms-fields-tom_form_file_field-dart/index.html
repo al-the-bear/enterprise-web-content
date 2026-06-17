@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1326,10 +1346,13 @@
                 <div class="api-doc">
                   <p>Phase 4 — File upload field.</p>
                   <p>
-                    `FileRef` is a minimal value type — name + size + mime + optional in-memory bytes — chosen so the field works without dragging a file picker package into `tom_flutter_ui`. Apps wire a concrete `picker` callback when constructing the field; the framework calls it on user action and stores whatever `FileRef` it returns.
+                    <code>FileRef</code> is a minimal value type — name + size + mime + optional in-memory bytes — chosen so the field works without dragging a file picker package into 
+                    <code>tom_flutter_ui</code>. Apps wire a concrete <code>picker</code> callback when constructing the field; the framework calls it on user action and stores whatever 
+                    <code>FileRef</code> it returns.
                   </p>
                   <p>
-                    Two concretes ship: * [TomFormFileUpload] — compact "Choose file…" button + selected file caption. * [TomFormFileDropzone] — large dashed drop-target surface that also opens the picker on tap.
+                    Two concretes ship: <em> [TomFormFileUpload] — compact "Choose file…" button + selected file caption. </em>
+                     [TomFormFileDropzone] — large dashed drop-target surface that also opens the picker on tap.
                   </p>
                 </div>
                 <section id="FileRef" class="api-declaration">
@@ -1337,7 +1360,8 @@
                   <code class="api-signature">class FileRef</code>
                   <div class="api-doc">
                     <p>
-                      Lightweight, framework-agnostic file reference. Apps may extend or adapt to richer types (e.g. wrap a `PlatformFile` from `file_picker`).
+                      Lightweight, framework-agnostic file reference. Apps may extend or adapt to richer types (e.g. wrap a 
+                      <code>PlatformFile</code> from <code>file_picker</code>).
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1359,7 +1383,7 @@
                       <div class="api-member-head"><code class="api-signature">final Uint8List? bytes</code></div>
                       <div class="api-doc">
                         <p>
-                          Optional in-memory bytes (small uploads). Larger files should keep `bytes` null and stream from disk via a separate channel.
+                          Optional in-memory bytes (small uploads). Larger files should keep <code>bytes</code> null and stream from disk via a separate channel.
                         </p>
                       </div>
                     </div>
@@ -1442,7 +1466,8 @@
                       <div class="api-member-head"><code class="api-signature">final List&lt;String&gt;? allowedExtensions</code></div>
                       <div class="api-doc">
                         <p>
-                          Optional list of allowed file extensions (without dot, lowercase). Surfaced to the picker callback and used to auto-prepend a built-in `Validator&lt;FileRef?&gt;` so that programmatic `setValue` paths flow through the same validation pipeline as picker-driven selections.
+                          Optional list of allowed file extensions (without dot, lowercase). Surfaced to the picker callback and used to auto-prepend a built-in 
+                          <code>Validator&lt;FileRef?&gt;</code> so that programmatic <code>setValue</code> paths flow through the same validation pipeline as picker-driven selections.
                         </p>
                       </div>
                     </div>
@@ -1467,10 +1492,11 @@
                       <div class="api-member-head"><code class="api-signature">String? checkFile(FileRef ref)</code></div>
                       <div class="api-doc">
                         <p>
-                          Validate the picked file against `allowedExtensions` / `maxSizeBytes`. Returns an error key string on failure, null on success.
+                          Validate the picked file against <code>allowedExtensions</code> / <code>maxSizeBytes</code>. Returns an error key string on failure, null on success.
                         </p>
                         <p>
-                          Used by the picker shim to show an immediate snackbar and reject the file before it ever reaches `setValue`. The same constraints are also auto-prepended as `Validator&lt;FileRef?&gt;`s, so any programmatic `setValue(invalidFile)` will be caught by the framework pipeline.
+                          Used by the picker shim to show an immediate snackbar and reject the file before it ever reaches <code>setValue</code>. The same constraints are also auto-prepended as 
+                          <code>Validator&lt;FileRef?&gt;</code>s, so any programmatic <code>setValue(invalidFile)</code> will be caught by the framework pipeline.
                         </p>
                       </div>
                     </div>
@@ -1631,7 +1657,8 @@
                   <code class="api-signature">typedef FilePicker = Future&lt;FileRef?&gt; Function(BuildContext)</code>
                   <div class="api-doc">
                     <p>
-                      Picker callback contract. Returns the chosen file (or `null` if the user cancels). Implementations can wrap `file_picker`, `image_picker`, or any platform-specific picker.
+                      Picker callback contract. Returns the chosen file (or <code>null</code> if the user cancels). Implementations can wrap 
+                      <code>file_picker</code>, <code>image_picker</code>, or any platform-specific picker.
                     </p>
                   </div>
                 </section>
@@ -1642,7 +1669,7 @@
                   </code>
                   <div class="api-doc">
                     <p>
-                      Returns a [Validator] that checks the file's extension against [allowed]. Pristine `null` values pass. Files without an extension fail when an allow-list is configured.
+                      Returns a [Validator] that checks the file's extension against [allowed]. Pristine <code>null</code> values pass. Files without an extension fail when an allow-list is configured.
                     </p>
                   </div>
                 </section>
@@ -1650,7 +1677,9 @@
                   <h3 class="api-decl-title">function _fileSizeValidator</h3>
                   <code class="api-signature">FutureOr&lt;ValidationResult&gt; Function(FileRef?) _fileSizeValidator(int maxBytes)</code>
                   <div class="api-doc">
-                    <p>Returns a [Validator] that checks the file's size against [maxBytes]. Pristine `null` values pass.</p>
+                    <p>
+                      Returns a [Validator] that checks the file's size against [maxBytes]. Pristine <code>null</code> values pass.
+                    </p>
                   </div>
                 </section>
               </div>

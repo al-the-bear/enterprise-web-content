@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1324,17 +1344,7 @@
             <div>
               <div class="panel">
                 <h3>Overview</h3>
-                <p>
-                  `tom_chattools` gives Tom one interface for talking to messaging
-                  platforms. The abstract `ChatAPI` and unified `ChatMessage`,
-                  `ChatSender`, and `ChatResponse` types let calling code send and receive
-                  messages without binding to a specific service.
-                  
-                  Concrete platforms are selected through `ChatAPI.connect()`, with Telegram
-                  supported today via the Bot API and real-time updates delivered through an
-                  `onMessage` stream. The factory pattern leaves room for additional
-                  platforms behind the same contract.
-                </p>
+                <p>From the module readme.md file:</p>
                 <h4 style="font-size: 1rem; margin-top: 18px">What it enables</h4>
                 <p style="margin: 0">Enables Platform-agnostic messaging, Telegram bot integration, Streaming message updates.</p>
               </div>
@@ -1385,106 +1395,338 @@
             <div class="pageprose">
               <h1>Tom Chattools</h1>
               <p>
-                A platform-agnostic chat API library for Dart that provides a unified interface for sending and receiving messages across different chat platforms.
+                &gt; Part of the <strong>Tom framework</strong> by al-the-bear. &gt; © 2024–2026 Peter Nicolai Alexis Kyaw — BSD-3-Clause, see 
+                <a href="https://github.com/al-the-bear/tom_basics/blob/main/tom_chattools/LICENSE">LICENSE</a>.
               </p>
-              <h2>Features</h2>
+              <p>Unified chat API abstraction for Telegram, WhatsApp, Signal, and other messaging platforms.</p>
+              <p>---</p>
+              <h2>Overview</h2>
+              <p>
+                <code>tom_chattools</code> gives you <strong>one API</strong> to send and receive chat messages, regardless of the platform behind it. You describe a connection with 
+                <a href="#chatsettings"><code>ChatSettings</code></a>, call <code>ChatApi.connect(...)</code>, and from then on the same 
+                <code>sendMessage</code> / <code>getMessages</code> / <code>onMessage</code> surface works no matter which messenger you target.
+              </p>
               <ul>
-                <li>**Abstract ChatAPI** - Platform-independent interface for chat operations</li>
-                <li>**Telegram Support** - Full Telegram Bot API integration via televerse</li>
-                <li>**Message Abstraction** - Unified `ChatMessage`, `ChatSender`, and `ChatResponse` classes</li>
-                <li>**Streaming Updates** - Real-time message notifications via `onMessage` stream</li>
-                <li>**Factory Pattern** - Create appropriate implementation via `ChatAPI.connect()`</li>
+                <li>
+                  <strong>Platform-agnostic core.</strong> <code>ChatApi</code>, <code>ChatMessage</code>, <code>ChatReceiver</code>, and
+                </li>
               </ul>
-              <h2>Getting Started</h2>
-              <h3>Prerequisites</h3>
-              <ul><li>Dart SDK 3.0 or higher</li><li>A Telegram bot token (for Telegram integration)</li></ul>
-              <h3>Installation</h3>
-              <p>Add `tom_chattools` to your `pubspec.yaml`:</p>
+              <p>
+                <code>ChatResponse</code> carry no platform-specific types, so application code never imports a Telegram (or future WhatsApp/Signal) class directly. - 
+                <strong>Platform auto-detection.</strong> <code>ChatApi.connect</code> inspects the <code>ChatSettings</code>
+                 you pass and picks the implementation — provide a Telegram token and you get a Telegram connection; nothing else changes in your code. - 
+                <strong>Two ways to receive.</strong> Block-and-wait with <code>getMessages</code> (with <code>minWait</code>
+                 / <code>maxWait</code> / <code>interval</code> tuning) or subscribe to the live <code>onMessage</code>
+                 stream. - <strong>Telegram today.</strong> A complete Telegram Bot API implementation (via <a href="https://pub.dev/packages/televerse"><code>televerse</code></a>) ships now; WhatsApp and Signal are reserved in the settings model for future implementations.
+              </p>
+              <p>Pure Dart, no Flutter dependency — works in servers, bots, and CLI tools.</p>
+              <p>---</p>
+              <h2>Installation</h2>
               <pre><code>dependencies:
-  tom_chattools:
-    path: ../path/to/tom_chattools  # Or use git reference</code></pre>
-              <h2>Telegram Setup</h2>
-              <p>To connect to Telegram, you need a bot token from [@BotFather](https://t.me/BotFather).</p>
-              <h3>Step 1: Create a Bot</h3>
+  tom_chattools: ^1.0.2</code></pre>
+              <p>or from the command line:</p>
+              <pre><code>dart pub add tom_chattools</code></pre>
               <p>
-                1. Open Telegram and search for **@BotFather** (the official Telegram bot) 2. Start a conversation and send `/newbot` 3. Follow the prompts: - Choose a display name (e.g., "My Assistant") - Choose a username (must end in `bot`, e.g., `my_assistant_bot`) 4. BotFather will give you an API token like:
+                Requires the Dart SDK <code>^3.10.4</code>. Pulls in <a href="https://pub.dev/packages/televerse"><code>televerse</code></a>
+                 for the Telegram backend. For Telegram you also need a <strong>bot token</strong> from <a href="https://t.me/BotFather">@BotFather</a>
+                 — see <a href="#telegram-setup">Telegram setup</a>.
               </p>
-              <pre><code>   123456789:ABCdefGHIjklMNOpqrsTUVwxyz</code></pre>
-              <p>5. **Save this token securely** - it grants full access to your bot</p>
-              <h3>Step 2: Get Your Chat ID</h3>
-              <p>To send/receive messages from a specific chat, you need the chat ID:</p>
+              <p>---</p>
+              <h2>Features</h2>
+              <h3>Core abstraction</h3>
+              <table class="mdtable">
+                <thead><tr><th>Capability</th><th>API</th><th>Notes</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>Connect (auto-detect platform)</td>
+                    <td><code>ChatApi.connect(settings)</code></td>
+                    <td>Picks the impl from <code>ChatSettings</code></td>
+                  </tr>
+                  <tr>
+                    <td>Send text</td>
+                    <td><code>sendMessage(receiver, text, {parseMode})</code></td>
+                    <td><code>parseMode</code>: <code>Markdown</code>/<code>MarkdownV2</code>/<code>HTML</code></td>
+                  </tr>
+                  <tr>
+                    <td>Send a rich message</td>
+                    <td><code>send(receiver, ChatMessage)</code></td>
+                    <td>Text + attachments + formatting</td>
+                  </tr>
+                  <tr>
+                    <td>Pull messages</td>
+                    <td><code>getMessages(receiver, {minWait, maxWait, interval, filter})</code></td>
+                    <td>Returns a <code>ChatResponse</code></td>
+                  </tr>
+                  <tr>
+                    <td>Stream messages</td>
+                    <td><code>onMessage</code></td>
+                    <td>Live <code>Stream&lt;ChatMessage&gt;</code></td>
+                  </tr>
+                  <tr>
+                    <td>Look up a recipient</td>
+                    <td><code>getReceiverInfo(receiver)</code></td>
+                    <td>Returns <code>ChatReceiverInfo?</code></td>
+                  </tr>
+                  <tr>
+                    <td>Download an attachment</td>
+                    <td><code>downloadAttachment(attachment)</code></td>
+                    <td>Resolves platform file IDs to bytes</td>
+                  </tr>
+                  <tr><td>Disconnect</td><td><code>disconnect()</code></td><td>Closes the connection</td></tr>
+                </tbody>
+              </table>
+              <h3>Addressing &amp; messages</h3>
+              <table class="mdtable">
+                <thead><tr><th>Type</th><th>Constructors / members</th><th>Notes</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><code>ChatReceiver</code></td>
+                    <td><code>.id()</code>, <code>.username()</code>, <code>.phone()</code>, <code>.group()</code></td>
+                    <td>Who to send to</td>
+                  </tr>
+                  <tr>
+                    <td><code>ChatMessage</code></td>
+                    <td>
+                      <code>.text(...)</code>
+                      , 
+                      <code>text</code>
+                      , 
+                      <code>sender</code>
+                      , 
+                      <code>type</code>
+                      , 
+                      <code>attachments</code>
+                    </td>
+                    <td>A sent/received message</td>
+                  </tr>
+                  <tr>
+                    <td><code>ChatMessageType</code></td>
+                    <td>
+                      <code>text</code>
+                      , 
+                      <code>image</code>
+                      , 
+                      <code>video</code>
+                      , 
+                      <code>audio</code>
+                      , 
+                      <code>document</code>
+                      , 
+                      <code>sticker</code>
+                      , 
+                      <code>location</code>
+                      , 
+                      <code>contact</code>
+                      , 
+                      <code>system</code>
+                      , 
+                      <code>unknown</code>
+                    </td>
+                    <td>Message kind</td>
+                  </tr>
+                  <tr>
+                    <td><code>ChatResponse</code></td>
+                    <td>
+                      <code>messages</code>
+                      , 
+                      <code>hasMessages</code>
+                      , 
+                      <code>count</code>
+                      , 
+                      <code>ofType()</code>
+                      , 
+                      <code>fromSender()</code>
+                      , 
+                      <code>textContent</code>
+                    </td>
+                    <td>Result of <code>getMessages</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>ChatMessageFilter</code></td>
+                    <td><code>from</code>, <code>types</code>, <code>after</code></td>
+                    <td>Narrow what <code>getMessages</code> returns</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3>Configuration</h3>
+              <table class="mdtable">
+                <thead><tr><th>Type</th><th>Purpose</th></tr></thead>
+                <tbody>
+                  <tr><td><code>ChatSettings</code></td><td>Platform-agnostic, auto-detected connection settings</td></tr>
+                  <tr><td><code>ChatSettings.telegram(token, …)</code></td><td>Convenience constructor for Telegram</td></tr>
+                  <tr>
+                    <td><code>TelegramChatConfig</code></td>
+                    <td>Telegram-specific config (created internally by <code>connect</code>)</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>---</p>
+              <h2>Quick start</h2>
               <p>
-                **For personal chats:** 1. Message your bot first (search for its username in Telegram) 2. Run your bot with polling enabled (see example below) 3. Send a message to your bot 4. Check the `sender.id` in the received message - that's your chat ID
+                <code>ChatApi.connect</code> takes a <code>ChatSettings</code>; the convenience constructor <code>ChatSettings.telegram(token)</code>
+                 is the shortest path to a working bot. Provide a real token and the snippet below sends a message and waits for replies:
               </p>
-              <p>
-                **Using a helper bot:** 1. Forward any message to [@userinfobot](https://t.me/userinfobot) 2. It will reply with your user ID (same as chat ID for 1:1 chats)
-              </p>
-              <p>
-                **For groups:** 1. Add your bot to the group 2. The group chat ID will appear in incoming messages (usually a negative number)
-              </p>
-              <h3>Step 3: Connect and Use</h3>
               <pre><code>import 'package:tom_chattools/tom_chattools.dart';
 
 void main() async {
-  // Create configuration (just authentication)
-  final config = TelegramChatConfig(
-    token: 'YOUR_BOT_TOKEN',
-    usePolling: true,        // Use long polling for updates
+  // Connect — the platform is detected from the settings.
+  final api = await ChatApi.connect(ChatSettings.telegram('YOUR_BOT_TOKEN'));
+
+  // Address the user/chat to talk to.
+  final receiver = ChatReceiver.id('123456789');
+
+  // Send a message.
+  await api.sendMessage(receiver, 'Hello from Tom ChatTools!');
+
+  // Wait up to 30s for replies (returning early once any arrive after 5s).
+  final response = await api.getMessages(
+    receiver,
+    maxWait: const Duration(seconds: 30),
+    minWait: const Duration(seconds: 5),
   );
 
-  // Connect to Telegram
-  final chat = await ChatAPI.connect(config);
+  if (response.hasMessages) {
+    for (final message in response.messages) {
+      print('Received from ${message.sender.name}: ${message.text}');
+    }
+  } else {
+    print('No messages received (status: ${response.status})');
+  }
 
-  // Define who to communicate with
+  await api.disconnect();
+}</code></pre>
+              <p>
+                This mirrors the runnable <a href="https://github.com/al-the-bear/tom_basics/blob/main/tom_chattools/example/tom_chattools_example.dart"><code>example/tom_chattools_example.dart</code></a>.
+              </p>
+              <p>---</p>
+              <h2>Example projects</h2>
+              <table class="mdtable">
+                <thead><tr><th>Example</th><th>What it shows</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_basics/tree/main/tom_basics_samples/tom_chattools_sample"><code>tom_chattools_sample</code></a>
+                    </td>
+                    <td>
+                      The unified chat API as an article: the 
+                      <code>ChatApi</code>
+                       contract driven against an in-memory mock transport (no live tokens), covering send/receive/filtering/streaming — seven runnable, CI-safe examples.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_basics/blob/main/tom_chattools/example/tom_chattools_example.dart"><code>example/tom_chattools_example.dart</code></a>
+                    </td>
+                    <td>Connect, send, and pull replies from Telegram</td>
+                  </tr>
+                  <tr><td><a href="#quick-start">Quick start</a></td><td>Same flow, annotated</td></tr>
+                  <tr>
+                    <td><a href="#streaming-updates">Streaming updates</a></td>
+                    <td>The <code>onMessage</code> live stream</td>
+                  </tr>
+                  <tr>
+                    <td><a href="#message-types">Message types</a></td>
+                    <td>Switching on <code>ChatMessageType</code></td>
+                  </tr>
+                  <tr>
+                    <td><a href="#send-to-different-chats">Send to different chats</a></td>
+                    <td><code>ChatReceiver</code> variants</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>---</p>
+              <h2>Telegram setup</h2>
+              <p>To connect to Telegram you need a bot token from <a href="https://t.me/BotFather">@BotFather</a>.</p>
+              <h3>Step 1: Create a bot</h3>
+              <p>
+                1. Open Telegram and search for <strong>@BotFather</strong> (the official Telegram bot). 2. Start a conversation and send 
+                <code>/newbot</code>. 3. Follow the prompts: - Choose a display name (e.g. "My Assistant"). - Choose a username (must end in 
+                <code>bot</code>, e.g. <code>my_assistant_bot</code>). 4. BotFather gives you an API token like:
+              </p>
+              <pre><code>   123456789:ABCdefGHIjklMNOpqrsTUVwxyz</code></pre>
+              <p>5. <strong>Save this token securely</strong> — it grants full access to your bot.</p>
+              <h3>Step 2: Get your chat ID</h3>
+              <p>To send/receive messages from a specific chat, you need its chat ID:</p>
+              <p><strong>For personal chats:</strong></p>
+              <p>
+                1. Message your bot first (search for its username in Telegram). 2. Run your bot with polling enabled (see below). 3. Send a message to your bot. 4. Check 
+                <code>sender.id</code> on the received message — that is your chat ID.
+              </p>
+              <p><strong>Using a helper bot:</strong></p>
+              <p>
+                1. Forward any message to <a href="https://t.me/userinfobot">@userinfobot</a>. 2. It replies with your user ID (same as the chat ID for 1:1 chats).
+              </p>
+              <p><strong>For groups:</strong></p>
+              <p>
+                1. Add your bot to the group. 2. The group chat ID appears in incoming messages (usually a negative number).
+              </p>
+              <h3>Step 3: Connect and use</h3>
+              <pre><code>import 'package:tom_chattools/tom_chattools.dart';
+
+void main() async {
+  // Settings carry just the authentication + polling preferences.
+  final api = await ChatApi.connect(
+    ChatSettings.telegram('YOUR_BOT_TOKEN', usePolling: true),
+  );
+
+  // Define who to communicate with.
   final receiver = ChatReceiver.id('YOUR_CHAT_ID');
 
-  // Send a message
-  await chat.sendMessage(receiver, 'Hello from Dart!');
+  // Send a message.
+  await api.sendMessage(receiver, 'Hello from Dart!');
 
-  // Listen for incoming messages
-  chat.onMessage.listen((message) {
+  // Listen for incoming messages and echo them back.
+  api.onMessage.listen((message) {
     print('Received: ${message.text} from ${message.sender.name}');
-    
-    // Echo back to the sender
-    final sender = ChatReceiver.id(message.sender.id);
-    chat.sendMessage(sender, 'You said: ${message.text}');
+    api.sendMessage(ChatReceiver.id(message.sender.id), 'You said: ${message.text}');
   });
 }</code></pre>
-              <h3>Environment Variables (Recommended)</h3>
-              <p>Store your token and chat ID securely using environment variables:</p>
+              <h3>Environment variables (recommended)</h3>
+              <p>Keep your token and chat ID out of source control:</p>
               <pre><code>import 'dart:io';
+import 'package:tom_chattools/tom_chattools.dart';
 
 final token = Platform.environment['TELEGRAM_BOT_TOKEN']!;
 final chatId = Platform.environment['TELEGRAM_CHAT_ID']!;
 
-final config = TelegramChatConfig(token: token, usePolling: true);
+final api = await ChatApi.connect(ChatSettings.telegram(token, usePolling: true));
 final receiver = ChatReceiver.id(chatId);</code></pre>
               <p>Set them in your shell:</p>
               <pre><code>export TELEGRAM_BOT_TOKEN="123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
 export TELEGRAM_CHAT_ID="987654321"</code></pre>
-              <h2>Usage Examples</h2>
-              <h3>Basic Send/Receive</h3>
-              <pre><code>final chat = await ChatAPI.connect(TelegramChatConfig(
-  token: token,
-  usePolling: true,
-));
-
-// Define the receiver
+              <p>---</p>
+              <h2>Usage</h2>
+              <h3>Basic send / receive</h3>
+              <p>
+                <code>getMessages</code> is the block-and-wait path. It polls the platform until either <code>maxWait</code>
+                 elapses or messages arrive after <code>minWait</code>, then returns a <a href="#chatresponse"><code>ChatResponse</code></a>.
+              </p>
+              <pre><code>final api = await ChatApi.connect(ChatSettings.telegram(token, usePolling: true));
 final receiver = ChatReceiver.id(chatId);
 
-// Send a message to the receiver
-await chat.sendMessage(receiver, 'Hello!');
+await api.sendMessage(receiver, 'Hello!');
 
-// Get messages from that receiver
-final response = await chat.getMessages(
+final response = await api.getMessages(
   receiver,
-  maxWait: Duration(seconds: 10),
+  maxWait: const Duration(seconds: 10),
 );
 for (final msg in response.messages) {
   print('${msg.sender.name}: ${msg.text}');
 }</code></pre>
-              <h3>Message Types</h3>
-              <pre><code>chat.onMessage.listen((msg) {
+              <p>
+                <code>ChatResponse</code> carries helpers beyond <code>messages</code>: <code>hasMessages</code>, <code>count</code>, 
+                <code>first</code>, <code>last</code>, <code>ofType(type)</code>, <code>fromSender(id)</code>, and <code>textContent</code>.
+              </p>
+              <h3>Streaming updates</h3>
+              <p>When you want push-style delivery instead of polling, subscribe to <code>onMessage</code>:</p>
+              <pre><code>api.onMessage.listen((message) {
+  print('${message.sender.name}: ${message.text}');
+});</code></pre>
+              <h3>Message types</h3>
+              <p>
+                Every <code>ChatMessage</code> carries a <code>ChatMessageType</code>. Switch on it to handle each kind:
+              </p>
+              <pre><code>api.onMessage.listen((msg) {
   switch (msg.type) {
     case ChatMessageType.text:
       print('Text: ${msg.text}');
@@ -1496,63 +1738,119 @@ for (final msg in response.messages) {
       print('Other: ${msg.type}');
   }
 });</code></pre>
-              <h3>Send to Different Chats</h3>
-              <pre><code>// Send to a user by ID
-await chat.sendMessage(ChatReceiver.id('123456789'), 'Hello user!');
+              <p>
+                To pull only certain kinds in a <code>getMessages</code> call, pass a <code>ChatMessageFilter</code>:
+              </p>
+              <pre><code>final response = await api.getMessages(
+  receiver,
+  filter: const ChatMessageFilter(types: [ChatMessageType.text]),
+);</code></pre>
+              <h3>Send to different chats</h3>
+              <p>A <code>ChatReceiver</code> can address a user by ID, by username, or a whole group:</p>
+              <pre><code>// Send to a user by ID.
+await api.sendMessage(ChatReceiver.id('123456789'), 'Hello user!');
 
-// Send to a user by username
-await chat.sendMessage(ChatReceiver.username('johndoe'), 'Hi John!');
+// Send to a user by username.
+await api.sendMessage(ChatReceiver.username('johndoe'), 'Hi John!');
 
-// Send to a group
-await chat.sendMessage(ChatReceiver.group('-100123456789'), 'Hello group!');</code></pre>
-              <h2>API Overview</h2>
-              <h3>Core Classes</h3>
+// Send to a group.
+await api.sendMessage(ChatReceiver.group('-100123456789'), 'Hello group!');</code></pre>
+              <p>---</p>
+              <h2>Architecture</h2>
+              <pre><code>package:tom_chattools/tom_chattools.dart   (single export surface)
+│
+├── api/chat/                  ← platform-agnostic core
+│   ├── ChatApi (abstract)         connect() factory + send/receive contract
+│   ├── ChatSettings               auto-detected connection settings
+│   ├── ChatConfig (abstract)      platform config → createApi()
+│   ├── ChatReceiver               who to address (id/username/phone/group)
+│   ├── ChatMessage / ChatSender   message + author
+│   ├── ChatResponse               result of getMessages()
+│   └── ChatMessageFilter          narrow getMessages results
+│
+└── telegram/                  ← Telegram implementation
+    ├── TelegramChatConfig         token + polling options
+    └── TelegramChat               ChatApi over televerse
+                                   (future: WhatsApp, Signal)</code></pre>
+              <p>
+                <code>ChatApi.connect(settings)</code> reads the <code>ChatSettings</code>, builds the matching <code>ChatConfig</code>
+                 (today: <code>TelegramChatConfig</code>), and calls its <code>createApi</code> + <code>initialize</code>. Application code only ever touches the abstract core types.
+              </p>
               <table class="mdtable">
-                <thead><tr><th>Class</th><th>Description</th></tr></thead>
+                <thead><tr><th>Type</th><th>Role</th></tr></thead>
                 <tbody>
-                  <tr><td>`ChatAPI`</td><td>Abstract interface for chat operations</td></tr>
-                  <tr><td>`ChatConfig`</td><td>Base configuration class</td></tr>
-                  <tr><td>`ChatMessage`</td><td>Represents a chat message</td></tr>
-                  <tr><td>`ChatSender`</td><td>Information about message sender</td></tr>
-                  <tr><td>`ChatResponse`</td><td>Response from getMessages()</td></tr>
-                  <tr><td>`ChatReceiver`</td><td>Target for sending messages</td></tr>
+                  <tr><td><code>ChatApi</code></td><td>Abstract send/receive contract + <code>connect</code> factory</td></tr>
+                  <tr><td><code>ChatSettings</code></td><td>Platform-agnostic, auto-detected connection settings</td></tr>
+                  <tr><td><code>ChatConfig</code></td><td>Base class a platform config extends</td></tr>
+                  <tr><td><code>ChatReceiver</code></td><td>Addresses a user, username, phone, or group</td></tr>
+                  <tr><td><code>ChatReceiverInfo</code></td><td>Profile details for a receiver</td></tr>
+                  <tr><td><code>ChatMessage</code></td><td>A sent or received message</td></tr>
+                  <tr><td><code>ChatSender</code></td><td>The author of a message</td></tr>
+                  <tr><td><code>ChatMessageType</code></td><td>Enum of message kinds</td></tr>
+                  <tr>
+                    <td><code>ChatAttachment</code> / <code>ChatAttachmentType</code></td>
+                    <td>Files, images, etc. on a message</td>
+                  </tr>
+                  <tr><td><code>ChatResponse</code></td><td>Result of <code>getMessages</code>, with query helpers</td></tr>
+                  <tr>
+                    <td><code>ChatResponseStatus</code></td>
+                    <td>Outcome enum (<code>ok</code>, <code>timeout</code>, <code>authError</code>, …)</td>
+                  </tr>
+                  <tr><td><code>ChatMessageFilter</code></td><td>Filter for <code>getMessages</code></td></tr>
+                  <tr><td><code>TelegramChatConfig</code></td><td>Telegram token + polling configuration</td></tr>
                 </tbody>
               </table>
-              <h3>Telegram Classes</h3>
-              <table class="mdtable">
-                <thead><tr><th>Class</th><th>Description</th></tr></thead>
-                <tbody>
-                  <tr><td>`TelegramChatConfig`</td><td>Telegram-specific configuration</td></tr>
-                  <tr><td>`TelegramChat`</td><td>Telegram implementation of ChatAPI</td></tr>
-                </tbody>
-              </table>
+              <p>---</p>
               <h2>Troubleshooting</h2>
               <h3>"Conflict: terminated by other getUpdates request"</h3>
               <p>
-                Only one polling connection can be active. Make sure: - You don't have another instance running - You stopped previous bot instances properly
+                Only one polling connection can be active per bot token. Make sure you don't have another instance running and that previous bot instances were stopped cleanly.
               </p>
               <h3>Bot not receiving messages</h3>
               <p>
-                1. Make sure you've messaged the bot first (bots can't initiate chats) 2. Check if polling is enabled: `usePolling: true` 3. Verify your token is correct
+                1. Message the bot first — bots cannot initiate chats. 2. Confirm polling is enabled: <code>ChatSettings.telegram(token, usePolling: true)</code>. 3. Verify the token is correct.
               </p>
-              <h3>Getting chat/user IDs</h3>
+              <h3>Getting chat / user IDs</h3>
               <p>Print incoming message details:</p>
-              <pre><code>chat.onMessage.listen((msg) {
+              <pre><code>api.onMessage.listen((msg) {
   print('Chat ID: ${msg.sender.id}');
   print('Message ID: ${msg.platformMessageId}');
 });</code></pre>
-              <h2>Additional Information</h2>
-              <ul>
-                <li>[Telegram Bot API Documentation](https://core.telegram.org/bots/api)</li>
-                <li>[Televerse Package](https://pub.dev/packages/televerse) - underlying Telegram library</li>
-                <li>[BotFather Commands](https://core.telegram.org/bots#6-botfather)</li>
-              </ul>
-              <h3>Bot Privacy Settings</h3>
+              <h3>Bot privacy settings (groups)</h3>
               <p>
-                By default, bots in groups only see messages that: - Start with `/` (commands) - Are replies to the bot - Mention the bot
+                By default, bots in groups only see messages that start with <code>/</code>, reply to the bot, or mention it. To see all messages, disable privacy mode:
               </p>
               <p>
-                To see all messages, disable privacy mode: 1. Go to @BotFather 2. Send `/setprivacy` 3. Choose your bot 4. Select "Disable"
+                1. Go to <a href="https://t.me/BotFather">@BotFather</a>. 2. Send <code>/setprivacy</code>. 3. Choose your bot. 4. Select "Disable".
+              </p>
+              <p>---</p>
+              <h2>Ecosystem</h2>
+              <p>
+                <code>tom_chattools</code> is one of the foundational packages under <a href="https://github.com/al-the-bear/tom_basics/tree/main"><code>tom_ai/basics/</code></a>. All 
+                <code>tom_ai/basics/</code> packages share a single repository, <a href="https://github.com/al-the-bear/tom_basics"><code>tom_basics</code></a>.
+              </p>
+              <p>
+                It underpins higher-level Tom features that talk to users over chat — for example the <strong>Tom Telegram</strong>
+                 bot integration (assistant chat, reminders, and build notifications) builds on this abstraction so the same code can target other messengers as their implementations land.
+              </p>
+              <p>---</p>
+              <h2>Further documentation</h2>
+              <ul>
+                <li>
+                  <a href="https://github.com/al-the-bear/tom_basics/blob/main/tom_chattools/LICENSE">LICENSE</a> — BSD-3-Clause licence text.
+                </li>
+                <li><a href="https://core.telegram.org/bots/api">Telegram Bot API</a> — the underlying API.</li>
+                <li>
+                  <a href="https://pub.dev/packages/televerse"><code>televerse</code></a> — the Telegram client library.
+                </li>
+                <li><a href="https://core.telegram.org/bots#6-botfather">BotFather commands</a> — bot administration.</li>
+                <li>Source library docs — every public type in <code>lib/src/</code> carries dartdoc.</li>
+              </ul>
+              <p>---</p>
+              <h2>Status</h2>
+              <p>
+                Stable (<code>1.0.2</code>). Telegram is fully implemented; <code>ChatSettings</code> reserves WhatsApp and Signal slots for future backends. The public API is platform-agnostic, so adding a backend does not change application code. 
+                <code>dart analyze</code> is clean.
               </p>
             </div>
           </section>

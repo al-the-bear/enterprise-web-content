@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1305,7 +1325,7 @@
               <span style="display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap"><span class="badge b-pub"><span class="d"></span>Published</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">role: alternative</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">license: MIT</span></span>
             </div>
             <h2>tom_d4rt_ast</h2>
-            <div class="mono" style="color: #9FB6C9">tom_d4rt_ast · v0.1.5</div>
+            <div class="mono" style="color: #9FB6C9">tom_d4rt_ast · v0.1.8</div>
             <p style="margin-top: 10px">
               Executes pre-parsed `SAstNode` trees with full bridging, sandboxing, and standard library, with no analyzer dependency. The analyzer-free counterpart to `tom_d4rt`.
             </p>
@@ -1324,20 +1344,7 @@
             <div>
               <div class="panel">
                 <h3>Overview</h3>
-                <p>
-                  `tom_d4rt_ast` is the pure-runtime half of the interpreter ecosystem. It accepts
-                  pre-parsed `SAstNode` trees from `tom_ast_model` and executes them directly, with
-                  no `analyzer` package required at runtime.
-                  
-                  Because the analyzer cannot ship inside a Flutter app, this package breaks that
-                  dependency: parsing happens at build time in `tom_ast_generator`, producing a
-                  compact bundle that downloads or ships as an asset and runs on-device — new script
-                  logic without an app-store update.
-                  
-                  It carries the same `InterpreterVisitor`, environment, bridging, and standard
-                  library as `tom_d4rt`, kept in strict 1:1 sync; only the AST source differs.
-                  Choose it over `tom_d4rt` when analyzer weight is unacceptable.
-                </p>
+                <p>From the module readme.md file:</p>
                 <h4 style="font-size: 1rem; margin-top: 18px">What it enables</h4>
                 <p style="margin: 0">Enables on-device script execution, over-the-air UI updates, Flutter-embeddable interpreter.</p>
               </div>
@@ -1395,13 +1402,6 @@
                 <div class="linkrow">
                   <span class="ic">📄</span>
                   <div class="linkmeta">
-                    <a class="linkname" href="/docs?module=tom_d4rt_ast&amp;path=doc%2Ftestlog_20260523-1056-issue-analysis%2Ferror_analysis.md">error_analysis.md</a>
-                    <span class="muted linkpath">doc/testlog_20260523-1056-issue-analysis/error_analysis.md</span>
-                  </div>
-                </div>
-                <div class="linkrow">
-                  <span class="ic">📄</span>
-                  <div class="linkmeta">
                     <a class="linkname" href="/docs?module=tom_d4rt_ast&amp;path=doc%2Ftom_d4rt_ast_limitations.md">tom_d4rt_ast_limitations.md</a>
                     <span class="muted linkpath">doc/tom_d4rt_ast_limitations.md</span>
                   </div>
@@ -1447,80 +1447,191 @@
             <div class="pageprose">
               <h1>tom_d4rt_ast</h1>
               <p>
-                Analyzer-free Dart interpreter runtime that executes pre-compiled `SAstNode` bundles with full bridging, sandboxing, and standard library support.
+                &gt; <strong>Attribution.</strong> The <code>tom_d4rt</code> project is an extended clone of the original &gt; d4rt project by Moustapha Kodjo Amadou, initially published in 2025. The &gt; complete interpreter is based on his idea.
+              </p>
+              <p>
+                Analyzer-free Dart interpreter runtime that executes pre-compiled <code>SAstNode</code> bundles with full bridging, sandboxing, and standard library support.
               </p>
               <h2>Overview</h2>
               <p>
-                `tom_d4rt_ast` is the pure-runtime half of the D4rt interpreter ecosystem. It accepts pre-parsed `SAstNode` trees (the serializable mirror AST defined in `tom_ast_model`) and executes them directly — no `analyzer` package required.
+                <code>tom_d4rt_ast</code> is the pure-runtime half of the D4rt interpreter ecosystem. It accepts pre-parsed 
+                <code>SAstNode</code> trees (the serializable mirror AST defined in <code>tom_ast_model</code>) and executes them directly — no 
+                <code>analyzer</code> package required.
               </p>
               <h3>Why no analyzer?</h3>
               <p>
-                The Dart `analyzer` package is large and incompatible with Flutter's tree-shaker constraints. Shipping it inside a mobile app is not practical. `tom_d4rt_ast` breaks that dependency: the analyzer is used only at build time (in `tom_ast_generator`) to convert Dart source into a compact JSON representation. The resulting `.ast` bundle can be distributed separately — downloaded at runtime, stored in assets, or fetched from a server — and interpreted on-device by this package.
+                The Dart <code>analyzer</code> package is large and incompatible with Flutter's tree-shaker constraints. Shipping it inside a mobile app is not practical. 
+                <code>tom_d4rt_ast</code> breaks that dependency: the analyzer is used only at build time (in <code>tom_ast_generator</code>) to convert Dart source into a compact JSON representation. The resulting 
+                <code>.ast</code> bundle can be distributed separately — downloaded at runtime, stored in assets, or fetched from a server — and interpreted on-device by this package.
               </p>
               <h3>The Flutter use case</h3>
               <p>
-                A Flutter app embeds `tom_d4rt_ast` (no analyzer weight). Server-side tooling uses `tom_ast_generator` to convert Dart scripts to `.ast` bundles once. The app downloads or bundles those `.ast` files, loads them with `AstBundle.fromFile` / `AstBundle.fromBytes`, and calls `D4rtRunner.executeBundleAs&lt;T&gt;`. The script runs on the device, producing a typed result. New script logic can be deployed without submitting an app update to the store.
+                A Flutter app embeds <code>tom_d4rt_ast</code> (no analyzer weight). Server-side tooling uses <code>tom_ast_generator</code>
+                 to convert Dart scripts to <code>.ast</code> bundles once. The app downloads or bundles those <code>.ast</code>
+                 files, loads them with <code>AstBundle.fromFile</code> / <code>AstBundle.fromBytes</code>, and calls 
+                <code>D4rtRunner.executeBundleAs&lt;T&gt;</code>. The script runs on the device, producing a typed result. New script logic can be deployed without submitting an app update to the store.
               </p>
-              <h3>Relationship to `tom_d4rt`</h3>
+              <h3>Relationship to <code>tom_d4rt</code></h3>
               <p>
-                `tom_d4rt` is the original analyzer-based interpreter that parses and executes Dart source directly. `tom_d4rt_ast` contains the same `InterpreterVisitor`, `Environment`, bridging infrastructure, and standard library — they are kept in strict 1:1 sync. The difference is the AST source: `tom_d4rt` builds its AST from the analyzer's `CompilationUnit`; `tom_d4rt_ast` reads `SAstNode` trees from `tom_ast_model`. Any interpreter fix applied to one package must be applied to the other. The `D4` helper class (static bridge utilities) exists in both packages with an identical API surface (`lib/src/runtime/generator/d4.dart` in this package, `lib/src/generator/d4.dart` in `tom_d4rt`).
+                <code>tom_d4rt</code> is the original analyzer-based interpreter that parses and executes Dart source directly. 
+                <code>tom_d4rt_ast</code> contains the same <code>InterpreterVisitor</code>, <code>Environment</code>, bridging infrastructure, and standard library — they are kept in strict 1:1 sync. The difference is the AST source: 
+                <code>tom_d4rt</code> builds its AST from the analyzer's <code>CompilationUnit</code>; <code>tom_d4rt_ast</code>
+                 reads <code>SAstNode</code> trees from <code>tom_ast_model</code>. Any interpreter fix applied to one package must be applied to the other. The 
+                <code>D4</code> helper class (static bridge utilities) exists in both packages with an identical API surface (<code>lib/src/runtime/generator/d4.dart</code>
+                 in this package, <code>lib/src/generator/d4.dart</code> in <code>tom_d4rt</code>).
+              </p>
+              <h3>Which line to use — source-based vs analyzer-free</h3>
+              <p>D4rt ships in <strong>two execution families</strong>:</p>
+              <ul>
+                <li><strong>Source-based (analyzer)</strong> — <code>tom_d4rt</code>, <code>tom_d4rt_dcli</code>,</li>
+              </ul>
+              <p>
+                <code>tom_d4rt_flutter</code>. Parses Dart source with the <code>analyzer</code> package and interprets it directly. This is the 
+                <strong>stable reference</strong> and is <strong>usually the preferable choice</strong>. - <strong>Analyzer-free (mirror AST)</strong>
+                 — <strong>this package</strong>, plus <code>tom_ast_model</code>, <code>tom_ast_generator</code>, <code>tom_d4rt_exec</code>, 
+                <code>tom_dcli_exec</code>, and <code>tom_d4rt_flutter_ast</code>. Runs from pre-compiled <code>SAstNode</code>
+                 trees with <strong>no analyzer dependency</strong>, which is what makes it viable on the <strong>web</strong>
+                 (the analyzer package is too large to ship) and for <strong>on-the-fly / OTA UI updates</strong>.
+              </p>
+              <p>
+                <code>tom_d4rt_ast</code> is a <strong>complete alternative</strong> to the source-based interpreter, but because the 
+                <strong>generated AST bundles are large</strong>, reach for it only when the <strong>web/OTA constraint applies</strong>. For server-side or CLI scripting where the analyzer is acceptable, prefer 
+                <code>tom_d4rt</code> (or its drop-in entry point <code>tom_d4rt_exec</code>). See <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_exec"><code>tom_d4rt_exec</code></a>
+                 for the analyzer-free execution entry that parses source at build time and feeds this runtime.
               </p>
               <h2>Installation</h2>
               <pre><code>dart pub add tom_d4rt_ast</code></pre>
-              <p>`pubspec.yaml`:</p>
+              <p><code>pubspec.yaml</code>:</p>
               <pre><code>dependencies:
-  tom_d4rt_ast: ^0.1.5</code></pre>
+  tom_d4rt_ast: ^0.1.7</code></pre>
               <p>
-                The package requires Dart SDK `^3.10.4`. Its only runtime dependencies are `archive` (ZIP/gzip bundle I/O) and `tom_ast_model` (zero-dependency `SAstNode` definitions).
+                The package requires Dart SDK <code>^3.10.4</code>. Its only runtime dependencies are <code>archive</code>
+                 (ZIP/gzip bundle I/O) and <code>tom_ast_model</code> (zero-dependency <code>SAstNode</code> definitions).
               </p>
               <h2>Features</h2>
               <ul>
                 <li>
-                  **`InterpreterVisitor`** — two-pass AST walker (declaration pass + interpretation pass) that evaluates all Dart statement and expression node kinds defined in `tom_ast_model`, including async/await, generators, pattern matching, extension types, and records.
+                  <strong><code>InterpreterVisitor</code></strong> — two-pass AST walker (declaration pass + interpretation pass) that evaluates all Dart statement and expression node kinds defined in 
+                  <code>tom_ast_model</code>, including async/await, generators, pattern matching, extension types, and records.
                 </li>
                 <li>
-                  **`Environment`** — lexical scoping with a linked-chain model. Each function call, block, or class body gets its own `Environment` whose `enclosing` reference chains back to the global scope. Supports `define`, `get`, `assign`, `defineBridge`, `defineBridgedEnum`, and lazy `GlobalGetter` / `GlobalSetter` entries.
+                  <strong><code>Environment</code></strong> — lexical scoping with a linked-chain model. Each function call, block, or class body gets its own 
+                  <code>Environment</code> whose <code>enclosing</code> reference chains back to the global scope. Supports 
+                  <code>define</code>, <code>get</code>, <code>assign</code>, <code>defineBridge</code>, <code>defineBridgedEnum</code>, and lazy 
+                  <code>GlobalGetter</code> / <code>GlobalSetter</code> entries.
                 </li>
                 <li>
-                  **`BridgedClass` / `BridgedInstance`** — native Dart classes are exposed to interpreted code via adapter maps for constructors, instance methods, static methods, getters, and setters. `BridgedInstance&lt;T&gt;` wraps the native object alongside its `BridgedClass` descriptor. A static supertype registry (`BridgedClass.registerSupertypes`) enables hierarchy-aware `isSubtypeOf` checks without `dart:mirrors`.
+                  <strong><code>BridgedClass</code> / <code>BridgedInstance</code></strong> — native Dart classes are exposed to interpreted code via adapter maps for constructors, instance methods, static methods, getters, and setters. 
+                  <code>BridgedInstance&lt;T&gt;</code> wraps the native object alongside its <code>BridgedClass</code>
+                   descriptor. A static supertype registry (<code>BridgedClass.registerSupertypes</code>) enables hierarchy-aware 
+                  <code>isSubtypeOf</code> checks without <code>dart:mirrors</code>.
                 </li>
                 <li>
-                  **`BridgedEnum` / `BridgedEnumValue`** — native enums with per-value instance getter and method adapters, plus static getter support (e.g. `WidgetState.any`).
+                  <strong><code>BridgedEnum</code> / <code>BridgedEnumValue</code></strong> — native enums with per-value instance getter and method adapters, plus static getter support (e.g. 
+                  <code>WidgetState.any</code>).
                 </li>
                 <li>
-                  **Permission sandbox** — five concrete `Permission` subclasses guard filesystem, network, process, isolate, and dangerous operations. `D4rtRunner.grant` / `revoke` / `checkPermission` control what interpreted code may do at runtime.
+                  <strong>Permission sandbox</strong> — five concrete <code>Permission</code> subclasses guard filesystem, network, process, isolate, and dangerous operations. 
+                  <code>D4rtRunner.grant</code> / <code>revoke</code> / <code>checkPermission</code> control what interpreted code may do at runtime.
                 </li>
                 <li>
-                  **Callable system** — `Callable` (abstract), `InterpretedFunction`, `InterpretedClass`, `NativeFunction`, and several bridged adapter callables form a uniform call protocol used throughout the interpreter.
+                  <strong>Callable system</strong> — <code>Callable</code> (abstract), <code>InterpretedFunction</code>, 
+                  <code>InterpretedClass</code>, <code>NativeFunction</code>, and several bridged adapter callables form a uniform call protocol used throughout the interpreter.
                 </li>
                 <li>
-                  **Runtime types** — `RuntimeType` / `RuntimeValue` interfaces, `InterpretedClass`, `InterpretedInstance`, `InterpretedRecord`, `TypeParameter`, and the type-coercion helpers on the `D4` class.
+                  <strong>Runtime types</strong> — <code>RuntimeType</code> / <code>RuntimeValue</code> interfaces, <code>InterpretedClass</code>, 
+                  <code>InterpretedInstance</code>, <code>InterpretedRecord</code>, <code>TypeParameter</code>, and the type-coercion helpers on the 
+                  <code>D4</code> class.
                 </li>
                 <li>
-                  **`AstBundle`** — a transportable ZIP archive containing one or more `SCompilationUnit` modules with a `manifest.json`. Supports JSON, gzip-compressed JSON, and ZIP serialization. Auto-detects format on load.
+                  <strong><code>AstBundle</code></strong> — a transportable ZIP archive containing one or more <code>SCompilationUnit</code>
+                   modules with a <code>manifest.json</code>. Supports JSON, gzip-compressed JSON, and ZIP serialization. Auto-detects format on load.
                 </li>
                 <li>
-                  **`AstModuleLoader`** — resolves `import` directives against the bundle's pre-loaded module map with zero file I/O. Handles `dart:*` stdlib registration, bridged-library wiring, re-export chains, and per-module scoped environments.
+                  <strong><code>AstModuleLoader</code></strong> — resolves <code>import</code> directives against the bundle's pre-loaded module map with zero file I/O. Handles 
+                  <code>dart:*</code> stdlib registration, bridged-library wiring, re-export chains, and per-module scoped environments.
                 </li>
                 <li>
-                  **Standard library bridges** — `dart:core` (String, int, double, num, bool, List, Map, Set, Iterable, DateTime, Duration, RegExp, Uri, BigInt, …), `dart:async` (Future, Stream, StreamController, Completer, Timer), `dart:typed_data` (ByteData, Uint8List, Float32List, Int32List, and all typed array variants), `dart:convert` (JSON, UTF-8, Base64, Latin-1, ASCII, …), `dart:collection` (HashMap, HashSet, LinkedHashMap, SplayTreeMap, Queue, …), `dart:math` (Random, Point, Rectangle, constants), `dart:io` (File, Directory, Process, Platform, stdout/stderr, HttpClient, Socket), and `dart:isolate` stubs. Platform-conditional entry point selects `stdlib_io.dart` on VM / `stdlib_web.dart` on web.
+                  <strong>Standard library bridges</strong> — <code>dart:core</code> (String, int, double, num, bool, List, Map, Set, Iterable, DateTime, Duration, RegExp, Uri, BigInt, …), 
+                  <code>dart:async</code> (Future, Stream, StreamController, Completer, Timer), <code>dart:typed_data</code>
+                   (ByteData, Uint8List, Float32List, Int32List, and all typed array variants), <code>dart:convert</code>
+                   (JSON, UTF-8, Base64, Latin-1, ASCII, …), <code>dart:collection</code> (HashMap, HashSet, LinkedHashMap, SplayTreeMap, Queue, …), 
+                  <code>dart:math</code> (Random, Point, Rectangle, constants), <code>dart:io</code> (File, Directory, Process, Platform, stdout/stderr, HttpClient, Socket), and 
+                  <code>dart:isolate</code> stubs. Platform-conditional entry point selects <code>stdlib_io.dart</code>
+                   on VM / <code>stdlib_web.dart</code> on web.
                 </li>
                 <li>
-                  **`D4` helper class** — static utilities consumed by generated bridge code: `unwrapAs&lt;T&gt;`, `unwrapInterpreterValue`, `extractBridgedArg&lt;T&gt;`, `coerceList&lt;T&gt;`, `getRequiredArg`, `getRequiredNamedArg`, `validateTarget&lt;T&gt;`, `withActiveVisitor`, generic-type wrapper registration, and the native-to-interpreted `Expando` map.
+                  <strong><code>D4</code> helper class</strong> — static utilities consumed by generated bridge code: <code>unwrapAs&lt;T&gt;</code>, 
+                  <code>unwrapInterpreterValue</code>, <code>extractBridgedArg&lt;T&gt;</code>, <code>coerceList&lt;T&gt;</code>, 
+                  <code>getRequiredArg</code>, <code>getRequiredNamedArg</code>, <code>validateTarget&lt;T&gt;</code>, 
+                  <code>withActiveVisitor</code>, generic-type wrapper registration, and the native-to-interpreted <code>Expando</code>
+                   map.
                 </li>
                 <li>
-                  **`registerExtensions` / `finalizeBridges`** — ordered extension hook for bridge packages that have post-registration wiring dependencies.
+                  <strong><code>registerExtensions</code> / <code>finalizeBridges</code></strong> — ordered extension hook for bridge packages that have post-registration wiring dependencies.
                 </li>
                 <li>
-                  **Introspection** — `DeclarationInfo` sealed class hierarchy (`FunctionInfo`, `ClassInfo`, `VariableInfo`, `EnumInfo`, `ExtensionInfo`) for inspecting what a script declares.
+                  <strong>Introspection</strong> — <code>DeclarationInfo</code> sealed class hierarchy (<code>FunctionInfo</code>, 
+                  <code>ClassInfo</code>, <code>VariableInfo</code>, <code>EnumInfo</code>, <code>ExtensionInfo</code>) for inspecting what a script declares.
                 </li>
               </ul>
+              <h2>How a bundle gets here</h2>
+              <p>
+                In normal use you do <strong>not</strong> build <code>SAstNode</code> trees by hand. The AST arrives as a pre-compiled bundle produced by build-time tooling, and 
+                <code>tom_d4rt_ast</code> only runs it:
+              </p>
+              <pre><code>Dart source (.dart)
+      │
+      ▼  analyzer (build time, off-device)
+analyzer CompilationUnit
+      │
+      ▼  tom_ast_generator  (1:1 copy → mirror AST)
+SAstNode tree
+      │
+      ▼  AstBundle  (JSON / gzip / ZIP, ships to the device)
+.ast bundle
+      │
+      ▼  tom_d4rt_ast  (THIS package — on-device, no analyzer)
+typed result / widget tree</code></pre>
+              <p>
+                The conversion (analyzer → mirror AST → bundle) is owned by <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_ast_generator"><code>tom_ast_generator</code></a>
+                 and driven end-to-end by <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_exec"><code>tom_d4rt_exec</code></a>. This package is the 
+                <strong>last stage only</strong>: load a bundle, execute it, get a typed result back. The hand-built-AST example further down exists for completeness and tests — it is not the normal path.
+              </p>
               <h2>Quick Start</h2>
-              <h3>Minimum: execute a hand-built bundle</h3>
+              <h3>Run a pre-compiled bundle (the normal path)</h3>
               <pre><code>import 'package:tom_d4rt_ast/runtime.dart';
 
 void main() {
-  // Build a minimal AST manually (or load from a .ast file).
+  final bundle = AstBundle.fromFile('path/to/script.ast');
+
+  final runner = D4rtRunner();
+  runner.grant(FilesystemPermission.read); // grant only what the script needs
+
+  final result = runner.executeBundleAs&lt;String&gt;(bundle, name: 'buildLabel');
+  print(result);
+}</code></pre>
+              <h3>Load from bytes (e.g. downloaded over HTTP in Flutter)</h3>
+              <pre><code>import 'package:tom_d4rt_ast/runtime.dart';
+
+Future&lt;void&gt; runScript(List&lt;int&gt; bytes) async {
+  final bundle = AstBundle.fromZip(bytes);   // or fromBytes() for gzip JSON
+  final runner = D4rtRunner();
+  final result = await runner.executeBundleAsAsync&lt;Map&lt;String, dynamic&gt;&gt;(bundle);
+  print(result);
+}</code></pre>
+              <h3>Parse a JSON AST string</h3>
+              <pre><code>final runner = D4rtRunner();
+final ast = runner.parseJson(jsonString); // returns SCompilationUnit
+final result = runner.execute(ast: ast, name: 'compute');</code></pre>
+              <h3>Advanced: build a bundle by hand</h3>
+              <p>
+                This is <strong>not</strong> the normal path (see <a href="#how-a-bundle-gets-here">How a bundle gets here</a>) — bundles are produced by 
+                <code>tom_ast_generator</code>. It is shown only so the <code>SAstNode</code> shape is concrete, e.g. for tests that synthesise tiny programs:
+              </p>
+              <pre><code>import 'package:tom_d4rt_ast/runtime.dart';
+
+void main() {
   final mainFn = SFunctionDeclaration(
     offset: 0,
     length: 0,
@@ -1557,35 +1668,9 @@ void main() {
     modules: {'package:demo/main.dart': unit},
   );
 
-  final runner = D4rtRunner();
-  final result = runner.executeBundleAs&lt;int&gt;(bundle);
+  final result = D4rtRunner().executeBundleAs&lt;int&gt;(bundle);
   print(result); // 42
 }</code></pre>
-              <h3>Load a pre-compiled `.ast` file</h3>
-              <pre><code>import 'package:tom_d4rt_ast/runtime.dart';
-
-void main() {
-  final bundle = AstBundle.fromFile('path/to/script.ast');
-
-  final runner = D4rtRunner();
-  runner.grant(FilesystemPermission.read); // grant only what the script needs
-
-  final result = runner.executeBundleAs&lt;String&gt;(bundle, name: 'buildLabel');
-  print(result);
-}</code></pre>
-              <h3>Load from bytes (e.g. downloaded over HTTP in Flutter)</h3>
-              <pre><code>import 'package:tom_d4rt_ast/runtime.dart';
-
-Future&lt;void&gt; runScript(List&lt;int&gt; bytes) async {
-  final bundle = AstBundle.fromZip(bytes);   // or fromBytes() for gzip JSON
-  final runner = D4rtRunner();
-  final result = await runner.executeBundleAsAsync&lt;Map&lt;String, dynamic&gt;&gt;(bundle);
-  print(result);
-}</code></pre>
-              <h3>Parse a JSON AST string</h3>
-              <pre><code>final runner = D4rtRunner();
-final ast = runner.parseJson(jsonString); // returns SCompilationUnit
-final result = runner.execute(ast: ast, name: 'compute');</code></pre>
               <h3>Registering a native class bridge</h3>
               <pre><code>import 'package:tom_d4rt_ast/runtime.dart';
 
@@ -1607,9 +1692,10 @@ final colorBridge = BridgedClass(
 
 final runner = D4rtRunner();
 runner.registerBridgedClass(colorBridge, 'dart:ui');</code></pre>
-              <h3>Using `registerExtensions` and `finalizeBridges`</h3>
+              <h3>Using <code>registerExtensions</code> and <code>finalizeBridges</code></h3>
               <p>
-                Some bridge packages have wiring that must run after another package's registrations complete. Use `registerExtensions` to declare those callbacks; the runner fires them in registration order before the first script execution.
+                Some bridge packages have wiring that must run after another package's registrations complete. Use <code>registerExtensions</code>
+                 to declare those callbacks; the runner fires them in registration order before the first script execution.
               </p>
               <pre><code>final runner = D4rtRunner();
 
@@ -1627,50 +1713,120 @@ runner.finalizeBridges();
 
 final result = runner.executeBundleAs&lt;Widget&gt;(bundle);</code></pre>
               <p>
-                `finalizeBridges` is idempotent — subsequent calls are no-ops. Calling `registerExtensions` after `finalizeBridges` throws `StateError`.
+                <code>finalizeBridges</code> is idempotent — subsequent calls are no-ops. Calling <code>registerExtensions</code>
+                 after <code>finalizeBridges</code> throws <code>StateError</code>.
               </p>
-              <h3>Warming up: `warmup()` (cold-start flakiness, OPEN B.11 / U25)</h3>
+              <h3>Warming up: <code>warmup()</code> (cold-start flakiness, OPEN B.11 / U25)</h3>
               <p>
-                The first script run after a test harness' `setUpAll` used to flake under host load because the interpreter infrastructure — extension finalization, the stdlib bridges, and the registered bridged-class/enum definitions — cold-started *during* that first build. `warmup()` pays that cost up front so the first real build behaves like a warm one:
+                The first script run after a test harness' <code>setUpAll</code> used to flake under host load because the interpreter infrastructure — extension finalization, the stdlib bridges, and the registered bridged-class/enum definitions — cold-started 
+                <em>during</em> that first build. <code>warmup()</code> pays that cost up front so the first real build behaves like a warm one:
               </p>
               <pre><code>final runner = D4rtRunner();
 // ... register all bridges / extensions ...
 runner.warmup();              // finalizeBridges() + build a throwaway environment
 final result = runner.executeBundleAs&lt;Widget&gt;(bundle); // first build, no cold start</code></pre>
               <p>
-                `warmup()` runs `finalizeBridges()` and then builds (and discards) a global environment, exercising the full `Stdlib(...).register()` + bridged-definition registration path. It is idempotent and script-neutral — the warmup environment leaves no script declarations behind, and the next `execute*`/`executeBundle*` call rebuilds a fresh environment as usual.
+                <code>warmup()</code> runs <code>finalizeBridges()</code> and then builds (and discards) a global environment, exercising the full 
+                <code>Stdlib(...).register()</code> + bridged-definition registration path. It is idempotent and script-neutral — the warmup environment leaves no script declarations behind, and the next 
+                <code>execute*</code>/<code>executeBundle*</code> call rebuilds a fresh environment as usual.
               </p>
               <p>
-                `D4rtRunner` has no Dart source parser (that lives in `tom_d4rt_exec`'s `D4rt`, whose `warmup()` additionally warms the analyzer front-end by parsing + executing a trivial throwaway script), so the runner warms only the bridge/stdlib half — the portion the parser-less Flutter runtime and a test app's `/warmup` endpoint share. The analyzer-based VM twin `tom_d4rt`'s `D4rt.warmup()` mirrors the same contract.
+                <code>D4rtRunner</code> has no Dart source parser (that lives in <code>tom_d4rt_exec</code>'s <code>D4rt</code>, whose 
+                <code>warmup()</code> additionally warms the analyzer front-end by parsing + executing a trivial throwaway script), so the runner warms only the bridge/stdlib half — the portion the parser-less Flutter runtime and a test app's 
+                <code>/warmup</code> endpoint share. The analyzer-based VM twin <code>tom_d4rt</code>'s <code>D4rt.warmup()</code>
+                 mirrors the same contract.
+              </p>
+              <h2>Example projects</h2>
+              <p>
+                The interpreter executes the same Dart language as the source-based line, so the language/bridging samples apply directly — the only difference is that the analyzer-free runtime consumes a pre-compiled 
+                <code>AstBundle</code> rather than source text. Runnable samples live in <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_samples"><code>tom_d4rt_samples/</code></a>:
+              </p>
+              <table class="mdtable">
+                <thead><tr><th>Sample</th><th>What it shows</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_samples/d4rt_introduction_sample"><code>d4rt_introduction_sample</code></a>
+                    </td>
+                    <td>Basic interpreter use and language semantics.</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_samples/d4rt_advanced_sample"><code>d4rt_advanced_sample</code></a>
+                    </td>
+                    <td>Advanced language and bridging features.</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_samples/d4rt_flutter_sample"><code>d4rt_flutter_sample</code></a>
+                    </td>
+                    <td>Flutter Material bridges — the canonical web/OTA target for this runtime.</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_samples/d4rt_userbridges_sample"><code>d4rt_userbridges_sample</code></a>
+                    </td>
+                    <td>Hand-written <code>D4UserBridge</code> overrides.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>
+                For the <strong>end-to-end AstBundle → widget tree</strong> path on Flutter (the web/OTA use case this package exists for), see 
+                <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_flutter_ast"><code>tom_d4rt_flutter_ast</code></a>
+                 and its demo app <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_flutter_ast_test"><code>tom_d4rt_flutter_ast_test</code></a>.
               </p>
               <h2>Architecture and Key Concepts</h2>
               <h3>SAstNode-driven execution</h3>
               <p>
-                `tom_ast_model` defines the `SAstNode` hierarchy — a fully serializable mirror of the Dart AST. Every node is JSON-serializable with no reference to the `analyzer` package. `InterpreterVisitor` extends `GeneralizingSAstVisitor&lt;Object?&gt;` and implements `visit*` methods for each node kind. The `DeclarationVisitor` performs a first pass that registers class and function declarations into the environment before any statements execute.
+                <code>tom_ast_model</code> defines the <code>SAstNode</code> hierarchy — a fully serializable mirror of the Dart AST. Every node is JSON-serializable with no reference to the 
+                <code>analyzer</code> package. <code>InterpreterVisitor</code> extends <code>GeneralizingSAstVisitor&lt;Object?&gt;</code>
+                 and implements <code>visit*</code> methods for each node kind. The <code>DeclarationVisitor</code> performs a first pass that registers class and function declarations into the environment before any statements execute.
               </p>
               <h3>The 1:1-with-analyzer principle</h3>
               <p>
-                When a bug is found in the interpreter logic (type coercion, enum handling, `isSubtypeOf` chain walk, etc.), the fix goes into `tom_ast_model` or into both `tom_d4rt` and `tom_d4rt_ast` simultaneously. The rule is: **fix the AST model or the shared interpreter logic, not a one-off workaround in one package**. The `_copilot_guidelines/sync_with_tom_d4rt.md` document in this package enforces this contract.
+                When a bug is found in the interpreter logic (type coercion, enum handling, <code>isSubtypeOf</code> chain walk, etc.), the fix goes into 
+                <code>tom_ast_model</code> or into both <code>tom_d4rt</code> and <code>tom_d4rt_ast</code> simultaneously. The rule is: 
+                <strong>fix the AST model or the shared interpreter logic, not a one-off workaround in one package</strong>. The 
+                <code>_copilot_guidelines/sync_with_tom_d4rt.md</code> document in this package enforces this contract.
               </p>
               <h3>Bridging: native-to-interpreted interop</h3>
               <p>
-                Interpreted code can call native Dart constructors and methods through registered `BridgedClass` / `BridgedEnum` entries. When a bridged constructor is called, the adapter function returns a native instance wrapped in `BridgedInstance&lt;T&gt;`. `InterpreterVisitor` recognizes `BridgedInstance` at getter / method call sites and dispatches through the registered `BridgedMethodAdapter` / `BridgedInstanceGetterAdapter`. For interpreted subclasses of bridged types, an `InterfaceProxyFactory` (registered via `D4.registerInterfaceProxy`) creates a native proxy that delegates method calls back through `InterpreterVisitor`.
+                Interpreted code can call native Dart constructors and methods through registered <code>BridgedClass</code>
+                 / <code>BridgedEnum</code> entries. When a bridged constructor is called, the adapter function returns a native instance wrapped in 
+                <code>BridgedInstance&lt;T&gt;</code>. <code>InterpreterVisitor</code> recognizes <code>BridgedInstance</code>
+                 at getter / method call sites and dispatches through the registered <code>BridgedMethodAdapter</code>
+                 / <code>BridgedInstanceGetterAdapter</code>. For interpreted subclasses of bridged types, an <code>InterfaceProxyFactory</code>
+                 (registered via <code>D4.registerInterfaceProxy</code>) creates a native proxy that delegates method calls back through 
+                <code>InterpreterVisitor</code>.
               </p>
               <h3>Environment and lexical scoping</h3>
               <p>
-                Each `Environment` holds a `Map&lt;String, Object?&gt;` for named values and a `Map&lt;String, BridgedClass&gt;` for type-resolution. The `enclosing` reference chains scopes: local → function closure → class → global. `define` writes to the current scope; `assign` walks the chain to find the binding owner; `get` walks up until it finds a value or throws `RuntimeD4rtException`.
+                Each <code>Environment</code> holds a <code>Map&lt;String, Object?&gt;</code> for named values and a 
+                <code>Map&lt;String, BridgedClass&gt;</code> for type-resolution. The <code>enclosing</code> reference chains scopes: local → function closure → class → global. 
+                <code>define</code> writes to the current scope; <code>assign</code> walks the chain to find the binding owner; 
+                <code>get</code> walks up until it finds a value or throws <code>RuntimeD4rtException</code>.
               </p>
               <h3>AstBundle format</h3>
               <p>
-                A `.ast` file is a ZIP archive containing a plain-JSON `manifest.json` (format version, entry point URI, file-to-URI mapping) and one gzip-compressed JSON entry per module (`0.ast.json`, `1.ast.json`, …). Optional Dart source files (`0.src.dart`) can be co-bundled for debugging. `AstBundle.fromFile` auto-detects format from magic bytes (ZIP `PK\x03\x04`, gzip `\x1F\x8B`, or plain JSON fallback).
+                A <code>.ast</code> file is a ZIP archive containing a plain-JSON <code>manifest.json</code> (format version, entry point URI, file-to-URI mapping) and one gzip-compressed JSON entry per module (<code>0.ast.json</code>, 
+                <code>1.ast.json</code>, …). Optional Dart source files (<code>0.src.dart</code>) can be co-bundled for debugging. 
+                <code>AstBundle.fromFile</code> auto-detects format from magic bytes (ZIP <code>PK\x03\x04</code>, gzip 
+                <code>\x1F\x8B</code>, or plain JSON fallback).
               </p>
               <h3>Permission sandbox</h3>
               <p>
-                Every operation in the stdlib that touches the filesystem, network, process execution, or isolate spawning calls `ModuleContext.checkPermission` before proceeding. Permissions are scoped: `FilesystemPermission.readPath('/data')` grants read access under that prefix; `NetworkPermission.connectTo('api.example.com')` grants outbound connections to that host only. `DangerousPermission.codeEvaluation` guards eval-like functionality. All permissions default to denied.
+                Every operation in the stdlib that touches the filesystem, network, process execution, or isolate spawning calls 
+                <code>ModuleContext.checkPermission</code> before proceeding. Permissions are scoped: <code>FilesystemPermission.readPath('/data')</code>
+                 grants read access under that prefix; <code>NetworkPermission.connectTo('api.example.com')</code> grants outbound connections to that host only. 
+                <code>DangerousPermission.codeEvaluation</code> guards eval-like functionality. All permissions default to denied.
               </p>
-              <h3>`D4.unwrapAs&lt;T&gt;` and the return boundary</h3>
+              <h3><code>D4.unwrapAs&lt;T&gt;</code> and the return boundary</h3>
               <p>
-                At the script-to-host boundary, `D4rtRunner._bridgeInterpreterValueToNative` recursively converts the raw interpreter result: `BridgedInstance` and `BridgedEnumValue` leaf nodes are unwrapped to their native objects; `List` and `Map` elements are recursed; `InterpretedRecord` with up to 16 positional fields is converted to a native Dart record. `executeBundleAs&lt;T&gt;` then applies `D4.unwrapAs&lt;T&gt;` for the final typed cast, throwing `D4UnwrapException` (with `expectedType` and `actualType` fields) on mismatch.
+                At the script-to-host boundary, <code>D4rtRunner._bridgeInterpreterValueToNative</code> recursively converts the raw interpreter result: 
+                <code>BridgedInstance</code> and <code>BridgedEnumValue</code> leaf nodes are unwrapped to their native objects; 
+                <code>List</code> and <code>Map</code> elements are recursed; <code>InterpretedRecord</code> with up to 16 positional fields is converted to a native Dart record. 
+                <code>executeBundleAs&lt;T&gt;</code> then applies <code>D4.unwrapAs&lt;T&gt;</code> for the final typed cast, throwing 
+                <code>D4UnwrapException</code> (with <code>expectedType</code> and <code>actualType</code> fields) on mismatch.
               </p>
               <h2>Ecosystem Position</h2>
               <pre><code>tom_ast_model          (zero-dependency, serializable SAstNode hierarchy)
@@ -1693,39 +1849,73 @@ tom_dcli_exec          (DCli CLI tool, uses tom_d4rt_exec for script execution)
 
 tom_d4rt               (original analyzer-based interpreter; kept in sync with tom_d4rt_ast)</code></pre>
               <p>
-                The `tom_d4rt_ast` package is the only component that a Flutter app needs to embed. Build tooling (`tom_ast_generator`, `tom_d4rt_exec`, `tom_d4rt`) runs on the developer machine or CI server and is never shipped to end users.
+                The <code>tom_d4rt_ast</code> package is the only component that a Flutter app needs to embed. Build tooling (<code>tom_ast_generator</code>, 
+                <code>tom_d4rt_exec</code>, <code>tom_d4rt</code>) runs on the developer machine or CI server and is never shipped to end users.
               </p>
-              <h2>Documentation</h2>
+              <h2>Further documentation</h2>
               <p>
-                `tom_d4rt_ast` runs the same interpreter as the analyzer-based base, so its docs are **differences-only** (policy P1) and link to `tom_d4rt` for shared semantics.
+                <code>tom_d4rt_ast</code> runs the same interpreter as the analyzer-based base, so its docs are <strong>differences-only</strong>
+                 (policy P1) and link to <code>tom_d4rt</code> for shared semantics.
               </p>
               <ul>
                 <li>
-                  [User Guide](doc/tom_d4rt_ast_user_guide.md) — what differs in the analyzer-free runtime: `AstBundle` loading, `D4rtRunner`, the typed-execute API, and the Flutter/web deployment model.
+                  <a href="/docs?module=tom_d4rt_ast&amp;path=doc%2Ftom_d4rt_ast_user_guide.md">User Guide</a> — what differs in the analyzer-free runtime: 
+                  <code>AstBundle</code> loading, <code>D4rtRunner</code>, the typed-execute API, and the Flutter/web deployment model.
                 </li>
                 <li>
-                  [Limitations (delta)](doc/tom_d4rt_ast_limitations.md) — runtime-specific limits (no on-device parser, web `dart:io` absence, bundle-scoped imports); links back to the canon.
+                  <a href="/docs?module=tom_d4rt_ast&amp;path=doc%2Ftom_d4rt_ast_limitations.md">Limitations (delta)</a>
+                   — runtime-specific limits (no on-device parser, web <code>dart:io</code> absence, bundle-scoped imports); links back to the canon.
                 </li>
                 <li>
-                  [Extension Registration](doc/extension_registration.md) — `registerExtensions` / `finalizeBridges` ordering contract.
-                </li>
-                <li>[Relaxer Usage Logging](doc/usage_logging.md) — opt-in `D4` usage instrumentation.</li>
-                <li>
-                  [Runtime Registration Surface](doc/runtime_registration_surface.md) — the canonical `D4.register*` reference (shared with the VM twin).
+                  <a href="/docs?module=tom_d4rt_ast&amp;path=doc%2Fextension_registration.md">Extension Registration</a>
+                   — <code>registerExtensions</code> / <code>finalizeBridges</code> ordering contract.
                 </li>
                 <li>
-                  Base (shared) docs: [tom_d4rt User Guide](../tom_d4rt/doc/d4rt_user_guide.md) · [Bridging Guide](../tom_d4rt/doc/BRIDGING_GUIDE.md) · [Limitations (canonical)](../tom_d4rt/doc/d4rt_limitations.md).
+                  <a href="/docs?module=tom_d4rt_ast&amp;path=doc%2Fusage_logging.md">Relaxer Usage Logging</a> — opt-in 
+                  <code>D4</code> usage instrumentation.
+                </li>
+                <li>
+                  <a href="/docs?module=tom_d4rt_ast&amp;path=doc%2Fruntime_registration_surface.md">Runtime Registration Surface</a>
+                   — the canonical <code>D4.register*</code> reference (shared with the VM twin).
+                </li>
+                <li>
+                  Base (shared) docs: <a href="/docs?module=tom_d4rt&amp;path=doc%2Fd4rt_user_guide.md">tom_d4rt User Guide</a>
+                   · <a href="/docs?module=tom_d4rt&amp;path=doc%2FBRIDGING_GUIDE.md">Bridging Guide</a> · <a href="/docs?module=tom_d4rt&amp;path=doc%2Fd4rt_limitations.md">Limitations (canonical)</a>.
+                </li>
+              </ul>
+              <h3>Related packages</h3>
+              <ul>
+                <li>
+                  <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_ast_model"><code>tom_ast_model</code></a>
+                   — the zero-dependency <code>SAstNode</code> data model this runtime executes. Defines every node kind, JSON round-tripping, and structural equality; this package adds the interpreter on top.
+                </li>
+                <li>
+                  <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_ast_generator"><code>tom_ast_generator</code></a>
+                   — the analyzer-based copier that turns Dart source into <code>SAstNode</code> bundles. Owns the build-time half of the pipeline.
+                </li>
+                <li>
+                  <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_exec"><code>tom_d4rt_exec</code></a>
+                   — the full execution entry point (analyzer at parse time, this runtime for interpretation); the drop-in counterpart of 
+                  <code>tom_d4rt</code>.
+                </li>
+                <li>
+                  <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_flutter_ast"><code>tom_d4rt_flutter_ast</code></a>
+                   — Flutter Material bridges built on this runtime; the canonical web/OTA consumer.
+                </li>
+                <li>
+                  <a href="https://github.com/al-the-bear/tom_d4rt/tree/main"><code>tom_d4rt</code></a> — the source-based reference interpreter kept in strict 1:1 sync with this package.
                 </li>
               </ul>
               <h2>Status</h2>
               <p>
-                **Version 0.1.5** — current release on pub.dev (first published at 0.1.4). The package is production-quality in the context of the Tom framework and is kept continuously in sync with the analyzer-based `tom_d4rt` interpreter.
+                <strong>Version 0.1.7</strong> — current release on pub.dev (first published at 0.1.4). The package is production-quality in the context of the Tom framework and is kept continuously in sync with the analyzer-based 
+                <code>tom_d4rt</code> interpreter.
               </p>
               <p>
-                Repository: [https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_ast](https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_ast)
+                Repository: <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_ast">https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_ast</a>
               </p>
               <p>
-                Issues and pull requests should be filed against the parent repository at [https://github.com/al-the-bear/tom_d4rt](https://github.com/al-the-bear/tom_d4rt).
+                Issues and pull requests should be filed against the parent repository at <a href="https://github.com/al-the-bear/tom_d4rt">https://github.com/al-the-bear/tom_d4rt</a>.
               </p>
             </div>
           </section>

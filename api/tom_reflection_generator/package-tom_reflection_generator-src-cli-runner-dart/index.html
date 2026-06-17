@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1306,20 +1326,13 @@
             <div class="treewrap">
               <div class="treepane">
                 <div class="treenodes">
-                  <a class="leaf" href="#_collectDartFilesFromDirectory">_collectDartFilesFromDirectory</a>
-                  <a class="leaf" href="#_extractBuilderOptions">_extractBuilderOptions</a>
-                  <a class="leaf" href="#_extractGenerateForPatterns">_extractGenerateForPatterns</a>
                   <a class="leaf" href="#_extractPositionalArgs">_extractPositionalArgs</a>
-                  <a class="leaf" href="#_findProjectRoot">_findProjectRoot</a>
-                  <a class="leaf" href="#_getPackageName">_getPackageName</a>
-                  <a class="leaf" href="#_getTransitiveLibraries">_getTransitiveLibraries</a>
-                  <a class="leaf" href="#_isGlobPattern">_isGlobPattern</a>
                   <a class="leaf" href="#_parseCacheOnlyPackages">_parseCacheOnlyPackages</a>
+                  <a class="leaf" href="#_parseOptions">_parseOptions</a>
                   <a class="leaf" href="#_printUsage">_printUsage</a>
-                  <a class="leaf" href="#_processFile">_processFile</a>
+                  <a class="leaf" href="#_reportResult">_reportResult</a>
                   <a class="leaf" href="#_runBuildMode">_runBuildMode</a>
                   <a class="leaf" href="#_runGenerateMode">_runGenerateMode</a>
-                  <a class="leaf" href="#_usesReflection">_usesReflection</a>
                   <a class="leaf" href="#runReflectionGeneratorCli">runReflectionGeneratorCli</a>
                 </div>
               </div>
@@ -1337,23 +1350,13 @@ dart run tom_reflection_generator --all lib/
 # Build mode - use build.yaml configuration
 dart run tom_reflection_generator build
 dart run tom_reflection_generator build --config custom.yaml</code></pre>
-                  <p>This generates `.reflection.dart` files for Dart files that use the @reflection annotation.</p>
+                  <p>
+                    This generates <code>.reflection.dart</code> files for Dart files that use the @reflection annotation.
+                  </p>
+                  <p>
+                    All actual generation work is delegated to the shared pipeline in <code>lib/src/generation/reflection_generation.dart</code>, so this file holds only CLI argument parsing, usage text, and mode dispatch.
+                  </p>
                 </div>
-                <section id="_collectDartFilesFromDirectory" class="api-declaration">
-                  <h3 class="api-decl-title">function _collectDartFilesFromDirectory</h3>
-                  <code class="api-signature">Future&lt;void&gt; _collectDartFilesFromDirectory(String dirPath, Set&lt;String&gt; files)</code>
-                  <div class="api-doc"><p>Collect all .dart files from a directory recursively</p></div>
-                </section>
-                <section id="_extractBuilderOptions" class="api-declaration">
-                  <h3 class="api-decl-title">function _extractBuilderOptions</h3>
-                  <code class="api-signature">Map&lt;String, dynamic&gt; _extractBuilderOptions(YamlMap yaml)</code>
-                  <div class="api-doc"><p>Extract builder options from build.yaml</p></div>
-                </section>
-                <section id="_extractGenerateForPatterns" class="api-declaration">
-                  <h3 class="api-decl-title">function _extractGenerateForPatterns</h3>
-                  <code class="api-signature">List&lt;String&gt; _extractGenerateForPatterns(YamlMap yaml, bool verbose)</code>
-                  <div class="api-doc"><p>Extract generate_for patterns from build.yaml</p></div>
-                </section>
                 <section id="_extractPositionalArgs" class="api-declaration">
                   <h3 class="api-decl-title">function _extractPositionalArgs</h3>
                   <code class="api-signature">List&lt;String&gt; _extractPositionalArgs(List&lt;String&gt; args)</code>
@@ -1363,45 +1366,24 @@ dart run tom_reflection_generator build --config custom.yaml</code></pre>
                     </p>
                   </div>
                 </section>
-                <section id="_findProjectRoot" class="api-declaration">
-                  <h3 class="api-decl-title">function _findProjectRoot</h3>
-                  <code class="api-signature">String? _findProjectRoot(String startPath)</code>
-                </section>
-                <section id="_getPackageName" class="api-declaration">
-                  <h3 class="api-decl-title">function _getPackageName</h3>
-                  <code class="api-signature">String _getPackageName(String projectRoot)</code>
-                </section>
-                <section id="_getTransitiveLibraries" class="api-declaration">
-                  <h3 class="api-decl-title">function _getTransitiveLibraries</h3>
-                  <code class="api-signature">Future&lt;List&lt;LibraryElement&gt;&gt; _getTransitiveLibraries(LibraryElement entryPoint)</code>
-                  <div class="api-doc">
-                    <p>
-                      Collects all libraries transitively imported or exported by [entryPoint]. This mimics build_runner's behavior of only seeing libraries that are reachable from the entry point, excluding test files that aren't imported.
-                    </p>
-                  </div>
-                </section>
-                <section id="_isGlobPattern" class="api-declaration">
-                  <h3 class="api-decl-title">function _isGlobPattern</h3>
-                  <code class="api-signature">bool _isGlobPattern(String s)</code>
-                  <div class="api-doc"><p>Check if a string looks like a glob pattern</p></div>
-                </section>
                 <section id="_parseCacheOnlyPackages" class="api-declaration">
                   <h3 class="api-decl-title">function _parseCacheOnlyPackages</h3>
                   <code class="api-signature">List&lt;String&gt; _parseCacheOnlyPackages(List&lt;String&gt; args)</code>
-                  <div class="api-doc">
-                    <p>Parses all `--cache-only PKG` values from [args].</p>
-                    <p>Returns an empty list if no `--cache-only` options are present.</p>
-                  </div>
+                  <div class="api-doc"><p>Parses all <code>--cache-only PKG</code> values from [args].</p></div>
+                </section>
+                <section id="_parseOptions" class="api-declaration">
+                  <h3 class="api-decl-title">function _parseOptions</h3>
+                  <code class="api-signature">ReflectionGenerationOptions _parseOptions(List&lt;String&gt; args, {required bool allMode})</code>
+                  <div class="api-doc"><p>Parses the shared option flags common to both modes from [args].</p></div>
                 </section>
                 <section id="_printUsage" class="api-declaration">
                   <h3 class="api-decl-title">function _printUsage</h3>
                   <code class="api-signature">void _printUsage()</code>
                 </section>
-                <section id="_processFile" class="api-declaration">
-                  <h3 class="api-decl-title">function _processFile</h3>
-                  <code class="api-signature">
-                    Future&lt;bool&gt; _processFile(String filePath, String projectRoot, StandaloneLibraryResolver resolver, bool verbose, String packageName, String outputExtension, {bool useAllCapabilities = false})
-                  </code>
+                <section id="_reportResult" class="api-declaration">
+                  <h3 class="api-decl-title">function _reportResult</h3>
+                  <code class="api-signature">void _reportResult(ReflectionGenerationResult result, {bool alwaysPrintSkipped = false})</code>
+                  <div class="api-doc"><p>Prints the summary for a completed run and exits when appropriate.</p></div>
                 </section>
                 <section id="_runBuildMode" class="api-declaration">
                   <h3 class="api-decl-title">function _runBuildMode</h3>
@@ -1412,12 +1394,6 @@ dart run tom_reflection_generator build --config custom.yaml</code></pre>
                   <h3 class="api-decl-title">function _runGenerateMode</h3>
                   <code class="api-signature">Future&lt;void&gt; _runGenerateMode(List&lt;String&gt; args)</code>
                   <div class="api-doc"><p>Run in generate mode - process specific files, directories, or glob patterns</p></div>
-                </section>
-                <section id="_usesReflection" class="api-declaration">
-                  <h3 class="api-decl-title">function _usesReflection</h3>
-                  <code class="api-signature">
-                    Future&lt;bool&gt; _usesReflection(LibraryElement library, StandaloneLibraryResolver resolver, String packageName)
-                  </code>
                 </section>
                 <section id="runReflectionGeneratorCli" class="api-declaration">
                   <h3 class="api-decl-title">function runReflectionGeneratorCli</h3>

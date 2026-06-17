@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1400,10 +1420,11 @@
                         <p>Creates a new [StandaloneLibraryResolver] for the given project.</p>
                         <p>The [projectRoot] should be the absolute path to the project directory containing pubspec.yaml.</p>
                         <p>
-                          If [librarySummaryPaths] is provided, the analyzer will load pre-built summary files (`.sum`) for the listed packages, skipping full analysis of those dependencies. This can dramatically reduce analysis time for projects with many stable dependencies.
+                          If [librarySummaryPaths] is provided, the analyzer will load pre-built summary files (<code>.sum</code>) for the listed packages, skipping full analysis of those dependencies. This can dramatically reduce analysis time for projects with many stable dependencies.
                         </p>
                         <p>
-                          If [sdkSummaryPath] is provided, it's used as the Dart SDK summary. If not provided but [librarySummaryPaths] is set, we look for an existing `sdk.sum` in `.dart_tool/build_resolvers/`.
+                          If [sdkSummaryPath] is provided, it's used as the Dart SDK summary. If not provided but [librarySummaryPaths] is set, we look for an existing 
+                          <code>sdk.sum</code> in <code>.dart_tool/build_resolvers/</code>.
                         </p>
                       </div>
                     </div>
@@ -1412,7 +1433,20 @@
                       <div class="api-doc">
                         <p>Looks for an existing SDK summary.</p>
                         <p>
-                          Checks our cache first (`&lt;workspace&gt;/.tom/analyzer-cache/sdk@&lt;version&gt;.sum`), then falls back to build_resolvers (`.dart_tool/build_resolvers/sdk.sum`). Returns the path if found, null otherwise.
+                          Checks our cache first (<code>&lt;workspace&gt;/.tom/analyzer-cache/sdk@&lt;version&gt;.sum</code>), then falls back to build_resolvers (<code>.dart_tool/build_resolvers/sdk.sum</code>). Returns the path if found, null otherwise.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="StandaloneLibraryResolver._resolveSdkPath" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String? _resolveSdkPath()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Locates the Dart SDK directory at runtime, or <code>null</code> to let the analyzer fall back to its default (executable-relative) detection.
+                        </p>
+                        <p>
+                          Delegates to [resolveDartSdkPath] from <code>tom_analyzer_shared</code>, the single source of truth for SDK location across the Tom analyzer tooling. Without an explicit SDK path the analyzer derives one from 
+                          <code>Platform.resolvedExecutable</code>, which is correct under <code>dart run</code> but wrong for an AOT-compiled executable (<code>dart compile exe</code>) — there it points at the tool itself and the SDK cannot be found. Resolving the real SDK makes the compiled 
+                          <code>reflectiongenerator</code> binary work when invoked as <code>buildkit :reflectiongenerator</code>.
                         </p>
                       </div>
                     </div>

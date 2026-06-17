@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1318,20 +1338,35 @@
                 <section id="TomDbMigrationAdaptor" class="api-declaration">
                   <h3 class="api-decl-title">class TomDbMigrationAdaptor</h3>
                   <code class="api-signature">class TomDbMigrationAdaptor</code>
+                  <div class="api-doc">
+                    <p>
+                      Annotation marking a [TomDbMigrator] implementation as the migrator for a named data-source [type] (e.g. 
+                      <code>"mariadb"</code>). Migrators are discovered by scanning [tomReflector] for this annotation.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomDbMigrationAdaptor.new" class="api-member">
                       <div class="api-member-head"><code class="api-signature">const TomDbMigrationAdaptor.new(String type)</code></div>
+                      <div class="api-doc"><p>Binds the annotated class to [type].</p></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="TomDbMigrationAdaptor.type" class="api-member"><div class="api-member-head"><code class="api-signature">final String type</code></div></div>
+                    <div id="TomDbMigrationAdaptor.type" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String type</code></div>
+                      <div class="api-doc"><p>The data-source type this migrator serves (matches <code>TomDataSourceInfo.type</code>).</p></div>
+                    </div>
                   </div>
                 </section>
                 <section id="TomDbMigrationException" class="api-declaration">
                   <h3 class="api-decl-title">class TomDbMigrationException</h3>
                   <code class="api-signature">class TomDbMigrationException extends TomServerException</code>
+                  <div class="api-doc">
+                    <p>
+                      Thrown when a database migration cannot be discovered, parsed, or applied (missing adaptor or data source, a malformed migration filename, a failed script, …).
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomDbMigrationException.new" class="api-member">
@@ -1340,12 +1375,32 @@
                           TomDbMigrationException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, Object? stack, Object? rootException, bool autoLog = false})
                         </code>
                       </div>
+                      <div class="api-doc">
+                        <p>
+                          Creates the exception with a message [key] and [defaultUserMessage]; the remaining parameters mirror [TomServerException].
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>
                 <section id="TomDbMigrations" class="api-declaration">
                   <h3 class="api-decl-title">class TomDbMigrations</h3>
                   <code class="api-signature">class TomDbMigrations</code>
+                  <div class="api-doc">
+                    <p>
+                      The migration orchestrator: discovers migrator adaptors by reflection and drives migrations from a directory tree.
+                    </p>
+                    <p>The directory layout mirrors the configured data sources and their schemas:</p>
+                    <pre><code>&lt;directory&gt;/
+  &lt;datasourceName&gt;/        # matches a registered TomDataSourceInfo name
+    &lt;schemaName&gt;/          # one schema within that data source
+      [1]-create_users.sql
+      [2]-add_index.sql</code></pre>
+                    <p>
+                      Each migration file name must match <code>[&lt;numeric version&gt;]-&lt;description&gt;</code> (the description being letters and underscores), followed by any extension. Files are applied in ascending name order through the data source's migrator, resolved from its 
+                      <code>type</code> via [TomDbMigrationAdaptor].
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomDbMigrations.new" class="api-member"><div class="api-member-head"><code class="api-signature">TomDbMigrations.new()</code></div></div>
@@ -1360,12 +1415,25 @@
                     </div>
                     <div id="TomDbMigrations.migrateDatabases" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static Future&lt;void&gt; migrateDatabases(String directory)</code></div>
+                      <div class="api-doc">
+                        <p>Runs all pending migrations under [directory].</p>
+                        <p>
+                          Walks <code>&lt;directory&gt;/&lt;datasourceName&gt;/&lt;schemaName&gt;/</code> and, for each schema, initialises the data source's migrator and applies every 
+                          <code>[&lt;version&gt;]-&lt;description&gt;.&lt;ext&gt;</code> file in ascending name order. Throws a [TomDbMigrationException] if a data source or migrator is missing, a file name is malformed, or a script fails.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>
                 <section id="TomDbMigrator" class="api-declaration">
                   <h3 class="api-decl-title">class TomDbMigrator</h3>
                   <code class="api-signature">abstract class TomDbMigrator</code>
+                  <div class="api-doc">
+                    <p>The contract a database-specific migrator implements.</p>
+                    <p>
+                      For one schema, [initializeMigration] prepares the version-tracking state (e.g. creating a versioning table and reading already-applied versions) and returns the earliest recorded version (or a sentinel when none). Each migration script is then handed to [applyMigration] in ascending version order; an already-applied version is verified (description/checksum) and skipped, a new one is executed and recorded. [reset] clears per-run state so one migrator instance can serve several data sources of the same type.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomDbMigrator.new" class="api-member"><div class="api-member-head"><code class="api-signature">TomDbMigrator.new()</code></div></div>
@@ -1376,6 +1444,11 @@
                       <div class="api-member-head">
                         <code class="api-signature">Future&lt;int&gt; initializeMigration(TomDataSourceInfo dsi, String schemaName)</code>
                       </div>
+                      <div class="api-doc">
+                        <p>
+                          Prepares version tracking for [schemaName] in data source [dsi] and returns the earliest recorded version (implementation-defined sentinel when nothing has been applied yet).
+                        </p>
+                      </div>
                     </div>
                     <div id="TomDbMigrator.applyMigration" class="api-member">
                       <div class="api-member-head">
@@ -1383,8 +1456,16 @@
                           Future&lt;void&gt; applyMigration(TomDataSourceInfo dsi, String schemaName, int version, String description, String sql)
                         </code>
                       </div>
+                      <div class="api-doc">
+                        <p>
+                          Applies — or verifies, if already applied — the migration identified by [version] / [description] with body [sql] to [schemaName] in [dsi].
+                        </p>
+                      </div>
                     </div>
-                    <div id="TomDbMigrator.reset" class="api-member"><div class="api-member-head"><code class="api-signature">void reset()</code></div></div>
+                    <div id="TomDbMigrator.reset" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void reset()</code></div>
+                      <div class="api-doc"><p>Clears per-run state so this migrator can be reused for another data source of the same type.</p></div>
+                    </div>
                   </div>
                 </section>
               </div>

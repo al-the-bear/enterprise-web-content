@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1306,7 +1326,9 @@
             </div>
             <h2>tom_d4rt_flutter_ast_test</h2>
             <div class="mono" style="color: #9FB6C9">tom_d4rt_flutter_ast_test · v1.0.0+1</div>
-            <p style="margin-top: 10px">Test suite for tom_d4rt_flutter_ast.</p>
+            <p style="margin-top: 10px">
+              A sample browser that loads pre-compiled `AstBundle` JSON from assets and renders each one through the analyzer-free, web-safe `tom_d4rt_flutter_ast` runtime — the AST-runtime counterpart to `tom_d4rt_flutter_test`.
+            </p>
           </div>
           <div class="statgrid">
             <div class="stat">
@@ -1321,7 +1343,7 @@
             <div>
               <div class="panel">
                 <h3>Overview</h3>
-                <p>Test suite for tom_d4rt_flutter_ast.</p>
+                <p>From the module readme.md file:</p>
                 <h4 style="font-size: 1rem; margin-top: 18px">What it enables</h4>
                 <p class="muted" style="margin: 0">No downstream modules declared yet.</p>
               </div>
@@ -1357,19 +1379,39 @@
             <div class="pageprose">
               <h1>tom_d4rt_flutter_ast_test</h1>
               <p>
-                Analyzer-free D4rt Flutter demo. A sample browser that loads **pre-compiled `AstBundle` JSON** from assets and renders each one through [`FlutterD4rt`](../tom_d4rt_flutter_ast) — the zero-analyzer, web-safe runtime.
+                &gt; <strong>Attribution.</strong> The <code>tom_d4rt</code> project is an extended clone of the original &gt; d4rt project by Moustapha Kodjo Amadou, initially published in 2025. The &gt; complete interpreter is based on his idea.
               </p>
               <p>
-                This is the AST-runtime counterpart to `tom_d4rt_flutter_test` (which compiles `.dart` source on the device via the analyzer). The whole point here is **independence from the analyzer and `dart:io`**: the shipped app depends only on `tom_d4rt_flutter_ast` + `tom_d4rt_ast`, so it builds and runs on the web.
+                Analyzer-free D4rt Flutter demo. A sample browser that loads <strong>pre-compiled <code>AstBundle</code> JSON</strong>
+                 from assets and renders each one through <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_flutter_ast"><code>FlutterD4rt</code></a>
+                 — the zero-analyzer, web-safe runtime.
+              </p>
+              <p>
+                This is the AST-runtime counterpart to <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_flutter_test"><code>tom_d4rt_flutter_test</code></a>
+                 (which compiles <code>.dart</code> source on the device via the analyzer). The whole point here is <strong>independence from the analyzer and <code>dart:io</code></strong>: the shipped app depends only on 
+                <code>tom_d4rt_flutter_ast</code> + <code>tom_d4rt_ast</code>, so it builds and runs on the web.
+              </p>
+              <p>
+                It lives in the <a href="https://github.com/al-the-bear/tom_d4rt"><code>tom_d4rt</code></a> monorepo (under 
+                <code>tom_ai/d4rt/</code>) and demonstrates the <strong>analyzer-free <code>AstBundle</code> path</strong>
+                 — the one that unlocks <strong>web</strong> delivery and <strong>over-the-air UI updates</strong> — as opposed to the source-based path exercised by 
+                <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_flutter_test"><code>tom_d4rt_flutter_test</code></a>. The two apps run the same sample set so the two execution families can be compared app-for-app.
               </p>
               <h2>How it works</h2>
               <pre><code>example/&lt;name&gt;/main.dart  ──(build time)──▶  assets/bundles/&lt;name&gt;.json
         (Dart source)         AstBundler            (AstBundle JSON)
 
 assets/bundles/&lt;name&gt;.json ──(on device)──▶  AstBundle.fromJson ──▶ FlutterD4rt.build ──▶ Widget</code></pre>
-              <ul><li>**Build time** — `tool/compile_samples_to_bundles.dart` parses each sample</li></ul>
+              <ul>
+                <li><strong>Build time</strong> — <code>tool/compile_samples_to_bundles.dart</code> parses each sample</li>
+              </ul>
               <p>
-                with the analyzer (`tom_ast_generator`'s `AstBundler`), skipping the Flutter libraries that are bridged at runtime, and writes a serialized `AstBundle` per sample. It runs under `flutter test` because it needs `dart:ui` (to read `FlutterD4rt.interpreter.bridgedLibraryUris`) and `dart:io` (to write files) — neither of which ships in the runtime app. - **Runtime** — `lib/` loads the bundle JSON via `rootBundle`, reconstructs it with `AstBundle.fromJson`, and renders it with `FlutterD4rt.build&lt;Widget&gt;` — analyzer-free, `dart:io`-free, web-safe.
+                with the analyzer (<code>tom_ast_generator</code>'s <code>AstBundler</code>), skipping the Flutter libraries that are bridged at runtime, and writes a serialized 
+                <code>AstBundle</code> per sample. It runs under <code>flutter test</code> because it needs <code>dart:ui</code>
+                 (to read <code>FlutterD4rt.interpreter.bridgedLibraryUris</code>) and <code>dart:io</code> (to write files) — neither of which ships in the runtime app. - 
+                <strong>Runtime</strong> — <code>lib/</code> loads the bundle JSON via <code>rootBundle</code>, reconstructs it with 
+                <code>AstBundle.fromJson</code>, and renders it with <code>FlutterD4rt.build&lt;Widget&gt;</code> — analyzer-free, 
+                <code>dart:io</code>-free, web-safe.
               </p>
               <h2>Usage</h2>
               <p>Recompile bundles after adding or editing any sample:</p>
@@ -1380,28 +1422,54 @@ assets/bundles/&lt;name&gt;.json ──(on device)──▶  AstBundle.fromJson 
 ./run_ipad.sh     # iPad simulator
 ./run_iphone.sh   # iPhone simulator
 ./run_simulator.sh &lt;udid&gt;   # a specific iOS simulator</code></pre>
-              <p>Each `run_*.sh` recompiles the bundles first, then launches the app.</p>
+              <p>Each <code>run_*.sh</code> recompiles the bundles first, then launches the app.</p>
               <h2>Samples</h2>
               <p>
-                Sample sources live in `example/&lt;name&gt;/`. Each is a normal multi-file D4rt program whose entry point `main.dart` exposes a top-level `Widget build(BuildContext context)`. Relative imports are followed and inlined into the bundle; bridged `package:flutter/*` imports are left for the runtime to resolve natively.
+                Sample sources live in <code>example/&lt;name&gt;/</code>. Each is a normal multi-file D4rt program whose entry point 
+                <code>main.dart</code> exposes a top-level <code>Widget build(BuildContext context)</code>. Relative imports are followed and inlined into the bundle; bridged 
+                <code>package:flutter/*</code> imports are left for the runtime to resolve natively.
               </p>
               <p>
-                This project ships **33** AST-bundle samples — the shared subset of the canonical raw-source corpus in [`tom_d4rt_flutter_test`](../tom_d4rt_flutter_test) (37 samples). The same 33 programs run app-for-app on both runtimes, so the source-based and bundle-based paths can be compared directly.
+                This project ships <strong>33</strong> AST-bundle samples — the shared subset of the canonical raw-source corpus in 
+                <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_flutter_test"><code>tom_d4rt_flutter_test</code></a>
+                 (37 samples). The same 33 programs run app-for-app on both runtimes, so the source-based and bundle-based paths can be compared directly.
               </p>
               <p>
-                The **4 samples that are source-only by design** — `profiler_field`, `profiler_life`, `particle_field_optimized`, `conway_life_optimized` — are **not** compiled to bundles here. The two `profiler_*` apps are self-running diagnostics for the source-interpreted render path, and the two `*_optimized` apps are GC-mitigation demos whose unoptimized twins (`particle_field`, `conway_life`) are already in this corpus. See the [`tom_d4rt_flutter_test` README "Sample corpus" section](../tom_d4rt_flutter_test/README.md#sample-corpus) for the per-sample rationale. The compiler (`tool/compile_samples_to_bundles.dart`) auto-discovers every `example/&lt;name&gt;/main.dart`, so this exclusion is enforced simply by **not** copying those four directories into this project's `example/`.
+                The <strong>4 samples that are source-only by design</strong> — <code>profiler_field</code>, <code>profiler_life</code>, 
+                <code>particle_field_optimized</code>, <code>conway_life_optimized</code> — are <strong>not</strong> compiled to bundles here. The two 
+                <code>profiler_*</code> apps are self-running diagnostics for the source-interpreted render path, and the two 
+                <code>*_optimized</code> apps are GC-mitigation demos whose unoptimized twins (<code>particle_field</code>, 
+                <code>conway_life</code>) are already in this corpus. See the <a href="/docs?module=tom_d4rt_flutter_test&amp;path=README.md#sample-corpus"><code>tom_d4rt_flutter_test</code> README "Sample corpus" section</a>
+                 for the per-sample rationale. The compiler (<code>tool/compile_samples_to_bundles.dart</code>) auto-discovers every 
+                <code>example/&lt;name&gt;/main.dart</code>, so this exclusion is enforced simply by <strong>not</strong>
+                 copying those four directories into this project's <code>example/</code>.
               </p>
               <h2>Layout</h2>
               <table class="mdtable">
                 <thead><tr><th>Path</th><th>Role</th></tr></thead>
                 <tbody>
-                  <tr><td>`lib/main.dart`</td><td>Sample-browser shell (grid → render page)</td></tr>
-                  <tr><td>`lib/src/bundle_source.dart`</td><td>Loads the manifest + bundle JSON from assets</td></tr>
-                  <tr><td>`lib/src/bundle_app_page.dart`</td><td>Renders one bundle via `FlutterD4rt`</td></tr>
-                  <tr><td>`tool/compile_samples_to_bundles.dart`</td><td>Build-time source→`AstBundle` compiler</td></tr>
-                  <tr><td>`example/&lt;name&gt;/`</td><td>Sample D4rt programs</td></tr>
-                  <tr><td>`assets/bundles/`</td><td>Generated bundle JSON + `index.json` manifest</td></tr>
-                  <tr><td>`test/render_bundle_test.dart`</td><td>Smoke test: a bundle deserializes and renders</td></tr>
+                  <tr><td><code>lib/main.dart</code></td><td>Sample-browser shell (grid → render page)</td></tr>
+                  <tr>
+                    <td><code>lib/src/bundle_source.dart</code></td>
+                    <td>Loads the manifest + bundle JSON from assets</td>
+                  </tr>
+                  <tr>
+                    <td><code>lib/src/bundle_app_page.dart</code></td>
+                    <td>Renders one bundle via <code>FlutterD4rt</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>tool/compile_samples_to_bundles.dart</code></td>
+                    <td>Build-time source→<code>AstBundle</code> compiler</td>
+                  </tr>
+                  <tr><td><code>example/&lt;name&gt;/</code></td><td>Sample D4rt programs</td></tr>
+                  <tr>
+                    <td><code>assets/bundles/</code></td>
+                    <td>Generated bundle JSON + <code>index.json</code> manifest</td>
+                  </tr>
+                  <tr>
+                    <td><code>test/render_bundle_test.dart</code></td>
+                    <td>Smoke test: a bundle deserializes and renders</td>
+                  </tr>
                 </tbody>
               </table>
             </div>

@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1323,10 +1343,12 @@
                 <div class="api-doc">
                   <p>Phase 4 — Search &amp; Lookup fields.</p>
                   <p>
-                    `TomFormSearchField&lt;T&gt;` is the type-ahead autocomplete pattern: large candidate set, filter as the user types, single-pick. `TomFormLookupField&lt;T&gt;` is the modal-picker pattern: candidate browsing happens in a dialog so the form row stays compact.
+                    <code>TomFormSearchField&lt;T&gt;</code> is the type-ahead autocomplete pattern: large candidate set, filter as the user types, single-pick. 
+                    <code>TomFormLookupField&lt;T&gt;</code> is the modal-picker pattern: candidate browsing happens in a dialog so the form row stays compact.
                   </p>
                   <p>
-                    Both consume a [TomSelectableSource] for items. Search relies on the source returning the full set up-front and filters in-process — for truly remote / paged sources, callers can provide a custom source whose `getItems()` returns the current chunk.
+                    Both consume a [TomSelectableSource] for items. Search relies on the source returning the full set up-front and filters in-process — for truly remote / paged sources, callers can provide a custom source whose 
+                    <code>getItems()</code> returns the current chunk.
                   </p>
                 </div>
                 <section id="TomFormLookupDialog" class="api-declaration">
@@ -1353,13 +1375,14 @@
                       <div class="api-member-head"><code class="api-signature">final String Function(T)?? labelOf</code></div>
                       <div class="api-doc">
                         <p>
-                          Display string for the selected value. Defaults to lookup against the source snapshot (or `value.toString()` if not present).
+                          Display string for the selected value. Defaults to lookup against the source snapshot (or <code>value.toString()</code>
+                           if not present).
                         </p>
                       </div>
                     </div>
                     <div id="TomFormLookupDialog.dialogTitle" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final String? dialogTitle</code></div>
-                      <div class="api-doc"><p>Title for the lookup dialog. Defaults to `labelText` or "Lookup".</p></div>
+                      <div class="api-doc"><p>Title for the lookup dialog. Defaults to <code>labelText</code> or "Lookup".</p></div>
                     </div>
                     <div id="TomFormLookupDialog.widget" class="api-member"><div class="api-member-head"><code class="api-signature">Widget widget</code></div></div>
                   </div>
@@ -1444,7 +1467,7 @@
                       </div>
                       <div class="api-doc">
                         <p>
-                          Custom search predicate. Defaults to substring (case-insensitive) match against `SelectableItem.label`.
+                          Custom search predicate. Defaults to substring (case-insensitive) match against <code>SelectableItem.label</code>.
                         </p>
                       </div>
                     </div>
@@ -1452,7 +1475,8 @@
                       <div class="api-member-head"><code class="api-signature">final String Function(T)?? labelOf</code></div>
                       <div class="api-doc">
                         <p>
-                          Map from selected value → display string. Required because the `TextEditingController` round-trips through string. Defaults to the matching item's label, or `value.toString()` if the value isn't in the source's snapshot.
+                          Map from selected value → display string. Required because the <code>TextEditingController</code> round-trips through string. Defaults to the matching item's label, or 
+                          <code>value.toString()</code> if the value isn't in the source's snapshot.
                         </p>
                       </div>
                     </div>
@@ -1510,7 +1534,8 @@
                       <div class="api-member-head"><code class="api-signature">final TextEditingController _displayController</code></div>
                       <div class="api-doc">
                         <p>
-                          Read-only controller mirrored from the bound field so the lookup row uses the same TextField anatomy (and therefore baseline, content-padding, and inputStyle) as every other text input. Was previously rendered through `InputDecorator` + `Text`, which left the display string visibly higher than other rows (round-4 item n).
+                          Read-only controller mirrored from the bound field so the lookup row uses the same TextField anatomy (and therefore baseline, content-padding, and inputStyle) as every other text input. Was previously rendered through 
+                          <code>InputDecorator</code> + <code>Text</code>, which left the display string visibly higher than other rows (round-4 item n).
                         </p>
                       </div>
                     </div>
@@ -1633,13 +1658,19 @@
                   <code class="api-signature">class _SearchOptionsPopup&lt;T&gt; extends StatelessWidget</code>
                   <div class="api-doc">
                     <p>
-                      Material-styled popup for [Autocomplete] that sizes to the widest option label rather than to the underlying text field. Capped to `maxWidth` so a single very long label can't push the overlay off-screen, and to `maxHeight` so a long candidate list scrolls instead of overflowing the viewport.
+                      Material-styled popup for [Autocomplete] that sizes to the widest option label rather than to the underlying text field. Capped to 
+                      <code>maxWidth</code> so a single very long label can't push the overlay off-screen, and to <code>maxHeight</code>
+                       so a long candidate list scrolls instead of overflowing the viewport.
                     </p>
                     <p>
-                      The popup is built as `IntrinsicWidth(Column(options))` rather than `IntrinsicWidth(ListView)`, because Flutter's `RenderShrinkWrappingViewport` (used by `ListView(shrinkWrap: true)`) throws on `computeMaxIntrinsicWidth` — the intrinsic width algorithm would have to instantiate every child, defeating the viewport's laziness. A `Column` happily reports its widest child's intrinsic width, which is what we want here. The whole thing is wrapped in a vertical `SingleChildScrollView` so long lists still scroll, capped to `take(50)` upstream so the column never gets pathologically tall.
+                      The popup is built as <code>IntrinsicWidth(Column(options))</code> rather than <code>IntrinsicWidth(ListView)</code>, because Flutter's 
+                      <code>RenderShrinkWrappingViewport</code> (used by <code>ListView(shrinkWrap: true)</code>) throws on 
+                      <code>computeMaxIntrinsicWidth</code> — the intrinsic width algorithm would have to instantiate every child, defeating the viewport's laziness. A 
+                      <code>Column</code> happily reports its widest child's intrinsic width, which is what we want here. The whole thing is wrapped in a vertical 
+                      <code>SingleChildScrollView</code> so long lists still scroll, capped to <code>take(50)</code> upstream so the column never gets pathologically tall.
                     </p>
                     <p>
-                      Wrapped in [Align(alignment: Alignment.topLeft)] because the `Autocomplete` overlay stretches the popup to the follow-target width by default; the alignment lets the inner [Material] shrink-wrap to the intrinsic width instead.
+                      Wrapped in [Align(alignment: Alignment.topLeft)] because the <code>Autocomplete</code> overlay stretches the popup to the follow-target width by default; the alignment lets the inner [Material] shrink-wrap to the intrinsic width instead.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>

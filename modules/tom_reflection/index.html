@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1325,21 +1345,7 @@
             <div>
               <div class="panel">
                 <h3>Overview</h3>
-                <p>
-                  `tom_reflection` provides runtime introspection and dynamic invocation for
-                  Dart. Code marked with a reflector annotation can be examined at runtime —
-                  its members, types, and metadata — and its methods, constructors, and
-                  properties can be called by name.
-                  
-                  Reflection support is opt-in through capabilities, so a program includes
-                  only the operations it needs and keeps generated code small. The mirror
-                  data itself is produced ahead of time rather than at runtime; in Tom that
-                  generation is handled by `tom_reflection_generator`.
-                  
-                  It is a fork of the `reflectable` package adapted to the Tom framework. As
-                  the base technology for runtime reflection, it underpins the auto-assembly
-                  of Tom applications.
-                </p>
+                <p>From the module readme.md file:</p>
                 <h4 style="font-size: 1rem; margin-top: 18px">What it enables</h4>
                 <p style="margin: 0">Enables Runtime introspection, Dynamic method invocation, Application auto-assembly.</p>
               </div>
@@ -1388,114 +1394,483 @@
           </div>
           <section class="section repodoc">
             <div class="pageprose">
-              <h1>Tom Reflection</h1>
+              <h1>tom_reflection</h1>
               <p>
-                Runtime reflection support for Dart based on code generation, using *capabilities* to specify which operations to support.
+                &gt; Part of the Tom Framework reflection toolkit. <strong>Derived from the &gt; <a href="https://pub.dev/packages/reflectable"><code>reflectable</code></a> package by the Dart team</strong>
+                 &gt; (<a href="https://github.com/google/reflectable.dart"><code>google/reflectable.dart</code></a>, &gt; "Copyright (c) 2015, Dart", BSD-3-Clause); Tom-specific refactoring, fixes and &gt; enhancements © 2024–2026 Peter Nicolai Alexis Kyaw, released under the same &gt; BSD-3-Clause terms. See 
+                <a href="https://github.com/al-the-bear/tom_reflection/blob/main/LICENSE"><code>LICENSE</code></a> and 
+                <a href="https://github.com/al-the-bear/tom_reflection/blob/main/NOTICE"><code>NOTICE</code></a>.
               </p>
               <p>
-                This package is a fork of the [reflectable](https://pub.dev/packages/reflectable) package with modifications to better suit the Tom framework's needs and bug fixes.
+                Runtime reflection for Dart based on code generation, using <em>capabilities</em> to declare exactly which reflective operations to support — so the generated code stays small.
               </p>
-              <h2>Features</h2>
-              <ul>
-                <li>**Introspection**: Examine object structure at runtime (class members, types, metadata)</li>
-                <li>**Dynamic invocation**: Call methods and access properties by name</li>
-                <li>**Capability-based**: Only include the reflection support you need, minimizing code size</li>
-                <li>**Code generation**: Generates efficient reflection data at build time</li>
-              </ul>
-              <h2>Getting Started</h2>
-              <h3>Prerequisites</h3>
-              <ul><li>Dart SDK ^3.9.0</li><li>`tom_build_tools` package for code generation</li></ul>
-              <h3>Installation</h3>
-              <p>Add to your `pubspec.yaml`:</p>
+              <p>
+                <code>tom_reflection</code> is <strong>engine 1</strong> of the Tom reflection toolkit: it gives you 
+                <strong>mirrors on live objects</strong> at runtime. You can invoke a method by name, read or write a field by name, construct an instance, walk a class hierarchy, and read metadata — all without knowing the type at compile time. For the build-time 
+                <em>structural</em> model (a serializable graph of code shape for tooling), see the sibling engine <a href="/docs?module=tom_reflector&amp;path=README.md"><code>tom_reflector</code></a>.
+              </p>
+              <h2>Overview</h2>
+              <p>
+                Dart's built-in <code>dart:mirrors</code> is unavailable in AOT/Flutter and bloats output because the compiler cannot know which members you will reflect on. This package solves that with 
+                <strong>generated, capability-gated reflection</strong>:
+              </p>
+              <p>
+                1. You declare a <strong>reflector</strong> — a <code>const</code> subclass of <code>Reflection</code>
+                 whose constructor lists the <em>capabilities</em> you need (invoke methods? read declarations? walk type relations?). 2. You 
+                <strong>annotate</strong> target classes with that reflector (<code>@myReflector</code>). 3. A <strong>generator</strong>
+                 (<a href="/docs?module=tom_reflection_generator&amp;path=README.md"><code>tom_reflection_generator</code></a>) reads those annotations and emits a 
+                <code>*.reflection.dart</code> file holding the precomputed mirror data — only for the capabilities you asked for. 4. At startup you call the generated 
+                <code>initializeReflection()</code>, then use <code>myReflector.reflect(obj)</code> to get an <code>InstanceMirror</code>
+                 and drive it.
+              </p>
+              <p>
+                Because capabilities gate what the generator emits, a reflector that only needs <code>invokingCapability</code>
+                 produces far less code than one asking for everything. This is the core idea inherited from <code>reflectable</code>: pay only for the reflection you use.
+              </p>
+              <pre><code>   annotate            generate                 run
+@myReflector  ─────►  *.reflection.dart  ─────►  myReflector.reflect(obj)
+   class Foo          (capability-gated)          .invoke('bar', [...])</code></pre>
+              <h2>Installation</h2>
               <pre><code>dependencies:
-  tom_reflection: ^1.0.0
+  tom_reflection: ^1.0.2
 
 dev_dependencies:
   build_runner: ^2.4.0
-  tom_build:
-    path: ../tom_build  # or git/pub reference
-  tom_build_tools:
-    path: ../tom_build_tools  # or git/pub reference</code></pre>
-              <p>Add a `build.yaml` to configure which files to generate reflection for:</p>
+  tom_reflection_generator: ^1.1.1</code></pre>
+              <p>Or:</p>
+              <pre><code>dart pub add tom_reflection
+dart pub add --dev build_runner tom_reflection_generator</code></pre>
+              <p>
+                <strong>SDK:</strong> Dart <code>^3.9.0</code>. The generator is a dev-only dependency — your shipped package depends on 
+                <code>tom_reflection</code> alone.
+              </p>
+              <p>Configure which files to generate reflection for via <code>build.yaml</code>:</p>
               <pre><code>targets:
   $default:
     builders:
-      tom_build:reflection_generator:
+      tom_reflection_generator:
         generate_for:
-          - lib/main.dart
-          - example/*.dart
-        options:
-          formatted: true</code></pre>
-              <h2>Usage</h2>
-              <h3>1. Define a Reflector</h3>
-              <p>Create a class extending `Reflection` with the capabilities you need:</p>
+          - lib/**.dart
+          - example/**.dart</code></pre>
+              <h2>Features</h2>
+              <h3>Reflective operations</h3>
+              <table class="mdtable">
+                <thead><tr><th>Operation</th><th>Mirror API</th><th>Capability required</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>Invoke a method by name</td>
+                    <td><code>InstanceMirror.invoke('m', [...])</code></td>
+                    <td><code>invokingCapability</code> / <code>instanceInvokeCapability</code></td>
+                  </tr>
+                  <tr>
+                    <td>Read a field/getter</td>
+                    <td><code>InstanceMirror.invokeGetter('f')</code></td>
+                    <td><code>invokingCapability</code></td>
+                  </tr>
+                  <tr>
+                    <td>Write a field/setter</td>
+                    <td><code>InstanceMirror.invokeSetter('f', v)</code></td>
+                    <td><code>invokingCapability</code></td>
+                  </tr>
+                  <tr>
+                    <td>Construct an instance</td>
+                    <td><code>ClassMirror.newInstance('', [...])</code></td>
+                    <td><code>newInstanceCapability</code></td>
+                  </tr>
+                  <tr>
+                    <td>Call a static method</td>
+                    <td><code>ClassMirror.invoke('m', [...])</code></td>
+                    <td><code>staticInvokeCapability</code></td>
+                  </tr>
+                  <tr>
+                    <td>Enumerate declarations</td>
+                    <td><code>ClassMirror.declarations</code></td>
+                    <td><code>declarationsCapability</code></td>
+                  </tr>
+                  <tr>
+                    <td>Class of an instance</td>
+                    <td><code>InstanceMirror.type</code></td>
+                    <td><code>typeCapability</code></td>
+                  </tr>
+                  <tr>
+                    <td>Superclass / interfaces</td>
+                    <td><code>ClassMirror.superclass</code>, <code>.superinterfaces</code></td>
+                    <td><code>typeRelationsCapability</code></td>
+                  </tr>
+                  <tr>
+                    <td>Read metadata</td>
+                    <td><code>DeclarationMirror.metadata</code></td>
+                    <td><code>metadataCapability</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>reflectedType</code> on mirrors</td>
+                    <td><code>TypeMirror.reflectedType</code></td>
+                    <td><code>reflectedTypeCapability</code></td>
+                  </tr>
+                  <tr>
+                    <td>Library mirrors</td>
+                    <td><code>reflector.findLibrary(...)</code></td>
+                    <td><code>libraryCapability</code></td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3>Capabilities</h3>
+              <p>
+                Capabilities are passed to your reflector's <code>super(...)</code> constructor (up to ten positional, or 
+                <code>Reflection.fromList([...])</code> for more).
+              </p>
+              <table class="mdtable">
+                <thead><tr><th>Capability</th><th>What it enables</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><code>invokingCapability</code></td>
+                    <td>Instance + static method/constructor invocation (the common all-rounder)</td>
+                  </tr>
+                  <tr>
+                    <td><code>instanceInvokeCapability</code></td>
+                    <td>Instance method / getter / setter invocation only</td>
+                  </tr>
+                  <tr><td><code>staticInvokeCapability</code></td><td>Static method invocation</td></tr>
+                  <tr><td><code>topLevelInvokeCapability</code></td><td>Top-level function invocation</td></tr>
+                  <tr><td><code>newInstanceCapability</code></td><td>Construct instances via <code>newInstance</code></td></tr>
+                  <tr><td><code>declarationsCapability</code></td><td>Enumerate fields, methods, constructors</td></tr>
+                  <tr><td><code>typeCapability</code></td><td>Obtain class/type mirrors (<code>instance.type</code>)</td></tr>
+                  <tr><td><code>typeRelationsCapability</code></td><td>Superclass, interfaces, type arguments</td></tr>
+                  <tr><td><code>metadataCapability</code></td><td>Read annotation metadata</td></tr>
+                  <tr><td><code>reflectedTypeCapability</code></td><td><code>reflectedType</code> on type mirrors</td></tr>
+                  <tr><td><code>libraryCapability</code></td><td>Library mirrors</td></tr>
+                  <tr><td><code>uriCapability</code></td><td>Library URIs</td></tr>
+                  <tr><td><code>libraryDependenciesCapability</code></td><td>Import/export dependency mirrors</td></tr>
+                  <tr><td><code>typingCapability</code></td><td>Full type-information support</td></tr>
+                </tbody>
+              </table>
+              <p>
+                <strong>Pattern capabilities</strong> restrict to members matching a regular expression, so the generator emits even less:
+              </p>
+              <pre><code>class GettersOnly extends Reflection {
+  const GettersOnly() : super(const InstanceInvokeCapability('^get'));
+}</code></pre>
+              <p>
+                <strong>Metadata-quantified capabilities</strong> (<code>InstanceInvokeMetaCapability(Annotation)</code>) restrict to members carrying a given annotation. 
+                <strong>Quantifier capabilities</strong> (<code>superclassQuantifyCapability</code>, <code>subtypeQuantifyCapability</code>, 
+                <code>typeAnnotationQuantifyCapability</code>, <code>admitSubtypeCapability</code>) widen the reflected 
+                <em>set of classes</em> beyond the directly-annotated ones.
+              </p>
+              <h2>Quick start</h2>
               <pre><code>import 'package:tom_reflection/tom_reflection.dart';
+import 'quick_start.reflection.dart'; // generated
 
 class MyReflector extends Reflection {
+  const MyReflector() : super(invokingCapability, declarationsCapability);
+}
+const myReflector = MyReflector();
+
+@myReflector
+class Person {
+  String name;
+  Person(this.name);
+  String greet() =&gt; 'Hello, I am $name!';
+}
+
+void main() {
+  initializeReflection(); // generated; call once before reflecting
+
+  final mirror = myReflector.reflect(Person('Alice'));
+  print(mirror.invoke('greet', []));   // Hello, I am Alice!
+  print(mirror.invokeGetter('name'));  // Alice
+  mirror.invokeSetter('name', 'Bob');
+  print(mirror.invoke('greet', []));   // Hello, I am Bob!
+}</code></pre>
+              <p>Generate the <code>quick_start.reflection.dart</code> first:</p>
+              <pre><code>dart run build_runner build           # build_runner
+# or:
+reflectiongenerator lib/quick_start.dart   # standalone CLI
+# or:
+buildkit :reflectiongenerator         # nested under buildkit</code></pre>
+              <h2>Example projects</h2>
+              <table class="mdtable">
+                <thead><tr><th>Sample</th><th>Demonstrates</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_reflection/blob/main/example/tom_reflection_example.dart"><code>example/tom_reflection_example.dart</code></a>
+                    </td>
+                    <td>
+                      Thirteen scenarios: invoke, getters/setters, declarations, subclass reflection, type reflection, 
+                      <code>isSubtype&lt;S&gt;()</code>
+                      , 
+                      <code>isInstanceOf</code>
+                      , typed-collection creation, superclass-chain walking.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="/doc/tom_agent_container/tom_ai/reflection/tom_reflection_samples/reflection_introduction_sample/README"><code>reflection_introduction_sample</code></a>
+                    </td>
+                    <td>Guided beginner tutorial — annotate → generate → reflect → invoke.</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="/doc/tom_agent_container/tom_ai/reflection/tom_reflection_samples/reflection_advanced_sample/README"><code>reflection_advanced_sample</code></a>
+                    </td>
+                    <td>Declarations, <code>newInstance</code>, static members, type relations, generics &amp; mixins.</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="/doc/tom_agent_container/tom_ai/reflection/tom_reflection_samples/reflection_capability_sample/README"><code>reflection_capability_sample</code></a>
+                    </td>
+                    <td>How each capability gates generated code; minimal vs all capabilities.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h2>Usage</h2>
+              <h3>Define a reflector and annotate</h3>
+              <pre><code>class MyReflector extends Reflection {
   const MyReflector()
       : super(
           invokingCapability,
           declarationsCapability,
+          typeRelationsCapability,
+          metadataCapability,
         );
 }
+const myReflector = MyReflector();
 
-const myReflector = MyReflector();</code></pre>
-              <h3>2. Annotate Classes</h3>
-              <p>Mark classes for reflection with your reflector:</p>
-              <pre><code>@myReflector
-class Person {
-  final String name;
-  final int age;
-
-  Person(this.name, this.age);
-
-  String greet() =&gt; 'Hello, I am $name!';
+@myReflector
+class Employee {
+  String name;
+  String department;
+  Employee(this.name, this.department);
+  String jobInfo() =&gt; '$name works in $department';
 }</code></pre>
-              <h3>3. Generate Reflection Data</h3>
-              <p>Run build_runner to generate the reflection code:</p>
-              <pre><code>dart run build_runner build</code></pre>
-              <p>Or use the standalone generator directly:</p>
-              <pre><code>dart run tom_build_tools:reflection_generator lib/main.dart</code></pre>
-              <h3>4. Use Reflection</h3>
-              <pre><code>import 'main.reflection.dart';
+              <p>
+                The reflector class must have a <strong>zero-argument <code>const</code> constructor</strong> (so it is a singleton the generator can encode). Use it as 
+                <code>@MyReflector()</code> or as a top-level <code>const myReflector</code> identifier (<code>@myReflector</code>).
+              </p>
+              <h3>Invoke methods, getters and setters</h3>
+              <pre><code>final m = myReflector.reflect(Employee('Bob', 'Engineering'));
 
-void main() {
-  initializeReflection();
+m.invoke('jobInfo', []);          // 'Bob works in Engineering'
+m.invokeGetter('department');     // 'Engineering'
+m.invokeSetter('department', 'Sales');
+m.invokeGetter('department');     // 'Sales'</code></pre>
+              <p><code>invoke</code> also takes named arguments: <code>m.invoke('f', [pos], {#named: v})</code>.</p>
+              <h3>Enumerate declarations</h3>
+              <p>With <code>declarationsCapability</code>, walk the members of a class:</p>
+              <pre><code>final cls = m.type; // ClassMirror, requires typeCapability
+for (final entry in cls.declarations.entries) {
+  final kind = switch (entry.value) {
+    MethodMirror mm when mm.isGetter =&gt; 'getter',
+    MethodMirror mm when mm.isConstructor =&gt; 'constructor',
+    MethodMirror() =&gt; 'method',
+    VariableMirror() =&gt; 'field',
+    _ =&gt; 'other',
+  };
+  print('${entry.key} ($kind)');
+}
+// name (field)
+// department (field)
+// jobInfo (method)
+// ...</code></pre>
+              <h3>Construct instances</h3>
+              <p>With <code>newInstanceCapability</code>, build objects reflectively:</p>
+              <pre><code>final cls = myReflector.reflectType(Employee) as ClassMirror;
+final e = cls.newInstance('', ['Carol', 'Product']); // unnamed constructor
+print((e as Employee).jobInfo()); // Carol works in Product</code></pre>
+              <h3>Type relations</h3>
+              <p>With <code>typeRelationsCapability</code>, walk the hierarchy:</p>
+              <pre><code>final cls = m.type;
+print(cls.simpleName);                       // Employee
+print(cls.superclass?.simpleName ?? 'none'); // Person (or 'none' at an unmarked base)</code></pre>
+              <p><code>ClassMirror</code> also offers convenience checks that need no extra capability:</p>
+              <pre><code>final personType   = myReflector.reflectType(Person)   as ClassMirror;
+final employeeType = myReflector.reflectType(Employee) as ClassMirror;
 
-  final person = Person('Alice', 30);
-  final mirror = myReflector.reflect(person);
-
-  // Get member names
-  final classMirror = mirror.type;
-  print('Class: ${classMirror.simpleName}');
-
-  // Invoke method dynamically
-  final greeting = mirror.invoke('greet', []);
-  print(greeting); // Hello, I am Alice!
+personType.isSubtype&lt;Employee&gt;();      // true  — Employee is-a Person
+employeeType.isSubtype&lt;Person&gt;();      // false
+personType.isInstanceOf(Employee(...)); // true</code></pre>
+              <h3>Metadata</h3>
+              <p>With <code>metadataCapability</code>, read annotations off declarations:</p>
+              <pre><code>for (final entry in cls.declarations.entries) {
+  final meta = entry.value.metadata; // List&lt;Object&gt;
+  if (meta.isNotEmpty) print('${entry.key}: $meta');
 }</code></pre>
-              <h2>Capabilities</h2>
-              <p>Capabilities control what reflection operations are available:</p>
+              <h3>Typed collections</h3>
+              <p><code>ClassMirror</code> can build correctly-typed collections of its reflectee type:</p>
+              <pre><code>final list = personType.createList();              // List&lt;Person&gt;
+final set  = personType.createSet();               // Set&lt;Person&gt;
+final map  = personType.createValuedMap&lt;String&gt;(); // Map&lt;String, Person&gt;</code></pre>
+              <h3>Reflect a type, and list covered classes</h3>
+              <pre><code>final tm = myReflector.reflectType(Person);
+print(tm.simpleName);              // Person
+print(tm.isOriginalDeclaration);   // true
+
+for (final c in myReflector.annotatedClasses) {
+  print(c.simpleName);             // every class covered by this reflector
+}</code></pre>
+              <h2>Architecture</h2>
+              <pre><code>package:tom_reflection/tom_reflection.dart   (public API)
+├── Reflection / ReflectionInterface         the reflector base + contract
+├── capability.dart  ─────────────────────►  ReflectCapability hierarchy
+└── mirrors.dart     ─────────────────────►  Mirror hierarchy (interfaces)
+
+generated *.reflection.dart  (per target file, by tom_reflection_generator)
+├── ReflectorData          precomputed member/type tables
+└── initializeReflection()  installs the data into the runtime</code></pre>
+              <p>
+                The public library re-exports <code>capability.dart</code> and <code>mirrors.dart</code>. Generated files import the internal 
+                <code>generated.dart</code> barrel (mirror implementation classes, <code>ReflectorData</code>) — never import that directly from app code.
+              </p>
+              <h3>Key types</h3>
               <table class="mdtable">
-                <thead><tr><th>Capability</th><th>Description</th></tr></thead>
+                <thead><tr><th>Type</th><th>Responsibility</th></tr></thead>
                 <tbody>
-                  <tr><td>`invokingCapability`</td><td>Invoke methods and constructors</td></tr>
-                  <tr><td>`declarationsCapability`</td><td>Access class declarations</td></tr>
-                  <tr><td>`typeRelationsCapability`</td><td>Access superclass/interface info</td></tr>
-                  <tr><td>`metadataCapability`</td><td>Access metadata annotations</td></tr>
-                  <tr><td>`reflectedTypeCapability`</td><td>Access `reflectedType` on mirrors</td></tr>
+                  <tr>
+                    <td><code>Reflection</code></td>
+                    <td>
+                      Abstract base for your reflector; its 
+                      <code>const</code>
+                       constructor takes the capabilities. Used as the annotation.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>ReflectionInterface</code></td>
+                    <td>
+                      The reflector contract: 
+                      <code>reflect</code>
+                      , 
+                      <code>reflectType</code>
+                      , 
+                      <code>findLibrary</code>
+                      , 
+                      <code>annotatedClasses</code>
+                      , 
+                      <code>canReflect</code>
+                      .
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>InstanceMirror</code></td>
+                    <td>
+                      Mirror on a live object: 
+                      <code>invoke</code>
+                      , 
+                      <code>invokeGetter</code>
+                      , 
+                      <code>invokeSetter</code>
+                      , 
+                      <code>type</code>
+                      .
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>ClassMirror&lt;T&gt;</code></td>
+                    <td>
+                      Mirror on a class: 
+                      <code>newInstance</code>
+                      , 
+                      <code>declarations</code>
+                      , 
+                      <code>superclass</code>
+                      , 
+                      <code>superinterfaces</code>
+                      , 
+                      <code>isSubtype&lt;S&gt;</code>
+                      , 
+                      <code>isInstanceOf</code>
+                      , collection factories.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>TypeMirror&lt;T&gt;</code></td>
+                    <td>
+                      Mirror on a type: 
+                      <code>simpleName</code>
+                      , 
+                      <code>qualifiedName</code>
+                      , 
+                      <code>isOriginalDeclaration</code>
+                      , 
+                      <code>reflectedType</code>
+                      .
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>MethodMirror</code></td>
+                    <td>
+                      A method/getter/setter/constructor declaration (
+                      <code>isGetter</code>
+                      , 
+                      <code>isSetter</code>
+                      , 
+                      <code>isConstructor</code>
+                      , 
+                      <code>parameters</code>
+                      ).
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>VariableMirror</code></td>
+                    <td>A field declaration (<code>type</code>, <code>isFinal</code>, <code>isStatic</code>).</td>
+                  </tr>
+                  <tr>
+                    <td><code>ParameterMirror</code></td>
+                    <td>A parameter (<code>isNamed</code>, <code>isOptional</code>, <code>hasDefaultValue</code>).</td>
+                  </tr>
+                  <tr><td><code>LibraryMirror</code></td><td>A library declaration and its members.</td></tr>
+                  <tr>
+                    <td><code>ReflectCapability</code></td>
+                    <td>Base of the capability hierarchy gating what the generator emits.</td>
+                  </tr>
                 </tbody>
               </table>
-              <h2>License</h2>
-              <p>BSD 3-Clause License. See [LICENSE](LICENSE) for details.</p>
+              <h2>Ecosystem</h2>
+              <pre><code>tom_reflection            (this package — runtime mirror library)
+      ▲
+      │ dev-dependency (generation only)
+tom_reflection_generator  (emits *.reflection.dart: builder + `reflectiongenerator` CLI)
+      ▲
+      │ exercised end-to-end by
+tom_reflection_test       (fixture suite)</code></pre>
               <p>
-                This package is a fork of [reflectable](https://pub.dev/packages/reflectable) and maintains the same open-source license.
+                <code>tom_reflection</code> is the only runtime dependency your code needs. The generator and test suite are development-time companions. The build-time 
+                <em>structural</em> engine (<a href="/docs?module=tom_reflector&amp;path=README.md"><code>tom_reflector</code></a>) is a separate technology — see the repo 
+                <a href="/doc/tom_agent_container/tom_ai/reflection/README"><code>README</code></a> for when to use which.
               </p>
-              <h2>Additional Information</h2>
+              <h2>Further documentation</h2>
               <ul>
-                <li>Part of the [Tom Framework](https://github.com/al-the-bear/tom)</li>
-                <li>Based on [reflectable](https://pub.dev/packages/reflectable)</li>
-                <li>See [example/](example/) for complete examples</li>
+                <li>
+                  Generator usage (builder + CLI): <a href="/docs?module=tom_reflection_generator&amp;path=doc%2Freflection_generator.md"><code>tom_reflection_generator/doc/reflection_generator.md</code></a>
+                </li>
+                <li>
+                  Generator CLI reference: <a href="/docs?module=tom_reflection_generator&amp;path=doc%2Freflectiongenerator_user_reference.md"><code>tom_reflection_generator/doc/reflectiongenerator_user_reference.md</code></a>
+                </li>
+                <li>
+                  Repo map and engine selection: <a href="/doc/tom_agent_container/tom_ai/reflection/README"><code>../README.md</code></a>
+                </li>
+                <li>Upstream design rationale (capabilities): the</li>
               </ul>
+              <p>
+                <a href="https://pub.dev/packages/reflectable"><code>reflectable</code></a> documentation, which this package's capability model follows.
+              </p>
+              <h2>Status</h2>
+              <ul>
+                <li><strong>Version:</strong> 1.0.2 (published to pub.dev).</li>
+                <li><strong>SDK:</strong> Dart <code>^3.9.0</code>.</li>
+                <li><strong>Tests:</strong> exercised end-to-end by <strong>72 fixture suites</strong> in</li>
+              </ul>
+              <p>
+                <a href="/docs?module=tom_reflection_test&amp;path=README.md"><code>tom_reflection_test</code></a> (basic invocation, capabilities, declarations, 
+                <code>newInstance</code>, static members, metadata, type relations, <code>reflectType</code>, enums, generic mixins, and more).
+              </p>
+              <h2>License</h2>
+              <p>
+                BSD-3-Clause. This package is derived from the <a href="https://pub.dev/packages/reflectable"><code>reflectable</code></a>
+                 package by the Dart team (<a href="https://github.com/google/reflectable.dart"><code>google/reflectable.dart</code></a>, "Copyright (c) 2015, Dart") and 
+                <strong>retains the upstream copyright</strong> alongside Tom's modifications (© 2024–2026 Peter Nicolai Alexis Kyaw), released under the same BSD-3-Clause terms. See 
+                <a href="https://github.com/al-the-bear/tom_reflection/blob/main/LICENSE"><code>LICENSE</code></a> and 
+                <a href="https://github.com/al-the-bear/tom_reflection/blob/main/NOTICE"><code>NOTICE</code></a>.
+              </p>
             </div>
           </section>
           <details class="licbox">

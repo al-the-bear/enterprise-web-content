@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1306,6 +1326,9 @@
             </div>
             <h2>tom_vscode_extension</h2>
             <div class="mono" style="color: #9FB6C9">tom_vscode_extension · v0.1.0</div>
+            <p style="margin-top: 10px">
+              The `@Tom` extension turns a VS Code window into a unified AI workspace: multi-model chat (Anthropic, Copilot, local LLM), a multi-transport prompt queue, timed requests, a shared tool registry with a standalone MCP server, and the CLI Integration Server that lets Dart clients drive the live window.
+            </p>
             <div style="margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap"><a class="btn btn-ghost" href="/modules/tom_vscode_extension#license">See License</a></div>
           </div>
           <div class="statgrid">
@@ -1313,15 +1336,15 @@
               <div class="k">Status</div>
               <div class="v" style="font-size: 1.05rem; color: #D85F23">In the works</div>
             </div>
-            <div class="stat"><div class="k">LOC</div><div class="v">77.1k</div></div>
+            <div class="stat"><div class="k">LOC</div><div class="v">77.3k</div></div>
             <div class="stat"><div class="k">Tests</div><div class="v">1.4k</div></div>
-            <div class="stat"><div class="k">Test LOC</div><div class="v">17.7k</div></div>
+            <div class="stat"><div class="k">Test LOC</div><div class="v">17.9k</div></div>
           </div>
           <div class="dcols">
             <div>
               <div class="panel">
                 <h3>Overview</h3>
-                <p>No overview yet.</p>
+                <p>From the module readme.md file:</p>
                 <h4 style="font-size: 1rem; margin-top: 18px">What it enables</h4>
                 <p class="muted" style="margin: 0">No downstream modules declared yet.</p>
               </div>
@@ -1499,140 +1522,496 @@
             <div class="pageprose">
               <h1>@Tom VS Code Extension</h1>
               <p>
-                A VS Code extension for Copilot-driven workflows, prompt queue automation, timed requests, workspace tools, and bridge-based scripting.
+                &gt; <strong>Tom VS Code</strong> — part of the Tom Framework by Peter Nicolai Alexis Kyaw. &gt; Licensed BSD-3-Clause. See 
+                <a href="https://github.com/al-the-bear/tom_vscode/blob/main/tom_vscode_extension/LICENSE">LICENSE</a>.
               </p>
+              <p>
+                The <strong><code>@Tom</code></strong> VS Code extension — an AI-assisted development cockpit. It adds multi-model chat panels (Anthropic, Local LLM, Copilot), a multi-transport prompt queue, timed requests, a shared tool registry, a standalone MCP server, the status page, and the 
+                <strong>CLI Integration Server</strong> that lets out-of-process Dart clients drive the live window. This is the product of the Tom VS Code repo.
+              </p>
+              <p>---</p>
               <h2>Overview</h2>
-              <p>@Tom provides a unified AI workspace in VS Code with:</p>
+              <p><code>@Tom</code> turns a normal VS Code window into a unified AI workspace:</p>
               <ul>
-                <li>Copilot and local LLM prompt workflows</li>
-                <li>prompt queue orchestration with follow-ups, reminders, and repeat support</li>
-                <li>timed request scheduling that enqueues prompts automatically</li>
-                <li>markdown/guideline browsing and quest navigation</li>
-                <li>bridge and CLI integration for workspace automation</li>
+                <li><strong>Multi-model chat</strong> — Anthropic (direct SDK + Agent SDK), the VS Code language</li>
               </ul>
-              <h2>Key Features</h2>
-              <ul>
-                <li>Copilot prompt send flows with template support</li>
-                <li>@CHAT panel with repeat (R) and answer-wait (W) action-bar fields</li>
-                <li>Prompt Queue editor with auto-send, auto-start, auto-pause, auto-continue, and restart controls</li>
-                <li>RequestId-based answer detection with file watcher + polling fallback</li>
-                <li>
-                  Timed Requests editor with interval/scheduled modes, sendMaximum, repeat affixes, and answer wait minutes
-                </li>
-                <li>Dedicated output channels: Tom Prompt Queue and Tom Timed Requests</li>
-                <li>Markdown Browser with grouped document picker, quest filters, line anchors, and auto reload</li>
-                <li>Window Status panel showing per-window subsystem state from window-state files</li>
-                <li>Local LLM, AI Conversation, and Tom AI Chat integration</li>
-                <li>D4rt/bridge/CLI runtime tooling</li>
-              </ul>
+              <p>
+                model (Copilot), and a local LLM, in dedicated bottom-panel subpanels. - <strong>Prompt queue orchestration</strong>
+                 — queue work across transports with follow-ups, reminders, repeat support, and automation toggles. - 
+                <strong>Timed requests</strong> — interval / scheduled prompts that enqueue automatically. - <strong>Tool registry + MCP server</strong>
+                 — the same MCP-style tools the panels use, published to external MCP clients over HTTP. - <strong>Scripting surface</strong>
+                 — the CLI Integration Server exposes the extension to the <a href="/docs?module=tom_vscode_scripting_api&amp;path=README.md"><code>tom_vscode_scripting_api</code></a>
+                 Dart client and the <a href="/docs?module=tom_vscode_bridge&amp;path=README.md"><code>tom_vscode_bridge</code></a>
+                 server. - <strong>Workspace tooling</strong> — markdown/guideline browsing, quest navigation, a per-window status page, and D4rt/bridge/CLI runtime integration.
+              </p>
+              <p>---</p>
               <h2>Installation</h2>
-              <p>Build and install from source:</p>
-              <pre><code>npm install
-npm run compile
-bash install_extension.sh</code></pre>
-              <p>Or install a VSIX package:</p>
+              <h3>Prerequisites</h3>
+              <table class="mdtable">
+                <thead><tr><th>Software</th><th>Version</th><th>Notes</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>Dart SDK</td>
+                    <td>≥ 3.10.4 (&lt; 4.0)</td>
+                    <td>Compiles the <code>tom_bs</code> bridge binary and runs the d4rt generator</td>
+                  </tr>
+                  <tr>
+                    <td>Node.js</td>
+                    <td>≥ 20 (LTS)</td>
+                    <td>Enforced by the installer; the extension targets Node v25 — install/switch with nvm</td>
+                  </tr>
+                  <tr>
+                    <td>nvm</td>
+                    <td>latest</td>
+                    <td>Recommended — lets the installer install/switch to a supported Node automatically</td>
+                  </tr>
+                  <tr><td>VS Code</td><td>≥ 1.96.0</td><td><code>engines.vscode</code> in <code>package.json</code></td></tr>
+                  <tr>
+                    <td><code>code</code> CLI</td>
+                    <td>—</td>
+                    <td>
+                      Must be on 
+                      <code>PATH</code>
+                       for the installer to install the VSIX (VS Code → 
+                      <em>Shell Command: Install 'code' command in PATH</em>
+                      )
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>@vscode/vsce</code></td>
+                    <td>latest</td>
+                    <td>Auto-run via <code>npx</code> if not installed globally</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>
+                The from-source build also needs two sibling Tom projects present on disk (see <a href="#directory-layout">Directory Layout</a>):
+              </p>
+              <ul>
+                <li>
+                  <strong><code>tom_vscode_bridge</code></strong> — the bridge whose <code>tom_bs</code> binary is compiled (ships
+                </li>
+              </ul>
+              <p>
+                in the same repo as this extension). - <strong><code>tom_d4rt_generator</code></strong> — the d4rt bridge generator, part of the 
+                <strong>d4rt repo</strong>, which must be cloned as a sibling under <code>tom_ai/d4rt/</code>.
+              </p>
+              <p>
+                All other Dart dependencies (<code>tom_d4rt</code>, <code>tom_vscode_scripting_api</code>, <code>tom_build_base</code>, 
+                <code>analyzer</code>, …) are resolved from pub.dev by <code>dart pub get</code>.
+              </p>
+              <h3>Preferred: build from source for the current platform</h3>
+              <p>
+                <code>compile_and_install.sh</code> / <code>.ps1</code> is the recommended installer. It performs a fully local build for the host platform only:
+              </p>
+              <pre><code>bash compile_and_install.sh      # macOS / Linux
+pwsh compile_and_install.ps1     # Windows</code></pre>
+              <p>It runs end to end:</p>
+              <p>
+                1. Checks Node (switches via nvm if below 20), installs npm deps, compiles the TypeScript. 2. <code>dart pub get</code>
+                 for the generator and the bridge. 3. Regenerates the d4rt bridges for <code>tom_vscode_bridge</code>. 4. 
+                <code>dart compile exe bin/tom_bs.dart</code> straight into the extension's local <code>bin/&lt;platform&gt;/</code>
+                 — it never writes to <code>tom_binaries</code>, relies on <code>$TOM_BINARY_PATH</code>, or needs any tool on 
+                <code>PATH</code>. 5. Ensures the host's Claude Agent SDK native CLI binary is present. 6. Packages the VSIX (bundling only the host 
+                <code>tom_bs</code>) and installs it via the <code>code</code> CLI.
+              </p>
+              <p>
+                After install, reload VS Code: <code>Cmd/Ctrl+Shift+P</code> → <strong>Developer: Reload Window</strong>.
+              </p>
+              <h3>Alternative: bundle prebuilt binaries for all platforms</h3>
+              <p>
+                <code>install_extension.sh</code> / <code>.ps1</code> builds the same VSIX but bundles prebuilt <code>tom_bs</code>
+                 binaries for all five platforms copied from <code>tom_binaries/tom/&lt;platform&gt;/</code> (it does 
+                <strong>not</strong> compile from source). Use this only when the prebuilt binaries layer is present:
+              </p>
+              <pre><code>bash install_extension.sh        # macOS / Linux
+pwsh install_extension.ps1       # Windows</code></pre>
+              <h3>Alternative: install a prebuilt VSIX</h3>
               <pre><code>code --install-extension tom-ai-extension-0.1.0.vsix</code></pre>
-              <h2>Main Commands</h2>
-              <p>Open the command palette and type @T: to discover commands.</p>
-              <h3>Core AI Commands</h3>
+              <h3>Directory Layout</h3>
+              <p>
+                Both installer scripts resolve the workspace root as <strong>three levels above</strong> the extension folder (<code>tom_vscode_extension/../../..</code>) and expect the layout below. The 
+                <code>tom_vscode_*</code> projects live in the <strong>tom_vscode</strong> repo (mounted at <code>tom_ai/vscode/</code>); the 
+                <code>tom_d4rt*</code> projects live in the separate <strong>d4rt</strong> repo (cloned at <code>tom_ai/d4rt/</code>):
+              </p>
+              <pre><code>&lt;workspace-root&gt;/                      # parent of tom_ai (e.g. tom_agent_container)
+├── tom_ai/
+│   ├── vscode/                        # tom_vscode repo
+│   │   ├── tom_vscode_extension/      # ← this extension (scripts live here)
+│   │   │   ├── compile_and_install.sh / .ps1
+│   │   │   ├── install_extension.sh / .ps1
+│   │   │   └── bin/&lt;platform&gt;/tom_bs  # build output (gitignored)
+│   │   ├── tom_vscode_bridge/         # bridge source → compiled to tom_bs
+│   │   └── tom_vscode_scripting_api/  # bridged scripting API
+│   └── d4rt/                          # d4rt repo (separate clone, sibling of vscode/)
+│       ├── tom_d4rt_generator/        # d4rtgen — regenerates the d4rt bridges
+│       └── tom_d4rt/                  # d4rt interpreter runtime
+└── tom_binaries/                      # prebuilt binaries layer (install_extension only)
+    └── tom/&lt;platform&gt;/tom_bs</code></pre>
+              <p>
+                <code>&lt;platform&gt;</code> is VS Code's platform-vs id: <code>darwin-arm64</code>, <code>darwin-x64</code>, 
+                <code>linux-x64</code>, <code>linux-arm64</code>, or <code>win32-x64</code>.
+              </p>
+              <p>---</p>
+              <h2>Features</h2>
+              <h3>Chat panels</h3>
+              <p>The bottom <strong>@CHAT</strong> panel (<code>tomAi.chatPanel</code>) hosts five subpanels:</p>
+              <table class="mdtable">
+                <thead><tr><th>Subpanel</th><th>Transport</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>Anthropic</td>
+                    <td>Direct Anthropic SDK + Agent SDK (<code>anthropic-handler</code>, <code>agent-sdk-transport</code>).</td>
+                  </tr>
+                  <tr><td>Tom AI Chat</td><td>The extension's own chat surface.</td></tr>
+                  <tr><td>AI Conversation</td><td>Multi-turn bot-conversation loop (not queue-compatible).</td></tr>
+                  <tr><td>Copilot</td><td>VS Code language model (<code>vscodeLm</code>).</td></tr>
+                  <tr><td>Local LLM</td><td>Locally hosted models (<code>localLlm-handler</code>).</td></tr>
+                </tbody>
+              </table>
+              <p>
+                Alongside it: <strong>@WS</strong> (<code>tomAi.wsPanel</code>, workspace) in the bottom panel, and the 
+                <strong>@TOM</strong> sidebar with tree views for notes, todos, the todo log, and window status.
+              </p>
+              <h3>Highlights</h3>
+              <table class="mdtable">
+                <thead><tr><th>Area</th><th>Capabilities</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>Prompt Queue</td>
+                    <td>
+                      One-file-per-entry YAML storage; auto-send / auto-start / auto-pause / auto-continue / restart; repeat with prefix/suffix placeholders; answer-wait timeout; watchdog health checks.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Timed Requests</td>
+                    <td>
+                      Interval and scheduled firing; 
+                      <code>sentCount</code>
+                      -based 
+                      <code>sendMaximum</code>
+                       auto-pause; reminder + repeat config; global schedule-slot filtering; all fires enqueue through the Prompt Queue (single dispatch path).
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Answer detection</td>
+                    <td>RequestId-based detection with a file watcher plus a polling fallback.</td>
+                  </tr>
+                  <tr>
+                    <td>Browsing</td>
+                    <td>Markdown Browser with a grouped document picker, quest filters, line anchors, and auto-reload.</td>
+                  </tr>
+                  <tr>
+                    <td>Status</td>
+                    <td>Window Status panel showing per-window subsystem state from window-state files.</td>
+                  </tr>
+                  <tr>
+                    <td>MCP server</td>
+                    <td>
+                      Standalone MCP server publishing the tool registry over HTTP — see 
+                      <a href="/docs?module=tom_vscode_extension&amp;path=doc%2Fmcp_server.md">doc/mcp_server.md</a>
+                      .
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3>Output channels</h3>
+              <p>
+                <code>Tom Prompt Queue</code> · <code>Tom Timed Requests</code> · <code>Tom Debug</code> · <code>Tom Tests</code>
+                 · <code>Tom Dartbridge Log</code> · <code>Tom Conversation Log</code> · <code>Tom AI Chat Log</code>
+                 · <code>Tom Tool Log</code> · <code>Tom AI Chat Responses</code> · <code>Tom AI Local LLM</code> · <code>Tom AI Local Log</code>.
+              </p>
+              <p>---</p>
+              <h2>Commands</h2>
+              <p>Open the command palette and type <code>@T:</code> to discover commands.</p>
+              <table class="mdtable">
+                <thead><tr><th>Group</th><th>Commands</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>Core AI</td>
+                    <td>
+                      Send to Copilot · Send to Copilot (Default Template) · Send to Copilot (Pick Template) · Send to Local LLM · Change Local LLM Model… · Start AI Conversation · Start Tom AI Chat
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Queue &amp; timer</td>
+                    <td>Open Prompt Queue · Open Timed Requests · Open Prompt Templates · Open Reusable Prompts</td>
+                  </tr>
+                  <tr>
+                    <td>Workspace &amp; runtime</td>
+                    <td>
+                      Open in Markdown Browser · Extension Status Page · Restart Bridge · Start / Stop Tom CLI Integration Server · Start Process Monitor
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3>Keybindings</h3>
+              <p>
+                High-use shortcuts (full list in <a href="/docs?module=tom_vscode_extension&amp;path=doc%2Fquick_reference.md">doc/quick_reference.md</a>):
+              </p>
+              <table class="mdtable">
+                <thead><tr><th>Shortcut</th><th>Action</th></tr></thead>
+                <tbody>
+                  <tr><td><code>Ctrl+Shift+0</code></td><td>Focus @CHAT</td></tr>
+                  <tr><td><code>Ctrl+Shift+9</code></td><td>Focus @WS</td></tr>
+                  <tr><td><code>Ctrl+Shift+6</code></td><td>Open Prompt Queue</td></tr>
+                  <tr><td><code>Ctrl+Shift+7</code></td><td>Open Timed Requests</td></tr>
+                  <tr><td><code>Ctrl+Shift+5</code></td><td>Open Raw Trail Viewer</td></tr>
+                  <tr><td><code>Ctrl+Shift+\</code></td><td>Maximize toggle</td></tr>
+                </tbody>
+              </table>
+              <p>---</p>
+              <h2>Architecture</h2>
+              <p>
+                The extension activates <code>onStartupFinished</code> (<code>src/extension.ts</code>) and is layered: handlers own webview wiring, services own side-effects, utils are pure.
+              </p>
+              <table class="mdtable">
+                <thead><tr><th>Folder</th><th>Role</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><code>config/</code></td>
+                    <td>
+                      Configuration schemas + defaults (
+                      <code>sendToChatConfig.ts</code>
+                      , 
+                      <code>tom_vscode_extension.schema.json</code>
+                      ).
+                    </td>
+                  </tr>
+                  <tr><td><code>extension.ts</code></td><td>Activation entry point.</td></tr>
+                  <tr>
+                    <td><code>handlers/</code></td>
+                    <td>
+                      Per-subsystem handlers — chatPanel, anthropic, agent-sdk-transport, localLlm, tomAiChat, queueEditor, statusPage, mcpServer, …
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>managers/</code></td>
+                    <td>Long-lived state managers (e.g. <code>promptQueueManager</code>, <code>reminderSystem</code>).</td>
+                  </tr>
+                  <tr>
+                    <td><code>services/</code></td>
+                    <td>
+                      Pure side-effect services — trail, tool-result store, history compaction, memory, drafts, answer files.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>storage/</code></td>
+                    <td>Disk-backed stores (<code>panelYamlStore</code>, notepad stores).</td>
+                  </tr>
+                  <tr>
+                    <td><code>tools/</code></td>
+                    <td>
+                      MCP-style tool surface — shared tool registry, tool executors, chat-enhancement / issue / test tools.
+                    </td>
+                  </tr>
+                  <tr><td><code>types/</code></td><td>Shared type declarations.</td></tr>
+                  <tr>
+                    <td><code>utils/</code></td>
+                    <td>
+                      Pure helpers — 
+                      <code>variableResolver</code>
+                      , 
+                      <code>tomAiConfiguration</code>
+                      , 
+                      <code>fsUtils</code>
+                      , 
+                      <code>workspacePaths</code>
+                      , 
+                      <code>retryWithBudget</code>
+                      .
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>vscode-bridge.ts</code></td>
+                    <td>External bridge surface consumed by <code>tom_vscode_bridge</code>.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3>Key components</h3>
+              <table class="mdtable">
+                <thead><tr><th>Component</th><th>Role</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><code>promptQueueManager</code> (managers)</td>
+                    <td>The single dispatch path; owns queue state, automation, and watchdog recovery.</td>
+                  </tr>
+                  <tr>
+                    <td><code>anthropic-handler</code> / <code>agent-sdk-transport</code> (handlers)</td>
+                    <td>Anthropic direct-SDK and Agent-SDK transports.</td>
+                  </tr>
+                  <tr>
+                    <td><code>shared-tool-registry</code> (tools)</td>
+                    <td>The MCP-style tool surface shared by panels and the MCP server.</td>
+                  </tr>
+                  <tr>
+                    <td><code>mcpServer-handler</code> (handlers)</td>
+                    <td>Standalone MCP server lifecycle and HTTP surface.</td>
+                  </tr>
+                  <tr>
+                    <td>CLI Integration Server</td>
+                    <td>
+                      TCP server (
+                      <code>19900</code>
+                      –
+                      <code>19909</code>
+                      ) the scripting API connects to (hosted via the bridge).
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>extensionConfigStore</code> (managers)</td>
+                    <td>Section-scoped reads/writes of the per-quest config files.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>
+                &gt; <strong>Configuration invariant.</strong> Any change to the configuration shape must update &gt; 
+                <strong>both</strong> <code>src/config/sendToChatConfig.ts</code> (the TypeScript shape) and &gt; <code>src/config/tom_vscode_extension.schema.json</code>
+                 (the JSON Schema) in lockstep.
+              </p>
+              <p>---</p>
+              <h2>Queue and timed-request behavior</h2>
               <ul>
-                <li>@T: Send to Copilot</li>
-                <li>@T: Send to Copilot (Default Template)</li>
-                <li>@T: Send to Copilot (Pick Template)</li>
-                <li>@T: Send to Local LLM</li>
-                <li>@T: Change Local LLM Model...</li>
-                <li>@T: Start AI Conversation</li>
-                <li>@T: Start Tom AI Chat</li>
+                <li><strong>Prompt Queue</strong> — one-file-per-entry YAML storage; automation toggles for flow</li>
               </ul>
-              <h3>Queue and Timer Commands</h3>
-              <ul>
-                <li>@T: Open Prompt Queue</li>
-                <li>@T: Open Timed Requests</li>
-                <li>@T: Open Prompt Templates</li>
-                <li>@T: Open Reusable Prompts</li>
-              </ul>
-              <h3>Workspace and Runtime Commands</h3>
-              <ul>
-                <li>@T: Open in Markdown Browser</li>
-                <li>@T: Extension Status Page</li>
-                <li>@T: Restart Bridge</li>
-                <li>@T: Start Tom CLI Integration Server</li>
-                <li>@T: Stop Tom CLI Integration Server</li>
-                <li>@T: Start Process Monitor</li>
-              </ul>
-              <h2>Keybindings</h2>
-              <p>See full keybindings in [doc/quick_reference.md](doc/quick_reference.md).</p>
-              <p>High-use shortcuts:</p>
-              <ul>
-                <li>Ctrl+Shift+0: focus @CHAT</li>
-                <li>Ctrl+Shift+9: focus @WS</li>
-                <li>Ctrl+Shift+6: open Prompt Queue</li>
-                <li>Ctrl+Shift+7: open Timed Requests</li>
-                <li>Ctrl+Shift+5: open Raw Trail Viewer</li>
-                <li>Ctrl+Shift+\: maximize toggle</li>
-              </ul>
-              <h2>Queue and Timed Request Behavior</h2>
-              <p>Prompt Queue highlights:</p>
-              <ul>
-                <li>one-file-per-entry YAML storage</li>
-                <li>automation toggles for queue flow behavior</li>
-                <li>repetition support with prefix/suffix placeholders</li>
-                <li>answer-wait timeout for time-based auto-advance</li>
-                <li>watchdog health checks to recover watcher issues</li>
-              </ul>
-              <p>Timed Requests highlights:</p>
-              <ul>
-                <li>interval and scheduled firing modes</li>
-                <li>sendMaximum with sentCount-based auto-pause</li>
-                <li>reminder and repeat configuration</li>
-                <li>global schedule slot filtering</li>
-                <li>all fires enqueue through Prompt Queue (single dispatch path)</li>
-              </ul>
-              <h2>Output Channels</h2>
-              <ul>
-                <li>Tom Prompt Queue</li>
-                <li>Tom Timed Requests</li>
-                <li>Tom Debug</li>
-                <li>Tom Tests</li>
-                <li>Tom Dartbridge Log</li>
-                <li>Tom Conversation Log</li>
-                <li>Tom AI Chat Log</li>
-                <li>Tom Tool Log</li>
-                <li>Tom AI Chat Responses</li>
-                <li>Tom AI Local LLM</li>
-                <li>Tom AI Local Log</li>
-              </ul>
-              <h2>Requirements</h2>
-              <ul>
-                <li>VS Code 1.85.0+</li>
-                <li>GitHub Copilot subscription for Copilot workflows</li>
-                <li>Dart SDK 3.0+ for script/bridge features</li>
-              </ul>
+              <p>
+                behavior; repetition with prefix/suffix placeholders; answer-wait timeout for time-based auto-advance; watchdog health checks to recover watcher issues. - 
+                <strong>Timed Requests</strong> — interval and scheduled firing modes; <code>sendMaximum</code> with 
+                <code>sentCount</code>-based auto-pause; reminder and repeat configuration; global schedule-slot filtering; every fire enqueues through the Prompt Queue.
+              </p>
+              <p>
+                Full model: <a href="/docs?module=tom_vscode_extension&amp;path=doc%2Fmulti_transport_prompt_queue_revised.md">doc/multi_transport_prompt_queue_revised.md</a>.
+              </p>
+              <p>---</p>
               <h2>Development</h2>
-              <p>Build:</p>
-              <pre><code>npm run compile</code></pre>
-              <p>Watch mode:</p>
-              <pre><code>npm run watch</code></pre>
-              <p>Run extension host for manual testing:</p>
-              <p>1. Open this project in VS Code. 2. Press F5. 3. Test commands in the Extension Development Host.</p>
-              <h2>Documentation</h2>
+              <pre><code>npm run compile      # tsc -p ./ + copy config json to out/config/
+npm run watch        # incremental rebuild
+npm test             # lint media + tools/services/utils test suites + tool-coverage audit</code></pre>
+              <p>
+                Run the extension host for manual testing: open this project in VS Code, press <code>F5</code>, and test commands in the Extension Development Host.
+              </p>
+              <p>
+                &gt; Reloading the window alone does <strong>not</strong> pick up source changes — it reloads the &gt; 
+                <em>installed</em> VSIX. Repackage + reinstall first (<code>compile_and_install.sh</code>), then &gt; reload.
+              </p>
+              <p>---</p>
+              <h2>Ecosystem</h2>
               <ul>
-                <li>[doc/user_guide.md](doc/user_guide.md): complete feature guide</li>
-                <li>[doc/quick_reference.md](doc/quick_reference.md): shortcuts, panels, command map</li>
-                <li>[doc/copilot_chat_tools.md](doc/copilot_chat_tools.md): Copilot/Tom AI Chat tooling</li>
                 <li>
-                  [_copilot_guidelines/architecture.md](_copilot_guidelines/architecture.md): architecture and state model
-                </li>
-                <li>
-                  [_copilot_guidelines/keybindings_and_commands.md](_copilot_guidelines/keybindings_and_commands.md): command and keybinding details
+                  <a href="/docs?module=tom_vscode_scripting_api&amp;path=README.md"><code>tom_vscode_scripting_api</code></a>
+                   — the typed
                 </li>
               </ul>
+              <p>
+                Dart client that drives this extension over the CLI Integration Server. - <a href="/docs?module=tom_vscode_bridge&amp;path=README.md"><code>tom_vscode_bridge</code></a>
+                 — the Dart bridge server this extension launches (<code>tom_bs</code>). - <a href="/doc/tom_agent_container/tom_ai/vscode/tom_vscode_shared/README"><code>tom_vscode_shared</code></a>
+                 / <a href="/doc/tom_agent_container/tom_ai/vscode/tom_vscode_workflow/README"><code>tom_vscode_workflow</code></a>
+                 — the shared TypeScript libraries the extension is built from. - <a href="/doc/tom_agent_container/tom_ai/vscode/README">Repository map</a>
+                 — the whole Tom VS Code ecosystem at a glance.
+              </p>
+              <p>---</p>
+              <h2>Further documentation</h2>
+              <p>
+                User-facing guides live in <a href="https://github.com/al-the-bear/tom_vscode/tree/main/tom_vscode_extension/doc"><code>doc/</code></a>; development docs in 
+                <a href="https://github.com/al-the-bear/tom_vscode/tree/main/tom_vscode_extension/_copilot_guidelines"><code>_copilot_guidelines/</code></a>.
+              </p>
+              <table class="mdtable">
+                <thead><tr><th>Document</th><th>Covers</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><a href="/docs?module=tom_vscode_extension&amp;path=doc%2Fuser_guide.md">doc/user_guide.md</a></td>
+                    <td>Complete feature guide.</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="/docs?module=tom_vscode_extension&amp;path=doc%2Fquick_reference.md">doc/quick_reference.md</a>
+                    </td>
+                    <td>Shortcuts, panels, command map.</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="/docs?module=tom_vscode_extension&amp;path=doc%2Fextension_analysis.md">doc/extension_analysis.md</a>
+                    </td>
+                    <td>Cross-component architecture analysis.</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="/docs?module=tom_vscode_extension&amp;path=doc%2Fanthropic_sdk_integration.md">doc/anthropic_sdk_integration.md</a>
+                    </td>
+                    <td>Anthropic direct + Agent SDK integration.</td>
+                  </tr>
+                  <tr>
+                    <td><a href="/docs?module=tom_vscode_extension&amp;path=doc%2Fmcp_server.md">doc/mcp_server.md</a></td>
+                    <td>Standalone MCP server — config, auth, lifecycle, security.</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="/docs?module=tom_vscode_extension&amp;path=doc%2Fmulti_transport_prompt_queue_revised.md">doc/multi_transport_prompt_queue_revised.md</a>
+                    </td>
+                    <td>The current prompt-queue model.</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="/docs?module=tom_vscode_extension&amp;path=doc%2Fllm_configuration.md">doc/llm_configuration.md</a>
+                    </td>
+                    <td>Local LLM + Anthropic + history-compaction settings.</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="/docs?module=tom_vscode_extension&amp;path=doc%2Fplaceholder_engine.md">doc/placeholder_engine.md</a>
+                    </td>
+                    <td>Placeholder engine reference.</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="/docs?module=tom_vscode_extension&amp;path=doc%2Fcopilot_chat_tools.md">doc/copilot_chat_tools.md</a>
+                    </td>
+                    <td>Copilot / Tom AI Chat tooling.</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="/doc/tom_agent_container/tom_ai/vscode/tom_vscode_extension/_copilot_guidelines/architecture">_copilot_guidelines/architecture.md</a>
+                    </td>
+                    <td>Architecture and state model (dev).</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="/doc/tom_agent_container/tom_ai/vscode/tom_vscode_extension/_copilot_guidelines/keybindings_and_commands">_copilot_guidelines/keybindings_and_commands.md</a>
+                    </td>
+                    <td>Command and keybinding details (dev).</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>---</p>
+              <h2>Status</h2>
+              <table class="mdtable">
+                <thead><tr><th></th><th></th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>Name / publisher</td>
+                    <td><code>tom-ai-extension</code> (<code>@Tom</code>) · <code>peter-nicolai-alexis-kyaw</code></td>
+                  </tr>
+                  <tr><td>Version</td><td>0.1.0</td></tr>
+                  <tr><td>VS Code engine</td><td><code>^1.96.0</code></td></tr>
+                  <tr><td>Node.js</td><td>≥ 20 (targets v25)</td></tr>
+                  <tr>
+                    <td>Tests</td>
+                    <td>88 test files (<code>npm test</code> runs the tools/services/utils suites + tool-coverage audit)</td>
+                  </tr>
+                  <tr><td>License</td><td>BSD-3-Clause</td></tr>
+                </tbody>
+              </table>
+              <p>---</p>
               <h2>Resources</h2>
               <ul>
-                <li>[VS Code Extension API](https://code.visualstudio.com/api)</li>
-                <li>[Language Model API](https://code.visualstudio.com/api/extension-guides/language-model)</li>
-                <li>[Chat API](https://code.visualstudio.com/api/extension-guides/chat)</li>
+                <li><a href="https://code.visualstudio.com/api">VS Code Extension API</a></li>
+                <li><a href="https://code.visualstudio.com/api/extension-guides/language-model">Language Model API</a></li>
+                <li><a href="https://code.visualstudio.com/api/extension-guides/chat">Chat API</a></li>
               </ul>
+              <h2>License</h2>
+              <p>
+                Part of the Tom Framework by Peter Nicolai Alexis Kyaw, BSD-3-Clause. See <a href="https://github.com/al-the-bear/tom_vscode/blob/main/tom_vscode_extension/LICENSE">LICENSE</a>. &lt;/content&gt;
+              </p>
             </div>
           </section>
           <details class="licbox">

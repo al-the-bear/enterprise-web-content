@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1327,13 +1347,16 @@
                     <p>
                       TomTimezoned values serialize to a string format that includes: - ISO 8601 datetime (always in UTC) - UTC offset at the time of serialization - Timezone name
                     </p>
-                    <p>Format: `ISO8601_OFFSET_TIMEZONE` Example: `2024-06-15T05:30:00.000Z_+09:00_Asia/Tokyo`</p>
+                    <p>
+                      Format: <code>ISO8601_OFFSET_TIMEZONE</code> Example: <code>2024-06-15T05:30:00.000Z_+09:00_Asia/Tokyo</code>
+                    </p>
                     <h2>Subclasses</h2>
                     <p>
                       Three specialized subclasses are provided: - [TomZonedDate] - For date-only values (time components are zero) - [TomZonedTime] - For time-only values (date is 1970-01-01) - [TomZonedDateTime] - For full datetime values
                     </p>
                     <p>
-                      Each has its own serialization prefix for identification: - `@D@` for dates - `@T@` for times - `@X@` for datetimes
+                      Each has its own serialization prefix for identification: - <code>@D@</code> for dates - <code>@T@</code>
+                       for times - <code>@X@</code> for datetimes
                     </p>
                     <h2>Usage</h2>
                     <pre><code>// Create from local time with timezone
@@ -1431,7 +1454,7 @@ print(tt.isUtc); // true</code></pre>
                       <div class="api-doc">
                         <p>Parses a [TomTimezoned] from its serialized string format.</p>
                         <p>
-                          The string must be in the format: `ISO8601_OFFSET_TIMEZONE` Example: `2024-06-15T05:30:00.000Z_+09:00_Asia/Tokyo`
+                          The string must be in the format: <code>ISO8601_OFFSET_TIMEZONE</code> Example: <code>2024-06-15T05:30:00.000Z_+09:00_Asia/Tokyo</code>
                         </p>
                         <p>Throws [FormatException] if the string format is invalid.</p>
                         <p>Example:</p>
@@ -1463,7 +1486,8 @@ print(tt.timezone.timezone); // 'Asia/Tokyo'</code></pre>
                       <div class="api-doc">
                         <p>Returns the serialization prefix for this type.</p>
                         <p>
-                          The base class returns an empty string. Subclasses override this to provide type-specific prefixes: - [TomZonedDate]: `@D@` - [TomZonedTime]: `@T@` - [TomZonedDateTime]: `@X@`
+                          The base class returns an empty string. Subclasses override this to provide type-specific prefixes: - [TomZonedDate]: 
+                          <code>@D@</code> - [TomZonedTime]: <code>@T@</code> - [TomZonedDateTime]: <code>@X@</code>
                         </p>
                       </div>
                     </div>
@@ -1474,7 +1498,9 @@ print(tt.timezone.timezone); // 'Asia/Tokyo'</code></pre>
                       </div>
                       <div class="api-doc">
                         <p>Returns the string representation of this datetime.</p>
-                        <p>Format: `ISO8601_OFFSET_TIMEZONE` Example: `2024-06-15T05:30:00.000Z_+09:00_Asia/Tokyo`</p>
+                        <p>
+                          Format: <code>ISO8601_OFFSET_TIMEZONE</code> Example: <code>2024-06-15T05:30:00.000Z_+09:00_Asia/Tokyo</code>
+                        </p>
                       </div>
                     </div>
                     <div id="TomTimezoned._toLocal" class="api-member">
@@ -1504,7 +1530,7 @@ print(localDt.hour); // 14 (local time in New York)</code></pre>
                       <div class="api-member-head"><code class="api-signature">static bool isTomTimezonedString(String s)</code></div>
                       <div class="api-doc">
                         <p>Checks if a string is in valid [TomTimezoned] format.</p>
-                        <p>Returns `true` if the string matches the expected serialization format.</p>
+                        <p>Returns <code>true</code> if the string matches the expected serialization format.</p>
                       </div>
                     </div>
                   </div>
@@ -1518,7 +1544,7 @@ print(localDt.hour); // 14 (local time in New York)</code></pre>
                       [TomZonedDate] represents a calendar date associated with a specific timezone. All time components (hour, minute, second, etc.) are set to zero in the local timezone.
                     </p>
                     <h2>Serialization</h2>
-                    <p>Serializes with the `@D@` prefix:</p>
+                    <p>Serializes with the <code>@D@</code> prefix:</p>
                     <pre><code>@D@2024-06-14T15:00:00.000Z_+09:00_Asia/Tokyo</code></pre>
                     <p>(midnight June 15 Tokyo = 15:00 June 14 UTC)</p>
                     <h2>Usage</h2>
@@ -1575,7 +1601,9 @@ final todayInTokyo = TomZonedDate.fromDateTime(
                       <div class="api-member-head"><code class="api-signature">factory TomZonedDate.parseFromString(String formattedString)</code></div>
                       <div class="api-doc">
                         <p>Parses a [TomZonedDate] from its serialized string format.</p>
-                        <p>The string must start with `@D@` and follow the format: `@D@ISO8601_OFFSET_TIMEZONE`</p>
+                        <p>
+                          The string must start with <code>@D@</code> and follow the format: <code>@D@ISO8601_OFFSET_TIMEZONE</code>
+                        </p>
                         <p>[formattedString] The serialized date string.</p>
                         <p>Throws [FormatException] if the string format is invalid.</p>
                         <p>Example:</p>
@@ -1604,7 +1632,9 @@ print(date.localDay);   // 15</code></pre>
                       </div>
                       <div class="api-doc">
                         <p>Returns the serialized string representation of this date.</p>
-                        <p>Format: `@D@ISO8601_OFFSET_TIMEZONE` Example: `@D@2024-06-14T15:00:00.000Z_+09:00_Asia/Tokyo`</p>
+                        <p>
+                          Format: <code>@D@ISO8601_OFFSET_TIMEZONE</code> Example: <code>@D@2024-06-14T15:00:00.000Z_+09:00_Asia/Tokyo</code>
+                        </p>
                       </div>
                     </div>
                     <div id="TomZonedDate.convertToTimezone" class="api-member">
@@ -1635,21 +1665,25 @@ print(dateInNY.timezone.timezone); // 'America/New_York'</code></pre>
                       <div class="api-member-head"><code class="api-signature">static String serializationPrefix</code></div>
                       <div class="api-doc">
                         <p>The serialization prefix for date values.</p>
-                        <p>All [TomZonedDate] strings start with `@D@` to identify the type.</p>
+                        <p>All [TomZonedDate] strings start with <code>@D@</code> to identify the type.</p>
                       </div>
                     </div>
                     <div id="TomZonedDate.isTomZonedDateString" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static bool isTomZonedDateString(String s)</code></div>
                       <div class="api-doc">
                         <p>Checks if a string is in valid [TomZonedDate] format.</p>
-                        <p>Returns `true` if the string starts with `@D@` and matches the expected serialization format.</p>
+                        <p>
+                          Returns <code>true</code> if the string starts with <code>@D@</code> and matches the expected serialization format.
+                        </p>
                       </div>
                     </div>
                     <div id="TomZonedDate.isDate" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static bool isDate(DateTime dt)</code></div>
                       <div class="api-doc">
                         <p>Checks if a [DateTime] represents a date-only value.</p>
-                        <p>Returns `true` if all time components (hour, minute, second, millisecond, microsecond) are zero.</p>
+                        <p>
+                          Returns <code>true</code> if all time components (hour, minute, second, millisecond, microsecond) are zero.
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -1667,7 +1701,7 @@ print(dateInNY.timezone.timezone); // 'America/New_York'</code></pre>
                       The datetime is stored internally as UTC. When you create a TomZonedDateTime with local time values, they are converted to UTC. Use [localHour], [localDay], etc. to get the local time values in the timezone.
                     </p>
                     <h2>Serialization</h2>
-                    <p>Serializes with the `@X@` prefix:</p>
+                    <p>Serializes with the <code>@X@</code> prefix:</p>
                     <pre><code>@X@2024-06-15T05:30:00.000Z_+09:00_Asia/Tokyo</code></pre>
                     <p>(14:30 Tokyo = 05:30 UTC)</p>
                     <h2>Usage</h2>
@@ -1747,7 +1781,9 @@ print(winter.hour); // 17 (12 + 5 hours for EST)</code></pre>
                       <div class="api-member-head"><code class="api-signature">factory TomZonedDateTime.parseFromString(String formattedString)</code></div>
                       <div class="api-doc">
                         <p>Parses a [TomZonedDateTime] from its serialized string format.</p>
-                        <p>The string must start with `@X@` and follow the format: `@X@ISO8601_OFFSET_TIMEZONE`</p>
+                        <p>
+                          The string must start with <code>@X@</code> and follow the format: <code>@X@ISO8601_OFFSET_TIMEZONE</code>
+                        </p>
                         <p>[formattedString] The serialized datetime string.</p>
                         <p>Throws [FormatException] if the string format is invalid.</p>
                         <p>Example:</p>
@@ -1779,7 +1815,9 @@ print(dt.timezone.timezone); // 'Asia/Tokyo'</code></pre>
                       </div>
                       <div class="api-doc">
                         <p>Returns the serialized string representation of this datetime.</p>
-                        <p>Format: `@X@ISO8601_OFFSET_TIMEZONE` Example: `@X@2024-06-15T05:30:00.000Z_+09:00_Asia/Tokyo`</p>
+                        <p>
+                          Format: <code>@X@ISO8601_OFFSET_TIMEZONE</code> Example: <code>@X@2024-06-15T05:30:00.000Z_+09:00_Asia/Tokyo</code>
+                        </p>
                       </div>
                     </div>
                     <div id="TomZonedDateTime.convertToTimezone" class="api-member">
@@ -1813,7 +1851,7 @@ print(meetingInNY.hour); // 5 (UTC - same as original)</code></pre>
                       <div class="api-member-head"><code class="api-signature">static String serializationPrefix</code></div>
                       <div class="api-doc">
                         <p>The serialization prefix for datetime values.</p>
-                        <p>All [TomZonedDateTime] strings start with `@X@` to identify the type.</p>
+                        <p>All [TomZonedDateTime] strings start with <code>@X@</code> to identify the type.</p>
                       </div>
                     </div>
                     <div id="TomZonedDateTime.isTomZonedDateTimeString" class="api-member">
@@ -1824,7 +1862,7 @@ print(meetingInNY.hour); // 5 (UTC - same as original)</code></pre>
                       <div class="api-member-head"><code class="api-signature">static bool isTomDateTime(DateTime dt)</code></div>
                       <div class="api-doc">
                         <p>Checks if a [DateTime] can be represented as a [TomZonedDateTime].</p>
-                        <p>Always returns `true` since any DateTime can be a full datetime.</p>
+                        <p>Always returns <code>true</code> since any DateTime can be a full datetime.</p>
                       </div>
                     </div>
                   </div>
@@ -1838,7 +1876,7 @@ print(meetingInNY.hour); // 5 (UTC - same as original)</code></pre>
                       [TomZonedTime] represents a time of day associated with a specific timezone. The date components are set to the Unix epoch (1970-01-01) as a placeholder.
                     </p>
                     <h2>Serialization</h2>
-                    <p>Serializes with the `@T@` prefix:</p>
+                    <p>Serializes with the <code>@T@</code> prefix:</p>
                     <pre><code>@T@1970-01-01T05:30:00.000Z_+09:00_Asia/Tokyo</code></pre>
                     <p>(14:30 Tokyo = 05:30 UTC)</p>
                     <h2>Usage</h2>
@@ -1891,7 +1929,9 @@ final parsed = TomZonedTime.parseFromString('@T@1970-01-01T05:30:00.000Z_+09:00_
                       <div class="api-member-head"><code class="api-signature">factory TomZonedTime.parseFromString(String formattedString)</code></div>
                       <div class="api-doc">
                         <p>Parses a [TomZonedTime] from its serialized string format.</p>
-                        <p>The string must start with `@T@` and follow the format: `@T@ISO8601_OFFSET_TIMEZONE`</p>
+                        <p>
+                          The string must start with <code>@T@</code> and follow the format: <code>@T@ISO8601_OFFSET_TIMEZONE</code>
+                        </p>
                         <p>[formattedString] The serialized time string.</p>
                         <p>Throws [FormatException] if the string format is invalid.</p>
                       </div>
@@ -1913,7 +1953,9 @@ final parsed = TomZonedTime.parseFromString('@T@1970-01-01T05:30:00.000Z_+09:00_
                       </div>
                       <div class="api-doc">
                         <p>Returns the serialized string representation of this time.</p>
-                        <p>Format: `@T@ISO8601_OFFSET_TIMEZONE` Example: `@T@1970-01-01T05:30:00.000Z_+09:00_Asia/Tokyo`</p>
+                        <p>
+                          Format: <code>@T@ISO8601_OFFSET_TIMEZONE</code> Example: <code>@T@1970-01-01T05:30:00.000Z_+09:00_Asia/Tokyo</code>
+                        </p>
                       </div>
                     </div>
                     <div id="TomZonedTime.convertToTimezone" class="api-member">
@@ -1956,7 +1998,7 @@ print(standupOnMarch10); // 2024-03-10 09:00:00.000-0400 (EDT after DST)</code><
                       <div class="api-member-head"><code class="api-signature">static String serializationPrefix</code></div>
                       <div class="api-doc">
                         <p>The serialization prefix for time values.</p>
-                        <p>All [TomZonedTime] strings start with `@T@` to identify the type.</p>
+                        <p>All [TomZonedTime] strings start with <code>@T@</code> to identify the type.</p>
                       </div>
                     </div>
                     <div id="TomZonedTime.isTomZonedTimeString" class="api-member">
@@ -1967,7 +2009,7 @@ print(standupOnMarch10); // 2024-03-10 09:00:00.000-0400 (EDT after DST)</code><
                       <div class="api-member-head"><code class="api-signature">static bool isTime(DateTime dt)</code></div>
                       <div class="api-doc">
                         <p>Checks if a [DateTime] represents a time-only value.</p>
-                        <p>Returns `true` if the date components are 1970-01-01 (Unix epoch).</p>
+                        <p>Returns <code>true</code> if the date components are 1970-01-01 (Unix epoch).</p>
                       </div>
                     </div>
                   </div>

@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1309,12 +1329,15 @@
                 <h2 class="api-library-title">package:tom_vscode_scripting_api/src/agent_sdk_tool_registry.dart</h2>
                 <code class="api-import">import 'package:tom_vscode_scripting_api/src/agent_sdk_tool_registry.dart';</code>
                 <div class="api-doc">
-                  <p>Dart-side dispatch for in-process (`sdk`) MCP tools (proposal §7.0.4, todo #5).</p>
+                  <p>Dart-side dispatch for in-process (<code>sdk</code>) MCP tools (proposal §7.0.4, todo #5).</p>
                   <p>
-                    A query's [Options.mcpServers] may carry [McpSdkServerConfig]s whose [SdkMcpTool]s hold Dart [ToolHandler]s. The descriptor (name/description/ JSON-Schema) crosses the bridge so the extension can rebuild a real `sdk.createSdkMcpServer()`; the *handler* stays in Dart. When the model calls such a tool mid-query, the extension issues an `agentSdk.toolCall` request back over the #4 reverse RPC, which [AgentSdkClient] routes here.
+                    A query's [Options.mcpServers] may carry [McpSdkServerConfig]s whose [SdkMcpTool]s hold Dart [ToolHandler]s. The descriptor (name/description/ JSON-Schema) crosses the bridge so the extension can rebuild a real 
+                    <code>sdk.createSdkMcpServer()</code>; the <em>handler</em> stays in Dart. When the model calls such a tool mid-query, the extension issues an 
+                    <code>agentSdk.toolCall</code> request back over the #4 reverse RPC, which [AgentSdkClient] routes here.
                   </p>
                   <p>
-                    This registry is the lookup half: it indexes the local handlers by `server → tool` and runs the matching one, returning the [CallToolResult] as wire JSON. It is pure (no socket, no `dart:io`) so it is unit-testable on its own and reused by the bridge-backed transport.
+                    This registry is the lookup half: it indexes the local handlers by <code>server → tool</code> and runs the matching one, returning the [CallToolResult] as wire JSON. It is pure (no socket, no 
+                    <code>dart:io</code>) so it is unit-testable on its own and reused by the bridge-backed transport.
                   </p>
                 </div>
                 <section id="AgentSdkToolRegistry" class="api-declaration">
@@ -1322,7 +1345,8 @@
                   <code class="api-signature">class AgentSdkToolRegistry</code>
                   <div class="api-doc">
                     <p>
-                      Indexes the Dart [ToolHandler]s a query exposes and dispatches incoming `agentSdk.toolCall` requests to them.
+                      Indexes the Dart [ToolHandler]s a query exposes and dispatches incoming <code>agentSdk.toolCall</code>
+                       requests to them.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1337,7 +1361,7 @@
                           final Map&lt;String, Map&lt;String, Future&lt;CallToolResult&gt; Function(Map&lt;String, dynamic&gt;)&gt;&gt; _handlers
                         </code>
                       </div>
-                      <div class="api-doc"><p>`serverName → (toolName → handler)`.</p></div>
+                      <div class="api-doc"><p><code>serverName → (toolName → handler)</code>.</p></div>
                     </div>
                     <div id="AgentSdkToolRegistry.hasHandlers" class="api-member"><div class="api-member-head"><code class="api-signature">bool hasHandlers</code></div></div>
                   </div>
@@ -1347,7 +1371,8 @@
                       <div class="api-member-head"><code class="api-signature">bool addServers(Map&lt;String, McpServerConfig&gt;? mcpServers)</code></div>
                       <div class="api-doc">
                         <p>
-                          Registers the handlers carried by [mcpServers]'s [McpSdkServerConfig] entries. Non-sdk servers and handler-less (descriptor-only) tools are ignored. Returns `true` if at least one handler was registered.
+                          Registers the handlers carried by [mcpServers]'s [McpSdkServerConfig] entries. Non-sdk servers and handler-less (descriptor-only) tools are ignored. Returns 
+                          <code>true</code> if at least one handler was registered.
                         </p>
                       </div>
                     </div>
@@ -1356,9 +1381,10 @@
                         <code class="api-signature">Future&lt;Map&lt;String, dynamic&gt;&gt; handleToolCall(Map&lt;String, dynamic&gt; params)</code>
                       </div>
                       <div class="api-doc">
-                        <p>Dispatches an `agentSdk.toolCall` request to the matching handler.</p>
+                        <p>Dispatches an <code>agentSdk.toolCall</code> request to the matching handler.</p>
                         <p>
-                          [params] carries `server`, `tool`, and `args` (plus the routing `streamId`, unused here). Returns the handler's [CallToolResult] as wire JSON. Throws [ArgumentError] when no handler matches `server`/`tool`.
+                          [params] carries <code>server</code>, <code>tool</code>, and <code>args</code> (plus the routing <code>streamId</code>, unused here). Returns the handler's [CallToolResult] as wire JSON. Throws [ArgumentError] when no handler matches 
+                          <code>server</code>/<code>tool</code>.
                         </p>
                       </div>
                     </div>

@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1319,13 +1339,13 @@
                     Basic, code generation based reflection in Dart, with support for introspection and dynamic invocation.
                   </p>
                   <p>
-                    *Introspection* is that subset of reflection by which a running program can examine its own structure. For example, a function that prints out the names of all the members of an arbitrary object.
+                    <em>Introspection</em> is that subset of reflection by which a running program can examine its own structure. For example, a function that prints out the names of all the members of an arbitrary object.
                   </p>
                   <p>
-                    *Dynamic invocation* refers the ability to evaluate code that has not been literally specified at compile time, such as calling a method whose name is provided as an argument (because it is looked up in a database, or provided interactively by the user).
+                    <em>Dynamic invocation</em> refers the ability to evaluate code that has not been literally specified at compile time, such as calling a method whose name is provided as an argument (because it is looked up in a database, or provided interactively by the user).
                   </p>
                   <p>
-                    Reflection uses capabilities to specify the level of support, as specified [here](https://github.com/google/reflection.dart/blob/master/reflection/doc/TheDesignOfReflectionCapabilities.md). The rationale is that unlimited support for reflection tends to be too expensive in terms of program size, but if only few features are needed then a small set of capabilities it is likely to be much smaller.
+                    Reflection uses capabilities to specify the level of support, as specified <a href="https://github.com/google/reflection.dart/blob/master/reflection/doc/TheDesignOfReflectionCapabilities.md">here</a>. The rationale is that unlimited support for reflection tends to be too expensive in terms of program size, but if only few features are needed then a small set of capabilities it is likely to be much smaller.
                   </p>
                 </div>
                 <section id="Reflection" class="api-declaration">
@@ -1337,13 +1357,18 @@
                       If a class has an instance of a subclass of this class in its [metadata]&lt;sup&gt;1&lt;/sup&gt; then it will be included in the root set of classes with support for reflection based on this package.  Other classes outside the root set may also be included, e.g., if it is specified that all subtypes of a given class in the root set are included. For classes and instances not included, all reflective operations will throw an exception.  For included classes and instances, invocations of the operations in mirrors.dart are supported if the [ReflectCapability] values given as constructor arguments include the capability to run those operations; the operations will throw an exception if the relevant capability is not included.
                     </p>
                     <p>
-                      Terminology: We use the term *reflector class* to denote a direct subclass of [Reflection] with a zero-argument `const` constructor that is used as metadata on a class in the target program in one of the two supported manners: as a `const` constructor expression (`@MyReflection()`), or as an identifier (`@myReflection`) which is a top-level `const` whose value is an instance of the given reflector class (`const myReflection = const MyReflection();`).  We use the term *reflector-annotated class* to denote a class whose metadata includes an instance of a reflector class.
+                      Terminology: We use the term <em>reflector class</em> to denote a direct subclass of [Reflection] with a zero-argument 
+                      <code>const</code> constructor that is used as metadata on a class in the target program in one of the two supported manners: as a 
+                      <code>const</code> constructor expression (<code>@MyReflection()</code>), or as an identifier (<code>@myReflection</code>) which is a top-level 
+                      <code>const</code> whose value is an instance of the given reflector class (<code>const myReflection = const MyReflection();</code>).  We use the term 
+                      <em>reflector-annotated class</em> to denote a class whose metadata includes an instance of a reflector class.
                     </p>
                     <p>
                       Note that the role played by this class includes much of the role played by a [MirrorSystem] with dart:mirrors.
                     </p>
                     <p>
-                      ----- **Footnotes:** 1. Currently, the only setup which is supported is when the metadata object is an instance of a direct subclass of the class [Reflection], say `MyReflection`, and that subclass defines a `const` constructor taking zero arguments.  This ensures that every subclass of Reflection used as metadata is a singleton class, which means that the behavior of the instance can be expressed by generating code in the class.  Generalizations of this setup may be supported in the future if compelling use cases come up.
+                      ----- <strong>Footnotes:</strong> 1. Currently, the only setup which is supported is when the metadata object is an instance of a direct subclass of the class [Reflection], say 
+                      <code>MyReflection</code>, and that subclass defines a <code>const</code> constructor taking zero arguments.  This ensures that every subclass of Reflection used as metadata is a singleton class, which means that the behavior of the instance can be expressed by generating code in the class.  Generalizations of this setup may be supported in the future if compelling use cases come up.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1419,7 +1444,8 @@
                       <div class="api-doc">
                         <p>Returns a mirror of the given type [type].</p>
                         <p>
-                          In the case where [type] is a parameterized type, i.e., a generic class which has been applied to a list of actual type arguments, the returned mirror will have no declared type variables, but it has a list of actual type arguments. If a mirror of the generic class as such is needed, it can be obtained from `originalDeclaration`. That mirror will have no actual type arguments, but it will have declared type variables. Other types than classes are not (yet) supported.
+                          In the case where [type] is a parameterized type, i.e., a generic class which has been applied to a list of actual type arguments, the returned mirror will have no declared type variables, but it has a list of actual type arguments. If a mirror of the generic class as such is needed, it can be obtained from 
+                          <code>originalDeclaration</code>. That mirror will have no actual type arguments, but it will have declared type variables. Other types than classes are not (yet) supported.
                         </p>
                       </div>
                     </div>
@@ -1434,7 +1460,8 @@
                   <code class="api-signature">abstract class StringInvocation</code>
                   <div class="api-doc">
                     <p>
-                      Used to describe the invocation when a no-such-method situation arises. We need to use this variant of the standard `Invocation` class, because we have no access to the [Symbol] for the `memberName`.
+                      Used to describe the invocation when a no-such-method situation arises. We need to use this variant of the standard 
+                      <code>Invocation</code> class, because we have no access to the [Symbol] for the <code>memberName</code>.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>

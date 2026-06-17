@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1325,6 +1345,14 @@
                   <code class="api-signature">
                     class TomApiEndpointImplementation&lt;requestType extends Object, resultType extends Object&gt; implements TomEndpointBase&lt;requestType, resultType&gt;
                   </code>
+                  <div class="api-doc">
+                    <p>
+                      Method-level annotation binding a method to an endpoint declared in the remote-API registry (<code>tomRemoteApis[apiId][endpointId]</code>).
+                    </p>
+                    <p>
+                      Unlike [TomEndpoint], the routing details (URI, methods, mime types, …) come from the registered [TomApiEndpoint]; this annotation only adds implementation-side overrides ([errorHandler], [logRequests], the CORS settings). [convertToTomEndpoint] merges the two.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomApiEndpointImplementation.new" class="api-member">
@@ -1333,24 +1361,38 @@
                           const TomApiEndpointImplementation.new({required String apiId, required String endpointId, TomErrorHandler? errorHandler, bool? logRequests, String? corsAllowedOrigins, String? corsAllowedMethods, String? corsAllowedHeaders})
                         </code>
                       </div>
+                      <div class="api-doc"><p>Binds the method to endpoint [endpointId] of API [apiId].</p></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="TomApiEndpointImplementation.apiId" class="api-member"><div class="api-member-head"><code class="api-signature">final String apiId</code></div></div>
-                    <div id="TomApiEndpointImplementation.endpointId" class="api-member"><div class="api-member-head"><code class="api-signature">final String endpointId</code></div></div>
+                    <div id="TomApiEndpointImplementation.apiId" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String apiId</code></div>
+                      <div class="api-doc"><p>The id of the API this endpoint belongs to.</p></div>
+                    </div>
+                    <div id="TomApiEndpointImplementation.endpointId" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String endpointId</code></div>
+                      <div class="api-doc"><p>The id of the endpoint within the API.</p></div>
+                    </div>
                     <div id="TomApiEndpointImplementation.errorHandler" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final TomErrorHandler? errorHandler</code></div>
+                      <div class="api-doc"><p>Implementation-side error handler override.</p></div>
                     </div>
-                    <div id="TomApiEndpointImplementation.logRequests" class="api-member"><div class="api-member-head"><code class="api-signature">final bool? logRequests</code></div></div>
+                    <div id="TomApiEndpointImplementation.logRequests" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final bool? logRequests</code></div>
+                      <div class="api-doc"><p>Implementation-side request-logging override (<code>null</code> = use the default).</p></div>
+                    </div>
                     <div id="TomApiEndpointImplementation.corsAllowedOrigins" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final String? corsAllowedOrigins</code></div>
+                      <div class="api-doc"><p><code>Access-Control-Allow-Origin</code> override for this endpoint.</p></div>
                     </div>
                     <div id="TomApiEndpointImplementation.corsAllowedMethods" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final String? corsAllowedMethods</code></div>
+                      <div class="api-doc"><p><code>Access-Control-Allow-Methods</code> override for this endpoint.</p></div>
                     </div>
                     <div id="TomApiEndpointImplementation.corsAllowedHeaders" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final String? corsAllowedHeaders</code></div>
+                      <div class="api-doc"><p><code>Access-Control-Allow-Headers</code> override for this endpoint.</p></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
@@ -1366,6 +1408,15 @@
                 <section id="TomApiImplementation" class="api-declaration">
                   <h3 class="api-decl-title">class TomApiImplementation</h3>
                   <code class="api-signature">class TomApiImplementation extends TomService</code>
+                  <div class="api-doc">
+                    <p>
+                      Class-level annotation marking a class as the implementation of a remote API (an API defined in the <code>tomRemoteApis</code>
+                       registry, keyed by [apiId]).
+                    </p>
+                    <p>
+                      Its endpoint methods are bound with [TomApiEndpointImplementation]. Supplies the API-wide [errorHandler] and [logRequestsDefault] used when an endpoint does not override them.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomApiImplementation.new" class="api-member">
@@ -1374,41 +1425,68 @@
                           const TomApiImplementation.new({required String apiId, TomErrorHandler? errorHandler, bool logRequestsDefault = true})
                         </code>
                       </div>
+                      <div class="api-doc"><p>Binds this implementation to the API [apiId].</p></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="TomApiImplementation.apiId" class="api-member"><div class="api-member-head"><code class="api-signature">final String apiId</code></div></div>
+                    <div id="TomApiImplementation.apiId" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String apiId</code></div>
+                      <div class="api-doc"><p>The id of the API (in the remote-API registry) this class implements.</p></div>
+                    </div>
                     <div id="TomApiImplementation.errorHandler" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final TomErrorHandler? errorHandler</code></div>
+                      <div class="api-doc"><p>API-wide error handler used by endpoints that don't declare their own.</p></div>
                     </div>
-                    <div id="TomApiImplementation.logRequestsDefault" class="api-member"><div class="api-member-head"><code class="api-signature">final bool logRequestsDefault</code></div></div>
+                    <div id="TomApiImplementation.logRequestsDefault" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final bool logRequestsDefault</code></div>
+                      <div class="api-doc"><p>Whether requests to this API's endpoints are logged unless an endpoint overrides it.</p></div>
+                    </div>
                   </div>
                 </section>
                 <section id="TomComponentReference" class="api-declaration">
                   <h3 class="api-decl-title">class TomComponentReference</h3>
                   <code class="api-signature">class TomComponentReference</code>
+                  <div class="api-doc">
+                    <p>Class-level annotation telling the pipeline which bean provides a service's implementation instance.</p>
+                    <p>
+                      Exactly one of [componentName] or [referencedType] must be set (not both, not neither); the pipeline resolves the instance from the bean registry by name or by type.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomComponentReference.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">const TomComponentReference.new({String? componentName, Type? referencedType})</code>
                       </div>
+                      <div class="api-doc"><p>Points a service at its implementation bean by name or by type.</p></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="TomComponentReference.componentName" class="api-member"><div class="api-member-head"><code class="api-signature">final String? componentName</code></div></div>
-                    <div id="TomComponentReference.referencedType" class="api-member"><div class="api-member-head"><code class="api-signature">final Type? referencedType</code></div></div>
+                    <div id="TomComponentReference.componentName" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? componentName</code></div>
+                      <div class="api-doc"><p>The registered bean name to resolve the implementation from.</p></div>
+                    </div>
+                    <div id="TomComponentReference.referencedType" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Type? referencedType</code></div>
+                      <div class="api-doc"><p>The registered bean type to resolve the implementation from.</p></div>
+                    </div>
                   </div>
                 </section>
                 <section id="TomDefaultErrorHandler" class="api-declaration">
                   <h3 class="api-decl-title">class TomDefaultErrorHandler</h3>
                   <code class="api-signature">class TomDefaultErrorHandler extends TomErrorHandler</code>
+                  <div class="api-doc">
+                    <p>
+                      The default [TomErrorHandler]: hides the error and returns a plain-text <code>500 Internal Server Error</code>, so error details never leak to the client.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomDefaultErrorHandler.new" class="api-member">
                       <div class="api-member-head"><code class="api-signature">const TomDefaultErrorHandler.new()</code></div>
+                      <div class="api-doc"><p>Const constructor so the default handler can be shared as a <code>const</code> value.</p></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
@@ -1426,6 +1504,15 @@
                   <code class="api-signature">
                     class TomEndpoint&lt;requestType extends Object, resultType extends Object&gt; implements TomEndpointBase&lt;requestType, resultType&gt;
                   </code>
+                  <div class="api-doc">
+                    <p>Method-level annotation that declares an HTTP endpoint inline (without a remote-API registry entry).</p>
+                    <p>
+                      It fully describes the route: the HTTP [methods] and [uri], what the body [consumes] / [produces], any fixed response [headers] / [contentDisposition], the per-endpoint [errorHandler] and [logRequests] flag, and the CORS overrides. The pipeline reflects over annotated methods, binds each to its route, and supplies the method's parameters from the request (JSON body, path/query params, principal/token, or execution context).
+                    </p>
+                    <p>
+                      Form-field (<code>formFields</code>), file-upload, redirect, and streaming/file response handling are not yet implemented in the pipeline; the fields exist for forward compatibility. See the quest completion steps and the module guide for the tracked follow-up.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomEndpoint.new" class="api-member">
@@ -1434,37 +1521,62 @@
                           const TomEndpoint.new({List&lt;TomHttpMethod&gt; methods = const [TomHttpMethod.get], List&lt;String&gt; formFields = const [], String uri = "", TomMimeType consumes = TomMimeType.json, TomMimeType produces = TomMimeType.json, String? contentDisposition, TomErrorHandler? errorHandler = _tomDefaultErrorHandler, bool? logRequests, Map&lt;String, String&gt; headers = const {}, String? corsAllowedOrigins, String? corsAllowedMethods, String? corsAllowedHeaders})
                         </code>
                       </div>
+                      <div class="api-doc">
+                        <p>
+                          Declares an endpoint; every field has a sensible default so only the differing ones need to be supplied.
+                        </p>
+                      </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
                     <div id="TomEndpoint.methods" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final List&lt;TomHttpMethod&gt; methods</code></div>
+                      <div class="api-doc"><p>The HTTP methods this endpoint answers (defaults to <code>GET</code>).</p></div>
                     </div>
                     <div id="TomEndpoint.formFields" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final List&lt;String&gt; formFields</code></div>
+                      <div class="api-doc"><p>Declared form-field names (reserved; not yet consumed by the pipeline).</p></div>
                     </div>
-                    <div id="TomEndpoint.uri" class="api-member"><div class="api-member-head"><code class="api-signature">final String uri</code></div></div>
-                    <div id="TomEndpoint.consumes" class="api-member"><div class="api-member-head"><code class="api-signature">final TomMimeType consumes</code></div></div>
-                    <div id="TomEndpoint.produces" class="api-member"><div class="api-member-head"><code class="api-signature">final TomMimeType produces</code></div></div>
+                    <div id="TomEndpoint.uri" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String uri</code></div>
+                      <div class="api-doc"><p>The route path the endpoint is mounted at.</p></div>
+                    </div>
+                    <div id="TomEndpoint.consumes" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final TomMimeType consumes</code></div>
+                      <div class="api-doc"><p>The request body media type the endpoint accepts (defaults to JSON).</p></div>
+                    </div>
+                    <div id="TomEndpoint.produces" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final TomMimeType produces</code></div>
+                      <div class="api-doc"><p>The response body media type the endpoint produces (defaults to JSON).</p></div>
+                    </div>
                     <div id="TomEndpoint.contentDisposition" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final String? contentDisposition</code></div>
+                      <div class="api-doc"><p>Optional <code>Content-Disposition</code> header for the response (e.g. downloads).</p></div>
                     </div>
                     <div id="TomEndpoint.errorHandler" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final TomErrorHandler? errorHandler</code></div>
+                      <div class="api-doc"><p>Per-endpoint error handler (defaults to [TomDefaultErrorHandler]).</p></div>
                     </div>
-                    <div id="TomEndpoint.logRequests" class="api-member"><div class="api-member-head"><code class="api-signature">final bool? logRequests</code></div></div>
+                    <div id="TomEndpoint.logRequests" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final bool? logRequests</code></div>
+                      <div class="api-doc"><p>Whether to log requests to this endpoint (<code>null</code> = use the global default).</p></div>
+                    </div>
                     <div id="TomEndpoint.headers" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final Map&lt;String, String&gt; headers</code></div>
+                      <div class="api-doc"><p>Fixed headers added to every response from this endpoint.</p></div>
                     </div>
                     <div id="TomEndpoint.corsAllowedOrigins" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final String? corsAllowedOrigins</code></div>
+                      <div class="api-doc"><p><code>Access-Control-Allow-Origin</code> override for this endpoint.</p></div>
                     </div>
                     <div id="TomEndpoint.corsAllowedMethods" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final String? corsAllowedMethods</code></div>
+                      <div class="api-doc"><p><code>Access-Control-Allow-Methods</code> override for this endpoint.</p></div>
                     </div>
                     <div id="TomEndpoint.corsAllowedHeaders" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final String? corsAllowedHeaders</code></div>
+                      <div class="api-doc"><p><code>Access-Control-Allow-Headers</code> override for this endpoint.</p></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
@@ -1486,6 +1598,14 @@
                 <section id="TomEndpointBase" class="api-declaration">
                   <h3 class="api-decl-title">class TomEndpointBase</h3>
                   <code class="api-signature">abstract class TomEndpointBase&lt;requestType extends Object, resultType extends Object&gt;</code>
+                  <div class="api-doc">
+                    <p>
+                      The common contract for the endpoint-defining annotations: each can produce the concrete [TomEndpoint] the pipeline routes.
+                    </p>
+                    <p>
+                      Implemented by [TomEndpoint] itself (returns <code>this</code>) and by [TomApiEndpointImplementation] (resolves the endpoint from the remote-API registry).
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomEndpointBase.new" class="api-member"><div class="api-member-head"><code class="api-signature">TomEndpointBase.new()</code></div></div>
@@ -1494,15 +1614,25 @@
                   <div class="api-members">
                     <div id="TomEndpointBase.convertToTomEndpoint" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomEndpoint&lt;requestType, resultType&gt; convertToTomEndpoint()</code></div>
+                      <div class="api-doc"><p>Resolves this annotation to the concrete [TomEndpoint] to route.</p></div>
                     </div>
                   </div>
                 </section>
                 <section id="TomErrorHandler" class="api-declaration">
                   <h3 class="api-decl-title">class TomErrorHandler</h3>
                   <code class="api-signature">abstract class TomErrorHandler</code>
+                  <div class="api-doc">
+                    <p>Turns an error raised while serving an endpoint into a shelf [Response].</p>
+                    <p>
+                      The endpoint pipeline calls one of the three hooks depending on <em>where</em> the failure occurred: [handleInvocationError] when the service method itself threw, [handleConversionError] when serialising the (successful) result failed, and [handleUnknowResultTypeError] when a result could not be mapped to a known body type. All three default to [handleErrorDefault], which is the single method a concrete handler must implement; override the individual hooks only when a stage needs a different response.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
-                    <div id="TomErrorHandler.new" class="api-member"><div class="api-member-head"><code class="api-signature">const TomErrorHandler.new()</code></div></div>
+                    <div id="TomErrorHandler.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">const TomErrorHandler.new()</code></div>
+                      <div class="api-doc"><p>Const base constructor so handlers can be used as <code>const</code> annotations.</p></div>
+                    </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
@@ -1510,20 +1640,29 @@
                       <div class="api-member-head">
                         <code class="api-signature">Response handleInvocationError(Object error, Object stacktrace, Request r)</code>
                       </div>
+                      <div class="api-doc"><p>Builds the response for an error thrown by the service method.</p></div>
                     </div>
                     <div id="TomErrorHandler.handleConversionError" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">Response handleConversionError(Object error, Object stacktrace, Request r, Object? result)</code>
                       </div>
+                      <div class="api-doc"><p>Builds the response for an error thrown while converting [result] into the response body.</p></div>
                     </div>
                     <div id="TomErrorHandler.handleUnknowResultTypeError" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">Response handleUnknowResultTypeError(Object error, Object stacktrace, Request r, Object? result)</code>
                       </div>
+                      <div class="api-doc"><p>Builds the response for a [result] whose type the pipeline cannot map to a body.</p></div>
                     </div>
                     <div id="TomErrorHandler.handleErrorDefault" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">Response handleErrorDefault(Object error, Object stacktrace, Request r, Object? result)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          The fallback every hook delegates to; the one method a concrete handler must implement. [result] is the value being processed when the error occurred (<code>null</code>
+                           for invocation errors).
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -1531,26 +1670,51 @@
                 <section id="TomService" class="api-declaration">
                   <h3 class="api-decl-title">class TomService</h3>
                   <code class="api-signature">class TomService</code>
+                  <div class="api-doc">
+                    <p>
+                      Class-level annotation marking a class as a service whose endpoint-annotated methods should be scanned and routed by the pipeline.
+                    </p>
+                    <p>
+                      Use the [tomService] constant to annotate a class. A class may be a <code>@tomService</code> <em>or</em>
+                       a [TomApiImplementation], never both.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
-                    <div id="TomService.new" class="api-member"><div class="api-member-head"><code class="api-signature">const TomService.new()</code></div></div>
+                    <div id="TomService.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">const TomService.new()</code></div>
+                      <div class="api-doc"><p>Const constructor so the annotation can be applied as <code>@tomService</code>.</p></div>
+                    </div>
                   </div>
                 </section>
                 <section id="TomTransactional" class="api-declaration">
                   <h3 class="api-decl-title">class TomTransactional</h3>
                   <code class="api-signature">class TomTransactional</code>
+                  <div class="api-doc">
+                    <p>Method-level annotation requesting that an endpoint method run inside a database transaction.</p>
+                    <p>
+                      When present, the pipeline starts a transaction before invoking the method and commits on success / rolls back on a thrown error. [isReadOnly] marks the transaction as read-only; [isTransactional] can disable wrapping while keeping the annotation in place.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomTransactional.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">const TomTransactional.new({bool isReadOnly = false, bool isTransactional = true})</code>
                       </div>
+                      <div class="api-doc"><p>Declares the transactional behaviour for an endpoint method.</p></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="TomTransactional.isTransactional" class="api-member"><div class="api-member-head"><code class="api-signature">final bool isTransactional</code></div></div>
-                    <div id="TomTransactional.isReadOnly" class="api-member"><div class="api-member-head"><code class="api-signature">final bool isReadOnly</code></div></div>
+                    <div id="TomTransactional.isTransactional" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final bool isTransactional</code></div>
+                      <div class="api-doc"><p>Whether the method should be wrapped in a transaction at all.</p></div>
+                    </div>
+                    <div id="TomTransactional.isReadOnly" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final bool isReadOnly</code></div>
+                      <div class="api-doc"><p>Whether the transaction is read-only.</p></div>
+                    </div>
                   </div>
                 </section>
               </div>

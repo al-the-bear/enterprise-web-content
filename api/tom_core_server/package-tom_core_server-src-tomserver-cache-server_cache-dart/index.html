@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1313,7 +1333,6 @@
                   <a class="leaf" href="#TomCacheRemoveMessage">TomCacheRemoveMessage</a>
                   <a class="leaf" href="#TomCacheRetrieveMessage">TomCacheRetrieveMessage</a>
                   <a class="leaf" href="#TomCacheStoreMessage">TomCacheStoreMessage</a>
-                  <a class="leaf" href="#main">main</a>
                 </div>
               </div>
               <div class="reader">
@@ -1322,6 +1341,20 @@
                 <section id="TomCache" class="api-declaration">
                   <h3 class="api-decl-title">class TomCache</h3>
                   <code class="api-signature">class TomCache</code>
+                  <div class="api-doc">
+                    <p>A named in-memory cache of [TomCacheEntry] values keyed by string.</p>
+                    <p>
+                      A cache may be: - <strong>unbounded</strong> (default) — a plain map with optional time-based expiry, or - 
+                      <strong>bounded</strong> ([maximumEntries] set) — a most-recently-used list where the least-recently-used entry is evicted once the bound is exceeded; [getEntry] and [putEntry] move the touched entry to the front.
+                    </p>
+                    <p>
+                      Two background timers can be installed at construction: a <em>deletion</em> timer (every [deletionIntervalSeconds]) that drops entries past their 
+                      <code>deletionTime</code>, and a <em>clearance</em> timer (every [clearIntervalSeconds]) that empties the whole cache.
+                    </p>
+                    <p>
+                      The static <code>…NameCache</code> / <code>…TypeCache</code> helpers are the usual entry points: they look the cache up by name through [TomCacheManager] and, in a worker isolate that does not hold the cache, forward the operation to the main isolate.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomCache.new" class="api-member">
@@ -1330,12 +1363,23 @@
                           TomCache.new(String cacheName, {int? deleteEntriesAfterSeconds, int? deletionIntervalSeconds = 3600, int? maximumEntries, int? clearIntervalSeconds})
                         </code>
                       </div>
+                      <div class="api-doc">
+                        <p>Creates a named cache and installs its background timers.</p>
+                        <p>
+                          [deleteEntriesAfterSeconds] sets the default per-entry lifetime, [deletionIntervalSeconds] the expiry-sweep period (default 3600), [maximumEntries] the LRU bound, and [clearIntervalSeconds] a full-clear period.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomCache.forType" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
                           factory TomCache.forType(Type type, {int? deleteEntriesAfterSeconds, int? deletionIntervalSeconds = 3600, int? maximumEntries, int? clearIntervalSeconds})
                         </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Creates a cache named after [type] (<code>type.toString()</code>), so callers can key a cache by the Dart type it holds. Parameters mirror the default constructor.
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -1346,48 +1390,121 @@
                     <div id="TomCache._cache" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final Map&lt;String, TomCacheEntry&gt; _cache</code></div>
                     </div>
-                    <div id="TomCache.cacheName" class="api-member"><div class="api-member-head"><code class="api-signature">final String cacheName</code></div></div>
+                    <div id="TomCache.cacheName" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String cacheName</code></div>
+                      <div class="api-doc"><p>The name this cache is registered under in [TomCacheManager].</p></div>
+                    </div>
                     <div id="TomCache.deletionIntervalSeconds" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final int? deletionIntervalSeconds</code></div>
+                      <div class="api-doc">
+                        <p>
+                          How often (seconds) the deletion timer sweeps expired entries. <code>null</code> disables the timer. Defaults to one hour.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomCache.deleteEntriesAfterSeconds" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final int? deleteEntriesAfterSeconds</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Default lifetime (seconds) applied to a stored value when no explicit deletion time is given. <code>null</code>
+                           means entries do not expire by age.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomCache.clearIntervalSeconds" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final int? clearIntervalSeconds</code></div>
+                      <div class="api-doc">
+                        <p>How often (seconds) the clearance timer empties the whole cache. <code>null</code> disables it.</p>
+                      </div>
                     </div>
-                    <div id="TomCache.maximumEntries" class="api-member"><div class="api-member-head"><code class="api-signature">final int? maximumEntries</code></div></div>
-                    <div id="TomCache.deletionTimer" class="api-member"><div class="api-member-head"><code class="api-signature">Timer? deletionTimer</code></div></div>
-                    <div id="TomCache.clearanceTimer" class="api-member"><div class="api-member-head"><code class="api-signature">Timer? clearanceTimer</code></div></div>
+                    <div id="TomCache.maximumEntries" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final int? maximumEntries</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Upper bound on the number of entries. <code>null</code> makes the cache unbounded; a value turns on LRU eviction.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomCache.deletionTimer" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Timer? deletionTimer</code></div>
+                      <div class="api-doc"><p>The periodic timer that sweeps expired entries, or <code>null</code> if disabled.</p></div>
+                    </div>
+                    <div id="TomCache.clearanceTimer" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Timer? clearanceTimer</code></div>
+                      <div class="api-doc"><p>The periodic timer that clears the whole cache, or <code>null</code> if disabled.</p></div>
+                    </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
-                    <div id="TomCache.removeEntry" class="api-member"><div class="api-member-head"><code class="api-signature">void removeEntry(String key)</code></div></div>
+                    <div id="TomCache.removeEntry" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void removeEntry(String key)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Removes the entry stored under [key], unlinking it from the MRU list if the cache is bounded. A no-op when the key is absent.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomCache.getEntry" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomCacheEntry? getEntry(String key)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Returns the entry under [key], or <code>null</code> if absent. In a bounded cache the returned entry is promoted to the most-recently-used position. Does not check expiry — callers (e.g. [fromNameCache]) enforce that.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomCache.putEntry" class="api-member">
                       <div class="api-member-head"><code class="api-signature">void putEntry(String key, TomCacheEntry entry)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Stores [entry] under [key], inserting it at the most-recently-used position. In a bounded cache, exceeding [maximumEntries] evicts the least-recently-used entry.
+                        </p>
+                      </div>
                     </div>
-                    <div id="TomCache.createTimers" class="api-member"><div class="api-member-head"><code class="api-signature">void createTimers()</code></div></div>
-                    <div id="TomCache.stopTimers" class="api-member"><div class="api-member-head"><code class="api-signature">void stopTimers()</code></div></div>
-                    <div id="TomCache.createDeletionTimer" class="api-member"><div class="api-member-head"><code class="api-signature">Timer createDeletionTimer()</code></div></div>
-                    <div id="TomCache.createClearanceTimer" class="api-member"><div class="api-member-head"><code class="api-signature">Timer createClearanceTimer()</code></div></div>
+                    <div id="TomCache.createTimers" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void createTimers()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Cancels any running timers and installs the deletion and/or clearance timers for which an interval is configured.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomCache.stopTimers" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void stopTimers()</code></div>
+                      <div class="api-doc"><p>Cancels the deletion and clearance timers if they are running.</p></div>
+                    </div>
+                    <div id="TomCache.createDeletionTimer" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Timer createDeletionTimer()</code></div>
+                      <div class="api-doc"><p>Builds the periodic timer that removes entries past their <code>deletionTime</code>.</p></div>
+                    </div>
+                    <div id="TomCache.createClearanceTimer" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Timer createClearanceTimer()</code></div>
+                      <div class="api-doc"><p>Builds the periodic timer that empties the entire cache.</p></div>
+                    </div>
                   </div>
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
                     <div id="TomCache.fromTypeCache" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static Future&lt;T?&gt; fromTypeCache&lt;T&gt;(String key)</code></div>
+                      <div class="api-doc">
+                        <p>Reads the value of type [T] keyed by [key] from the cache named after [T]. See [fromNameCache].</p>
+                      </div>
                     </div>
                     <div id="TomCache.fromNameCache" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">static Future&lt;T?&gt; fromNameCache&lt;T&gt;(String cacheName, String key)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Reads the value keyed by [key] from the cache named [cacheName].</p>
+                        <p>
+                          Returns <code>null</code> on a miss or when the entry has expired (the expired entry is also removed). Throws [TomCacheException] if the cached value is not a [T], or — in an isolate that owns no caches and cannot forward — if the named cache does not exist. In a worker isolate that does not hold the cache, the read is forwarded to the main isolate.
+                        </p>
                       </div>
                     </div>
                     <div id="TomCache.toTypeCache" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">static Future&lt;int&gt; toTypeCache&lt;T&gt;(String key, Object? value)</code>
                       </div>
+                      <div class="api-doc"><p>Stores [value] under [key] in the cache named after [T]. See [toNameCache].</p></div>
                     </div>
                     <div id="TomCache.toNameCache" class="api-member">
                       <div class="api-member-head">
@@ -1395,13 +1512,28 @@
                           static Future&lt;int&gt; toNameCache(String cacheName, String key, Object? value, [DateTime? deletionTime])
                         </code>
                       </div>
+                      <div class="api-doc">
+                        <p>Stores [value] under [key] in the cache named [cacheName].</p>
+                        <p>
+                          If [deletionTime] is omitted the entry expires after the cache's [deleteEntriesAfterSeconds] (or never, if that is also unset). Passing a [TomCacheEntry] as [value] stores it verbatim. In a worker isolate that does not hold the cache the store is forwarded to the main isolate; otherwise a missing cache throws [TomCacheException]. Always returns 
+                          <code>0</code>.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomCache.removeFromTypeCache" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static Future&lt;int&gt; removeFromTypeCache&lt;T&gt;(String key)</code></div>
+                      <div class="api-doc"><p>Removes the entry keyed by [key] from the cache named after [T]. See [removeFromNameCache].</p></div>
                     </div>
                     <div id="TomCache.removeFromNameCache" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">static Future&lt;int&gt; removeFromNameCache(String cacheName, String key)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Removes the entry keyed by [key] from the cache named [cacheName].</p>
+                        <p>
+                          In a worker isolate that does not hold the cache the removal is forwarded to the main isolate; otherwise a missing cache throws [TomCacheException]. Always returns 
+                          <code>0</code>.
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -1409,16 +1541,34 @@
                 <section id="TomCacheEntry" class="api-declaration">
                   <h3 class="api-decl-title">class TomCacheEntry</h3>
                   <code class="api-signature">class TomCacheEntry</code>
+                  <div class="api-doc">
+                    <p>A single cached value paired with the optional [deletionTime] after which it is considered expired.</p>
+                    <p>
+                      When a cache is bounded ([TomCache.maximumEntries] set) the entries are also linked into a most-recently-used list via the private 
+                      <code>_next</code>/<code>_before</code> pointers so the least-recently-used entry can be evicted in O(1).
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomCacheEntry.new" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomCacheEntry.new(Object? value, [DateTime? deletionTime])</code></div>
+                      <div class="api-doc"><p>Creates an entry holding [value], optionally expiring at [deletionTime].</p></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="TomCacheEntry.deletionTime" class="api-member"><div class="api-member-head"><code class="api-signature">DateTime? deletionTime</code></div></div>
-                    <div id="TomCacheEntry.value" class="api-member"><div class="api-member-head"><code class="api-signature">Object? value</code></div></div>
+                    <div id="TomCacheEntry.deletionTime" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">DateTime? deletionTime</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The instant after which this entry is expired. <code>null</code> means the entry does not expire on its own (it may still be evicted by an LRU bound or a clear).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomCacheEntry.value" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Object? value</code></div>
+                      <div class="api-doc"><p>The cached value.</p></div>
+                    </div>
                     <div id="TomCacheEntry._next" class="api-member"><div class="api-member-head"><code class="api-signature">TomCacheEntry? _next</code></div></div>
                     <div id="TomCacheEntry._before" class="api-member"><div class="api-member-head"><code class="api-signature">TomCacheEntry? _before</code></div></div>
                     <div id="TomCacheEntry._key" class="api-member"><div class="api-member-head"><code class="api-signature">String? _key</code></div></div>
@@ -1427,6 +1577,11 @@
                 <section id="TomCacheException" class="api-declaration">
                   <h3 class="api-decl-title">class TomCacheException</h3>
                   <code class="api-signature">class TomCacheException extends TomServerException</code>
+                  <div class="api-doc">
+                    <p>
+                      Raised by the cache API when an operation cannot be completed: the named cache does not exist in this isolate (and cannot be forwarded), or a retrieved value does not match the requested type parameter.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomCacheException.new" class="api-member">
@@ -1441,15 +1596,38 @@
                 <section id="TomCacheManager" class="api-declaration">
                   <h3 class="api-decl-title">class TomCacheManager</h3>
                   <code class="api-signature">class TomCacheManager</code>
+                  <div class="api-doc">
+                    <p>
+                      Holds the set of named [TomCache] instances for an isolate and decides whether cache operations run locally or are forwarded to the creator isolate.
+                    </p>
+                    <p>
+                      Caches physically live in the main isolate. [useInThisIsolate] is forced to <code>true</code> there; in a worker isolate it stays 
+                      <code>false</code> (unless explicitly set), so operations on a cache the worker does not hold are forwarded to the main isolate via [TomWorker.executeInCreator].
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomCacheManager.new" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomCacheManager.new([bool useInThisIsolate = false])</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Creates a manager. [useInThisIsolate] defaults to <code>false</code>, but is forced to <code>true</code>
+                           when constructed in the main isolate.
+                        </p>
+                      </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="TomCacheManager.useInThisIsolate" class="api-member"><div class="api-member-head"><code class="api-signature">bool useInThisIsolate</code></div></div>
+                    <div id="TomCacheManager.useInThisIsolate" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool useInThisIsolate</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Whether caches are served from this isolate. Always <code>true</code> in the main isolate; <code>false</code>
+                           in a worker isolate forwards missing-cache operations to the creator.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomCacheManager._caches" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final Map&lt;Object, TomCache&gt; _caches</code></div>
                     </div>
@@ -1461,18 +1639,30 @@
                     </div>
                     <div id="TomCacheManager.setCurrent" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static TomCacheManager setCurrent(TomCacheManager manager)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Replaces the process-wide current manager and returns it. Useful in tests or to install a pre-populated manager.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomCacheManager.getCache" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static TomCache? getCache(String name)</code></div>
+                      <div class="api-doc"><p>Returns the cache registered under [name], or <code>null</code> if none is.</p></div>
                     </div>
                     <div id="TomCacheManager.addCache" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static void addCache(TomCache cache)</code></div>
+                      <div class="api-doc"><p>Registers [cache] under its [TomCache.cacheName].</p></div>
                     </div>
                   </div>
                 </section>
                 <section id="TomCacheRemoveMessage" class="api-declaration">
                   <h3 class="api-decl-title">class TomCacheRemoveMessage</h3>
                   <code class="api-signature">class TomCacheRemoveMessage extends TomCommand</code>
+                  <div class="api-doc">
+                    <p>
+                      Cross-isolate command that removes [key] from cache [cacheName]. Dispatched to the main isolate via [TomWorker.executeInCreator] when a worker isolate removes from a cache it does not hold.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomCacheRemoveMessage.new" class="api-member">
@@ -1497,6 +1687,11 @@
                 <section id="TomCacheRetrieveMessage" class="api-declaration">
                   <h3 class="api-decl-title">class TomCacheRetrieveMessage</h3>
                   <code class="api-signature">class TomCacheRetrieveMessage extends TomCommand</code>
+                  <div class="api-doc">
+                    <p>
+                      Cross-isolate command that reads [key] from cache [cacheName] and returns the value. Dispatched to the main isolate via [TomWorker.executeInCreator] when a worker isolate reads from a cache it does not hold.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomCacheRetrieveMessage.new" class="api-member">
@@ -1521,6 +1716,11 @@
                 <section id="TomCacheStoreMessage" class="api-declaration">
                   <h3 class="api-decl-title">class TomCacheStoreMessage</h3>
                   <code class="api-signature">class TomCacheStoreMessage extends TomCommand</code>
+                  <div class="api-doc">
+                    <p>
+                      Cross-isolate command that stores [value] under [key] in cache [cacheName]. Dispatched to the main isolate via [TomWorker.executeInCreator] when a worker isolate stores into a cache it does not hold.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomCacheStoreMessage.new" class="api-member">
@@ -1546,7 +1746,6 @@
                     </div>
                   </div>
                 </section>
-                <section id="main" class="api-declaration"><h3 class="api-decl-title">function main</h3><code class="api-signature">void main()</code></section>
               </div>
             </div>
           </section>

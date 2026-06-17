@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1305,7 +1325,7 @@
               <span style="display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap"><span class="badge b-pub"><span class="d"></span>Published</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">role: extension</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">license: BSD-3-Clause</span></span>
             </div>
             <h2>tom_analyzer_shared</h2>
-            <div class="mono" style="color: #9FB6C9">tom_analyzer_shared · v0.1.0</div>
+            <div class="mono" style="color: #9FB6C9">tom_analyzer_shared · v0.2.0</div>
             <p style="margin-top: 10px">
               Caching infrastructure that builds and reuses binary analyzer summaries so Tom's code generators skip rescanning stable dependencies on every run.
             </p>
@@ -1316,25 +1336,15 @@
           </div>
           <div class="statgrid">
             <div class="stat"><div class="k">Status</div><div class="v" style="font-size: 1.05rem; color: #0F7FB0">Published</div></div>
-            <div class="stat"><div class="k">LOC</div><div class="v">1.0k</div></div>
-            <div class="stat"><div class="k">Tests</div><div class="v">82</div></div>
+            <div class="stat"><div class="k">LOC</div><div class="v">1.1k</div></div>
+            <div class="stat"><div class="k">Tests</div><div class="v">87</div></div>
             <div class="stat"><div class="k">Test LOC</div><div class="v">1.1k</div></div>
           </div>
           <div class="dcols">
             <div>
               <div class="panel">
                 <h3>Overview</h3>
-                <p>
-                  `tom_analyzer_shared` gives Tom's code generators a shared summary cache.
-                  For a project with a resolved `pubspec.lock`, it resolves dependencies,
-                  decides which are cacheable, and builds binary analyzer summaries for the
-                  SDK and each stable package in dependency order.
-                  
-                  Summaries are stored under the workspace and handed back so callers can
-                  feed them to the analyzer and skip re-analysing unchanged packages from
-                  source. Extracted from the reflection generator, it is now the common
-                  cache reused by reflection, d4rt bridges, and other generators.
-                </p>
+                <p>From the module readme.md file:</p>
                 <h4 style="font-size: 1rem; margin-top: 18px">What it enables</h4>
                 <p style="margin: 0">Enables Reflection code generation, d4rt bridge generation, Cached dependency analysis.</p>
               </div>
@@ -1385,37 +1395,378 @@
             <div class="pageprose">
               <h1>tom_analyzer_shared</h1>
               <p>
-                Shared analyzer-summary caching infrastructure reused by Tom code generators. It was extracted from `tom_reflection_generator` so multiple tools (reflection, d4rt bridges, ...) can share the same summary cache at `&lt;workspace&gt;/.tom/analyzer-cache/` and avoid rescanning stable dependencies on every run.
+                &gt; Part of the <strong>Tom framework</strong> by al-the-bear. &gt; © 2024–2026 Peter Nicolai Alexis Kyaw — BSD-3-Clause, see 
+                <a href="https://github.com/al-the-bear/tom_basics/blob/main/tom_analyzer_shared/LICENSE">LICENSE</a>.
               </p>
-              <h2>What it does</h2>
-              <p>For a project with a resolved `pubspec.lock`, this library can:</p>
               <p>
-                1. Enumerate all dependencies with their exact versions and source types (`hosted`, `sdk`, `path`, `git`). 2. Decide which of them are *cacheable* (hosted pub.dev packages and SDK packages — their versions are stable). 3. Build a binary summary (`.sum`) for the Dart SDK (including Flutter `dart:ui` via `sky_engine/_embedder.yaml` when Flutter is on the path) and for each cacheable package, in topological order so that a package's summary can reference its dependencies' summaries. 4. Store all summaries under `&lt;workspace&gt;/.tom/analyzer-cache/` using the naming scheme `{package}@{version}.sum` and `sdk@{dart-version}.sum`. 5. Return the list of summary paths so callers can pass them to `AnalysisContextCollectionImpl(..., librarySummaryPaths: summaryPaths, sdkSummaryPath: sdkSummaryPath)` and skip re-analysing those packages from sources.
+                Shared analyzer-summary caching infrastructure reused by Tom code generators (reflection, d4rt bridges, …).
               </p>
-              <h2>Public API</h2>
-              <p>Import everything via the top-level library:</p>
-              <pre><code>import 'package:tom_analyzer_shared/tom_analyzer_shared.dart';</code></pre>
-              <p>Main types and functions:</p>
-              <ul>
-                <li>`PackageDependency`, `DependencySet` — resolved dependency metadata.</li>
-                <li>`DependencyResolver` — parses `pubspec.lock`, resolves hosted and SDK</li>
-              </ul>
               <p>
-                package locations. - `SummaryCacheManager` — reads and writes `.sum` files in the shared cache directory. - `SummaryGenerator` — generates the SDK summary and per-package summaries (topological order, progress callback, error aggregation). - `runSummaryCacheStage()` — convenience entry-point used by CLI tools. Resolves dependencies, generates what's missing, and returns a `SummaryCacheResult(summaryPaths, sdkSummaryPath)`.
+                Every tool that builds on the Dart <code>analyzer</code> package pays the same tax: before it can look at 
+                <em>your</em> code, the analyzer must resolve and analyse <em>all of your dependencies</em> — Flutter, 
+                <code>provider</code>, <code>meta</code>, the SDK itself. For a code generator that runs repeatedly, re-analysing the same stable packages on every run is pure waste. 
+                <code>tom_analyzer_shared</code> removes that waste by building analyzer <strong>summaries</strong> (<code>.sum</code>
+                 files) for the dependencies whose versions cannot change between runs, caching them in a shared workspace directory, and handing the paths back so the analyzer loads pre-digested type information instead of re-scanning sources.
               </p>
-              <h2>Typical usage</h2>
-              <pre><code>final result = await runSummaryCacheStage(
-  projectRoot,
-  verbose: true,
-);
-
-final collection = AnalysisContextCollectionImpl(
+              <p>
+                It was extracted from <code>tom_reflection_generator</code> so that more than one generator could share one cache, and it is consumed today by both the reflection generator and the d4rt bridge generator.
+              </p>
+              <p>---</p>
+              <h2>Overview</h2>
+              <p>
+                The analyzer can be told, when it constructs an analysis context, "here are some pre-built summaries — trust them instead of reading these packages from source":
+              </p>
+              <pre><code>AnalysisContextCollectionImpl(
   includedPaths: [projectRoot],
-  sdkSummaryPath: result?.sdkSummaryPath,
-  librarySummaryPaths: result?.summaryPaths ?? const [],
+  sdkSummaryPath: ...,        // a prebuilt SDK summary
+  librarySummaryPaths: ...,   // prebuilt package summaries
 );</code></pre>
               <p>
-                Both `tom_reflection_generator` and `tom_d4rt_generator` use this stage to share a single cache directory across runs.
+                The hard part is producing those summaries correctly: knowing <em>which</em> packages are safe to cache, locating their sources in the pub cache and the SDK, building each summary 
+                <strong>after</strong> the summaries it depends on, and storing them under a stable, version-keyed name so the next run finds them. 
+                <code>tom_analyzer_shared</code> owns that pipeline:
+              </p>
+              <pre><code>pubspec.lock ──▶ DependencyResolver ──▶ which deps are cacheable?
+                                          │  (hosted + SDK = stable versions)
+                                          ▼
+                 SummaryGenerator ──▶ build SDK summary, then each package
+                                          │  summary in topological order
+                                          ▼
+                 SummaryCacheManager ──▶ &lt;workspace&gt;/.tom/analyzer-cache/
+                                          │  {package}@{version}.sum
+                                          ▼
+            SummaryCacheResult { summaryPaths, sdkSummaryPath } ──▶ analyzer</code></pre>
+              <p>
+                The whole pipeline is wrapped by one function — <code>runSummaryCacheStage</code> — that a CLI tool calls once and then feeds the result straight into its analysis context. The individual stages are public too, for tools that need finer control.
+              </p>
+              <h3>Why only some dependencies are cached</h3>
+              <p>
+                A summary is keyed by <code>{package}@{version}</code>. That key is only trustworthy when the version pins the 
+                <em>content</em> — which is true for <strong>hosted</strong> (pub.dev) and <strong>SDK</strong> packages, and false for 
+                <strong>path</strong> and <strong>git</strong> dependencies, whose files can change without the version changing. So 
+                <code>tom_analyzer_shared</code> caches hosted and SDK packages and leaves path/git dependencies to be analysed from source every run. This is the single rule encoded in 
+                <code>PackageDependency.isCacheable</code>.
+              </p>
+              <p>---</p>
+              <h2>Installation</h2>
+              <pre><code>dependencies:
+  tom_analyzer_shared: ^0.1.0</code></pre>
+              <p>Or from the command line:</p>
+              <pre><code>dart pub add tom_analyzer_shared</code></pre>
+              <p>Then import the single entry point:</p>
+              <pre><code>import 'package:tom_analyzer_shared/tom_analyzer_shared.dart';</code></pre>
+              <p>
+                Requires Dart SDK <code>^3.10.4</code>. It depends on <code>analyzer</code>, <code>path</code>, and <code>yaml</code>. It is a 
+                <code>dart:io</code> package (it reads <code>pubspec.lock</code>, the pub cache, and the SDK), so it runs on desktop, server, and CLI hosts.
+              </p>
+              <p>---</p>
+              <h2>Features</h2>
+              <table class="mdtable">
+                <thead><tr><th>API</th><th>Kind</th><th>Purpose</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><code>runSummaryCacheStage</code></td>
+                    <td>function</td>
+                    <td>The one-call orchestration entry point used by CLI tools</td>
+                  </tr>
+                  <tr>
+                    <td><code>SummaryCacheResult</code></td>
+                    <td>class</td>
+                    <td>The returned <code>summaryPaths</code> + <code>sdkSummaryPath</code>, ready for the analyzer</td>
+                  </tr>
+                  <tr>
+                    <td><code>DependencyResolver</code></td>
+                    <td>class</td>
+                    <td>Parses <code>pubspec.lock</code>; resolves hosted/SDK source locations</td>
+                  </tr>
+                  <tr>
+                    <td><code>PackageDependency</code></td>
+                    <td>class</td>
+                    <td>One resolved dependency: name, version, source, cacheability</td>
+                  </tr>
+                  <tr>
+                    <td><code>DependencySet</code></td>
+                    <td>class</td>
+                    <td>Dependencies split into <code>cacheable</code> / <code>uncacheable</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>DependencyListExtensions</code></td>
+                    <td>extension</td>
+                    <td>
+                      <code>hosted</code>
+                       / 
+                      <code>sdk</code>
+                       / 
+                      <code>paths</code>
+                       / 
+                      <code>cacheable</code>
+                       / 
+                      <code>findByName</code>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>SummaryGenerator</code></td>
+                    <td>class</td>
+                    <td>Builds the SDK summary and per-package summaries in topological order</td>
+                  </tr>
+                  <tr>
+                    <td><code>SummaryGenerationResult</code></td>
+                    <td>class</td>
+                    <td>Counts of generated / skipped / failed + per-package errors</td>
+                  </tr>
+                  <tr>
+                    <td><code>SummaryCacheManager</code></td>
+                    <td>class</td>
+                    <td>Reads/writes <code>.sum</code> files; cache paths, stats, cleanup</td>
+                  </tr>
+                  <tr><td><code>CacheStats</code></td><td>class</td><td>Cache directory size and file count</td></tr>
+                </tbody>
+              </table>
+              <p>---</p>
+              <h2>Quick start</h2>
+              <p>
+                Most callers need exactly one function. Resolve, generate what's missing, and get the paths to hand to the analyzer:
+              </p>
+              <pre><code>import 'package:analyzer/src/dart/analysis/analysis_context_collection.dart';
+import 'package:tom_analyzer_shared/tom_analyzer_shared.dart';
+
+Future&lt;void&gt; analyse(String projectRoot) async {
+  final result = await runSummaryCacheStage(projectRoot, verbose: true);
+
+  final collection = AnalysisContextCollectionImpl(
+    includedPaths: [projectRoot],
+    sdkSummaryPath: result?.sdkSummaryPath,
+    librarySummaryPaths: result?.summaryPaths ?? const [],
+  );
+  // … use `collection` to analyse the project's own sources …
+}</code></pre>
+              <p>
+                <code>runSummaryCacheStage</code> resolves dependencies from <code>pubspec.lock</code>, builds any summaries not already in 
+                <code>&lt;projectRoot&gt;/.tom/analyzer-cache/</code>, and returns a <code>SummaryCacheResult</code>. On the first run it generates the cache; on later runs it finds everything present and returns immediately. It returns 
+                <code>null</code> when no dependencies could be resolved or no summaries are available, so the null-aware 
+                <code>result?.…</code> is the intended usage.
+              </p>
+              <p>---</p>
+              <h2>Example projects</h2>
+              <p>
+                This package is consumed <em>inside</em> code-generator CLIs rather than run standalone, so it ships no 
+                <code>example/</code> program. The worked sample lives in the samples folder:
+              </p>
+              <table class="mdtable">
+                <thead><tr><th>Sample</th><th>Demonstrates</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_basics/tree/main/tom_basics_samples/tom_build_base_advanced_analyzer_sample"><code>tom_build_base_advanced_analyzer_sample</code></a>
+                    </td>
+                    <td>
+                      A small nestable, traversal-driven tool that exercises the cacheability rule, dependency resolution and the on-disk summary cache per project, then reports the cold→warm cache-hit payoff — end to end and offline.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>
+                The <a href="#usage">usage</a> sections below and the consumers named under <a href="#ecosystem">ecosystem</a>
+                 are the inline reference.
+              </p>
+              <p>---</p>
+              <h2>Usage</h2>
+              <h3>The one-call stage</h3>
+              <p>
+                <code>runSummaryCacheStage</code> takes the project root and a handful of optional flags that mirror what a generator CLI exposes:
+              </p>
+              <pre><code>final result = await runSummaryCacheStage(
+  projectRoot,
+  verbose: true,                 // detail each generated/failed package
+  rebuildCache: false,           // true → clear the cache first
+  showCacheStatus: false,        // true → print status and return null
+  cacheOnlyPackages: const [],   // non-empty → only these packages
+  log: print,                    // redirect output (defaults to print)
+);</code></pre>
+              <ul>
+                <li>
+                  <code>rebuildCache</code> clears <code>&lt;root&gt;/.tom/analyzer-cache/</code> before generating — use it
+                </li>
+              </ul>
+              <p>
+                when a summary may be stale (e.g. after an SDK upgrade). - <code>showCacheStatus</code> prints a per-package CACHED/MISSING report and returns 
+                <code>null</code> without doing heavy work — the implementation behind a <code>--cache-status</code> flag. - 
+                <code>cacheOnlyPackages</code> narrows generation to named packages for targeted rebuilds. - <code>log</code>
+                 redirects the human-readable progress lines to your own sink.
+              </p>
+              <h3>Resolving dependencies</h3>
+              <p>
+                When you need the dependency list itself — to inspect it, filter it, or drive a custom generation — use 
+                <code>DependencyResolver</code>. It parses <code>pubspec.lock</code> and classifies every entry:
+              </p>
+              <pre><code>final resolver = DependencyResolver();
+final deps = await resolver.resolveVersionedDependencies(projectRoot);
+
+for (final dep in deps) {
+  print('${dep.cacheKey}  source=${dep.source}  cacheable=${dep.isCacheable}');
+}</code></pre>
+              <p>
+                A <code>PackageDependency</code> carries the <code>name</code>, exact <code>version</code>, <code>source</code>
+                 (<code>hosted</code>, <code>sdk</code>, <code>path</code>, <code>git</code>), and the source-specific extras (<code>hostedUrl</code>, 
+                <code>sdkName</code>, <code>path</code>). Its two derived members are the heart of the package:
+              </p>
+              <ul>
+                <li>
+                  <code>isCacheable</code> — <code>true</code> only for <code>hosted</code> and <code>sdk</code> sources.
+                </li>
+                <li><code>cacheKey</code> — <code>'{name}@{version}'</code>, the cache file stem.</li>
+              </ul>
+              <pre><code>const dep = PackageDependency(name: 'provider', version: '6.1.2', source: 'hosted');
+print(dep.isCacheable); // true
+print(dep.cacheKey);    // provider@6.1.2</code></pre>
+              <p>
+                <code>DependencySet.from(deps)</code> splits a list into <code>cacheable</code> / <code>uncacheable</code>, and the 
+                <code>DependencyListExtensions</code> give you focused views:
+              </p>
+              <pre><code>final set = DependencySet.from(deps);
+print(set.cacheable.length);        // hosted + sdk
+print(deps.hosted.map((d) =&gt; d.name));  // hosted only
+print(deps.findByName('flutter')?.cacheKey);</code></pre>
+              <h3>The cache directory</h3>
+              <p>
+                <code>SummaryCacheManager</code> owns <code>&lt;workspace&gt;/.tom/analyzer-cache/</code> and the file naming. You construct it with the workspace root and ask it for paths or status — it never guesses a layout the analyzer can't find:
+              </p>
+              <pre><code>final cache = SummaryCacheManager(projectRoot);
+
+print(cache.cacheDirectory);                       // …/.tom/analyzer-cache
+print(cache.getCachePath('provider', '6.1.2'));    // …/provider@6.1.2.sum
+print(cache.getSdkSummaryPath());                  // …/sdk@&lt;dart-version&gt;.sum
+
+final stats = await cache.getStats();              // CacheStats
+print('${stats.summaryCount} files, ${stats.totalSizeMB.toStringAsFixed(1)} MB');</code></pre>
+              <p>
+                It also offers <code>hasSummary</code>, <code>findMissingSummaries</code>, <code>loadSummary</code>, 
+                <code>clearCache</code>, <code>cleanOutdated</code>, and <code>cleanUnusedSummaries</code> for tools that manage the cache lifecycle directly.
+              </p>
+              <h3>Generating summaries directly</h3>
+              <p>
+                <code>SummaryGenerator</code> is the engine <code>runSummaryCacheStage</code> drives. Use it directly when you want to control SDK-vs-package ordering or capture per-package errors:
+              </p>
+              <pre><code>final generator = SummaryGenerator(
+  cacheManager: cache,
+  dependencyResolver: resolver,
+);
+
+await generator.generateSdkSummary();              // dart:core / dart:ui first
+
+final cacheable = await resolver.resolveCacheableDependencies(projectRoot);
+final result = await generator.generateMissingSummaries(
+  cacheable,
+  onProgress: (pkg, current, total) =&gt; print('  ($current/$total) $pkg'),
+);
+
+print('generated=${result.generated} skipped=${result.skipped} '
+    'failed=${result.failed} total=${result.total}');
+for (final entry in result.errors.entries) {
+  print('  ${entry.key}: ${entry.value}');         // why a package failed
+}</code></pre>
+              <p>
+                The SDK summary is built <strong>first</strong> because package summaries resolve <code>dart:core</code>
+                 (and, under Flutter, <code>dart:ui</code>) from it. Package summaries are then built in <strong>topological order</strong>
+                 so each can reference its dependencies' summaries. A single package failing to summarise is recorded in 
+                <code>errors</code> and does not abort the rest — the analyzer simply falls back to analysing that one from source.
+              </p>
+              <p>---</p>
+              <h2>Architecture</h2>
+              <pre><code>package:tom_analyzer_shared/tom_analyzer_shared.dart   (single entry point)
+        │
+        ├── runSummaryCacheStage()  ── orchestration ──┐
+        │        returns SummaryCacheResult            │
+        │                                              ▼
+        ├── DependencyResolver  ── pubspec.lock ──▶ List&lt;PackageDependency&gt;
+        │        resolveVersionedDependencies / resolveCacheableDependencies
+        │        getHostedPackagePath / getSdkPackagePath / getFlutterSdkPath
+        │
+        ├── SummaryGenerator  ── generateSdkSummary / generateMissingSummaries
+        │        topological order ──▶ SummaryGenerationResult
+        │
+        └── SummaryCacheManager  ── &lt;workspace&gt;/.tom/analyzer-cache/
+                 getCachePath / getSdkSummaryPath / getStats / clearCache</code></pre>
+              <table class="mdtable">
+                <thead><tr><th>Type</th><th>Role</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><code>runSummaryCacheStage</code></td>
+                    <td>One-call stage: resolve → generate missing → return paths</td>
+                  </tr>
+                  <tr>
+                    <td><code>SummaryCacheResult</code></td>
+                    <td><code>summaryPaths</code> + <code>sdkSummaryPath</code> for the analysis context</td>
+                  </tr>
+                  <tr>
+                    <td><code>DependencyResolver</code></td>
+                    <td>Parses <code>pubspec.lock</code>; locates hosted/SDK sources</td>
+                  </tr>
+                  <tr>
+                    <td><code>PackageDependency</code></td>
+                    <td>One resolved dependency (<code>isCacheable</code>, <code>cacheKey</code>)</td>
+                  </tr>
+                  <tr><td><code>DependencySet</code></td><td>Cacheable / uncacheable partition of a dependency list</td></tr>
+                  <tr><td><code>SummaryGenerator</code></td><td>Builds SDK + package summaries, topologically ordered</td></tr>
+                  <tr>
+                    <td><code>SummaryGenerationResult</code></td>
+                    <td>generated / skipped / failed counts + error map</td>
+                  </tr>
+                  <tr>
+                    <td><code>SummaryCacheManager</code></td>
+                    <td>The <code>.sum</code> cache directory: paths, stats, cleanup</td>
+                  </tr>
+                  <tr><td><code>CacheStats</code></td><td>Cache file count and total size</td></tr>
+                </tbody>
+              </table>
+              <p>
+                The cache is keyed purely by package name and version, so it is safe to share across tools and across runs: two generators pointed at the same workspace reuse each other's summaries, and nothing in the key depends on which tool wrote it.
+              </p>
+              <p>---</p>
+              <h2>Ecosystem</h2>
+              <p>
+                <code>tom_analyzer_shared</code> is the analyzer-tooling member of the <a href="https://github.com/al-the-bear/tom_basics/tree/main"><code>tom_ai/basics</code></a>
+                 foundation layer. Its consumers are Tom's code generators, which all need a resolved analysis context fast:
+              </p>
+              <ul>
+                <li><strong><code>tom_reflection_generator</code></strong> — generates reflection metadata; the package</li>
+              </ul>
+              <p>
+                was originally extracted from it. - <strong><code>tom_d4rt_generator</code></strong> — generates d4rt bridge classes for native Dart APIs.
+              </p>
+              <p>
+                Both declare <code>tom_analyzer_shared</code> as a dependency and call <code>runSummaryCacheStage</code>
+                 so they share one <code>.tom/analyzer-cache/</code> directory per workspace. Adding a third generator is a matter of the same one-call stage — the cache it shares is already there.
+              </p>
+              <p>
+                Sibling foundation packages: <a href="https://github.com/al-the-bear/tom_basics/tree/main"><code>tom_basics</code></a>
+                 · <a href="https://github.com/al-the-bear/tom_basics/tree/main/tom_basics_console"><code>tom_basics_console</code></a>
+                 · <a href="https://github.com/al-the-bear/tom_basics/tree/main/tom_basics_network"><code>tom_basics_network</code></a>
+                 · <a href="https://github.com/al-the-bear/tom_basics/tree/main/tom_build_base"><code>tom_build_base</code></a>.
+              </p>
+              <p>---</p>
+              <h2>Further documentation</h2>
+              <ul>
+                <li>
+                  <a href="/doc/tom_agent_container/tom_ai/basics/README"><code>../README.md</code></a> — the <code>tom_ai/basics</code>
+                   package map.
+                </li>
+                <li>The <code>analyzer</code> package's <code>AnalysisContextCollectionImpl</code> is the consumer of</li>
+              </ul>
+              <p>
+                this package's output; its <code>sdkSummaryPath</code> / <code>librarySummaryPaths</code> parameters are what 
+                <code>SummaryCacheResult</code> is built to fill.
+              </p>
+              <p>---</p>
+              <h2>Status</h2>
+              <ul>
+                <li><strong>Version:</strong> 0.1.0</li>
+                <li><strong>Tests:</strong> a <code>test/summary/</code> suite covering dependency resolution, the cache</li>
+              </ul>
+              <p>
+                manager, summary generation, and an end-to-end integration test (<code>dart test</code> / <code>testkit :test</code>). - 
+                <strong>Analysis:</strong> clean under <code>package:lints</code> (<code>dart analyze</code> — no issues). - 
+                <strong>Platforms:</strong> any Dart runtime with <code>dart:io</code> (desktop, server, CLI).
               </p>
             </div>
           </section>

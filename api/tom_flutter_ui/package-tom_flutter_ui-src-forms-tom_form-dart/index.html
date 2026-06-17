@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1381,7 +1401,8 @@
                       </div>
                       <div class="api-doc">
                         <p>
-                          The short identifier this field was constructed with. Matches the `&lt;suffix&gt;` consumed by resource lookups of the form `"$basePath.&lt;suffix&gt;"`. For the full path use [basePath].
+                          The short identifier this field was constructed with. Matches the <code>&lt;suffix&gt;</code> consumed by resource lookups of the form 
+                          <code>"$basePath.&lt;suffix&gt;"</code>. For the full path use [basePath].
                         </p>
                       </div>
                     </div>
@@ -1393,10 +1414,10 @@
                       <div class="api-member-head"><code class="api-signature">final Widget? actionIcon</code></div>
                       <div class="api-doc">
                         <p>
-                          Optional icon rendered in the field's action slot (trailing by default, configurable per-style via `actionIconPlacement`). When set, the anatomy paints this icon as a tap target — wire the tap via [onActionIconPressed]. The slot is shared with the slow- validation spinner: while async validation is in flight the spinner takes precedence so the user always sees progress before seeing the (still valid) action trigger.
+                          Optional icon rendered in the field's action slot (trailing by default, configurable per-style via <code>actionIconPlacement</code>). When set, the anatomy paints this icon as a tap target — wire the tap via [onActionIconPressed]. The slot is shared with the slow- validation spinner: while async validation is in flight the spinner takes precedence so the user always sees progress before seeing the (still valid) action trigger.
                         </p>
                         <p>
-                          Pass an [IconData]-backed widget (e.g. `const Icon(Icons.search)`) or a full [IconButton] if the action needs ripple / tooltip semantics that the icon alone wouldn't render.
+                          Pass an [IconData]-backed widget (e.g. <code>const Icon(Icons.search)</code>) or a full [IconButton] if the action needs ripple / tooltip semantics that the icon alone wouldn't render.
                         </p>
                       </div>
                     </div>
@@ -1490,7 +1511,8 @@
                       <div class="api-member-head"><code class="api-signature">bool _disposed</code></div>
                       <div class="api-doc">
                         <p>
-                          Set in [dispose] so async validators that resolve after disposal don't try to write into the (then-disposed) [_validationNotifier]. `_applyBindLifecycle` launches `field.validate()` without awaiting, and a parent's dispose can cascade through child sub-forms before those pending validates finish — without this guard, the late resolution would assert "ValueNotifier used after dispose".
+                          Set in [dispose] so async validators that resolve after disposal don't try to write into the (then-disposed) [_validationNotifier]. 
+                          <code>_applyBindLifecycle</code> launches <code>field.validate()</code> without awaiting, and a parent's dispose can cascade through child sub-forms before those pending validates finish — without this guard, the late resolution would assert "ValueNotifier used after dispose".
                         </p>
                       </div>
                     </div>
@@ -1613,7 +1635,8 @@
                       <div class="api-member-head"><code class="api-signature">TomForm&lt;InvalidType&gt;? _enclosingForm</code></div>
                       <div class="api-doc">
                         <p>
-                          Back-reference set by a [TomFormChildContainer] (today: `TomListForm`) when it instantiates this form as one of its rows. Lets the form detect it has an ancestor in the form tree even when the user didn't pass an explicit [parentForm] — required so a user-initiated `save()` on a nested form can know it must NOT clobber the outer form's transactional baseline (see [hasFormAncestor] / [_resolveCommitBaselines]).
+                          Back-reference set by a [TomFormChildContainer] (today: <code>TomListForm</code>) when it instantiates this form as one of its rows. Lets the form detect it has an ancestor in the form tree even when the user didn't pass an explicit [parentForm] — required so a user-initiated 
+                          <code>save()</code> on a nested form can know it must NOT clobber the outer form's transactional baseline (see [hasFormAncestor] / [_resolveCommitBaselines]).
                         </p>
                       </div>
                     </div>
@@ -1638,7 +1661,7 @@
                       <div class="api-member-head"><code class="api-signature">bool _writingBackToBinding</code></div>
                       <div class="api-doc">
                         <p>
-                          Re-entrancy guard: while we're writing back to the binding inside `_applySave`, the binding fires its observers and the resulting [_onBindingExternallyChanged] callback would try to overwrite the fields we just committed. Skip it.
+                          Re-entrancy guard: while we're writing back to the binding inside <code>_applySave</code>, the binding fires its observers and the resulting [_onBindingExternallyChanged] callback would try to overwrite the fields we just committed. Skip it.
                         </p>
                       </div>
                     </div>
@@ -1707,7 +1730,8 @@
                       </div>
                       <div class="api-doc">
                         <p>
-                          Records that this form is owned by a list-form (or other child container) whose own owner is [enclosingForm]. Called by `TomListForm._instantiate` — most users never need to invoke this themselves.
+                          Records that this form is owned by a list-form (or other child container) whose own owner is [enclosingForm]. Called by 
+                          <code>TomListForm._instantiate</code> — most users never need to invoke this themselves.
                         </p>
                       </div>
                     </div>
@@ -1737,7 +1761,8 @@
                       <div class="api-member-head"><code class="api-signature">void registerChildContainer(TomFormChildContainer container)</code></div>
                       <div class="api-doc">
                         <p>
-                          Register a non-`TomForm` lifecycle child (today: `TomListForm`) so the parent form's [validate] / [save] / [discard] / [unbind] / [isDirty] / [isValid] include it. Called automatically by `TomListForm` when constructed with a `parentForm` — most users never need to invoke this themselves.
+                          Register a non-<code>TomForm</code> lifecycle child (today: <code>TomListForm</code>) so the parent form's [validate] / [save] / [discard] / [unbind] / [isDirty] / [isValid] include it. Called automatically by 
+                          <code>TomListForm</code> when constructed with a <code>parentForm</code> — most users never need to invoke this themselves.
                         </p>
                       </div>
                     </div>
@@ -1746,7 +1771,9 @@
                       <div class="api-doc">
                         <p>Bind to a TomClass instance.</p>
                         <p>
-                          `target.getValues()` carries the whole state subtree (including every nested TomClass), and TomClass.setValues recurses through that subtree writing values into matching member observables. On top of that this method walks every nested [TomForm] (via [nestedForms]) and runs the binding lifecycle — initial snapshot, per-field `_initialValue` reset, pristine validation state, and `FieldBoundEvent` / `FormBoundEvent` dispatch — all the way down.
+                          <code>target.getValues()</code> carries the whole state subtree (including every nested TomClass), and TomClass.setValues recurses through that subtree writing values into matching member observables. On top of that this method walks every nested [TomForm] (via [nestedForms]) and runs the binding lifecycle — initial snapshot, per-field 
+                          <code>_initialValue</code> reset, pristine validation state, and <code>FieldBoundEvent</code> / <code>FormBoundEvent</code>
+                           dispatch — all the way down.
                         </p>
                       </div>
                     </div>
@@ -1789,10 +1816,15 @@
                       <div class="api-doc">
                         <p>Save form values back to bound state.</p>
                         <p>
-                          Runs full validation (including nested forms' AND child containers' validations) first — returns `false` if any errors. On success, commits every field in the form tree, snapshots each child container, and fires `FormSavedEvent` at each level.
+                          Runs full validation (including nested forms' AND child containers' validations) first — returns <code>false</code>
+                           if any errors. On success, commits every field in the form tree, snapshots each child container, and fires 
+                          <code>FormSavedEvent</code> at each level.
                         </p>
                         <p>
-                          **Nested-save semantics.** When the user calls `save()` on a form that has an outer ancestor in the form tree (see [hasFormAncestor]), the save is treated as an *in-memory commit only*: values are written back to the bound business object, but no field, snapshot, or list-form `_initialOrder` is updated. That keeps the outer ancestor's transactional baseline intact so the user can still discard the whole transaction from above. Conversely, a `save()` initiated on the outermost (root) form cascades a full baseline commit through the entire subtree — matching the user's intent that "this is the new saved state".
+                          <strong>Nested-save semantics.</strong> When the user calls <code>save()</code> on a form that has an outer ancestor in the form tree (see [hasFormAncestor]), the save is treated as an 
+                          <em>in-memory commit only</em>: values are written back to the bound business object, but no field, snapshot, or list-form 
+                          <code>_initialOrder</code> is updated. That keeps the outer ancestor's transactional baseline intact so the user can still discard the whole transaction from above. Conversely, a 
+                          <code>save()</code> initiated on the outermost (root) form cascades a full baseline commit through the entire subtree — matching the user's intent that "this is the new saved state".
                         </p>
                         <p>
                           [commitBaselines] is passed by internal cascade calls and should normally be left at its default for user code — the public entry point auto-detects the right policy from [hasFormAncestor].
@@ -1806,13 +1838,13 @@
                       <div class="api-member-head"><code class="api-signature">void discard()</code></div>
                       <div class="api-doc">
                         <p>
-                          Discard edits — resets every field in this form, every nested form, and every child container (e.g. `TomListForm`) back to its last bound / committed value, then writes the initial snapshot back to the binding.
+                          Discard edits — resets every field in this form, every nested form, and every child container (e.g. <code>TomListForm</code>) back to its last bound / committed value, then writes the initial snapshot back to the binding.
                         </p>
                         <p>
                           The write-back is necessary because sibling forms (e.g. a master-detail scaffold's detail pane) may have written to the same TomClass between bind and discard. Without the write-back, the backing state would retain those external edits even after the outer form says "Discard".
                         </p>
                         <p>
-                          TomList members are intentionally excluded from the write-back because `_initialSnapshot` stores raw TomClass instances for list fields (getValues() returns the live list, not a serialized copy), so setValues() cannot deserialise them. Instead, each TomListForm child container restores its list structure via TomList.resetWith(_initialOrder) in its own discard() above, which fires TomListLifecycleListener hooks to atomically dispose the old sub-forms (onBeforeClear) and recreate them (onAfterReset).
+                          TomList members are intentionally excluded from the write-back because <code>_initialSnapshot</code> stores raw TomClass instances for list fields (getValues() returns the live list, not a serialized copy), so setValues() cannot deserialise them. Instead, each TomListForm child container restores its list structure via TomList.resetWith(_initialOrder) in its own discard() above, which fires TomListLifecycleListener hooks to atomically dispose the old sub-forms (onBeforeClear) and recreate them (onAfterReset).
                         </p>
                       </div>
                     </div>
@@ -1829,7 +1861,9 @@
                       <div class="api-member-head"><code class="api-signature">Future&lt;List&lt;FormValidationError&gt;&gt; validate()</code></div>
                       <div class="api-doc">
                         <p>
-                          Validate every field in this form, every nested form, and every child container (e.g. `TomListForm`); then run this form's cross-field validation. Returns the combined error list and fires a single `FormValidatedEvent` carrying all of it — child containers also fire their own events through the bus, but downstream `TomErrorView`s subscribed to the parent see one merged snapshot.
+                          Validate every field in this form, every nested form, and every child container (e.g. <code>TomListForm</code>); then run this form's cross-field validation. Returns the combined error list and fires a single 
+                          <code>FormValidatedEvent</code> carrying all of it — child containers also fire their own events through the bus, but downstream 
+                          <code>TomErrorView</code>s subscribed to the parent see one merged snapshot.
                         </p>
                       </div>
                     </div>
@@ -1875,7 +1909,11 @@
                 <section id="TomFormDoubleInputClassic" class="api-declaration">
                   <h3 class="api-decl-title">class TomFormDoubleInputClassic<span class="api-badge api-badge--deprecated">deprecated</span></h3>
                   <code class="api-signature">class TomFormDoubleInputClassic extends TomTextFormFieldBase&lt;double&gt;</code>
-                  <div class="api-doc"><p>**Legacy** double/decimal form field with double conversion and optional min/max validation.</p></div>
+                  <div class="api-doc">
+                    <p>
+                      <strong>Legacy</strong> double/decimal form field with double conversion and optional min/max validation.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomFormDoubleInputClassic.new" class="api-member">
@@ -1896,7 +1934,7 @@
                   <h3 class="api-decl-title">class TomFormEmailStringInputClassic<span class="api-badge api-badge--deprecated">deprecated</span></h3>
                   <code class="api-signature">class TomFormEmailStringInputClassic extends TomTextFormFieldBase&lt;String&gt;</code>
                   <div class="api-doc">
-                    <p>**Legacy** email form field with built-in email validation.</p>
+                    <p><strong>Legacy</strong> email form field with built-in email validation.</p>
                     <p>Prefer [TomFormStringInput] with email validators for new code.</p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1919,7 +1957,9 @@
                 <section id="TomFormIntInputClassic" class="api-declaration">
                   <h3 class="api-decl-title">class TomFormIntInputClassic<span class="api-badge api-badge--deprecated">deprecated</span></h3>
                   <code class="api-signature">class TomFormIntInputClassic extends TomTextFormFieldBase&lt;int&gt;</code>
-                  <div class="api-doc"><p>**Legacy** integer form field with int conversion and optional min/max validation.</p></div>
+                  <div class="api-doc">
+                    <p><strong>Legacy</strong> integer form field with int conversion and optional min/max validation.</p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomFormIntInputClassic.new" class="api-member">
@@ -1942,8 +1982,8 @@
                   </h3>
                   <code class="api-signature">class TomFormPasswordStringInputClassic extends TomTextFormFieldBase&lt;String&gt;</code>
                   <div class="api-doc">
-                    <p>**Legacy** password form field with obscured text.</p>
-                    <p>Prefer [TomFormStringInput] with `obscureText: true` for new code.</p>
+                    <p><strong>Legacy</strong> password form field with obscured text.</p>
+                    <p>Prefer [TomFormStringInput] with <code>obscureText: true</code> for new code.</p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
@@ -1960,7 +2000,7 @@
                   <h3 class="api-decl-title">class TomFormStringInputClassic<span class="api-badge api-badge--deprecated">deprecated</span></h3>
                   <code class="api-signature">class TomFormStringInputClassic extends TomTextFormFieldBase&lt;String&gt;</code>
                   <div class="api-doc">
-                    <p>**Legacy** standard string form field for text input.</p>
+                    <p><strong>Legacy</strong> standard string form field for text input.</p>
                     <p>Prefer [TomFormStringInput] from Phase 1 for new code.</p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1980,7 +2020,8 @@
                   <div class="api-doc">
                     <p>Base class for text-based form fields with TextEditingController support.</p>
                     <p>
-                      Individual [InputDecoration] parameters (e.g. [labelText], [helperText], [prefixIcon]) follow the resource lookup pattern: 1. Explicit parameter value (highest priority) 2. Resource lookup via scope path (`$scope.$tomId.$suffix`) 3. `null` / absent (lowest priority)
+                      Individual [InputDecoration] parameters (e.g. [labelText], [helperText], [prefixIcon]) follow the resource lookup pattern: 1. Explicit parameter value (highest priority) 2. Resource lookup via scope path (<code>$scope.$tomId.$suffix</code>) 3. 
+                      <code>null</code> / absent (lowest priority)
                     </p>
                     <p>
                       This allows resources to provide default values while code can override any specific field at construction time.
@@ -2035,7 +2076,7 @@
                     </div>
                     <div id="TomTextFormFieldBase.tOrNull" class="api-member">
                       <div class="api-member-head"><code class="api-signature">String? tOrNull(String key)</code></div>
-                      <div class="api-doc"><p>Returns translated text or `null` if no resource exists.</p></div>
+                      <div class="api-doc"><p>Returns translated text or <code>null</code> if no resource exists.</p></div>
                     </div>
                     <div id="TomTextFormFieldBase._defaultToTextConverter" class="api-member">
                       <div class="api-member-head"><code class="api-signature">String _defaultToTextConverter(T value)</code></div>
@@ -2046,7 +2087,7 @@
                     <div id="TomTextFormFieldBase._onTextChanged" class="api-member"><div class="api-member-head"><code class="api-signature">void _onTextChanged()</code></div></div>
                     <div id="TomTextFormFieldBase._resolveIconOrNull" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Widget? _resolveIconOrNull(String key)</code></div>
-                      <div class="api-doc"><p>Resolves an icon from resources, returning an [Icon] widget or `null`.</p></div>
+                      <div class="api-doc"><p>Resolves an icon from resources, returning an [Icon] widget or <code>null</code>.</p></div>
                     </div>
                     <div id="TomTextFormFieldBase.reset" class="api-member">
                       <div class="api-member-head">
@@ -2067,7 +2108,8 @@
                   <code class="api-signature">class _FormChangeNotifier extends ChangeNotifier</code>
                   <div class="api-doc">
                     <p>
-                      Tiny [ChangeNotifier] subclass so `notifyListeners` stays encapsulated (avoids `invalid_use_of_protected_member` at the call site).
+                      Tiny [ChangeNotifier] subclass so <code>notifyListeners</code> stays encapsulated (avoids <code>invalid_use_of_protected_member</code>
+                       at the call site).
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>

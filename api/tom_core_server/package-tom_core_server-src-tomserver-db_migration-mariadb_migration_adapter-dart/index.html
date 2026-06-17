@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1317,6 +1337,13 @@
                 <section id="MariadbMigrationAdaptor" class="api-declaration">
                   <h3 class="api-decl-title">class MariadbMigrationAdaptor</h3>
                   <code class="api-signature">class MariadbMigrationAdaptor implements TomDbMigrator</code>
+                  <div class="api-doc">
+                    <p>The MariaDB [TomDbMigrator] (registered for the <code>"mariadb"</code> type).</p>
+                    <p>
+                      Per schema it maintains a <code>&lt;schema&gt;_versioning</code> table recording every applied migration (version, description, script, checksum, timing, success). [initializeMigration] creates that table if absent and loads the applied [versions]; [applyMigration] skips a version already present — but first verifies its description and script checksum are unchanged, failing if a past migration was edited — and otherwise runs the script and records the outcome. A failed script is still recorded (with 
+                      <code>success = 0</code>) before the error is rethrown.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="MariadbMigrationAdaptor.new" class="api-member"><div class="api-member-head"><code class="api-signature">MariadbMigrationAdaptor.new()</code></div></div>
@@ -1326,6 +1353,11 @@
                     <div id="MariadbMigrationAdaptor._initialized" class="api-member"><div class="api-member-head"><code class="api-signature">bool _initialized</code></div></div>
                     <div id="MariadbMigrationAdaptor.versions" class="api-member">
                       <div class="api-member-head"><code class="api-signature">List&lt;TomDbVersion&gt; versions</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The migrations already applied to the current schema, loaded by [initializeMigration] and appended to as [applyMigration] runs.
+                        </p>
+                      </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
@@ -1355,6 +1387,11 @@
                 <section id="MariadbMigrationException" class="api-declaration">
                   <h3 class="api-decl-title">class MariadbMigrationException</h3>
                   <code class="api-signature">class MariadbMigrationException extends TomServerException</code>
+                  <div class="api-doc">
+                    <p>
+                      Thrown for MariaDB migration failures (versioning-table creation, version query, a changed description/checksum for an already-applied version, or a failed migration script).
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="MariadbMigrationException.new" class="api-member">
@@ -1363,26 +1400,65 @@
                           MariadbMigrationException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, Object? stack, Object? rootException, bool autoLog = false})
                         </code>
                       </div>
+                      <div class="api-doc">
+                        <p>
+                          Creates the exception with a message [key] and [defaultUserMessage]; the remaining parameters mirror [TomServerException].
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>
                 <section id="TomDbVersion" class="api-declaration">
                   <h3 class="api-decl-title">class TomDbVersion</h3>
                   <code class="api-signature">class TomDbVersion</code>
+                  <div class="api-doc">
+                    <p>
+                      One row of a <code>&lt;schema&gt;_versioning</code> table: the record of a single applied (or attempted) migration.
+                    </p>
+                    <p>
+                      It is mapped from query results by reflection, so it is <code>@tomReflector</code> and its fields carry 
+                      <code>@TomDbColumn</code> names. The <code>@TomDbTable</code> annotation is required by the row mapper but its values are unused here (the table name is computed per schema), hence the 
+                      <code>"irrelevant"</code> placeholders.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomDbVersion.new" class="api-member"><div class="api-member-head"><code class="api-signature">TomDbVersion.new()</code></div></div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="TomDbVersion.installedRank" class="api-member"><div class="api-member-head"><code class="api-signature">int installedRank</code></div></div>
-                    <div id="TomDbVersion.version" class="api-member"><div class="api-member-head"><code class="api-signature">int version</code></div></div>
-                    <div id="TomDbVersion.description" class="api-member"><div class="api-member-head"><code class="api-signature">String description</code></div></div>
-                    <div id="TomDbVersion.script" class="api-member"><div class="api-member-head"><code class="api-signature">String script</code></div></div>
-                    <div id="TomDbVersion.checksum" class="api-member"><div class="api-member-head"><code class="api-signature">String checksum</code></div></div>
-                    <div id="TomDbVersion.installedBy" class="api-member"><div class="api-member-head"><code class="api-signature">String installedBy</code></div></div>
-                    <div id="TomDbVersion.installedOn" class="api-member"><div class="api-member-head"><code class="api-signature">DateTime installedOn</code></div></div>
-                    <div id="TomDbVersion.success" class="api-member"><div class="api-member-head"><code class="api-signature">int success</code></div></div>
+                    <div id="TomDbVersion.installedRank" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">int installedRank</code></div>
+                      <div class="api-doc"><p>Auto-incrementing insertion order (primary key).</p></div>
+                    </div>
+                    <div id="TomDbVersion.version" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">int version</code></div>
+                      <div class="api-doc"><p>The migration version number.</p></div>
+                    </div>
+                    <div id="TomDbVersion.description" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String description</code></div>
+                      <div class="api-doc"><p>The migration description (from the file name).</p></div>
+                    </div>
+                    <div id="TomDbVersion.script" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String script</code></div>
+                      <div class="api-doc"><p>The full migration script text.</p></div>
+                    </div>
+                    <div id="TomDbVersion.checksum" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String checksum</code></div>
+                      <div class="api-doc"><p>The script's <code>hashCode</code>, stored as a string, used to detect later edits.</p></div>
+                    </div>
+                    <div id="TomDbVersion.installedBy" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String installedBy</code></div>
+                      <div class="api-doc"><p>The database user that applied the migration.</p></div>
+                    </div>
+                    <div id="TomDbVersion.installedOn" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">DateTime installedOn</code></div>
+                      <div class="api-doc"><p>When the migration was applied.</p></div>
+                    </div>
+                    <div id="TomDbVersion.success" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">int success</code></div>
+                      <div class="api-doc"><p><code>1</code> if the migration script succeeded, <code>0</code> if it failed.</p></div>
+                    </div>
                   </div>
                 </section>
               </div>

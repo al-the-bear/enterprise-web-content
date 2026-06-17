@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1307,7 +1327,7 @@
             <h2>tom_vscode_bridge</h2>
             <div class="mono" style="color: #9FB6C9">tom_vscode_bridge · v1.0.0</div>
             <p style="margin-top: 10px">
-              A Dart server the VS Code extension spawns and talks to over JSON-RPC. It wraps VS Code's APIs and runs Dart scripts through the D4rt interpreter, giving them full editor access.
+              The Dart bridge server the extension spawns: it runs Dart scripts through the D4rt interpreter with full editor access, talks JSON-RPC over stdin/stdout, and hosts a TCP integration server for out-of-process clients. The VS Code API wrappers live in `tom_vscode_scripting_api`, which it re-exports.
             </p>
             <div style="margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap"><a class="btn btn-ghost" href="/modules/tom_vscode_bridge#license">See License</a></div>
           </div>
@@ -1316,7 +1336,7 @@
               <div class="k">Status</div>
               <div class="v" style="font-size: 1.05rem; color: #D85F23">In the works</div>
             </div>
-            <div class="stat"><div class="k">LOC</div><div class="v">11.8k</div></div>
+            <div class="stat"><div class="k">LOC</div><div class="v">12.1k</div></div>
             <div class="stat"><div class="k">Tests</div><div class="v">0</div></div>
             <div class="stat"><div class="k">Test LOC</div><div class="v">0</div></div>
           </div>
@@ -1329,10 +1349,11 @@
                   extension spawns it as a child process and they communicate bidirectionally using
                   JSON-RPC 2.0 over stdin/stdout, much like a Language Server.
                   
-                  The bridge wraps VS Code's Window, Workspace, Commands, Extensions, Language Model,
-                  and Chat namespaces as Dart classes, so Dart code can show messages, read and write
-                  files, run commands, and reach GitHub Copilot. It executes Dart scripts via the D4rt
-                  interpreter, giving each script the full wrapped API surface.
+                  The bridge re-exports the `tom_vscode_scripting_api` surface — the Dart wrappers over
+                  VS Code's Window, Workspace, Commands, Extensions, Language Model, and Chat namespaces
+                  — so Dart code can show messages, read and write files, run commands, and reach GitHub
+                  Copilot. It executes Dart scripts via the D4rt interpreter, giving each script that
+                  full API surface.
                   
                   It is the foundational runtime that makes editor-side Dart scripting possible. The
                   extension drives it; `tom_vscode_scripting_api` defines the typed Dart interface that
@@ -1428,34 +1449,137 @@
           </div>
           <section class="section repodoc">
             <div class="pageprose">
-              <h1>VS Code Bridge</h1>
+              <h1>tom_vscode_bridge</h1>
               <p>
-                A Dart-based JSON-RPC bridge server that enables Dart code to interact with the VS Code API through a TypeScript extension. Part of the DartScript system.
+                &gt; <strong>Tom VS Code</strong> — part of the Tom Framework by Peter Nicolai Alexis Kyaw. &gt; Licensed BSD-3-Clause. See 
+                <a href="https://github.com/al-the-bear/tom_vscode/blob/main/tom_vscode_bridge/LICENSE">LICENSE</a>.
               </p>
+              <p>
+                The Dart <strong>bridge server</strong> the Tom AI VS Code extension launches. It runs Dart (through the D4rt interpreter) with full VS Code API access, talks JSON-RPC to the extension over stdin/stdout, and hosts the 
+                <strong>CLI Integration Server</strong> (TCP <code>19900</code>–<code>19909</code>) that out-of-process clients — Tom CLI tools, 
+                <code>*.d4rt.dart</code> scripts, and the <a href="/docs?module=tom_vscode_scripting_api&amp;path=README.md"><code>tom_vscode_scripting_api</code></a>
+                 client — connect to.
+              </p>
+              <p>---</p>
               <h2>Overview</h2>
-              <p>The VS Code Bridge provides comprehensive access to VS Code's API from Dart code, enabling:</p>
-              <ul>
-                <li>**Dynamic Dart Execution**: Run Dart code via D4rt interpreter with VS Code API access</li>
-                <li>**Full API Coverage**: Window, Workspace, Commands, Language Model, Chat, and Extensions</li>
-                <li>**JSON-RPC Communication**: Bidirectional communication over stdin/stdout</li>
-                <li>**Type-Safe Wrappers**: Dart classes mirror VS Code TypeScript API</li>
-              </ul>
-              <h2>Key Features</h2>
-              <ul>
-                <li>🚀 **D4rt Integration**: Execute Dart scripts dynamically with full VS Code API access</li>
-                <li>🔌 **JSON-RPC 2.0**: Standard protocol for reliable communication</li>
-                <li>📦 **Comprehensive API**: All major VS Code namespaces wrapped</li>
-                <li>🤖 **Copilot Access**: Use GitHub Copilot Language Model from Dart</li>
-                <li>💬 **Chat Integration**: Create chat participants and handle conversations</li>
-                <li>🔧 **Helper Functions**: Convenience functions for common operations</li>
-              </ul>
-              <h2>Quick Start</h2>
-              <h3>1. Add Dependency</h3>
+              <p>
+                The bridge is the <strong>server half</strong> of the Tom VS Code scripting story. The extension owns the VS Code API; the bridge is the Dart process that lets Dart code reach it. It plays two roles at once:
+              </p>
+              <p>
+                1. <strong>D4rt script host.</strong> It runs Dart scripts (compiled or interpreted via D4rt) that call the VS Code API — open files, run commands, query the language model, drive the editor — and returns their JSON result to the extension. 2. 
+                <strong>CLI Integration Server.</strong> It listens on a local TCP port and forwards length-prefixed JSON-RPC 2.0 requests from external clients into the same VS Code API, streaming notifications and reverse-RPC callbacks (Agent SDK chunks, 
+                <code>canUseTool</code>) back to the originating client.
+              </p>
+              <p>
+                The VS Code API wrappers themselves are <strong>not</strong> defined here — they live in <a href="/docs?module=tom_vscode_scripting_api&amp;path=README.md"><code>tom_vscode_scripting_api</code></a>, which this package depends on and re-exports. The bridge adds the 
+                <strong>execution and transport machinery</strong> around that surface.
+              </p>
+              <pre><code>// tom_vscode_bridge re-exports the whole scripting API:
+export 'package:tom_vscode_scripting_api/tom_vscode_scripting_api.dart';</code></pre>
+              <p>---</p>
+              <h2>Installation</h2>
+              <p>
+                This package is an internal binary (<code>publish_to: none</code>); consume it by path from within the Tom VS Code repo:
+              </p>
               <pre><code># pubspec.yaml
 dependencies:
   tom_vscode_bridge:
     path: ../tom_vscode_bridge</code></pre>
-              <h3>2. Write a Script</h3>
+              <p>
+                It depends on <code>tom_vscode_scripting_api: ^1.1.0</code>, <code>tom_d4rt</code>, <code>tom_d4rt_dcli</code>, and 
+                <code>path</code>. Dart SDK <code>^3.10.4</code>.
+              </p>
+              <p>
+                &gt; If you only need the <strong>client</strong> surface (typed Dart calls into a running &gt; window), depend on the published &gt; 
+                <a href="/docs?module=tom_vscode_scripting_api&amp;path=README.md"><code>tom_vscode_scripting_api</code></a>
+                 instead — &gt; you do not need the bridge package to <em>script</em> the editor, only to <em>host</em>
+                 the &gt; server.
+              </p>
+              <p>---</p>
+              <h2>Features</h2>
+              <table class="mdtable">
+                <thead><tr><th>Capability</th><th>What it does</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><strong>D4rt script execution</strong></td>
+                    <td>Runs Dart scripts with full VS Code API access via the D4rt interpreter — no compile step.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>stdin/stdout JSON-RPC</strong></td>
+                    <td>Bidirectional JSON-RPC with the extension that spawns it (the LSP-style child-process model).</td>
+                  </tr>
+                  <tr>
+                    <td><strong>CLI Integration Server</strong></td>
+                    <td>
+                      TCP server (
+                      <code>19900</code>
+                      –
+                      <code>19909</code>
+                      ), length-prefixed JSON-RPC 2.0, for external clients.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><strong>Agent SDK stream routing</strong></td>
+                    <td>
+                      Routes 
+                      <code>agentSdk.chunk</code>
+                       notifications and 
+                      <code>agentSdk.toolCall</code>
+                       / 
+                      <code>agentSdk.canUseTool</code>
+                       reverse-RPC back to the client that started each stream.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><strong>D4rt bridge registration</strong></td>
+                    <td>Registers the VS Code API classes with a D4rt interpreter so scripts can use them natively.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Re-exported scripting API</strong></td>
+                    <td>
+                      Exposes the entire 
+                      <code>tom_vscode_scripting_api</code>
+                       surface (
+                      <code>VSCode</code>
+                      , 
+                      <code>window</code>
+                      , 
+                      <code>workspace</code>
+                      , 
+                      <code>lm</code>
+                      , 
+                      <code>VsCodeHelper</code>
+                      , …).
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3>Binaries</h3>
+              <table class="mdtable">
+                <thead><tr><th>Binary</th><th>Source</th><th>Role</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><code>tom_bs</code></td>
+                    <td><code>bin/tom_bs.dart</code></td>
+                    <td>The basic bridge server — DCli + VS Code API bridges. Launched by the extension.</td>
+                  </tr>
+                  <tr>
+                    <td><code>d4rtrun.b.dart</code></td>
+                    <td><code>bin/d4rtrun.b.dart</code></td>
+                    <td>D4rt script runner entry point.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>
+                &gt; For the extended server with the full Tom Framework bridges, use <code>core_bs</code> &gt; from 
+                <code>tom_core_bridge</code> instead of <code>tom_bs</code>.
+              </p>
+              <p>---</p>
+              <h2>Quick start</h2>
+              <p>
+                A bridge script implements an <code>execute(params, context)</code> handler. The bridge sets up the <code>context</code>
+                 (with the <code>vscode</code> global), runs the handler, and returns its result as JSON.
+              </p>
               <pre><code>// hello.dart
 import 'package:tom_vscode_bridge/tom_vscode_bridge.dart';
 
@@ -1463,588 +1587,301 @@ Future&lt;Map&lt;String, dynamic&gt;&gt; execute(
   Map&lt;String, dynamic&gt; params,
   dynamic context,
 ) async {
-  // Initialize VS Code API
   final vscode = context['vscode'] as VSCode;
-  
-  // Use Window API
+
   await vscode.window.showInformationMessage('Hello from Dart!');
-  
-  // Use Workspace API
   final files = await vscode.workspace.findFiles('**/*.dart');
-  
-  return {
-    'success': true,
-    'dartFilesFound': files.length
-  };
+
+  return {'success': true, 'dartFilesFound': files.length};
+  // → returned to the extension as JSON, e.g. {success: true, dartFilesFound: 312}
 }</code></pre>
-              <h3>3. Execute via Extension</h3>
-              <p>Right-click on `hello.dart` and select "Execute in DartScript", or run programmatically:</p>
+              <p>Run it from the extension (right-click → "Execute in DartScript") or programmatically:</p>
               <pre><code>const result = await bridgeClient.sendRequest('executeFile', {
-    filePath: '/path/to/hello.dart',
-    params: {}
+  filePath: '/path/to/hello.dart',
+  params: {},
 });</code></pre>
-              <h2>Example: Ask Copilot</h2>
-              <pre><code>import 'package:tom_vscode_bridge/d4rt_helpers.dart';
+              <p>---</p>
+              <h2>Example scripts</h2>
+              <p>Runnable example scripts and a verification suite live alongside the package:</p>
+              <table class="mdtable">
+                <thead><tr><th>Location</th><th>What it is</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><a href="/docs?module=tom_vscode_bridge&amp;path=doc%2Fexamples.md"><code>doc/examples.md</code></a></td>
+                    <td>
+                      Annotated example index — "Helper" samples use 
+                      <code>VsCodeHelper</code>
+                      ; "Direct" samples use 
+                      <code>VSCode</code>
+                       and its namespaces.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="/docs?module=tom_vscode_bridge&amp;path=doc%2Fexamples_scripts.md"><code>doc/examples_scripts.md</code></a>
+                    </td>
+                    <td>The example script catalogue.</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_vscode/tree/main/tom_vscode_bridge/test_scripts"><code>test_scripts/scripting_api_suite.dart</code></a>
+                    </td>
+                    <td>
+                      End-to-end verification suite — connects to a running window and exercises the scripting API over TCP. Use it after rebuilding 
+                      <code>tom_bs</code>
+                       or bumping the scripting API.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>
+                The client-side learning-path samples (connect → advanced → tools → Agent SDK) live with the client package, under 
+                <a href="https://github.com/al-the-bear/tom_vscode/tree/main/tom_vscode_scripting_api/example"><code>tom_vscode_scripting_api/example/</code></a>.
+              </p>
+              <p>---</p>
+              <h2>Usage</h2>
+              <h3>The script execution model</h3>
+              <p>
+                Scripts run through the bridge expose an <code>execute(params, context)</code> function. <code>params</code>
+                 carries caller-supplied arguments; <code>context</code> carries the runtime globals, including <code>vscode</code>. Results are JSON-encoded back to the caller; thrown exceptions are captured (message + stack trace) and returned as an error envelope rather than crashing the server.
+              </p>
+              <pre><code>import 'package:tom_vscode_bridge/tom_vscode_bridge.dart';
 
 Future&lt;Map&lt;String, dynamic&gt;&gt; execute(
   Map&lt;String, dynamic&gt; params,
   dynamic context,
 ) async {
-  await initializeVSCode(context);
-  
-  // Ask Copilot a question
-  final response = await askCopilot(
-    'Explain the singleton pattern in Dart',
-  );
-  
-  // Show response
-  await showInfo('Copilot says: $response');
-  
-  return {'response': response};
-}</code></pre>
-              <h2>Example: Analyze Workspace</h2>
-              <pre><code>import 'package:tom_vscode_bridge/d4rt_helpers.dart';
+  final vscode = context['vscode'] as VSCode;
 
-Future&lt;Map&lt;String, dynamic&gt;&gt; execute(
-  Map&lt;String, dynamic&gt; params,
-  dynamic context,
-) async {
-  await initializeVSCode(context);
-  
-  final wsRoot = getWorkspaceRoot();
-  final dartFiles = await findFiles('**/*.dart');
-  
-  int totalLines = 0;
+  final wsRoot = await vscode.workspace.getRootPath();
+  final dartFiles = await vscode.workspace.findFiles('**/*.dart');
+
+  var totalLines = 0;
   for (final file in dartFiles) {
-    final content = await readFile(file);
-    totalLines += content.split('\n').length;
+    totalLines += (await vscode.workspace.readFile(file.fsPath)).split('\n').length;
   }
-  
-  await showInfo('Found ${dartFiles.length} Dart files with $totalLines total lines');
-  
-  return {
-    'files': dartFiles.length,
-    'lines': totalLines,
-  };
-}</code></pre>
-              <h2>Example: Interactive Input</h2>
-              <pre><code>import 'package:tom_vscode_bridge/d4rt_helpers.dart';
 
-Future&lt;Map&lt;String, dynamic&gt;&gt; execute(
-  Map&lt;String, dynamic&gt; params,
-  dynamic context,
-) async {
-  await initializeVSCode(context);
-  
-  // Show quick pick
-  final choice = await quickPick(
-    ['Create file', 'Delete file', 'Rename file'],
-    placeHolder: 'Select an action',
+  await vscode.window.showInformationMessage(
+    'Found ${dartFiles.length} Dart files, $totalLines lines in $wsRoot',
   );
-  
-  if (choice == null) return {'cancelled': true};
-  
-  // Get user input
-  final fileName = await inputBox(
-    prompt: 'Enter file name',
-    placeHolder: 'example.dart',
-  );
-  
-  if (fileName == null) return {'cancelled': true};
-  
-  await showInfo('You selected: $choice for $fileName');
-  
-  return {
-    'action': choice,
-    'fileName': fileName,
-  };
+  return {'files': dartFiles.length, 'lines': totalLines};
 }</code></pre>
-              <h2>Documentation</h2>
+              <p>
+                The VS Code API used here (<code>window</code>, <code>workspace</code>, <code>lm</code>, <code>VsCodeHelper</code>, …) is the re-exported 
+                <code>tom_vscode_scripting_api</code> surface. For its full reference see the <a href="/docs?module=tom_vscode_scripting_api&amp;path=doc%2Fvscode_api_intro.md">scripting API guides</a>
+                 — this README does not duplicate them.
+              </p>
+              <h3>Standard methods</h3>
+              <p>The bridge answers a small set of built-in methods over both transports:</p>
+              <table class="mdtable">
+                <thead><tr><th>Direction</th><th>Method</th><th>Purpose</th></tr></thead>
+                <tbody>
+                  <tr><td>→ Dart</td><td><code>getWorkspaceInfo</code></td><td>Workspace root and project list.</td></tr>
+                  <tr><td>→ Dart</td><td><code>analyzeProject</code></td><td>Analyze a Dart project.</td></tr>
+                  <tr>
+                    <td>→ Dart</td>
+                    <td><code>generateDocs</code></td>
+                    <td>Generate documentation (via the language model).</td>
+                  </tr>
+                  <tr>
+                    <td>→ Dart</td>
+                    <td><code>executeFile</code></td>
+                    <td>Execute a Dart file, return its JSON result.</td>
+                  </tr>
+                  <tr>
+                    <td>→ Dart</td>
+                    <td><code>executeScript</code></td>
+                    <td>Execute inline Dart code, return its JSON result.</td>
+                  </tr>
+                  <tr>
+                    <td>Dart →</td>
+                    <td><code>showInfo</code> / <code>showError</code> / <code>showWarning</code></td>
+                    <td>Notifications.</td>
+                  </tr>
+                  <tr>
+                    <td>Dart →</td>
+                    <td><code>readFile</code> / <code>writeFile</code> / <code>openFile</code></td>
+                    <td>File operations.</td>
+                  </tr>
+                  <tr><td>Dart →</td><td><code>askCopilot</code></td><td>Query the language model.</td></tr>
+                  <tr><td>Dart →</td><td><code>log</code></td><td>Append to the output channel.</td></tr>
+                </tbody>
+              </table>
+              <h3><code>executeFile</code> / <code>executeScript</code></h3>
+              <p>Both run code on the <em>other</em> side of the bridge and return a structured result:</p>
+              <pre><code>// From the extension: run a Dart file
+const result = await bridge.sendRequest('executeFile', {
+  filePath: '/path/to/script.dart',
+  args: ['--verbose', '--output=json'],
+});
+// → { exitCode, stdout, stderr, success, data }</code></pre>
+              <pre><code>// From a Dart script: run inline JS/TS in the extension host
+final result = await server.sendRequest('executeScript', {
+  'script': "return { fileCount: (await vscode.workspace.findFiles('**/*.dart')).length };",
+  'language': 'javascript',
+});
+// → { success, data, language }</code></pre>
+              <p>
+                The <code>data</code> field is populated automatically by parsing <code>stdout</code> as JSON, so a script that prints a JSON object yields a typed result with no extra plumbing.
+              </p>
+              <h3>D4rt bridge registration</h3>
+              <p>To make the VS Code API classes available inside a D4rt interpreter, register the bridges once:</p>
+              <pre><code>import 'package:tom_vscode_bridge/dartscript.dart';
+
+final d4rt = D4rt();
+TomDartscriptBridgeBridges.register(d4rt);
+// the interpreter can now resolve VSCode, window, workspace, lm, ... natively</code></pre>
+              <p>---</p>
+              <h2>Architecture</h2>
+              <p>
+                The extension spawns the bridge as a child process (the LSP model). The bridge speaks JSON-RPC to the extension over stdin/stdout, and simultaneously hosts the TCP CLI Integration Server for out-of-process clients.
+              </p>
+              <pre><code>┌──────────────────────────────────────┐
+│  Tom AI VS Code Extension (TypeScript)│
+│   · spawns the bridge process         │
+│   · owns the real VS Code API         │
+└───────────────┬──────────────────────┘
+                │  JSON-RPC over stdin/stdout
+┌───────────────▼──────────────────────┐
+│  tom_vscode_bridge  (Dart — tom_bs)   │
+│   · VSCodeBridgeServer (script host)  │
+│   · D4rt interpreter + bridges        │
+│   · re-exports tom_vscode_scripting_api│
+│   ┌──────────────────────────────────┐│
+│   │  CliIntegrationServer            ││
+│   │  TCP 19900–19909                 ││
+│   │  length-prefixed JSON-RPC 2.0    ││
+│   │  + Agent SDK stream routing      ││
+│   └───────────────▲──────────────────┘│
+└───────────────────┼────────────────────┘
+                    │  TCP socket
+┌───────────────────┴────────────────────┐
+│  External clients                      │
+│   · tom_vscode_scripting_api (Dart)    │
+│   · Tom CLI tools · *.d4rt.dart scripts│
+└─────────────────────────────────────────┘</code></pre>
+              <p>
+                The wire protocol is <strong>JSON-RPC 2.0</strong> — request (<code>{jsonrpc, id, method, params}</code>), response (<code>{jsonrpc, id, result}</code>), and notification (no 
+                <code>id</code>). The stdin/stdout channel is newline/length-framed; the TCP channel uses a 4-byte big-endian length prefix per message.
+              </p>
+              <h3>Key types</h3>
+              <table class="mdtable">
+                <thead><tr><th>Type</th><th>Role</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><code>VSCodeBridgeServer</code></td>
+                    <td>The server core: parses JSON-RPC, dispatches methods, runs scripts, relays extension push messages.</td>
+                  </tr>
+                  <tr>
+                    <td><code>CliIntegrationServer</code></td>
+                    <td>
+                      TCP server for external clients; frames messages, tracks Agent SDK stream owners, routes reverse-RPC to the originating socket.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>VsCodeBridge</code></td>
+                    <td>
+                      Per-script runtime handle — sets the execution context and emits 
+                      <code>__BRIDGE_RESULT__</code>
+                       / 
+                      <code>__BRIDGE_ERROR__</code>
+                      .
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>ExecutionContext</code></td>
+                    <td>Captures a script's logs and exception info for the response.</td>
+                  </tr>
+                  <tr>
+                    <td><code>BridgeLogging</code></td>
+                    <td>Debug switches (<code>debugLogging</code>, <code>debugTraceLogging</code>).</td>
+                  </tr>
+                  <tr>
+                    <td><code>TomDartscriptBridgeBridges</code></td>
+                    <td>Registers the VS Code API classes with a D4rt interpreter.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>---</p>
+              <h2>Ecosystem</h2>
+              <p>
+                The bridge is the server-side counterpart to the scripting-API client; the two meet at the CLI Integration Server.
+              </p>
               <ul>
-                <li>**[PROJECT.md](./PROJECT.md)**: Project overview and getting started</li>
-                <li>**[API_REFERENCE.md](./API_REFERENCE.md)**: Complete API documentation with examples</li>
-                <li>**[IMPLEMENTATION.md](./IMPLEMENTATION.md)**: Implementation details and architecture</li>
                 <li>
-                  **[architecture.md](../tom_vscode_extension/_copilot_guidelines/architecture.md)**: System architecture (both sides)
+                  <a href="/docs?module=tom_vscode_scripting_api&amp;path=README.md"><code>tom_vscode_scripting_api</code></a>
+                   — the typed
                 </li>
               </ul>
-              <h2>Architecture</h2>
-              <pre><code>┌─────────────────────────┐
-│  VS Code Extension      │
-│  (TypeScript)           │
-│  - Spawns bridge        │
-│  - Manages lifecycle    │
-│  - Handles VS Code API  │
-└───────────┬─────────────┘
-            │ JSON-RPC 2.0
-            │ stdin/stdout
-┌───────────▼─────────────┐
-│  Bridge Server          │
-│  (Dart)                 │
-│  - JSON-RPC handler     │
-│  - API wrappers         │
-│  - D4rt integration     │
-└───────────┬─────────────┘
-            │
-    ┌───────┴────────┐
-    │                │
-┌───▼────┐    ┌──────▼──────┐
-│ API    │    │ D4rt Script │
-│ Calls  │    │ Executor    │
-└────────┘    └─────────────┘</code></pre>
+              <p>
+                Dart client that connects to this server (and the surface this package re-exports). - <a href="/docs?module=tom_vscode_extension&amp;path=README.md"><code>tom_vscode_extension</code></a>
+                 — the extension that spawns this bridge and owns the VS Code API. - <a href="/doc/tom_agent_container/tom_ai/vscode/README">Repository map</a>
+                 — the whole Tom VS Code ecosystem at a glance.
+              </p>
+              <p>---</p>
+              <h2>Further documentation</h2>
+              <table class="mdtable">
+                <thead><tr><th>Document</th><th>Covers</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><a href="/docs?module=tom_vscode_bridge&amp;path=doc%2FPROJECT.md">doc/PROJECT.md</a></td>
+                    <td>Project overview and getting started.</td>
+                  </tr>
+                  <tr>
+                    <td><a href="/docs?module=tom_vscode_bridge&amp;path=doc%2FUSER_GUIDE.md">doc/USER_GUIDE.md</a></td>
+                    <td>Writing Dart scripts that control VS Code through the bridge.</td>
+                  </tr>
+                  <tr>
+                    <td><a href="/docs?module=tom_vscode_bridge&amp;path=doc%2FAPI_REFERENCE.md">doc/API_REFERENCE.md</a></td>
+                    <td>Complete API reference.</td>
+                  </tr>
+                  <tr>
+                    <td><a href="/docs?module=tom_vscode_bridge&amp;path=doc%2FIMPLEMENTATION.md">doc/IMPLEMENTATION.md</a></td>
+                    <td>Server-side implementation and architecture detail.</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="/docs?module=tom_vscode_bridge&amp;path=doc%2Fexamples.md">doc/examples.md</a>
+                       · 
+                      <a href="/docs?module=tom_vscode_bridge&amp;path=doc%2Fexamples_scripts.md">doc/examples_scripts.md</a>
+                    </td>
+                    <td>Example index and scripts.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>
+                For the VS Code API surface itself, see the <a href="/docs?module=tom_vscode_scripting_api&amp;path=doc%2Fvscode_api_intro.md">scripting API guides</a>.
+              </p>
+              <p>---</p>
+              <h2>Why JSON-RPC over stdin/stdout</h2>
+              <p>
+                D4rt is a Dart-in-Dart interpreter; it is not available as an npm package for the Node/TypeScript extension host. Rather than embed an interpreter, the bridge runs as a separate Dart process and communicates over JSON-RPC — the same model the Language Server Protocol uses. It is a standard protocol, language-agnostic, fully bidirectional, and needs no external runtime dependency.
+              </p>
+              <p>---</p>
+              <h2>Status</h2>
+              <table class="mdtable">
+                <thead><tr><th></th><th></th></tr></thead>
+                <tbody>
+                  <tr><td>Version</td><td>1.0.0</td></tr>
+                  <tr><td>Dart SDK</td><td><code>^3.10.4</code></td></tr>
+                  <tr><td>Publishing</td><td>internal (<code>publish_to: none</code>)</td></tr>
+                  <tr><td>Binary</td><td><code>tom_bs</code> (<code>bin/tom_bs.dart</code>)</td></tr>
+                  <tr>
+                    <td>Tests</td>
+                    <td>
+                      end-to-end suite in 
+                      <code>test_scripts/scripting_api_suite.dart</code>
+                       (requires a live window); no standalone unit-test suite
+                    </td>
+                  </tr>
+                  <tr><td>License</td><td>BSD-3-Clause</td></tr>
+                </tbody>
+              </table>
+              <p>---</p>
               <h2>License</h2>
-              <p>Copyright (c) 2024 DartScript. All rights reserved.</p>
               <p>
-                The VS Code Bridge uses a **child process communication model** where: - The VS Code extension spawns a Dart process - They communicate bidirectionally via JSON-RPC over stdin/stdout - Dart can call VS Code APIs - VS Code can call Dart functions
+                Part of the Tom Framework by Peter Nicolai Alexis Kyaw, BSD-3-Clause. See <a href="https://github.com/al-the-bear/tom_vscode/blob/main/tom_vscode_bridge/LICENSE">LICENSE</a>. &lt;/content&gt;
               </p>
-              <p>This approach is similar to how Language Server Protocol (LSP) works.</p>
-              <h2>Architecture</h2>
-              <pre><code>VS Code Extension (TypeScript)
-    ↓ spawn process
-Dart Bridge Server (tom_vscode_bridge.dart)
-    ↕ JSON-RPC over stdin/stdout
-Bidirectional Communication:
-  - TypeScript → Dart: workspace operations, analysis requests
-  - Dart → TypeScript: VS Code API calls (Copilot, file ops, UI)</code></pre>
-              <h2>Protocol</h2>
-              <p>Communication uses **JSON-RPC 2.0** format:</p>
-              <h3>Request (from either side):</h3>
-              <pre><code>{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "methodName",
-  "params": { "key": "value" }
-}</code></pre>
-              <h3>Response:</h3>
-              <pre><code>{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "result": { "key": "value" }
-}</code></pre>
-              <h3>Notification (no response expected):</h3>
-              <pre><code>{
-  "jsonrpc": "2.0",
-  "method": "log",
-  "params": { "message": "info", "level": "info" }
-}</code></pre>
-              <h2>Usage</h2>
-              <h3>From VS Code Extension</h3>
-              <p>
-                1. Open the Command Palette (`Cmd+Shift+P`) 2. Run: **DartScript: Execute Dart Script with Bridge** 3. The extension will: - Spawn the Dart bridge process - Send requests to Dart - Display results
-              </p>
-              <h3>Dart Methods (callable from TypeScript)</h3>
-              <p>Implement in `bridge_server.dart`:</p>
-              <pre><code>// Handle request from VS Code
-Future&lt;void&gt; _handleRequest(
-  String method,
-  Map&lt;String, dynamic&gt; params,
-  int? id,
-) async {
-  switch (method) {
-    case 'getWorkspaceInfo':
-      result = await _getWorkspaceInfo(params);
-      break;
-    case 'analyzeProject':
-      result = await _analyzeProject(params);
-      break;
-    // Add your methods here
-  }
-  
-  if (id != null) {
-    _sendResponse(id, result);
-  }
-}</code></pre>
-              <h3>VS Code APIs (callable from Dart)</h3>
-              <p>Dart can request VS Code operations:</p>
-              <pre><code>// Ask Copilot
-final response = await sendRequest&lt;String&gt;('askCopilot', {
-  'prompt': 'Explain this code...',
-});
-
-// Show message
-await sendRequest('showInfo', {
-  'message': 'Analysis complete!',
-});
-
-// Read file
-final content = await sendRequest&lt;String&gt;('readFile', {
-  'path': '/path/to/file.dart',
-});
-
-// Write file
-await sendRequest('writeFile', {
-  'path': '/path/to/output.md',
-  'content': 'Documentation content',
-});
-
-// Open file in editor
-await sendRequest('openFile', {
-  'path': '/path/to/file.dart',
-});</code></pre>
-              <h2>Available Methods</h2>
-              <h3>Standard Methods</h3>
-              <h4>TypeScript → Dart</h4>
-              <ul>
-                <li>`getWorkspaceInfo` - Get workspace root and project list</li>
-                <li>`analyzeProject` - Analyze a Dart project</li>
-                <li>`generateDocs` - Generate documentation with Copilot</li>
-                <li>**`executeFile`** - Execute a Dart file and get JSON result</li>
-                <li>**`executeScript`** - Execute inline Dart code and get JSON result</li>
-              </ul>
-              <h4>Dart → TypeScript (VS Code APIs)</h4>
-              <ul>
-                <li>`showInfo(message)` - Show information message</li>
-                <li>`showError(message)` - Show error message</li>
-                <li>`showWarning(message)` - Show warning message</li>
-                <li>`askCopilot(prompt)` - Ask GitHub Copilot</li>
-                <li>`readFile(path)` - Read file content</li>
-                <li>`writeFile(path, content)` - Write file</li>
-                <li>`openFile(path)` - Open file in editor</li>
-                <li>**`executeFile(filePath, args)` - Execute a Node.js/TypeScript file**</li>
-                <li>**`executeScript(script, language)` - Execute inline JavaScript/TypeScript**</li>
-                <li>`log(message, level)` - Log to output channel</li>
-              </ul>
-              <h3>Special Execution Methods</h3>
-              <h4>executeFile - Run a file on the other side</h4>
-              <p>**From TypeScript (execute Dart file):**</p>
-              <pre><code>const result = await bridge.sendRequest('executeFile', {
-    filePath: '/path/to/script.dart',
-    args: ['--verbose', '--output=json']
-});
-// Result: { exitCode, stdout, stderr, success, data }</code></pre>
-              <p>**From Dart (execute Node.js file):**</p>
-              <pre><code>final result = await server.sendRequest('executeFile', {
-  'filePath': '/path/to/script.js',
-  'args': ['--config', 'prod']
-});
-// Result: { exitCode, stdout, stderr, success, data }</code></pre>
-              <h4>executeScript - Run inline code on the other side</h4>
-              <p>**From TypeScript (execute Dart code):**</p>
-              <pre><code>const result = await bridge.sendRequest('executeScript', {
-    script: `
-import 'dart:convert';
-void main() {
-  print(jsonEncode({'result': 42}));
-}
-`,
-    mainFunction: 'main'
-});
-// Result: { exitCode, stdout, stderr, success, data }</code></pre>
-              <p>**From Dart (execute TypeScript/JavaScript):**</p>
-              <pre><code>final result = await server.sendRequest('executeScript', {
-  'script': '''
-    const files = await vscode.workspace.findFiles('**/*.dart');
-    return { fileCount: files.length };
-  ''',
-  'language': 'javascript'
-});
-// Result: { success, data, language }</code></pre>
-              <p>
-                **Result Structure:** Both `executeFile` and `executeScript` return structured JSON: - `exitCode`: Process exit code (for file execution) - `stdout`: Standard output - `stderr`: Standard error - `success`: Boolean indicating success - `data`: Parsed JSON if output is valid JSON (automatic)
-              </p>
-              <p>
-                The `data` field is automatically populated by parsing stdout as JSON, making it easy to return structured data from executed scripts. - `askCopilot(prompt)` - Ask GitHub Copilot - `readFile(path)` - Read file content - `writeFile(path, content)` - Write file - `openFile(path)` - Open file in editor - **`executeFile(filePath, args)` - Execute a Node.js/TypeScript file** - **`executeScript(script, language)` - Execute inline JavaScript/TypeScript** - `log(message, level)` - Log to output channel
-              </p>
-              <h3>Special Execution Methods</h3>
-              <h4>executeFile - Run a file on the other side</h4>
-              <p>**From TypeScript (execute Dart file):**</p>
-              <pre><code>const result = await bridge.sendRequest('executeFile', {
-    filePath: '/path/to/script.dart',
-    args: ['--verbose', '--output=json']
-});
-// Result: { exitCode, stdout, stderr, success, data }</code></pre>
-              <p>**From Dart (execute Node.js file):**</p>
-              <pre><code>final result = await server.sendRequest('executeFile', {
-  'filePath': '/path/to/script.js',
-  'args': ['--config', 'prod']
-});
-// Result: { exitCode, stdout, stderr, success, data }</code></pre>
-              <h4>executeScript - Run inline code on the other side</h4>
-              <p>**From TypeScript (execute Dart code):**</p>
-              <pre><code>const result = await bridge.sendRequest('executeScript', {
-    script: `
-import 'dart:convert';
-void main() {
-  print(jsonEncode({'result': 42}));
-}
-`,
-    mainFunction: 'main'
-});
-// Result: { exitCode, stdout, stderr, success, data }</code></pre>
-              <p>**From Dart (execute TypeScript/JavaScript):**</p>
-              <pre><code>final result = await server.sendRequest('executeScript', {
-  'script': '''
-    const files = await vscode.workspace.findFiles('**/*.dart');
-    return { fileCount: files.length };
-  ''',
-  'language': 'javascript'
-});
-// Result: { success, data, language }</code></pre>
-              <p>
-                **Result Structure:** Both `executeFile` and `executeScript` return structured JSON: - `exitCode`: Process exit code (for file execution) - `stdout`: Standard output - `stderr`: Standard error - `success`: Boolean indicating success - `data`: Parsed JSON if output is valid JSON (automatic)
-              </p>
-              <p>
-                The `data` field is automatically populated by parsing stdout as JSON, making it easy to return structured data from executed scripts.
-              </p>
-              <h2>Example: Complete Workflow</h2>
-              <h3>1. Dart Bridge Server</h3>
-              <pre><code>// lib/bridge_server.dart
-class VSCodeBridgeServer {
-  Future&lt;Map&lt;String, dynamic&gt;&gt; _analyzeProject(
-    Map&lt;String, dynamic&gt; params,
-  ) async {
-    final projectPath = params['projectPath'] as String;
-    
-    // Show message in VS Code
-    await sendRequest('showInfo', {
-      'message': 'Analyzing: $projectPath',
-    });
-    
-    // Do analysis...
-    final result = performAnalysis(projectPath);
-    
-    // Ask Copilot for suggestions
-    final suggestions = await sendRequest('askCopilot', {
-      'prompt': 'Suggest improvements for: $result',
-    });
-    
-    // Write report
-    await sendRequest('writeFile', {
-      'path': '$projectPath/analysis.md',
-      'content': suggestions,
-    });
-    
-    // Open the report
-    await sendRequest('openFile', {
-      'path': '$projectPath/analysis.md',
-    });
-    
-    return {'success': true};
-  }
-}</code></pre>
-              <h3>2. TypeScript Extension</h3>
-              <pre><code>// src/extension.ts
-const bridge = new DartBridgeClient(context);
-await bridge.start(workspaceRoot);
-
-// Call Dart method
-const result = await bridge.sendRequest('analyzeProject', {
-  projectPath: '/path/to/project'
-});
-
-// Dart will call back to VS Code APIs automatically
-// (showInfo, askCopilot, writeFile, openFile)
-
-bridge.stop();</code></pre>
-              <h2>Development</h2>
-              <h3>Running the Bridge</h3>
-              <pre><code># Compile TypeScript
-cd tom_vscode_extension
-npm run compile
-
-# Test from VS Code
-# 1. Press F5 to launch extension
-# 2. Cmd+Shift+P → "DartScript: Execute Dart Script with Bridge"</code></pre>
-              <h3>Debugging</h3>
-              <ul>
-                <li>**TypeScript**: Set breakpoints in `src/vscode-bridge.ts`</li>
-                <li>**Dart**: Add print statements (they appear in Output channel)</li>
-                <li>**Messages**: Check "Dart Bridge" output channel in VS Code</li>
-              </ul>
-              <h3>Adding New Methods</h3>
-              <p>1. **Add Dart handler**:</p>
-              <pre><code>   // lib/bridge_server.dart
-   case 'myNewMethod':
-     result = await _myNewMethod(params);
-     break;</code></pre>
-              <p>2. **Call from TypeScript**:</p>
-              <pre><code>   const result = await bridge.sendRequest('myNewMethod', {
-     param1: 'value1'
-   });</code></pre>
-              <p>3. **Or add VS Code API**:</p>
-              <pre><code>   // src/vscode-bridge.ts
-   private async handleDartRequest(method: string, params: any, id?: number) {
-     case 'myVSCodeAPI':
-       result = await this.myVSCodeAPI(params);
-       break;
-   }</code></pre>
-              <h2>GitHub Copilot API Usage</h2>
-              <h3>Basic Copilot Queries</h3>
-              <pre><code>import 'package:tom_vscode_bridge/vscode_api/d4rt_helpers.dart';
-
-// Ask Copilot a question
-final answer = await askCopilot(
-  'Explain the difference between async and await in Dart',
-);
-
-// Get code suggestion
-final code = await getCopilotSuggestion(
-  'Write a function to merge two sorted lists',
-  language: 'dart',
-);
-
-// Explain code
-final explanation = await explainCode('''
-  Future&lt;void&gt; fetchData() async {
-    final response = await http.get(url);
-    return json.decode(response.body);
-  }
-''');</code></pre>
-              <h3>Advanced Copilot Features</h3>
-              <pre><code>// Generate tests
-final tests = await generateTests('''
-  int calculateDiscount(int price, double rate) {
-    return (price * (1 - rate)).round();
-  }
-''', testFramework: 'dart test');
-
-// Review code
-final review = await reviewCode('''
-  void process(data) {
-    for (var i = 0; i &lt; data.length; i++) {
-      print(data[i]);
-    }
-  }
-''');
-
-// Fix code with error message
-final fixed = await fixCode('''
-  String getName() {
-    return name; // Error: undefined
-  }
-''', errorMessage: 'Undefined name: name');</code></pre>
-              <h3>Language Model API (Direct Access)</h3>
-              <pre><code>import 'package:tom_vscode_bridge/vscode_api/vscode.dart';
-import 'package:tom_vscode_bridge/vscode_api/vscode_lm.dart';
-
-final vscode = getVSCode();
-
-// Select a Copilot model
-final models = await vscode.lm.selectChatModels(
-  vendor: 'copilot',
-  family: 'gpt-4',
-);
-
-if (models.isNotEmpty) {
-  final model = models.first;
-  
-  // Send chat request
-  final messages = [
-    LanguageModelChatMessage.user('Explain closures in Dart'),
-  ];
-  
-  final response = await model.sendRequest(
-    vscode.bridge,
-    messages,
-  );
-  
-  print('Response: ${response.text}');
-  
-  // Count tokens
-  final tokens = await model.countTokens(
-    vscode.bridge,
-    'This is a test message',
-  );
-  print('Token count: $tokens');
-}</code></pre>
-              <h2>Helper Functions Reference</h2>
-              <h3>Group 1: Dart/Flutter Development</h3>
-              <pre><code>// Package management
-await runPubGet();
-await runPubUpgrade();
-await addDependency('http', dev: false);
-
-// Code quality
-final diagnostics = await getDiagnostics('lib/main.dart');
-await formatDocument('lib/main.dart');
-await organizeImports('lib/main.dart');
-
-// Flutter development
-await hotReload();
-await hotRestart();
-final devices = await getFlutterDevices();
-await runFlutterApp(deviceId: 'chrome');</code></pre>
-              <h3>Group 2: Copilot Integration</h3>
-              <pre><code>// AI assistance
-final answer = await askCopilot('How do I use streams in Dart?');
-final suggestion = await getCopilotSuggestion('implement quicksort');
-final explanation = await explainCode(myCode);
-final review = await reviewCode(myCode);
-final tests = await generateTests(myCode);
-final fixed = await fixCode(buggyCode, errorMessage: error);
-
-// Model management
-final models = await getCopilotModels();
-await selectCopilotModel('gpt-4');</code></pre>
-              <h3>Group 3: Advanced Editor</h3>
-              <pre><code>// Text manipulation
-await replaceText('old text', 'new text');
-await insertSnippet('for (var i = 0; i &lt; ${1:10}; i++) {\n\t$0\n}');
-await applyWorkspaceEdit(editData);
-
-// Selection management
-final selection = await getSelection();
-await setSelection(startLine: 0, startChar: 0, endLine: 5, endChar: 10);
-final cursor = await getCursorPosition();</code></pre>
-              <h3>Group 4: Workspace &amp; Project</h3>
-              <pre><code>// Project information
-final files = await getProjectFiles(pattern: '**/*.dart');
-final gitRoot = await getGitRoot();
-final projectType = await getProjectType();
-
-// Search and replace
-final results = await searchInWorkspace('TODO');
-await replaceInWorkspace('oldText', 'newText', filePattern: '*.dart');</code></pre>
-              <h3>Group 5: Testing &amp; Debugging</h3>
-              <pre><code>// Test execution
-await runTests();
-await runTestsWithCoverage();
-final results = await getTestResults();
-
-// Debugging
-await startDebugging('Dart &amp; Flutter', {'program': 'lib/main.dart'});
-await stopDebugging();
-
-// Breakpoints
-await setBreakpoint('lib/main.dart', 42);
-await removeBreakpoint('lib/main.dart', 42);
-final breakpoints = await getBreakpoints();</code></pre>
-              <h2>D4rt Bridge Classes</h2>
-              <p>The bridge system exposes 26 VS Code API classes for direct use in D4rt scripts:</p>
-              <p>
-                **Core APIs:** - `VSCode` - Main API wrapper - `VSCodeWindow` - Window management - `VSCodeWorkspace` - Workspace operations - `VSCodeCommands` - Command execution - `VSCodeExtensions` - Extension management
-              </p>
-              <p>
-                **Language Model APIs:** - `VSCodeLanguageModel` - AI model access - `LanguageModelChat` - Chat model interface - `LanguageModelChatMessage` - Chat messages - `LanguageModelChatResponse` - AI responses - `VSCodeChat` - Chat participant creation - `ChatParticipant` - Chat participant interface
-              </p>
-              <p>
-                **Type Classes:** - `TextDocument`, `TextEditor`, `Selection`, `Range`, `Position` - `WorkspaceFolder`, `Extension` - `QuickPickItem`, `InputBoxOptions`, `MessageOptions`
-              </p>
-              <p>**Helper Classes:** - `Progress` - Progress reporting - `FileBatch` - Batch file operations</p>
-              <p>All classes support automatic JSON serialization for seamless data transfer.</p>
-              <h2>Why Not D4rt?</h2>
-              <p>
-                **D4rt** is a Dart-to-Dart interpreter (runs Dart in Dart). It's not available as an npm package for Node.js/TypeScript.
-              </p>
-              <p>
-                **Our Solution**: JSON-RPC over stdin/stdout - ✅ Standard protocol used by LSP - ✅ Works with any language combination - ✅ Full bidirectional communication - ✅ No external dependencies needed - ✅ Efficient and reliable
-              </p>
-              <h2>Next Steps</h2>
-              <ul>
-                <li>[x] JSON-RPC communication protocol</li>
-                <li>[x] Bidirectional Dart ↔ TypeScript bridge</li>
-                <li>[x] VS Code API integration</li>
-                <li>[x] GitHub Copilot integration</li>
-                <li>[ ] Add more VS Code APIs (terminal, git, etc.)</li>
-                <li>[ ] Support for multiple concurrent Dart processes</li>
-                <li>[ ] Hot reload for Dart code changes</li>
-                <li>[ ] Debug adapter protocol integration</li>
-              </ul>
-              <h2>Integration with DartScript</h2>
-              <p>
-                This bridge is part of the DartScript system: - Execute Dart scripts from VS Code - Access workspace metadata - Generate documentation with AI - Automate build workflows
-              </p>
-              <p>See the main [DartScript documentation](../tom_ai_build/ai_build_guidelines/) for more information.</p>
             </div>
           </section>
           <details class="licbox">

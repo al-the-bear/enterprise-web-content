@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1317,6 +1337,13 @@
                 <section id="TomEmailField" class="api-declaration">
                   <h3 class="api-decl-title">class TomEmailField</h3>
                   <code class="api-signature">class TomEmailField&lt;T&gt; extends TomFieldOld&lt;T&gt;</code>
+                  <div class="api-doc">
+                    <p>A [TomFieldOld] that requires a non-empty, syntactically valid email.</p>
+                    <p>
+                      Adds a value validator yielding the resource keys <code>"$formName.$fieldName.errors.required"</code>
+                       (empty) and <code>".errors.validEmail"</code> (malformed).
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomEmailField.new" class="api-member">
@@ -1329,12 +1356,32 @@
                   <div class="api-members">
                     <div id="TomEmailField.isValidEmail" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static bool isValidEmail(String s)</code></div>
+                      <div class="api-doc"><p>Returns <code>true</code> when [s] is a syntactically valid email address.</p></div>
                     </div>
                   </div>
                 </section>
                 <section id="TomFieldOld" class="api-declaration">
                   <h3 class="api-decl-title">class TomFieldOld</h3>
                   <code class="api-signature">class TomFieldOld&lt;T&gt; extends TomObject&lt;T&gt;</code>
+                  <div class="api-doc">
+                    <p>An observable single form field backing a Material [TextField].</p>
+                    <p>
+                      <code>TomFieldOld</code> is the legacy form-field primitive of <code>tom_core_flutter</code>. It extends the kernel [TomObject] (so it can be observed and bound like any other Tom value) and wires a [TextEditingController] to two validation passes:
+                    </p>
+                    <ul><li><strong>input validators</strong> run on every keystroke (via the controller listener)</li></ul>
+                    <p>
+                      and <em>reject</em> the change — the text reverts to [currentRawValue] when an input validator fails; - 
+                      <strong>value validators</strong> run on demand from [validate] and surface an error without reverting the text.
+                    </p>
+                    <p>
+                      Field labels, helper text, the optional input pattern, and error messages are resolved from the kernel [TomTextResourceProvider] under the key prefix 
+                      <code>"$formName.$fieldName"</code> (e.g. <code>form.email.label</code>, <code>form.email.errors.pattern</code>). Missing keys fall back to the key itself, so an unconfigured field still renders.
+                    </p>
+                    <p>
+                      &gt; A richer form framework lives in <code>tom_flutter_ui</code> (<code>TomForm</code>/<code>TomField</code>). &gt; This 
+                      <code>Old</code> type is retained for existing consumers (e.g. &gt; <code>tom_uam_client</code>).
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomFieldOld.new" class="api-member">
@@ -1355,10 +1402,22 @@
                     <div id="TomFieldOld.configExists" class="api-member">
                       <div class="api-member-head"><code class="api-signature">bool Function(String) configExists</code></div>
                     </div>
-                    <div id="TomFieldOld.fieldName" class="api-member"><div class="api-member-head"><code class="api-signature">String fieldName</code></div></div>
-                    <div id="TomFieldOld.formName" class="api-member"><div class="api-member-head"><code class="api-signature">String formName</code></div></div>
-                    <div id="TomFieldOld.initialValue" class="api-member"><div class="api-member-head"><code class="api-signature">T initialValue</code></div></div>
-                    <div id="TomFieldOld.obscureText" class="api-member"><div class="api-member-head"><code class="api-signature">bool obscureText</code></div></div>
+                    <div id="TomFieldOld.fieldName" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String fieldName</code></div>
+                      <div class="api-doc"><p>Field identifier within the form; second segment of every resource key.</p></div>
+                    </div>
+                    <div id="TomFieldOld.formName" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String formName</code></div>
+                      <div class="api-doc"><p>Owning form identifier; first segment of every resource key.</p></div>
+                    </div>
+                    <div id="TomFieldOld.initialValue" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">T initialValue</code></div>
+                      <div class="api-doc"><p>Value the field is constructed with and reverts to on [reset].</p></div>
+                    </div>
+                    <div id="TomFieldOld.obscureText" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool obscureText</code></div>
+                      <div class="api-doc"><p>Whether the rendered [TextField] obscures its text (e.g. passwords).</p></div>
+                    </div>
                     <div id="TomFieldOld._inputError" class="api-member"><div class="api-member-head"><code class="api-signature">String? _inputError</code></div></div>
                     <div id="TomFieldOld.errorText" class="api-member"><div class="api-member-head"><code class="api-signature">String? errorText</code></div></div>
                     <div id="TomFieldOld._textEditingController" class="api-member">
@@ -1383,14 +1442,41 @@
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
-                    <div id="TomFieldOld.validate" class="api-member"><div class="api-member-head"><code class="api-signature">bool validate()</code></div></div>
-                    <div id="TomFieldOld.save" class="api-member"><div class="api-member-head"><code class="api-signature">T save()</code></div></div>
-                    <div id="TomFieldOld.getField" class="api-member"><div class="api-member-head"><code class="api-signature">Widget getField()</code></div></div>
-                    <div id="TomFieldOld.reset" class="api-member"><div class="api-member-head"><code class="api-signature">void reset()</code></div></div>
+                    <div id="TomFieldOld.validate" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool validate()</code></div>
+                      <div class="api-doc">
+                        <p>Runs every value validator against the current text.</p>
+                        <p>
+                          Sets [errorText] to the first failing validator's (localized) message and returns <code>false</code>; clears the error and returns 
+                          <code>true</code> when all pass.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomFieldOld.save" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">T save()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Converts the current text to <code>T</code>, stores it as the field value, and returns it. Notifies observers of the field.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomFieldOld.getField" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Widget getField()</code></div>
+                      <div class="api-doc"><p>Builds the Material [TextField] for this field, rebuilding whenever the error state changes.</p></div>
+                    </div>
+                    <div id="TomFieldOld.reset" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void reset()</code></div>
+                      <div class="api-doc"><p>Restores the field to [initialValue] and syncs the text editor to match.</p></div>
+                    </div>
                     <div id="TomFieldOld.set" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">T set(T value)</code>
                         <span class="api-badge api-badge--override">override</span>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Sets the field value and mirrors it into the text editor (cursor placed at the end). Triggers the input-validation listener.
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -1398,6 +1484,13 @@
                 <section id="TomPasswordField" class="api-declaration">
                   <h3 class="api-decl-title">class TomPasswordField</h3>
                   <code class="api-signature">class TomPasswordField&lt;T&gt; extends TomFieldOld&lt;T&gt;</code>
+                  <div class="api-doc">
+                    <p>A [TomFieldOld] that requires a non-empty password of at least 4 characters.</p>
+                    <p>
+                      Adds a value validator yielding the resource keys <code>"$formName.$fieldName.errors.required"</code>
+                       (empty) and <code>".errors.minimumLength"</code> (shorter than 4). Obscures its text by default.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomPasswordField.new" class="api-member">

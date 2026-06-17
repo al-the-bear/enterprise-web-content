@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1307,7 +1327,7 @@
             <h2>tom_basics</h2>
             <div class="mono" style="color: #9FB6C9">tom_basics · v1.0.0</div>
             <p style="margin-top: 10px">
-              The minimal-dependency base of the Tom stack: core utilities and a UUID-tracked base exception with stack-trace support that the whole framework builds on.
+              The bottom of the Tom dependency stack: a UUID-tracked exception base with folded stack traces, a per-class bitwise logger, a platform-abstraction seam, and a runtime model — on just three well-known dependencies.
             </p>
             <div style="margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap">
               <a class="btn btn-primary" target="_blank" rel="noopener noreferrer" href="https://github.com/al-the-bear/tom_basics">View repository →</a>
@@ -1324,17 +1344,7 @@
             <div>
               <div class="panel">
                 <h3>Overview</h3>
-                <p>
-                  `tom_basics` is the utility floor at the bottom of every Tom application.
-                  It keeps its dependency surface as small as possible so that everything
-                  above — `tom_core_kernel`, the Flutter and server cores, and the build
-                  tools — can rest on it without inheriting weight.
-                  
-                  Its central type is `TomBaseException`, a base exception carrying a UUID,
-                  an error key, parameters, and stack-trace support, giving the framework a
-                  uniform, traceable error model. The other utilities here are the small,
-                  shared helpers the rest of Tom assumes are always present.
-                </p>
+                <p>From the module readme.md file:</p>
                 <h4 style="font-size: 1rem; margin-top: 18px">What it enables</h4>
                 <p style="margin: 0">Enables Tracked framework exceptions, tom_core_kernel foundation, Shared base utilities.</p>
               </div>
@@ -1383,40 +1393,727 @@
           </div>
           <section class="section repodoc">
             <div class="pageprose">
-              <h1>Tom Basics</h1>
-              <p>Basic utilities for the TOM framework with minimal dependencies.</p>
-              <h2>Features</h2>
-              <ul><li>**TomBaseException** - Base exception class with UUID tracking and stack trace support</li></ul>
-              <h2>Getting Started</h2>
-              <p>Add the package to your `pubspec.yaml`:</p>
+              <h1>tom_basics</h1>
+              <p>
+                &gt; Part of the <strong>Tom framework</strong> by al-the-bear. &gt; © 2024–2026 Peter Nicolai Alexis Kyaw — BSD-3-Clause, see 
+                <a href="https://github.com/al-the-bear/tom_basics/blob/main/LICENSE">LICENSE</a>.
+              </p>
+              <p>Basic utilities for the Tom framework including exception handling with UUID tracking.</p>
+              <p>
+                <code>tom_basics</code> is the <strong>bottom of the dependency stack</strong>. It carries the few primitives that almost every other Tom package imports — a traceable exception base, a configurable logger, a platform-abstraction layer, and a small runtime environment model — while keeping its own dependency list to just three well-known packages (<code>uuid</code>, 
+                <code>stack_trace</code>, <code>http</code>). Nothing here pulls in Flutter, a database, or a server framework, so it is safe to import from the most foundational corners of the codebase.
+              </p>
+              <p>---</p>
+              <h2>Overview</h2>
+              <p>
+                A foundational library has one job: give the layers above it a vocabulary they can share without dragging in heavy dependencies. 
+                <code>tom_basics</code> provides four such vocabularies, each independent of the others:
+              </p>
+              <ul><li><strong>Errors that can be traced across process boundaries.</strong> A</li></ul>
+              <p>
+                <a href="#exception-handling-with-uuid-tracking"><code>TomBaseException</code></a> stamps every failure with a UUID at the moment it is created. When the same error is logged on a server, surfaced in a client, and filed in a bug tracker, the UUID is the thread that ties the three sightings together. The exception also captures a 
+                <em>terse, core-folded</em> stack trace (via <code>stack_trace</code>) so the noise of the SDK internals is stripped from the report.
+              </p>
+              <ul><li><strong>Logging you can dial up and down per class.</strong> The global</li></ul>
+              <p>
+                <a href="#logging"><code>tomLog</code></a> instance offers nine severity methods (<code>trace</code> → 
+                <code>fatal</code> plus <code>status</code>) and a <strong>bitwise level model</strong> that lets you compose, subtract, and match levels. You can raise the verbosity of a single class or method without touching the global level, and you can redirect all output to a destination of your choosing by swapping one field.
+              </p>
+              <ul><li><strong>Platform detail behind a single seam.</strong> Code that needs to know "are we on</li></ul>
+              <p>
+                the web?" or "give me an HTTP client" talks to <a href="#platform-abstraction"><code>TomPlatformUtils.current</code></a>
+                 instead of importing <code>dart:io</code> or <code>dart:html</code>. The concrete implementation is injected once at startup, so the same library code compiles and runs on console, server, mobile, and web.
+              </p>
+              <ul><li><strong>A runtime environment model for wiring.</strong> [<code>TomEnvironment</code>,</li></ul>
+              <p>
+                <code>TomPlatform</code>, and <code>TomRuntime</code>](#runtime-environments-and-platforms) describe 
+                <em>which</em> environment (development / test / production) and <em>which</em> platform (web / macos / android / …) are active, with a parent hierarchy. Higher-level Tom packages use this to select environment- and platform-specific implementations.
+              </p>
+              <p>
+                These four concerns share no code with each other; you can import the package and use only the logger, only the exception base, or only the platform seam.
+              </p>
+              <p>---</p>
+              <h2>Installation</h2>
+              <p>Add the dependency with its hosted version constraint:</p>
               <pre><code>dependencies:
   tom_basics: ^1.0.0</code></pre>
-              <h2>Usage</h2>
-              <h3>Exception Handling</h3>
+              <p>or from the command line:</p>
+              <pre><code>dart pub add tom_basics</code></pre>
+              <p>
+                <strong>SDK:</strong> Dart <code>^3.10.0</code>. <strong>Transitive dependencies:</strong> <code>uuid</code>, 
+                <code>stack_trace</code>, <code>http</code> — all pure-Dart and platform-neutral, so <code>tom_basics</code>
+                 itself adds no native or Flutter requirement.
+              </p>
+              <p>---</p>
+              <h2>Features</h2>
+              <h3>Exception handling</h3>
+              <table class="mdtable">
+                <thead><tr><th>Capability</th><th>Type / member</th><th>Notes</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>UUID-stamped exception</td>
+                    <td><code>TomBaseException</code></td>
+                    <td>Auto-generates a UUIDv4 unless one is supplied.</td>
+                  </tr>
+                  <tr>
+                    <td>Request correlation</td>
+                    <td><code>requestUuid</code></td>
+                    <td>Optional id tying an error to an inbound request.</td>
+                  </tr>
+                  <tr>
+                    <td>Structured context</td>
+                    <td><code>parameters</code></td>
+                    <td><code>Map&lt;String, Object?&gt;</code> of diagnostic values.</td>
+                  </tr>
+                  <tr>
+                    <td>Cause chaining</td>
+                    <td><code>rootException</code></td>
+                    <td>The underlying error this one wraps.</td>
+                  </tr>
+                  <tr>
+                    <td>Terse stack trace</td>
+                    <td><code>stackTrace</code>, <code>printStackTrace()</code></td>
+                    <td>Core frames folded out via <code>stack_trace</code>.</td>
+                  </tr>
+                  <tr>
+                    <td>Creation timestamp</td>
+                    <td><code>timeStamp</code></td>
+                    <td>UTC <code>DateTime</code> set at construction.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3>Logging</h3>
+              <table class="mdtable">
+                <thead><tr><th>Capability</th><th>Type / member</th><th>Notes</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>Global logger</td>
+                    <td><code>tomLog</code></td>
+                    <td>Ready-to-use <code>TomLogger</code> singleton.</td>
+                  </tr>
+                  <tr>
+                    <td>Severity methods</td>
+                    <td>
+                      <code>trace</code>
+                       
+                      <code>debug</code>
+                       
+                      <code>traffic</code>
+                       
+                      <code>info</code>
+                       
+                      <code>warn</code>
+                       
+                      <code>status</code>
+                       
+                      <code>error</code>
+                       
+                      <code>severe</code>
+                       
+                      <code>fatal</code>
+                    </td>
+                    <td>One method per level.</td>
+                  </tr>
+                  <tr>
+                    <td>Bitwise levels</td>
+                    <td><code>TomLogLevel</code> + <code>-</code> <code>matches</code></td>
+                    <td>Compose and subtract levels.</td>
+                  </tr>
+                  <tr>
+                    <td>Compound levels</td>
+                    <td>
+                      <code>development</code>
+                       
+                      <code>extended</code>
+                       
+                      <code>production</code>
+                       
+                      <code>still</code>
+                       
+                      <code>silent</code>
+                       
+                      <code>off</code>
+                    </td>
+                    <td>Named presets.</td>
+                  </tr>
+                  <tr>
+                    <td>Per-name overrides</td>
+                    <td><code>addNameLevel</code> / <code>setLogLevelExceptions</code></td>
+                    <td>Raise verbosity for one class or method.</td>
+                  </tr>
+                  <tr>
+                    <td>Level stack</td>
+                    <td><code>pushLogLevel</code> / <code>popLogLevel</code></td>
+                    <td>Temporary, scoped verbosity.</td>
+                  </tr>
+                  <tr>
+                    <td>Pluggable output</td>
+                    <td><code>logOutput</code>, <code>TomLogOutput</code></td>
+                    <td>Swap in file / remote / custom sinks.</td>
+                  </tr>
+                  <tr>
+                    <td>Custom rendering</td>
+                    <td><code>TomLoggable</code></td>
+                    <td>Control how your objects appear in logs.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3>Platform abstraction</h3>
+              <table class="mdtable">
+                <thead><tr><th>Capability</th><th>Type / member</th><th>Notes</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>Injectable singleton</td>
+                    <td><code>TomPlatformUtils.current</code> / <code>setCurrentPlatform</code></td>
+                    <td>One seam for all platform detail.</td>
+                  </tr>
+                  <tr>
+                    <td>Environment type</td>
+                    <td><code>isDesktop</code> <code>isMobile</code> <code>isWeb</code></td>
+                    <td>Coarse-grained checks.</td>
+                  </tr>
+                  <tr>
+                    <td>OS detection</td>
+                    <td>
+                      <code>isWindows</code>
+                       
+                      <code>isLinux</code>
+                       
+                      <code>isMacOs</code>
+                       
+                      <code>isFuchsia</code>
+                       
+                      <code>isAndroid</code>
+                       
+                      <code>isIos</code>
+                    </td>
+                    <td>Fine-grained checks.</td>
+                  </tr>
+                  <tr>
+                    <td>Console output</td>
+                    <td><code>out</code> / <code>outError</code></td>
+                    <td>Platform-routed stdout / stderr.</td>
+                  </tr>
+                  <tr>
+                    <td>HTTP client factory</td>
+                    <td><code>httpClient()</code></td>
+                    <td>Returns a <code>package:http</code> <code>Client</code>.</td>
+                  </tr>
+                  <tr>
+                    <td>Env vars</td>
+                    <td><code>envVars</code> / <code>getTomEnvVars</code></td>
+                    <td>Platform-neutral configuration map.</td>
+                  </tr>
+                  <tr>
+                    <td>Default fallback</td>
+                    <td><code>TomFallbackPlatformUtils</code></td>
+                    <td>Console output works; detection throws until configured.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3>Runtime environments and platforms</h3>
+              <table class="mdtable">
+                <thead><tr><th>Capability</th><th>Type / member</th><th>Notes</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>Environment model</td>
+                    <td><code>TomEnvironment</code></td>
+                    <td>Named, with optional parent + initializer.</td>
+                  </tr>
+                  <tr>
+                    <td>Platform model</td>
+                    <td><code>TomPlatform</code></td>
+                    <td>Named target with an initializer hook.</td>
+                  </tr>
+                  <tr>
+                    <td>Runtime registry</td>
+                    <td><code>TomRuntime</code></td>
+                    <td>Holds current env / platform + hierarchy resolution.</td>
+                  </tr>
+                  <tr>
+                    <td>Platform constants</td>
+                    <td>
+                      <code>platformWeb</code>
+                       
+                      <code>platformMacos</code>
+                       
+                      <code>platformWindows</code>
+                       
+                      <code>platformLinux</code>
+                       
+                      <code>platformAndroid</code>
+                       
+                      <code>platformIos</code>
+                       
+                      <code>platformFuchsia</code>
+                    </td>
+                    <td>Predefined targets.</td>
+                  </tr>
+                  <tr>
+                    <td>Env constants</td>
+                    <td><code>defaultTomEnvironment</code> <code>noTomEnvironment</code></td>
+                    <td>Defaults / sentinels.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>---</p>
+              <h2>Quick start</h2>
               <pre><code>import 'package:tom_basics/tom_basics.dart';
 
-// Create and throw a tracked exception
-throw TomBaseException(
-  'USER_NOT_FOUND',
-  'The requested user could not be found',
-  parameters: {'userId': userId},
-);
+void main() {
+  // The global logger is ready to use immediately.
+  tomLog.setLogLevel(TomLogLevel.development);
+  tomLog.info('Application starting...');
 
-// Catch and inspect
-try {
-  // ... operation that may fail
-} on TomBaseException catch (e) {
-  print('Error ${e.uuid}: ${e.key}');
-  print('Message: ${e.defaultUserMessage}');
-  e.printStackTrace();
+  try {
+    throw TomBaseException('EXAMPLE_ERROR', 'Something went wrong');
+  } on TomBaseException catch (e) {
+    tomLog.error('Caught: ${e.key} - ${e.defaultUserMessage}');
+    print('Exception UUID: ${e.uuid}'); // e.g. aceec92a-90ab-4f7b-896e-...
+  }
+
+  tomLog.info('Application finished.');
 }</code></pre>
-              <h2>Additional Information</h2>
+              <p>Running it prints (timestamps and the UUID vary per run):</p>
+              <pre><code>2026-06-16 21:27:22.128328 - INFO    Application starting...   [main]
+2026-06-16 21:27:22.140356 - ERROR   Caught: EXAMPLE_ERROR - Something went wrong   [main]
+Exception UUID: aceec92a-90ab-4f7b-896e-595d7f1a94ca
+2026-06-16 21:27:22.140927 - INFO    Application finished.   [main]</code></pre>
               <p>
-                This package provides foundational utilities that are used by other TOM framework packages, including:
+                This is exactly <a href="https://github.com/al-the-bear/tom_basics/blob/main/example/tom_basics_example.dart"><code>example/tom_basics_example.dart</code></a>
+                 — run it with <code>dart run example/tom_basics_example.dart</code>.
               </p>
-              <ul><li>`tom_crypto` - Cryptographic utilities</li><li>`tom_core_kernel` - Core kernel library</li></ul>
-              <h2>License</h2>
-              <p>BSD-3-Clause - See [LICENSE](LICENSE) for details.</p>
+              <p>---</p>
+              <h2>Example projects</h2>
+              <table class="mdtable">
+                <thead><tr><th>Sample</th><th>Demonstrates</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_basics/blob/main/example/tom_basics_example.dart"><code>example/tom_basics_example.dart</code></a>
+                    </td>
+                    <td>The 12-line quick start above: logger + tracked exception.</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_basics/tree/main/tom_basics_samples/tom_basics_sample"><code>tom_basics_sample</code></a>
+                    </td>
+                    <td>
+                      The full exception-handling-with-UUID-tracking model, end to end, with the logger and platform seam. 
+                      <em>(article-grade sample, seven runnable examples)</em>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>---</p>
+              <h2>Usage</h2>
+              <h3>Exception handling with UUID tracking</h3>
+              <p>
+                The constructor takes a <strong>key</strong> (a stable, machine-readable code) and a <strong>default user message</strong>
+                 (human-readable), with everything else optional:
+              </p>
+              <pre><code>import 'package:tom_basics/tom_basics.dart';
+
+void main() {
+  final ex = TomBaseException(
+    'VALIDATION_ERROR',
+    'The email address is not valid',
+    parameters: {'field': 'email', 'value': 'not-an-email'},
+  );
+
+  print(ex.key);                  // VALIDATION_ERROR
+  print(ex.defaultUserMessage);   // The email address is not valid
+  print(ex.parameters?['field']); // email
+  print(ex.uuid.length);          // 36  (a UUIDv4 string)
+}</code></pre>
+              <p>
+                *<em>Why a key </em>and<em> a message?</em>* The <code>key</code> is what your code branches on and what you grep logs for; it never changes when you reword the prose. The 
+                <code>defaultUserMessage</code> is the fallback text shown when no localized message is available. Keeping them separate means translators and programmers never fight over the same string.
+              </p>
+              <p>
+                <strong>Correlating an error with a request.</strong> Pass <code>requestUuid</code> so a failure deep in a handler can be matched back to the inbound call that triggered it:
+              </p>
+              <pre><code>TomBaseException(
+  'DB_TIMEOUT',
+  'The database did not respond in time',
+  requestUuid: incomingRequestId,
+  parameters: {'table': 'orders', 'timeoutMs': 5000},
+);</code></pre>
+              <p>
+                <strong>Wrapping a lower-level error.</strong> When you catch an exception and rethrow a domain-level one, keep the original in 
+                <code>rootException</code> and the original trace in <code>stack</code> so nothing is lost:
+              </p>
+              <pre><code>try {
+  await db.query(sql);
+} catch (e, s) {
+  throw TomBaseException(
+    'ORDER_LOAD_FAILED',
+    'Could not load the order',
+    rootException: e,
+    stack: s,
+  );
+}</code></pre>
+              <p>
+                <strong>Inspecting the trace.</strong> Each exception folds out core/SDK frames at construction time and stores the result in 
+                <code>stackTrace</code>. Print it directly, or use <code>printStackTrace()</code>:
+              </p>
+              <pre><code>try {
+  throw TomBaseException('BOOM', 'demo');
+} on TomBaseException catch (e) {
+  e.printStackTrace();      // writes "&lt;uuid&gt;-&lt;requestUuid&gt; exception stacktrace:\n..."
+  // or inspect the stored string:
+  print(e.stackTrace.split('\n').first); // the first non-core frame
+}</code></pre>
+              <p>
+                &gt; <strong>Note.</strong> <code>tom_basics</code> deliberately stops at this minimal base class. The &gt; full-featured exception type with integrated logging lives in &gt; 
+                <code>tom_core_kernel</code> as <code>TomException</code>; reach for that when you are above the &gt; foundation layer.
+              </p>
+              <h3>Logging</h3>
+              <p>
+                The global <a href="https://github.com/al-the-bear/tom_basics/blob/main/lib/src/logging/logging.dart"><code>tomLog</code></a>
+                 instance is usable without any setup. Each severity has its own method:
+              </p>
+              <pre><code>import 'package:tom_basics/tom_basics.dart';
+
+void main() {
+  tomLog.info('Server started on port 8080');
+  tomLog.warn('Cache miss for key user:42');
+  tomLog.error('Failed to connect to database');
+  tomLog.debug('Request payload: {"id": 42}');
+  tomLog.trace('Entering computeChecksum()');
+}</code></pre>
+              <p>
+                Output lines carry the timestamp, isolate name, level, message, and the detected origin (the <code>class.method</code>
+                 that called the logger), e.g.:
+              </p>
+              <pre><code>2026-06-16 21:27:22.140 - INFO    Server started on port 8080   [main]</code></pre>
+              <h4>Log levels are bit patterns</h4>
+              <p>
+                A <a href="https://github.com/al-the-bear/tom_basics/blob/main/lib/src/logging/logging.dart"><code>TomLogLevel</code></a>
+                 is a bit mask. Individual levels can be <strong>combined</strong> with <code>+</code> and <strong>removed</strong>
+                 with <code>-</code>, and a logger only emits a message when its level <code>matches</code> the message level:
+              </p>
+              <pre><code>// Build a custom level: info plus errors, nothing else.
+var quiet = TomLogLevel.info + TomLogLevel.errors;
+tomLog.setLogLevel(quiet);
+
+tomLog.info('shown');      // matches -&gt; printed
+tomLog.debug('hidden');    // no overlap -&gt; filtered out
+tomLog.error('shown');     // matches -&gt; printed
+
+// Subtract a level from a preset.
+var prodNoInfo = TomLogLevel.production - TomLogLevel.info;
+print(prodNoInfo.matches(TomLogLevel.info)); // false
+print(prodNoInfo.matches(TomLogLevel.warn)); // true</code></pre>
+              <p>Named presets cover the common cases:</p>
+              <table class="mdtable">
+                <thead><tr><th>Preset</th><th>Includes</th></tr></thead>
+                <tbody>
+                  <tr><td><code>development</code></td><td>everything, including <code>trace</code></td></tr>
+                  <tr><td><code>extended</code></td><td>production + <code>debug</code> + <code>traffic</code></td></tr>
+                  <tr>
+                    <td><code>production</code></td>
+                    <td><code>info</code> + <code>warn</code> + errors + <code>status</code></td>
+                  </tr>
+                  <tr><td><code>still</code></td><td><code>warn</code> + errors + <code>status</code></td></tr>
+                  <tr><td><code>silent</code></td><td>errors + <code>status</code> only</td></tr>
+                  <tr><td><code>off</code></td><td>nothing</td></tr>
+                </tbody>
+              </table>
+              <p>
+                You can also resolve a level by name (useful for reading a level from config or an environment variable):
+              </p>
+              <pre><code>tomLog.setLogLevelByName('DEVELOPMENT');          // case-insensitive
+final lvl = TomLogLevel.byName('SILENT');          // or null if unknown</code></pre>
+              <h4>Temporary verbosity with a level stack</h4>
+              <p>To turn the volume up around one tricky section and restore it afterwards, push and pop:</p>
+              <pre><code>tomLog.pushLogLevel(TomLogLevel.trace);
+// ... noisy operations are fully traced here ...
+tomLog.popLogLevel(); // back to whatever was active before</code></pre>
+              <h4>Per-class and per-method overrides</h4>
+              <p>
+                When stack-trace analysis is enabled (the default, <code>TomLogger.globalSettingDetermineCaller == true</code>), the logger detects which 
+                <code>class.method</code> emitted each message. That lets you raise verbosity for one location only:
+              </p>
+              <pre><code>// Trace everything in DatabaseService, debug one method of ApiClient.
+tomLog.addNameLevel('DatabaseService', TomLogLevel.trace);
+tomLog.addNameLevel('ApiClient.sendRequest', TomLogLevel.debug);
+
+// Or configure several at once from a pattern string (e.g. from config):
+tomLog.setLogLevelExceptions('DatabaseService=TRACE,ApiClient=DEBUG');</code></pre>
+              <h4>Redirecting output</h4>
+              <p>
+                The logger writes through <code>logOutput</code>, a <a href="https://github.com/al-the-bear/tom_basics/blob/main/lib/src/logging/logging.dart"><code>TomLogOutput</code></a>. The default is 
+                <a href="https://github.com/al-the-bear/tom_basics/blob/main/lib/src/logging/logging.dart"><code>TomConsoleLogOutput</code></a>
+                 (errors and status to stderr, everything else to stdout). Implement <code>TomLogOutput.output</code>
+                 to send logs anywhere:
+              </p>
+              <pre><code>class CollectingLogOutput extends TomLogOutput {
+  final List&lt;String&gt; lines = [];
+
+  @override
+  void output(
+    TomLogLevel loggerLevel,
+    TomLogLevel logLevel,
+    String level,
+    Object message,
+    String isolateName,
+    DateTime timeStamp,
+    String? origin,
+  ) {
+    if (logLevel.matches(loggerLevel)) {
+      lines.add('$level ${convertToString(message)}');
+    }
+  }
+}
+
+void main() {
+  final sink = CollectingLogOutput();
+  tomLog.logOutput = sink;
+  tomLog.info('captured');
+  print(sink.lines); // [INFO    captured]
+}</code></pre>
+              <p>
+                <code>convertToString</code> (provided by the base class) handles <code>String</code>s, lazy <code>Function</code>
+                 messages, and <code>TomLoggable</code> objects automatically.
+              </p>
+              <h4>Custom log representation for your types</h4>
+              <p>Implement <code>TomLoggable</code> so an object renders cleanly in logs without exposing internals:</p>
+              <pre><code>class User implements TomLoggable {
+  User(this.id, this.name);
+  final String id;
+  final String name;
+
+  @override
+  String get logRepresentation =&gt; 'User($id, $name)';
+}
+
+void main() {
+  tomLog.info(User('42', 'Ada')); // logs: User(42, Ada)
+}</code></pre>
+              <h3>Platform abstraction</h3>
+              <p>
+                Library code that must not import <code>dart:io</code> or <code>dart:html</code> directly talks to <a href="https://github.com/al-the-bear/tom_basics/blob/main/lib/src/runtime/platform_neutral.dart"><code>TomPlatformUtils.current</code></a>. The concrete implementation is injected once at startup. Until you do that, the default 
+                <a href="https://github.com/al-the-bear/tom_basics/blob/main/lib/src/runtime/platform_neutral.dart"><code>TomFallbackPlatformUtils</code></a>
+                 supports console output but throws <code>UnimplementedError</code> for detection — a loud, deliberate signal that the platform was never configured:
+              </p>
+              <pre><code>import 'package:tom_basics/tom_basics.dart';
+
+// A Linux console/server implementation. Extending TomFallbackPlatformUtils
+// gives working out/outError; we override every detection method so that
+// TomRuntime.initializePlatform() (which probes them all) also works.
+class ConsolePlatformUtils extends TomFallbackPlatformUtils {
+  @override
+  bool isDesktop() =&gt; true;
+  @override
+  bool isMobile() =&gt; false;
+  @override
+  bool isWeb() =&gt; false;
+  @override
+  bool isWindows() =&gt; false;
+  @override
+  bool isLinux() =&gt; true;
+  @override
+  bool isMacOs() =&gt; false;
+  @override
+  bool isFuchsia() =&gt; false;
+  @override
+  bool isAndroid() =&gt; false;
+  @override
+  bool isIos() =&gt; false;
+}
+
+void main() {
+  TomPlatformUtils.setCurrentPlatform(ConsolePlatformUtils());
+
+  final p = TomPlatformUtils.current;
+  print(p.isDesktop()); // true
+  print(p.isLinux());   // true
+  p.out('hello from the platform seam'); // prints to stdout
+}</code></pre>
+              <p>
+                A stub that overrides only <code>isDesktop</code>/<code>isMobile</code>/<code>isWeb</code> is enough for those three checks, but 
+                <code>TomRuntime.initializePlatform()</code> (below) probes the full set of OS methods — so a complete implementation like the one above is what makes detection work end to end. In real apps you don't write this yourself: 
+                <code>tom_basics_console</code> ships the desktop/server implementation and <code>tom_core_flutter</code>
+                 ships the Flutter one. The seam is what lets the same upstream code run on both.
+              </p>
+              <p>The same singleton also hands out an HTTP client and a configuration map:</p>
+              <pre><code>// Configuration that travels with the platform, not the call site.
+TomPlatformUtils.envVars['API_BASE'] = 'https://api.example.com';
+print(TomPlatformUtils.current.getTomEnvVars()['API_BASE']);
+// https://api.example.com
+
+// A platform-appropriate http client (once a real platform is configured):
+// final client = TomPlatformUtils.current.httpClient();
+// final res = await client.get(Uri.parse('https://api.example.com/health'));</code></pre>
+              <h3>Runtime environments and platforms</h3>
+              <p>
+                The runtime model answers "which environment and platform are active, and what is the chain of fallbacks?" Register environments, pick the current one, and walk the hierarchy:
+              </p>
+              <pre><code>import 'package:tom_basics/tom_basics.dart';
+
+void main() {
+  final prod = TomRuntime.addEnvironment(const TomEnvironment('production'));
+  TomRuntime.addEnvironment(
+    TomEnvironment('staging', parent: prod),
+  );
+
+  TomRuntime.setCurrentEnvironment('staging');
+  print(TomRuntime.getCurrentEnvironment().env); // staging
+
+  // Root-to-current chain, used by higher layers to resolve fallbacks.
+  final chain = TomRuntime.getEnvironmentHierarchy().map((e) =&gt; e.env).toList();
+  print(chain); // [production, staging]
+}</code></pre>
+              <p>An environment may carry an initializer that runs when it is activated:</p>
+              <pre><code>final dev = TomEnvironment(
+  'development',
+  isDevelopment: true,
+  initializer: (env) =&gt; tomLog.info('Activated ${env.env}'),
+);
+dev.initialize(); // logs: Activated development</code></pre>
+              <p>
+                Platform detection ties the platform seam to the runtime registry. Once a real <code>TomPlatformUtils</code>
+                 is configured, <code>initializePlatform()</code> detects and records the current platform:
+              </p>
+              <pre><code>TomPlatformUtils.setCurrentPlatform(ConsolePlatformUtils());
+TomRuntime.setCurrentEnvironment('production');
+TomRuntime.initializePlatform();
+print(TomRuntime.printReport());
+// TomRuntime: Platform TomPlatform: linux Root Environment ... Current Environment ...</code></pre>
+              <p>---</p>
+              <h2>Architecture</h2>
+              <p>
+                <code>tom_basics</code> is four small, independent modules behind a single barrel export (<a href="https://github.com/al-the-bear/tom_basics/blob/main/lib/tom_basics.dart"><code>lib/tom_basics.dart</code></a>):
+              </p>
+              <pre><code>                       package:tom_basics/tom_basics.dart
+                                     │  (barrel export)
+        ┌──────────────┬─────────────┼──────────────────┐
+        │              │             │                  │
+ ┌──────┴──────┐ ┌─────┴──────┐ ┌────┴─────────┐ ┌──────┴────────────┐
+ │ exceptions/ │ │ logging/   │ │ runtime/     │ │ runtime/          │
+ │ exception_  │ │ logging.   │ │ platform_    │ │ platform_         │
+ │ base.dart   │ │ dart       │ │ neutral.dart │ │ environment_      │
+ │             │ │            │ │              │ │ runtime.dart      │
+ │ TomBase     │ │ TomLogger  │ │ TomPlatform  │ │ TomEnvironment    │
+ │ Exception   │ │ TomLogLevel│ │ Utils        │ │ TomPlatform       │
+ │             │ │ TomLogOut  │ │ (+ fallback) │ │ TomRuntime        │
+ └─────────────┘ └─────┬──────┘ └──────┬───────┘ └───────────────────┘
+   uuid,                │  uses         │ uses
+   stack_trace          └───────────────┘
+                     (logging routes its console
+                      output through the platform seam)</code></pre>
+              <p>
+                The only internal coupling is that <code>logging</code> writes through the platform seam (<code>TomConsoleLogOutput</code>
+                 calls <code>TomPlatformUtils.current.out/outError</code>) and reads the isolate name from it. Exceptions and the environment model stand alone.
+              </p>
+              <h3>Key types</h3>
+              <table class="mdtable">
+                <thead><tr><th>Type</th><th>Responsibility</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><code>TomBaseException</code></td>
+                    <td>Minimal exception base with UUID, timestamp, params, cause, and folded stack trace.</td>
+                  </tr>
+                  <tr>
+                    <td><code>TomLogger</code></td>
+                    <td>The logger: severity methods, level + per-name configuration, output dispatch.</td>
+                  </tr>
+                  <tr><td><code>tomLog</code></td><td>The global <code>TomLogger</code> instance.</td></tr>
+                  <tr>
+                    <td><code>TomLogLevel</code></td>
+                    <td>
+                      Bitwise log-level value with 
+                      <code>+</code>
+                      , 
+                      <code>-</code>
+                      , 
+                      <code>matches</code>
+                      , and named presets.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>TomLogOutput</code></td>
+                    <td>Abstract log sink; <code>TomConsoleLogOutput</code> is the default stdout/stderr impl.</td>
+                  </tr>
+                  <tr>
+                    <td><code>TomLoggable</code></td>
+                    <td>Interface for objects that supply their own <code>logRepresentation</code>.</td>
+                  </tr>
+                  <tr>
+                    <td><code>TomPlatformUtils</code></td>
+                    <td>Injectable platform seam: detection, console output, HTTP client, env vars.</td>
+                  </tr>
+                  <tr>
+                    <td><code>TomFallbackPlatformUtils</code></td>
+                    <td>Default impl: console output works, detection throws until configured.</td>
+                  </tr>
+                  <tr>
+                    <td><code>TomEnvironment</code></td>
+                    <td>A named runtime environment with optional parent + initializer.</td>
+                  </tr>
+                  <tr><td><code>TomPlatform</code></td><td>A named target platform with an initializer hook.</td></tr>
+                  <tr>
+                    <td><code>TomRuntime</code></td>
+                    <td>Registry of current environment/platform and hierarchy resolution.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>---</p>
+              <h2>Ecosystem</h2>
+              <p>
+                <code>tom_basics</code> sits at the root of the basics layer; the rest of the framework imports it, never the other way around.
+              </p>
+              <pre><code>                      ┌───────────────────────────┐
+                      │  tom_core_kernel / server  │   higher-level Tom packages
+                      │  tom_core_flutter, d4rt …  │   (TomException, DI, …)
+                      └─────────────┬──────────────┘
+                                    │ depends on
+        ┌────────────────┬──────────┼───────────────┐
+        │                │          │               │
+ ┌──────┴──────┐  ┌──────┴──────┐   │        ┌───────┴────────┐
+ │ tom_basics_ │  │ tom_basics_ │   │        │  tom_crypto     │
+ │ console     │  │ network     │   │        │  (uses logging) │
+ │ (platform   │  │             │   │        └────────────────┘
+ │  impl)      │  │             │   │
+ └──────┬──────┘  └──────┬──────┘   │
+        └────────────────┴──────────┘
+                         │ all depend on
+                  ┌──────┴───────┐
+                  │  tom_basics  │  ← you are here
+                  └──────────────┘
+            (uuid · stack_trace · http only)</code></pre>
+              <p>
+                See the <a href="/doc/tom_agent_container/tom_ai/basics/README">basics repository map</a> for the full package catalogue and the 
+                <a href="/doc/tom_agent_container/tom_ai/basics/README#samples-learning-path">samples learning path</a>.
+              </p>
+              <p>---</p>
+              <h2>Further documentation</h2>
+              <ul>
+                <li>
+                  <a href="/doc/tom_agent_container/tom_ai/basics/README">Basics repository README</a> — the map of all ten basics packages.
+                </li>
+                <li>
+                  <a href="https://github.com/al-the-bear/tom_basics/tree/main/tom_basics_console"><code>tom_basics_console</code></a>
+                   — supplies the desktop/server
+                </li>
+              </ul>
+              <p>
+                <code>TomPlatformUtils</code> implementation that backs the platform seam. - <a href="https://github.com/al-the-bear/tom_crypto/tree/main"><code>tom_crypto</code></a>
+                 — a downstream consumer that logs through <code>tomLog</code>. - <code>tom_core_kernel</code> (separate repo) — provides 
+                <code>TomException</code>, the full-featured exception type that builds on this base.
+              </p>
+              <p>---</p>
+              <h2>Status</h2>
+              <ul>
+                <li><strong>Version:</strong> 1.0.0</li>
+                <li><strong>SDK:</strong> Dart <code>^3.10.0</code></li>
+                <li><strong>Tests:</strong> 6 passing (<code>TomBaseException</code> group — construction, parameters,</li>
+              </ul>
+              <p>
+                custom UUID, cause capture, <code>toString</code>, stack-trace capture). Run with <code>dart test</code>
+                 or <code>testkit :test</code>. - <strong>Analyzer:</strong> clean (<code>dart analyze</code> → no issues).
+              </p>
             </div>
           </section>
           <details class="licbox">

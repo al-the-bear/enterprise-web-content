@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1318,18 +1338,37 @@
                 <section id="TomCountResult" class="api-declaration">
                   <h3 class="api-decl-title">class TomCountResult</h3>
                   <code class="api-signature">class TomCountResult</code>
+                  <div class="api-doc">
+                    <p>
+                      Result holder for a <code>COUNT(*)</code> query: a single [count] field populated by the row mapper. Reflectable so the data source can materialise it.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomCountResult.new" class="api-member"><div class="api-member-head"><code class="api-signature">TomCountResult.new()</code></div></div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="TomCountResult.count" class="api-member"><div class="api-member-head"><code class="api-signature">int count</code></div></div>
+                    <div id="TomCountResult.count" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">int count</code></div>
+                      <div class="api-doc"><p>The row count returned by the query.</p></div>
+                    </div>
                   </div>
                 </section>
                 <section id="TomRepository" class="api-declaration">
                   <h3 class="api-decl-title">class TomRepository</h3>
                   <code class="api-signature">abstract class TomRepository&lt;T extends Object, K&gt;</code>
+                  <div class="api-doc">
+                    <p>The persistence contract for an entity [T] keyed by [K].</p>
+                    <p>
+                      Modelled on Spring Data's <code>CrudRepository</code>: it offers id-based CRUD ([save], [findById], [delete], …) plus three query styles — a parsed Spring-style 
+                      <em>query sentence</em> (<code>findByQuerySentence</code> and friends), a built <code>TomQuery</code>
+                       object ([findByQuery] / [deleteByQuery] / [countByQuery]), and a raw SQL string ([executeQueryString]).
+                    </p>
+                    <p>
+                      Note: pageable/limit/slice/sort result options are not yet supported (see the quest completion steps).
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomRepository.new" class="api-member"><div class="api-member-head"><code class="api-signature">TomRepository.new()</code></div></div>
@@ -1338,31 +1377,47 @@
                   <div class="api-members">
                     <div id="TomRepository.delete" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Future&lt;void&gt; delete(T entity)</code></div>
+                      <div class="api-doc"><p>Deletes [entity] by its primary key.</p></div>
                     </div>
                     <div id="TomRepository.deleteAllById" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Future&lt;void&gt; deleteAllById(Iterable&lt;K&gt; ids)</code></div>
+                      <div class="api-doc"><p>Deletes every entity whose id is in [ids].</p></div>
                     </div>
                     <div id="TomRepository.deleteById" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Future&lt;void&gt; deleteById(K id)</code></div>
+                      <div class="api-doc"><p>Deletes the entity with the given [id].</p></div>
                     </div>
                     <div id="TomRepository.existsById" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Future&lt;bool&gt; existsById(Iterable&lt;K&gt; ids)</code></div>
+                      <div class="api-doc"><p>Whether every id in [ids] exists.</p></div>
                     </div>
                     <div id="TomRepository.findAll" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Future&lt;List&lt;T&gt;&gt; findAll()</code></div>
+                      <div class="api-doc"><p>Loads all entities.</p></div>
                     </div>
                     <div id="TomRepository.findAllById" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Future&lt;List&lt;T&gt;&gt; findAllById(Iterable&lt;K&gt; ids)</code></div>
+                      <div class="api-doc"><p>Loads every entity whose id is in [ids].</p></div>
                     </div>
                     <div id="TomRepository.findById" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Future&lt;T?&gt; findById(K id)</code></div>
+                      <div class="api-doc"><p>Loads the entity with the given [id], or <code>null</code> if absent.</p></div>
                     </div>
-                    <div id="TomRepository.count" class="api-member"><div class="api-member-head"><code class="api-signature">Future&lt;TomDbInt&gt; count()</code></div></div>
-                    <div id="TomRepository.save" class="api-member"><div class="api-member-head"><code class="api-signature">Future&lt;T&gt; save(T toSave)</code></div></div>
+                    <div id="TomRepository.count" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;TomDbInt&gt; count()</code></div>
+                      <div class="api-doc"><p>Counts all entities.</p></div>
+                    </div>
+                    <div id="TomRepository.save" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;T&gt; save(T toSave)</code></div>
+                      <div class="api-doc">
+                        <p>Inserts [toSave] (no primary key) or updates it (primary key set), and returns the stored entity.</p>
+                      </div>
+                    </div>
                     <div id="TomRepository.saveAll" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">Future&lt;Iterable&lt;T&gt;&gt; saveAll(Iterable&lt;T&gt; entities)</code>
                       </div>
+                      <div class="api-doc"><p>Saves every entity in [entities] and returns the stored entities.</p></div>
                     </div>
                     <div id="TomRepository.findByQuerySentence" class="api-member">
                       <div class="api-member-head">
@@ -1370,31 +1425,41 @@
                           Future&lt;Iterable&lt;T&gt;&gt; findByQuerySentence(String querySentence, Map&lt;String, Object?&gt; params, [Type? resultType])
                         </code>
                       </div>
+                      <div class="api-doc">
+                        <p>
+                          Runs a parsed query sentence as a <code>SELECT</code>, binding [params]; an optional [resultType] overrides the row type.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomRepository.deleteByQuerySentence" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">Future&lt;void&gt; deleteByQuerySentence(String querySentence, Map&lt;String, Object?&gt; params)</code>
                       </div>
+                      <div class="api-doc"><p>Runs a parsed query sentence as a <code>DELETE</code>, binding [params].</p></div>
                     </div>
                     <div id="TomRepository.countByQuerySentence" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">Future&lt;TomDbInt&gt; countByQuerySentence(String querySentence, Map&lt;String, Object?&gt; params)</code>
                       </div>
+                      <div class="api-doc"><p>Runs a parsed query sentence as a <code>COUNT</code>, binding [params].</p></div>
                     </div>
                     <div id="TomRepository.findByQuery" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">Future&lt;Iterable&lt;T&gt;&gt; findByQuery(TomSelect query, Map&lt;String, Object?&gt; params)</code>
                       </div>
+                      <div class="api-doc"><p>Runs a built [TomSelect], binding [params].</p></div>
                     </div>
                     <div id="TomRepository.deleteByQuery" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">Future&lt;void&gt; deleteByQuery(TomDelete query, Map&lt;String, Object?&gt; params)</code>
                       </div>
+                      <div class="api-doc"><p>Runs a built [TomDelete], binding [params].</p></div>
                     </div>
                     <div id="TomRepository.countByQuery" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">Future&lt;TomDbInt&gt; countByQuery(TomCount query, Map&lt;String, Object?&gt; params)</code>
                       </div>
+                      <div class="api-doc"><p>Runs a built [TomCount], binding [params].</p></div>
                     </div>
                     <div id="TomRepository.executeQueryString" class="api-member">
                       <div class="api-member-head">
@@ -1402,21 +1467,31 @@
                           Future&lt;Iterable&lt;T&gt;&gt; executeQueryString(String dbQuery, Map&lt;String, Object?&gt; params)
                         </code>
                       </div>
+                      <div class="api-doc"><p>Runs a raw SQL string [dbQuery], binding [params], and maps the rows to [T].</p></div>
                     </div>
                   </div>
                 </section>
                 <section id="TomRepositoryType" class="api-declaration">
                   <h3 class="api-decl-title">class TomRepositoryType</h3>
                   <code class="api-signature">class TomRepositoryType</code>
+                  <div class="api-doc">
+                    <p>
+                      Annotation binding a [TomSqlDatasourceRepository] subclass to a named [datasourceType] (e.g. <code>"mariadb"</code>), used by reflection-based repository discovery to pick the right implementation for a data source.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomRepositoryType.new" class="api-member">
                       <div class="api-member-head"><code class="api-signature">const TomRepositoryType.new(String datasourceType)</code></div>
+                      <div class="api-doc"><p>Binds the repository to [datasourceType].</p></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="TomRepositoryType.datasourceType" class="api-member"><div class="api-member-head"><code class="api-signature">final String datasourceType</code></div></div>
+                    <div id="TomRepositoryType.datasourceType" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String datasourceType</code></div>
+                      <div class="api-doc"><p>The data-source type this repository serves.</p></div>
+                    </div>
                   </div>
                 </section>
                 <section id="TomSqlDatasourceRepository" class="api-declaration">
@@ -1424,11 +1499,24 @@
                   <code class="api-signature">
                     abstract class TomSqlDatasourceRepository&lt;T extends Object, K&gt; extends TomRepository&lt;T, K&gt; with TomQueryBuilder
                   </code>
+                  <div class="api-doc">
+                    <p>SQL-datasource implementation of [TomRepository].</p>
+                    <p>
+                      On construction it resolves the entity's persistence metadata via [TomAnnotationAnalyzer] (table, primary-key column, columns), looks up the named [TomDataSourceInfo], and builds a [TomQuerySentenceCompiler] for the query types. CRUD methods compile/cache prepared statements and render them through the active [sqlDialect]; the [TomQueryBuilder] mixin supplies the expression-tree factories. Concrete drivers (e.g. [MariadbRepository]) subclass this and override [sqlDialect].
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomSqlDatasourceRepository.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">TomSqlDatasourceRepository.new([List&lt;Type&gt;? queryTypes, Type? resultType])</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Resolves the entity's persistence metadata and data source.</p>
+                        <p>
+                          [queryTypes] defaults to <code>[T]</code> and [resultType] to <code>T</code>. Throws if the data source named on the entity's 
+                          <code>@TomDbTable</code> is not registered.
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -1436,20 +1524,32 @@
                   <div class="api-members">
                     <div id="TomSqlDatasourceRepository.primaryKeyColumnInfo" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomColumnInformation primaryKeyColumnInfo</code></div>
+                      <div class="api-doc"><p>Resolved metadata for the primary-key column.</p></div>
                     </div>
                     <div id="TomSqlDatasourceRepository.datasourceInfo" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomDataSourceInfo datasourceInfo</code></div>
+                      <div class="api-doc"><p>The resolved data source this repository runs against.</p></div>
                     </div>
                     <div id="TomSqlDatasourceRepository.persistenceInfo" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomTypePersistenceInfo persistenceInfo</code></div>
+                      <div class="api-doc"><p>The resolved persistence metadata of the entity.</p></div>
                     </div>
-                    <div id="TomSqlDatasourceRepository.dbTable" class="api-member"><div class="api-member-head"><code class="api-signature">TomDbTable dbTable</code></div></div>
+                    <div id="TomSqlDatasourceRepository.dbTable" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomDbTable dbTable</code></div>
+                      <div class="api-doc"><p>The table the entity maps to.</p></div>
+                    </div>
                     <div id="TomSqlDatasourceRepository._qsc" class="api-member"><div class="api-member-head"><code class="api-signature">TomQuerySentenceCompiler _qsc</code></div></div>
                     <div id="TomSqlDatasourceRepository.sqlDialect" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomStandardSqlDialect sqlDialect</code></div>
                     </div>
-                    <div id="TomSqlDatasourceRepository.queryTypes" class="api-member"><div class="api-member-head"><code class="api-signature">List&lt;Type&gt; queryTypes</code></div></div>
-                    <div id="TomSqlDatasourceRepository.resultType" class="api-member"><div class="api-member-head"><code class="api-signature">Type resultType</code></div></div>
+                    <div id="TomSqlDatasourceRepository.queryTypes" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">List&lt;Type&gt; queryTypes</code></div>
+                      <div class="api-doc"><p>The entity types this repository can query (first is the primary entity).</p></div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository.resultType" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Type resultType</code></div>
+                      <div class="api-doc"><p>The default row type for results.</p></div>
+                    </div>
                     <div id="TomSqlDatasourceRepository._deleteQuery" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomPreparedStatement&lt;T&gt;? _deleteQuery</code></div>
                     </div>

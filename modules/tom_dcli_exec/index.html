@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1305,7 +1325,7 @@
               <span style="display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap"><span class="badge b-pub"><span class="d"></span>Published</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">role: extension</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">license: BSD-3-Clause</span></span>
             </div>
             <h2>tom_dcli_exec</h2>
-            <div class="mono" style="color: #9FB6C9">tom_dcli_exec · v1.1.2</div>
+            <div class="mono" style="color: #9FB6C9">tom_dcli_exec · v1.1.3</div>
             <p style="margin-top: 10px">
               Layers full DCli shell-scripting bridges and a production REPL on `tom_d4rt_exec`. The preferred analyzer-free base for fast-starting D4rt command-line tools.
             </p>
@@ -1316,7 +1336,7 @@
           </div>
           <div class="statgrid">
             <div class="stat"><div class="k">Status</div><div class="v" style="font-size: 1.05rem; color: #0F7FB0">Published</div></div>
-            <div class="stat"><div class="k">LOC</div><div class="v">33.2k</div></div>
+            <div class="stat"><div class="k">LOC</div><div class="v">33.4k</div></div>
             <div class="stat"><div class="k">Tests</div><div class="v">412</div></div>
             <div class="stat"><div class="k">Test LOC</div><div class="v">6.1k</div></div>
           </div>
@@ -1324,18 +1344,7 @@
             <div>
               <div class="panel">
                 <h3>Overview</h3>
-                <p>
-                  `tom_dcli_exec` is the DCli-equipped tier of the analyzer-free interpreter stack. It
-                  sits on `tom_d4rt_exec` and adds generated DCli shell bridges, a `cli` global for
-                  programmatic REPL access, VS Code scripting integration, and a Telegram/chat bot mode.
-                  
-                  Downstream tools subclass its `D4rtReplBase` to add their own bridge sets and commands.
-                  
-                  It is the analyzer-free counterpart of `tom_d4rt_dcli`: same REPL surface, but it
-                  carries the analyzer only to drive source-to-AST conversion, never loading it at
-                  runtime. This is the preferred base for new tools needing fast startup and minimal
-                  dependencies.
-                </p>
+                <p>From the module readme.md file:</p>
                 <h4 style="font-size: 1rem; margin-top: 18px">What it enables</h4>
                 <p style="margin: 0">Enables analyzer-free shell scripting, fast-startup CLI tools, scriptable REPL automation.</p>
               </div>
@@ -1369,13 +1378,6 @@
                 <div class="linkrow">
                   <span class="ic">📄</span>
                   <div class="linkmeta">
-                    <a class="linkname" href="/docs?module=tom_dcli_exec&amp;path=doc%2Fissues_0215-0800.md">issues_0215-0800.md</a>
-                    <span class="muted linkpath">doc/issues_0215-0800.md</span>
-                  </div>
-                </div>
-                <div class="linkrow">
-                  <span class="ic">📄</span>
-                  <div class="linkmeta">
                     <a class="linkname" href="/docs?module=tom_dcli_exec&amp;path=doc%2Ftesting.md">testing.md</a>
                     <span class="muted linkpath">doc/testing.md</span>
                   </div>
@@ -1401,35 +1403,62 @@
             <div class="pageprose">
               <h1>tom_dcli_exec</h1>
               <p>
+                &gt; <strong>Attribution.</strong> The <code>tom_d4rt</code> project is an extended clone of the original &gt; d4rt project by Moustapha Kodjo Amadou, initially published in 2025. The &gt; complete interpreter is based on his idea.
+              </p>
+              <p>
                 Analyzer-free D4rt REPL/CLI with full DCli shell-scripting bridges — the extensible base for building D4rt command-line tools.
               </p>
               <h2>Overview</h2>
               <p>
-                `tom_dcli_exec` is the DCli-equipped tier of the D4rt interpreter stack. It layers on top of `tom_d4rt_exec` (the analyzer-free mirror-AST interpreter) and adds:
+                <code>tom_dcli_exec</code> is the DCli-equipped tier of the D4rt interpreter stack. It layers on top of 
+                <code>tom_d4rt_exec</code> (the analyzer-free mirror-AST interpreter) and adds:
               </p>
               <ul><li>A complete set of generated DCli shell-scripting bridges so that D4rt scripts can call</li></ul>
               <p>
-                `dcli`, `dcli_core`, `dcli_terminal`, `path`, and related packages directly. - A production-grade interactive REPL built around an abstract base class (`D4rtReplBase`) that downstream tools subclass to add their own bridge sets and commands. - A `cli` global variable available inside every D4rt script, giving programmatic access to all REPL operations (evaluate, execute files, navigate sessions, introspect bridges, etc.). - VS Code scripting-API integration via `tom_vscode_scripting_api` — connect to a running VS Code bridge and evaluate expressions or run scripts from within the REPL. - Telegram/chat bot mode via `tom_chattools` — run the REPL as a long-lived Telegram bot server with configurable security, file transfer, conversation trail, and Copilot-chat forwarding.
+                <code>dcli</code>, <code>dcli_core</code>, <code>dcli_terminal</code>, <code>path</code>, and related packages directly. - A production-grade interactive REPL built around an abstract base class (<code>D4rtReplBase</code>) that downstream tools subclass to add their own bridge sets and commands. - A 
+                <code>cli</code> global variable available inside every D4rt script, giving programmatic access to all REPL operations (evaluate, execute files, navigate sessions, introspect bridges, etc.). - VS Code scripting-API integration via 
+                <code>tom_vscode_scripting_api</code> — connect to a running VS Code bridge and evaluate expressions or run scripts from within the REPL. - Telegram/chat bot mode via 
+                <code>tom_chattools</code> — run the REPL as a long-lived Telegram bot server with configurable security, file transfer, conversation trail, and Copilot-chat forwarding.
               </p>
-              <h3>Relation to `tom_d4rt_dcli`</h3>
-              <p>The workspace contains two parallel DCli-capable tools:</p>
+              <h3>Source-based vs analyzer-free — which D4rt family</h3>
+              <p>D4rt ships in two execution families, and <code>tom_dcli_exec</code> belongs to the second:</p>
+              <ul>
+                <li>
+                  <strong>Source-based (analyzer)</strong> — <code>tom_d4rt</code>, <strong><code>tom_d4rt_dcli</code></strong>,
+                </li>
+              </ul>
+              <p>
+                <code>tom_d4rt_flutter</code>. Parses Dart source with the analyzer, giving full type inference and precise error reporting. This is the 
+                <strong>stable reference and usually the preferable choice</strong>. - <strong>Analyzer-free (mirror AST)</strong>
+                 — <code>tom_d4rt_ast</code>, <code>tom_ast_model</code>, <code>tom_ast_generator</code>, <code>tom_d4rt_exec</code>, 
+                <strong><code>tom_dcli_exec</code></strong>, <code>tom_d4rt_flutter_ast</code>. Runs from pre-compiled 
+                <code>SAstNode</code> trees with <strong>no analyzer dependency at runtime</strong>, which makes it viable on the 
+                <strong>web</strong> (the analyzer is too large to ship there) and for <strong>on-the-fly / OTA updates</strong>. It is a complete alternative, but because generated AST bundles are large, the source-based interpreter is usually preferable unless the web/OTA constraint applies.
+              </p>
+              <p>
+                The workspace therefore contains two parallel DCli-capable tools that expose the same <code>D4rtReplBase</code>
+                 / <code>DcliRepl</code> surface and differ only in the underlying engine:
+              </p>
               <table class="mdtable">
-                <thead><tr><th>Package</th><th>Interpreter</th><th>Source parsing</th></tr></thead>
+                <thead><tr><th>Package</th><th>Interpreter</th><th>Source parsing</th><th>Binary</th></tr></thead>
                 <tbody>
                   <tr>
-                    <td>`tom_dcli_exec` **(this)**</td>
-                    <td>`tom_d4rt_exec` — analyzer-free, mirror AST</td>
-                    <td>`tom_ast_generator` (analyzer only at parse time, not at runtime)</td>
+                    <td><code>tom_dcli_exec</code> <strong>(this)</strong></td>
+                    <td><code>tom_d4rt_exec</code> — analyzer-free, mirror AST</td>
+                    <td><code>tom_ast_generator</code> (analyzer only at parse time, not at runtime)</td>
+                    <td><code>dclie</code></td>
                   </tr>
                   <tr>
-                    <td>`tom_d4rt_dcli`</td>
-                    <td>`tom_d4rt` — full analyzer-based interpreter</td>
+                    <td><a href="/docs?module=tom_d4rt_dcli&amp;path=README.md"><code>tom_d4rt_dcli</code></a></td>
+                    <td><code>tom_d4rt</code> — full analyzer-based interpreter</td>
                     <td>built-in analyzer runtime</td>
+                    <td><code>dcli</code></td>
                   </tr>
                 </tbody>
               </table>
               <p>
-                `tom_dcli_exec` is the preferred base for new tools that need fast startup and minimal dependencies. It carries the `analyzer` package only to drive `tom_ast_generator`'s source-to-mirror-AST conversion; the interpreter itself never loads the analyzer at runtime.
+                <code>tom_dcli_exec</code> carries the <code>analyzer</code> package only to drive <code>tom_ast_generator</code>'s source-to-mirror-AST conversion; the interpreter itself never loads the analyzer at runtime, which is what makes the engine viable on the web and for OTA bundle delivery. A tool written against the source-based twin 
+                <a href="/docs?module=tom_d4rt_dcli&amp;path=README.md"><code>tom_d4rt_dcli</code></a> ports here by swapping the dependency.
               </p>
               <h3>Ecosystem position</h3>
               <pre><code>tom_ast_model
@@ -1440,14 +1469,15 @@
                                 └─ tom_dartscript_bridges  (binary: d4rt)
                                 └─ tom_build_cli           (binary: tom)</code></pre>
               <h2>Installation</h2>
-              <p>Add to your `pubspec.yaml`:</p>
+              <p>Add to your <code>pubspec.yaml</code>:</p>
               <pre><code>dependencies:
-  tom_dcli_exec: ^1.1.2</code></pre>
+  tom_dcli_exec: ^1.1.3</code></pre>
               <p>Or via the command line:</p>
               <pre><code>dart pub add tom_dcli_exec</code></pre>
-              <h3>Executable: `dclie`</h3>
+              <h3>Executable: <code>dclie</code></h3>
               <p>
-                The package ships a single CLI binary entry-point at `bin/dclie.dart` named **`dclie`** (D4rt CLI Exec). After activating the package globally you can run it directly:
+                The package ships a single CLI binary entry-point at <code>bin/dclie.dart</code> named <strong><code>dclie</code></strong>
+                 (D4rt CLI Exec). After activating the package globally you can run it directly:
               </p>
               <pre><code>dart pub global activate tom_dcli_exec
 dclie                          # start interactive REPL
@@ -1457,51 +1487,90 @@ dclie "print('hello');"        # evaluate an expression and exit</code></pre>
               <h2>Features</h2>
               <h3>DCli shell-scripting bridges</h3>
               <p>
-                All DCli shell functions (`ask`, `confirm`, `delete`, `echo`, `fetch`, `find`, `head`, `menu`, `read`, `replace`, `run`, `tail`, `which`, and more) are available as D4rt bridges generated from the real DCli source. Bridge coverage also includes:
+                All DCli shell functions (<code>ask</code>, <code>confirm</code>, <code>delete</code>, <code>echo</code>, 
+                <code>fetch</code>, <code>find</code>, <code>head</code>, <code>menu</code>, <code>read</code>, <code>replace</code>, 
+                <code>run</code>, <code>tail</code>, <code>which</code>, and more) are available as D4rt bridges generated from the real DCli source. Bridge coverage also includes:
               </p>
               <ul>
-                <li>`dcli_core` — file system primitives (`cat`, `copy`, `move`, `mkdir`, `touch`, …)</li>
-                <li>`dcli_terminal` — terminal control</li>
-                <li>`path` — path manipulation utilities</li>
-                <li>`dart_console` / `console_markdown` — formatted console output</li>
-                <li>`tom_chattools` — Telegram chat integration types</li>
-                <li>`tom_vscode_scripting_api` — VS Code bridge client</li>
+                <li>
+                  <code>dcli_core</code> — file system primitives (<code>cat</code>, <code>copy</code>, <code>move</code>, 
+                  <code>mkdir</code>, <code>touch</code>, …)
+                </li>
+                <li><code>dcli_terminal</code> — terminal control</li>
+                <li><code>path</code> — path manipulation utilities</li>
+                <li><code>dart_console</code> / <code>console_markdown</code> — formatted console output</li>
+                <li><code>tom_chattools</code> — Telegram chat integration types</li>
+                <li><code>tom_vscode_scripting_api</code> — VS Code bridge client</li>
               </ul>
               <p>
-                Bridges are registered with `TomD4rtDcliBridge.register(d4rt)` and the corresponding import block is injected automatically so D4rt scripts can use `import 'package:dcli/dcli.dart';` without further setup.
+                Bridges are registered with <code>TomD4rtDcliBridge.register(d4rt)</code> and the corresponding import block is injected automatically so D4rt scripts can use 
+                <code>import 'package:dcli/dcli.dart';</code> without further setup.
               </p>
               <h3>Interactive REPL</h3>
-              <p>The REPL (`DcliRepl`, backed by `D4rtReplBase`) provides:</p>
-              <ul><li>**Command history** — persistent scrollback saved to `~/.tom/dcli/.history`, pre-populated</li></ul>
+              <p>The REPL (<code>DcliRepl</code>, backed by <code>D4rtReplBase</code>) provides:</p>
+              <ul>
+                <li>
+                  <strong>Command history</strong> — persistent scrollback saved to <code>~/.tom/dcli/.history</code>, pre-populated
+                </li>
+              </ul>
               <p>
-                at startup; up to 500 lines retained. - **Named sessions** — record all input to `*.session.txt` files; resume or replace them with `-session &lt;id&gt;` / `-replace-session &lt;id&gt;`. - **Multiline modes** — `.start-define`, `.start-script`, `.start-file`, `.start-execute`, closed with `.end`. Inline shortcuts: `exec &lt;code&gt;` and `exp &lt;expr&gt;`. - **Replay files** — `.dcli` and `.replay.txt` files executed via `.load` (with output) or `.replay` (silent). Pass a replay file as a positional argument to run-and-exit. - **Command aliases (defines)** — `define greet=print("Hello, $1!");` then `@greet World`. Supports `$$` (entire args) and positional `$1`–`$9`. - **Directory navigation** — `cd`, `cwd`, `home`, `ls`, `sessions`, `plays`, `scripts`, `executes`. - **Bridge introspection** — `classes`, `enums`, `methods`, `variables`, `imports`, `registered-*` variants, `info [query]`, `--dump-configuration`. - **Init source** — auto-loads `dcli_init_source.dart` from the data directory at startup; override with `-init-source &lt;file&gt;` or skip with `-no-init-source`. - **stdin mode** — `echo 'return 5+6;' | dclie --stdin` — bare expression, auto-wrapped in `main()`, exit code set to integer result. - **Test mode** — `-run-replay &lt;file&gt; -test [-output &lt;file&gt;]` — executes a replay file and writes a structured test-result JSON for CI integration. - **CTRL-C handling** — single press interrupts an in-progress `await`; double-press within 1 second exits the REPL. - **Console markdown** — all output is processed through `console_markdown` so help text and error messages render with ANSI color tags (`&lt;cyan&gt;`, `&lt;yellow&gt;`, `&lt;red&gt;`, …).
+                at startup; up to 500 lines retained. - <strong>Named sessions</strong> — record all input to <code>*.session.txt</code>
+                 files; resume or replace them with <code>-session &lt;id&gt;</code> / <code>-replace-session &lt;id&gt;</code>. - 
+                <strong>Multiline modes</strong> — <code>.start-define</code>, <code>.start-script</code>, <code>.start-file</code>, 
+                <code>.start-execute</code>, closed with <code>.end</code>. Inline shortcuts: <code>exec &lt;code&gt;</code>
+                 and <code>exp &lt;expr&gt;</code>. - <strong>Replay files</strong> — <code>.dcli</code> and <code>.replay.txt</code>
+                 files executed via <code>.load</code> (with output) or <code>.replay</code> (silent). Pass a replay file as a positional argument to run-and-exit. - 
+                <strong>Command aliases (defines)</strong> — <code>define greet=print("Hello, $1!");</code> then <code>@greet World</code>. Supports 
+                <code>$$</code> (entire args) and positional <code>$1</code>–<code>$9</code>. - <strong>Directory navigation</strong>
+                 — <code>cd</code>, <code>cwd</code>, <code>home</code>, <code>ls</code>, <code>sessions</code>, <code>plays</code>, 
+                <code>scripts</code>, <code>executes</code>. - <strong>Bridge introspection</strong> — <code>classes</code>, 
+                <code>enums</code>, <code>methods</code>, <code>variables</code>, <code>imports</code>, <code>registered-*</code>
+                 variants, <code>info [query]</code>, <code>--dump-configuration</code>. - <strong>Init source</strong>
+                 — auto-loads <code>dcli_init_source.dart</code> from the data directory at startup; override with <code>-init-source &lt;file&gt;</code>
+                 or skip with <code>-no-init-source</code>. - <strong>stdin mode</strong> — <code>echo 'return 5+6;' | dclie --stdin</code>
+                 — bare expression, auto-wrapped in <code>main()</code>, exit code set to integer result. - <strong>Test mode</strong>
+                 — <code>-run-replay &lt;file&gt; -test [-output &lt;file&gt;]</code> — executes a replay file and writes a structured test-result JSON for CI integration. - 
+                <strong>CTRL-C handling</strong> — single press interrupts an in-progress <code>await</code>; double-press within 1 second exits the REPL. - 
+                <strong>Console markdown</strong> — all output is processed through <code>console_markdown</code> so help text and error messages render with ANSI color tags (<code>&lt;cyan&gt;</code>, 
+                <code>&lt;yellow&gt;</code>, <code>&lt;red&gt;</code>, …).
               </p>
-              <h3>VS Code integration (`VSCodeIntegrationMixin`)</h3>
-              <p>`DcliRepl` mixes in `VSCodeIntegrationMixin`, exposing these REPL commands:</p>
+              <h3>VS Code integration (<code>VSCodeIntegrationMixin</code>)</h3>
+              <p><code>DcliRepl</code> mixes in <code>VSCodeIntegrationMixin</code>, exposing these REPL commands:</p>
               <table class="mdtable">
                 <thead><tr><th>Command</th><th>Effect</th></tr></thead>
                 <tbody>
-                  <tr><td>`connect [host:port]`</td><td>Connect to VS Code bridge (default port 19900)</td></tr>
-                  <tr><td>`disconnect`</td><td>Disconnect</td></tr>
-                  <tr><td>`is-available [port]`</td><td>Probe availability</td></tr>
-                  <tr><td>`vscode &lt;expression&gt;`</td><td>Evaluate expression in VS Code bridge</td></tr>
-                  <tr><td>`.vscode &lt;file&gt;`</td><td>Execute a Dart file via VS Code bridge</td></tr>
-                  <tr><td>`.start-vscode-eval` / `.start-vscode-script`</td><td>Multiline VS Code eval/script modes</td></tr>
+                  <tr><td><code>connect [host:port]</code></td><td>Connect to VS Code bridge (default port 19900)</td></tr>
+                  <tr><td><code>disconnect</code></td><td>Disconnect</td></tr>
+                  <tr><td><code>is-available [port]</code></td><td>Probe availability</td></tr>
+                  <tr><td><code>vscode &lt;expression&gt;</code></td><td>Evaluate expression in VS Code bridge</td></tr>
+                  <tr><td><code>.vscode &lt;file&gt;</code></td><td>Execute a Dart file via VS Code bridge</td></tr>
+                  <tr>
+                    <td><code>.start-vscode-eval</code> / <code>.start-vscode-script</code></td>
+                    <td>Multiline VS Code eval/script modes</td>
+                  </tr>
                 </tbody>
               </table>
               <p>
-                Connection is lazy — the `LazyVSCodeBridgeAdapter` defers the TCP connection until the first command that actually needs it.
+                Connection is lazy — the <code>LazyVSCodeBridgeAdapter</code> defers the TCP connection until the first command that actually needs it.
               </p>
               <h3>Telegram bot mode</h3>
               <p>
-                Start with `--bot-mode [--bot-config &lt;file&gt;]`. The `TelegramBotServer` (from `src/bot_mode/`) manages multiple simultaneous bot connections and routes each incoming Telegram message through:
+                Start with <code>--bot-mode [--bot-config &lt;file&gt;]</code>. The <code>TelegramBotServer</code> (from 
+                <code>src/bot_mode/</code>) manages multiple simultaneous bot connections and routes each incoming Telegram message through:
               </p>
               <p>
-                1. **Security validation** (`SecurityManager`) — allow-list by user ID, command patterns, and path restrictions loaded from YAML config (`BotModeConfig`). 2. **Message classification** — explicit Copilot prompt (`?`-prefix), implicit Copilot prompt (ends with `.` / `?` / `---` or starts with `TODO:` / `QUESTION:`), or REPL command. 3. **REPL execution** — the command is processed exactly as if typed interactively. 4. **Conversation trail** — attachments and references accumulate in `ConversationTrail`; retrieve them with `list-attachments`, `get-attachments &lt;ids&gt;`, etc. 5. **Output formatting** — `OutputFormatter` converts ANSI console-markdown to Telegram MarkdownV2 via `telegram_markdown.dart`.
+                1. <strong>Security validation</strong> (<code>SecurityManager</code>) — allow-list by user ID, command patterns, and path restrictions loaded from YAML config (<code>BotModeConfig</code>). 2. 
+                <strong>Message classification</strong> — explicit Copilot prompt (<code>?</code>-prefix), implicit Copilot prompt (ends with 
+                <code>.</code> / <code>?</code> / <code>---</code> or starts with <code>TODO:</code> / <code>QUESTION:</code>), or REPL command. 3. 
+                <strong>REPL execution</strong> — the command is processed exactly as if typed interactively. 4. <strong>Conversation trail</strong>
+                 — attachments and references accumulate in <code>ConversationTrail</code>; retrieve them with <code>list-attachments</code>, 
+                <code>get-attachments &lt;ids&gt;</code>, etc. 5. <strong>Output formatting</strong> — <code>OutputFormatter</code>
+                 converts ANSI console-markdown to Telegram MarkdownV2 via <code>telegram_markdown.dart</code>.
               </p>
-              <h3>`cli` global variable</h3>
+              <h3><code>cli</code> global variable</h3>
               <p>
-                Every D4rt script running inside this REPL can access the `cli` global, an instance of `D4rtCliApi` (implemented by `D4rtCliController`):
+                Every D4rt script running inside this REPL can access the <code>cli</code> global, an instance of <code>D4rtCliApi</code>
+                 (implemented by <code>D4rtCliController</code>):
               </p>
               <pre><code>import 'package:tom_dcli_exec/tom_d4rt_cli_api.dart';
 
@@ -1523,14 +1592,56 @@ print(result); // 3
 await cli.replay('setup.dcli');
 print(cli.defines());</code></pre>
               <p>
-                The `cli` object exposes the full command surface: `processPrompt`, `processPrompts`, `eval`, `execute`, `executeFile`, `file`, `script`, `load`, `replay`, `session`, `reset`, multiline helpers (`startDefine`, `startScript`, `startFile`, `startExecute`, `end`), define management (`define`, `undefine`, `defines`, `loadDefines`, `invokeDefine`, `expandDefine`), directory operations (`cd`, `cwd`, `home`, `ls`, `sessions`, `plays`, `scripts`, `executes`), and introspection (`classes`, `enums`, `methods`, `variables`, `imports`, `registeredClasses`, etc.).
+                The <code>cli</code> object exposes the full command surface: <code>processPrompt</code>, <code>processPrompts</code>, 
+                <code>eval</code>, <code>execute</code>, <code>executeFile</code>, <code>file</code>, <code>script</code>, 
+                <code>load</code>, <code>replay</code>, <code>session</code>, <code>reset</code>, multiline helpers (<code>startDefine</code>, 
+                <code>startScript</code>, <code>startFile</code>, <code>startExecute</code>, <code>end</code>), define management (<code>define</code>, 
+                <code>undefine</code>, <code>defines</code>, <code>loadDefines</code>, <code>invokeDefine</code>, <code>expandDefine</code>), directory operations (<code>cd</code>, 
+                <code>cwd</code>, <code>home</code>, <code>ls</code>, <code>sessions</code>, <code>plays</code>, <code>scripts</code>, 
+                <code>executes</code>), and introspection (<code>classes</code>, <code>enums</code>, <code>methods</code>, 
+                <code>variables</code>, <code>imports</code>, <code>registeredClasses</code>, etc.).
               </p>
               <h3>Test utilities</h3>
               <p>
-                `verify(condition, message)` and related helpers in `src/api/cli_test_utils.dart` are registered as D4rt bridges and available in scripts. Failures accumulate in `verificationFailures` for batch reporting at the end of a `-test` run.
+                <code>verify(condition, message)</code> and related helpers in <code>src/api/cli_test_utils.dart</code>
+                 are registered as D4rt bridges and available in scripts. Failures accumulate in <code>verificationFailures</code>
+                 for batch reporting at the end of a <code>-test</code> run.
+              </p>
+              <h2>Quick start — running scripts</h2>
+              <p>
+                Once <code>dclie</code> is on your <code>PATH</code> (<code>dart pub global activate tom_dcli_exec</code>), a D4rt script can carry a shebang and run directly like any shell script:
+              </p>
+              <pre><code>#!/usr/bin/env dclie
+import 'package:dcli/dcli.dart';
+
+// A throwaway maintenance script — no compile step needed.
+final stale = find('*.tmp', workingDirectory: '.').toList();
+for (final f in stale) {
+  print('removing $f');
+  delete(f);
+}
+print('cleaned ${stale.length} temp files');</code></pre>
+              <pre><code>chmod +x cleanup.dart
+./cleanup.dart          # the shebang routes the file through dclie</code></pre>
+              <p>
+                For one-liners, generated code, or composing with other shell tools, pipe the source straight into <code>dclie --stdin</code>. The process exit code is the script's return value, so scripts slot into pipelines and 
+                <code>&amp;&amp;</code> chains:
+              </p>
+              <pre><code>echo 'print(42);' | dclie --stdin
+cat my_script.dart | dclie --stdin
+echo 'return 5 + 6;' | dclie --stdin          # exit code = 11
+generate_script | dclie --stdin &amp;&amp; echo ok    # gate on the script's result</code></pre>
+              <h3>Examples</h3>
+              <p>
+                The <a href="/doc/tom_agent_container/tom_ai/d4rt/tom_dcli_exec/example/README"><code>example/</code></a>
+                 folder collects runnable DCli snippets and multi-file CLI apps for this analyzer-free base. For a standalone, repo-curated walkthrough see the 
+                <a href="/doc/tom_agent_container/tom_ai/d4rt/tom_d4rt_samples/d4rt_dcli_sample/README"><code>d4rt_dcli_sample</code></a>
+                 in the shared <code>tom_d4rt_samples</code> collection. Both run unchanged on the source-based twin 
+                <a href="/doc/tom_agent_container/tom_ai/d4rt/tom_d4rt_dcli/example/README"><code>tom_d4rt_dcli</code></a>
+                 — the sample homes are shared across the two engines rather than duplicated.
               </p>
               <h2>Quick start — extending the REPL</h2>
-              <p>Subclass `D4rtReplBase` to create a tool with your own bridges:</p>
+              <p>Subclass <code>D4rtReplBase</code> to create a tool with your own bridges:</p>
               <pre><code>import 'package:tom_dcli_exec/tom_dcli_exec.dart';
 
 class MyRepl extends D4rtReplBase {
@@ -1563,21 +1674,31 @@ Future&lt;void&gt; main(List&lt;String&gt; arguments) async {
               <table class="mdtable">
                 <thead><tr><th>Override</th><th>Purpose</th></tr></thead>
                 <tbody>
-                  <tr><td>`toolExtension`</td><td>Replay file extension (default: `toolName.toLowerCase()`)</td></tr>
-                  <tr><td>`replayFilePatterns`</td><td>Patterns matched when listing replay files</td></tr>
                   <tr>
-                    <td>`dataDirectory`</td>
-                    <td>Storage root for sessions, history (default: `~/.tom/&lt;toolname&gt;`)</td>
+                    <td><code>toolExtension</code></td>
+                    <td>Replay file extension (default: <code>toolName.toLowerCase()</code>)</td>
                   </tr>
-                  <tr><td>`handleAdditionalCommands`</td><td>Add custom REPL commands; return `true` when handled</td></tr>
-                  <tr><td>`handleAdditionalMultilineEnd`</td><td>Handle custom multiline modes</td></tr>
-                  <tr><td>`getAdditionalHelpSections`</td><td>Inject extra sections into `help` output</td></tr>
-                  <tr><td>`onReplStartup`</td><td>Run logic after the REPL banner is printed</td></tr>
-                  <tr><td>`createReplState`</td><td>Return a custom `ReplState` subclass</td></tr>
+                  <tr><td><code>replayFilePatterns</code></td><td>Patterns matched when listing replay files</td></tr>
+                  <tr>
+                    <td><code>dataDirectory</code></td>
+                    <td>Storage root for sessions, history (default: <code>~/.tom/&lt;toolname&gt;</code>)</td>
+                  </tr>
+                  <tr>
+                    <td><code>handleAdditionalCommands</code></td>
+                    <td>Add custom REPL commands; return <code>true</code> when handled</td>
+                  </tr>
+                  <tr><td><code>handleAdditionalMultilineEnd</code></td><td>Handle custom multiline modes</td></tr>
+                  <tr>
+                    <td><code>getAdditionalHelpSections</code></td>
+                    <td>Inject extra sections into <code>help</code> output</td>
+                  </tr>
+                  <tr><td><code>onReplStartup</code></td><td>Run logic after the REPL banner is printed</td></tr>
+                  <tr><td><code>createReplState</code></td><td>Return a custom <code>ReplState</code> subclass</td></tr>
                 </tbody>
               </table>
               <p>
-                Mix in `VSCodeIntegrationMixin` to add VS Code commands without re-implementing them (see `DcliRepl` in `lib/tom_dcli_exec.dart` for the canonical example).
+                Mix in <code>VSCodeIntegrationMixin</code> to add VS Code commands without re-implementing them (see 
+                <code>DcliRepl</code> in <code>lib/tom_dcli_exec.dart</code> for the canonical example).
               </p>
               <h2>Architecture</h2>
               <pre><code>D4rtReplBase  (lib/src/cli/repl_base.dart)
@@ -1601,7 +1722,8 @@ TomD4rtDcliBridge  (lib/dartscript.b.dart)
   ├─ TomVscodeScriptingApiBridge  tom_vscode_scripting_api bridges
   └─ CliApiBridge            cli global + D4rtCliApi bridges</code></pre>
               <p>
-                The REPL loop in `D4rtReplBase.run()` is wrapped in a `runZonedGuarded` zone that pipes all `print()` output through `console_markdown`, so ANSI color tags work transparently in every bridge and user script.
+                The REPL loop in <code>D4rtReplBase.run()</code> is wrapped in a <code>runZonedGuarded</code> zone that pipes all 
+                <code>print()</code> output through <code>console_markdown</code>, so ANSI color tags work transparently in every bridge and user script.
               </p>
               <h2>CLI reference</h2>
               <pre><code>dclie [options] [script.dart | replay.dcli | "expression"]
@@ -1628,13 +1750,57 @@ Options
   --debug                     Print init source and debug info
   --bot-mode                  Run as Telegram bot server
   --bot-config &lt;file&gt;         Bot mode configuration YAML file</code></pre>
+              <h2>Further documentation</h2>
+              <table class="mdtable">
+                <thead><tr><th>Document</th><th>What it covers</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><a href="/docs?module=tom_dcli_exec&amp;path=doc%2Fbuild.md"><code>doc/build.md</code></a></td>
+                    <td>
+                      Building and compiling the 
+                      <code>dclie</code>
+                       binary; bridge regeneration via 
+                      <code>build_runner</code>
+                      .
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><a href="/docs?module=tom_dcli_exec&amp;path=doc%2Ftesting.md"><code>doc/testing.md</code></a></td>
+                    <td>Test layout and how to run the suite with <code>testkit</code>.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3>Related packages</h3>
+              <table class="mdtable">
+                <thead><tr><th>Package</th><th>Relationship</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><a href="/docs?module=tom_d4rt_exec&amp;path=README.md"><code>tom_d4rt_exec</code></a></td>
+                    <td>The analyzer-free interpreter this package is built on.</td>
+                  </tr>
+                  <tr>
+                    <td><a href="/docs?module=tom_d4rt_dcli&amp;path=README.md"><code>tom_d4rt_dcli</code></a></td>
+                    <td>Source-based twin — same <code>DcliRepl</code> surface on <code>tom_d4rt</code>.</td>
+                  </tr>
+                  <tr>
+                    <td><a href="/docs?module=tom_ast_generator&amp;path=README.md"><code>tom_ast_generator</code></a></td>
+                    <td>Source → mirror-AST conversion used at parse time.</td>
+                  </tr>
+                </tbody>
+              </table>
               <h2>Status</h2>
-              <p>Current release: **1.1.2** (first public release — 389 tests, 0 failures, 0 skips).</p>
+              <p>Current release: <strong>1.1.3</strong> (389 tests, 0 failures, 0 skips).</p>
               <p>Source repository: &lt;https://github.com/al-the-bear/tom_d4rt/tree/main/tom_dcli_exec&gt;</p>
               <p>Downstream packages that build on this base:</p>
               <ul>
-                <li>**`tom_dartscript_bridges`** — adds Tom Framework bridges; compiles the `d4rt` binary.</li>
-                <li>**`tom_build_cli`** — adds build tooling bridges; compiles the `tom` binary.</li>
+                <li>
+                  <strong><code>tom_dartscript_bridges</code></strong> — adds Tom Framework bridges; compiles the <code>d4rt</code>
+                   binary.
+                </li>
+                <li>
+                  <strong><code>tom_build_cli</code></strong> — adds build tooling bridges; compiles the <code>tom</code>
+                   binary.
+                </li>
               </ul>
             </div>
           </section>

@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1319,6 +1339,15 @@
                 <section id="TomDataSource" class="api-declaration">
                   <h3 class="api-decl-title">class TomDataSource</h3>
                   <code class="api-signature">abstract class TomDataSource implements TomTransactionParticipant</code>
+                  <div class="api-doc">
+                    <p>A connection to one data source — the abstract contract a driver implements.</p>
+                    <p>
+                      A data source exposes its [sqlDialect], lifecycle ([initialize] / [close] / [isOperational]), and execution surface ([prepareStatement], [executeCommand] for writes returning an affected-row count, [executeQuery] for reads). It is a [TomTransactionParticipant], so it can enlist in a transaction.
+                    </p>
+                    <p>
+                      Concrete drivers register via [TomDatasourceDriver]; obtain one for a type with [createDatasourceOf], which lazily scans reflection metadata on first use.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomDataSource.new" class="api-member"><div class="api-member-head"><code class="api-signature">TomDataSource.new()</code></div></div>
@@ -1335,19 +1364,32 @@
                       <div class="api-member-head">
                         <code class="api-signature">Future&lt;void&gt; initialize(Map&lt;String, dynamic&gt; settings)</code>
                       </div>
+                      <div class="api-doc"><p>Opens the connection and applies [settings] (host, credentials, …).</p></div>
                     </div>
-                    <div id="TomDataSource.close" class="api-member"><div class="api-member-head"><code class="api-signature">Future&lt;void&gt; close()</code></div></div>
-                    <div id="TomDataSource.isOperational" class="api-member"><div class="api-member-head"><code class="api-signature">bool isOperational()</code></div></div>
+                    <div id="TomDataSource.close" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;void&gt; close()</code></div>
+                      <div class="api-doc"><p>Closes the connection and frees its resources.</p></div>
+                    </div>
+                    <div id="TomDataSource.isOperational" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool isOperational()</code></div>
+                      <div class="api-doc"><p>Whether the connection is currently usable (default <code>true</code>).</p></div>
+                    </div>
                     <div id="TomDataSource.prepareStatement" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
                           Future&lt;TomPreparedStatement&lt;T&gt;&gt; prepareStatement&lt;T extends Object&gt;(TomQuery query, [Type? resultType])
                         </code>
                       </div>
+                      <div class="api-doc">
+                        <p>Compiles [query] (optionally mapping rows to [resultType]) into a reusable [TomPreparedStatement].</p>
+                      </div>
                     </div>
                     <div id="TomDataSource.executeCommand" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">Future&lt;BigInt&gt; executeCommand(String command, [Map&lt;String, dynamic&gt;? params])</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Executes a write [command] (optionally with [params]) and returns the number of affected rows.</p>
                       </div>
                     </div>
                     <div id="TomDataSource.executeQuery" class="api-member">
@@ -1356,6 +1398,7 @@
                           Future&lt;List&lt;T&gt;&gt; executeQuery&lt;T extends Object&gt;(String command, [Map&lt;String, dynamic&gt;? params, Type? resultType])
                         </code>
                       </div>
+                      <div class="api-doc"><p>Executes a read [command] (optionally with [params]), mapping rows to [resultType].</p></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Static</h4>
@@ -1370,26 +1413,47 @@
                     </div>
                     <div id="TomDataSource.createDatasourceOf" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static TomDataSource? createDatasourceOf(String type)</code></div>
+                      <div class="api-doc">
+                        <p>Returns a fresh data source for [type], discovering drivers on first call.</p>
+                        <p>
+                          Throws a [TomDatasourceInitException] if no driver is registered for [type], or if the registered driver fails to instantiate.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>
                 <section id="TomDataSourceInfo" class="api-declaration">
                   <h3 class="api-decl-title">class TomDataSourceInfo</h3>
                   <code class="api-signature">class TomDataSourceInfo</code>
+                  <div class="api-doc">
+                    <p>The process-wide registry of named, configured data sources.</p>
+                    <p>
+                      Each named entry pairs a [name] with its [settings] and, once [initialize]d, the live [datasource]. [initializeDatasourceInfo] builds the registry from a configuration map; [getDataSourceInfo] looks one up by name; [closeAll] shuts them all down. A 
+                      <code>delegateTo</code> setting aliases one name onto another already-registered data source instead of opening a new connection.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomDataSourceInfo.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">TomDataSourceInfo.new(String name, Map&lt;String, dynamic&gt; settings)</code>
                       </div>
+                      <div class="api-doc"><p>Creates an (uninitialised) registry entry from [name] and [settings].</p></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="TomDataSourceInfo.name" class="api-member"><div class="api-member-head"><code class="api-signature">String name</code></div></div>
-                    <div id="TomDataSourceInfo.type" class="api-member"><div class="api-member-head"><code class="api-signature">String type</code></div></div>
+                    <div id="TomDataSourceInfo.name" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String name</code></div>
+                      <div class="api-doc"><p>The registry key / logical name of this data source.</p></div>
+                    </div>
+                    <div id="TomDataSourceInfo.type" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String type</code></div>
+                      <div class="api-doc"><p>The driver type, resolved from [settings] during [initialize].</p></div>
+                    </div>
                     <div id="TomDataSourceInfo.settings" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Map&lt;String, dynamic&gt; settings</code></div>
+                      <div class="api-doc"><p>The raw configuration for this data source.</p></div>
                     </div>
                     <div id="TomDataSourceInfo._datasource" class="api-member"><div class="api-member-head"><code class="api-signature">TomDataSource? _datasource</code></div></div>
                     <div id="TomDataSourceInfo.isOperational" class="api-member"><div class="api-member-head"><code class="api-signature">bool isOperational</code></div></div>
@@ -1399,6 +1463,14 @@
                   <div class="api-members">
                     <div id="TomDataSourceInfo.initialize" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Future&lt;void&gt; initialize()</code></div>
+                      <div class="api-doc">
+                        <p>Registers this entry and opens its data source.</p>
+                        <p>
+                          With a <code>delegateTo</code> setting, aliases [name] onto the referenced already-registered data source. Otherwise resolves the 
+                          <code>type</code>, creates the driver via [TomDataSource.createDatasourceOf], and initialises it with [settings]. Throws a [TomDatasourceInitException] on any failure (missing delegate, absent/empty 
+                          <code>type</code>, or no driver for the type).
+                        </p>
+                      </div>
                     </div>
                     <div id="TomDataSourceInfo.toString" class="api-member">
                       <div class="api-member-head">
@@ -1411,9 +1483,11 @@
                   <div class="api-members">
                     <div id="TomDataSourceInfo.datasources" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static Map&lt;String, TomDataSourceInfo&gt; datasources</code></div>
+                      <div class="api-doc"><p>All registered data sources, keyed by name.</p></div>
                     </div>
                     <div id="TomDataSourceInfo.getDataSourceInfo" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static TomDataSourceInfo? getDataSourceInfo(String dsName)</code></div>
+                      <div class="api-doc"><p>Returns the registered info for [dsName], or <code>null</code> if none.</p></div>
                     </div>
                     <div id="TomDataSourceInfo.initializeDatasourceInfo" class="api-member">
                       <div class="api-member-head">
@@ -1421,29 +1495,51 @@
                           static Future&lt;int&gt; initializeDatasourceInfo(Map&lt;String, dynamic&gt; datasourceConfiguration)
                         </code>
                       </div>
+                      <div class="api-doc">
+                        <p>
+                          Builds and initialises a registry entry for every map-valued entry in [datasourceConfiguration]. Returns 
+                          <code>1</code> on success.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomDataSourceInfo.closeAll" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static Future&lt;void&gt; closeAll()</code></div>
+                      <div class="api-doc"><p>Closes every initialised data source in the registry.</p></div>
                     </div>
                   </div>
                 </section>
                 <section id="TomDatasourceDriver" class="api-declaration">
                   <h3 class="api-decl-title">class TomDatasourceDriver</h3>
                   <code class="api-signature">class TomDatasourceDriver</code>
+                  <div class="api-doc">
+                    <p>
+                      Annotation marking a [TomDataSource] implementation as the driver for a named data-source [type] (e.g. 
+                      <code>"mariadb"</code>). Drivers are discovered by scanning [tomReflector] for this annotation.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomDatasourceDriver.new" class="api-member">
                       <div class="api-member-head"><code class="api-signature">const TomDatasourceDriver.new(String type)</code></div>
+                      <div class="api-doc"><p>Binds the annotated class to [type].</p></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="TomDatasourceDriver.type" class="api-member"><div class="api-member-head"><code class="api-signature">final String type</code></div></div>
+                    <div id="TomDatasourceDriver.type" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String type</code></div>
+                      <div class="api-doc"><p>The data-source type this driver serves.</p></div>
+                    </div>
                   </div>
                 </section>
                 <section id="TomDatasourceInitException" class="api-declaration">
                   <h3 class="api-decl-title">class TomDatasourceInitException</h3>
                   <code class="api-signature">class TomDatasourceInitException extends TomException</code>
+                  <div class="api-doc">
+                    <p>
+                      Thrown when a data source cannot be discovered, instantiated, or initialised (duplicate or missing driver, bad configuration, etc.).
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomDatasourceInitException.new" class="api-member">
@@ -1452,12 +1548,22 @@
                           TomDatasourceInitException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, Object? stack, Object? rootException, bool autoLog = false, String? uuid, TomServerCallError? serverCallError})
                         </code>
                       </div>
+                      <div class="api-doc">
+                        <p>
+                          Creates the exception with a message [key] and [defaultUserMessage]; the remaining parameters mirror [TomException].
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>
                 <section id="TomPreparedStatement" class="api-declaration">
                   <h3 class="api-decl-title">class TomPreparedStatement</h3>
                   <code class="api-signature">abstract class TomPreparedStatement&lt;T extends Object&gt;</code>
+                  <div class="api-doc">
+                    <p>
+                      A reusable, server-side compiled statement that can be [execute]d (with optional named [params]) any number of times and then [deallocate]d.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomPreparedStatement.new" class="api-member"><div class="api-member-head"><code class="api-signature">TomPreparedStatement.new()</code></div></div>
@@ -1468,9 +1574,11 @@
                       <div class="api-member-head">
                         <code class="api-signature">Future&lt;List&lt;T&gt;&gt; execute([Map&lt;String, Object?&gt;? params])</code>
                       </div>
+                      <div class="api-doc"><p>Runs the statement and returns the mapped result rows.</p></div>
                     </div>
                     <div id="TomPreparedStatement.deallocate" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Future&lt;void&gt; deallocate()</code></div>
+                      <div class="api-doc"><p>Releases the statement's server-side resources.</p></div>
                     </div>
                   </div>
                 </section>

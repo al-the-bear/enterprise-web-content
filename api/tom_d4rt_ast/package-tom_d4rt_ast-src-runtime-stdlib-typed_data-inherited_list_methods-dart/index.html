@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1320,7 +1340,8 @@
                   </code>
                   <div class="api-doc">
                     <p>
-                      Companion to [inheritedListMethods] — getters that typed-data lists inherit from `Iterable&lt;E&gt;` / `List&lt;E&gt;` but that the per-variant bridges currently omit. Same rationale: no supertype walk in the bridge resolver, so each variant has to expose them directly.
+                      Companion to [inheritedListMethods] — getters that typed-data lists inherit from <code>Iterable&lt;E&gt;</code>
+                       / <code>List&lt;E&gt;</code> but that the per-variant bridges currently omit. Same rationale: no supertype walk in the bridge resolver, so each variant has to expose them directly.
                     </p>
                   </div>
                 </section>
@@ -1331,16 +1352,26 @@
                   </code>
                   <div class="api-doc">
                     <p>
-                      Returns a map of methods that are inherited from `Iterable&lt;E&gt;` and the read-only portion of `List&lt;E&gt;` for use in typed-data list bridges (`Float64List`, `Int32List`, `Uint8List`, …).
+                      Returns a map of methods that are inherited from <code>Iterable&lt;E&gt;</code> and the read-only portion of 
+                      <code>List&lt;E&gt;</code> for use in typed-data list bridges (<code>Float64List</code>, <code>Int32List</code>, 
+                      <code>Uint8List</code>, …).
                     </p>
                     <p>
-                      **Why this helper exists.** The d4rt interpreter resolves bridged method names with a direct `bridgedClass.methods[name]` lookup (`interpreter_visitor.dart`) — it does *not* walk the supertype chain to the `List` / `Iterable` bridges. So each typed-data list variant has to declare its own copy of `toList`, `map`, `where`, etc. Without this helper, exposing those methods would mean duplicating ~25 adapters across 12 typed-data variant files. The helper centralises the implementations and each variant just merges `inheritedListMethods&lt;E&gt;(...)` into its `methods:` map.
+                      <strong>Why this helper exists.</strong> The d4rt interpreter resolves bridged method names with a direct 
+                      <code>bridgedClass.methods[name]</code> lookup (<code>interpreter_visitor.dart</code>) — it does <em>not</em>
+                       walk the supertype chain to the <code>List</code> / <code>Iterable</code> bridges. So each typed-data list variant has to declare its own copy of 
+                      <code>toList</code>, <code>map</code>, <code>where</code>, etc. Without this helper, exposing those methods would mean duplicating ~25 adapters across 12 typed-data variant files. The helper centralises the implementations and each variant just merges 
+                      <code>inheritedListMethods&lt;E&gt;(...)</code> into its <code>methods:</code> map.
                     </p>
                     <p>
-                      The [coerce] callback narrows `target` to the concrete typed-data variant — e.g. `(t) =&gt; t as Float64List`. Typed-data lists are all `List&lt;E&gt;`, so the resulting object exposes the full read-only `List&lt;E&gt;` surface natively.
+                      The [coerce] callback narrows <code>target</code> to the concrete typed-data variant — e.g. <code>(t) =&gt; t as Float64List</code>. Typed-data lists are all 
+                      <code>List&lt;E&gt;</code>, so the resulting object exposes the full read-only <code>List&lt;E&gt;</code>
+                       surface natively.
                     </p>
                     <p>
-                      Mutating `List&lt;E&gt;` operations (`add`, `remove`, `insert`, `sort`, …) are *not* included here because typed-data lists are fixed-length and would throw `UnsupportedError` at runtime.
+                      Mutating <code>List&lt;E&gt;</code> operations (<code>add</code>, <code>remove</code>, <code>insert</code>, 
+                      <code>sort</code>, …) are <em>not</em> included here because typed-data lists are fixed-length and would throw 
+                      <code>UnsupportedError</code> at runtime.
                     </p>
                   </div>
                 </section>

@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1256,7 +1276,7 @@
     </style>
     <script src="js/mermaid.min.js" defer></script>
     <!--$-->
-    <title>Code Generation</title>
+    <title>@TOM Sidebar — Notes, Todos, Log, Window Status</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <!--/-->
     <script src="main.client.dart.js" defer></script>
@@ -1299,89 +1319,82 @@
       </nav>
       <main class="site-main">
         <div class="wrap">
-          <div class="famhead" style="margin-top: 24px"><a class="back" href="/areas">← All areas</a><h2 style="margin-top: 12px">Code Generation</h2></div>
-          <div class="fambody">
+          <section class="section">
+            <h1>@TOM Sidebar — Notes, Todos, Log, Window Status</h1>
             <div class="pageprose">
               <p>
-                Much of Tom is generated. The **Code Generation** area collects the generators that turn annotated Dart into the bridges and reflection data the framework relies on — the D4rt bridge generator and the reflection generator — cherry-picked from their home components so they can be understood together.
+                Contributed in the <strong>@TOM</strong> sidebar (Activity Bar view container). Tree views that provide persistent workspace context.
+              </p>
+              <h2>Contributed views</h2>
+              <table class="mdtable">
+                <thead><tr><th>View</th><th>View ID</th><th>Contents</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>VS CODE NOTES</td>
+                    <td><code>tomAi.vscodeNotes</code></td>
+                    <td>VS Code-scoped notes (user-wide).</td>
+                  </tr>
+                  <tr><td>QUEST NOTES</td><td><code>tomAi.questNotes</code></td><td>Notes scoped to the active quest.</td></tr>
+                  <tr>
+                    <td>QUEST TODOS</td>
+                    <td><code>tomAi.questTodos</code></td>
+                    <td>Todos from the active quest's YAML todo files.</td>
+                  </tr>
+                  <tr>
+                    <td>SESSION TODOS</td>
+                    <td><code>tomAi.sessionTodos</code></td>
+                    <td>Window-scoped session todos (not persisted across reload).</td>
+                  </tr>
+                  <tr><td>WORKSPACE NOTES</td><td><code>tomAi.workspaceNotes</code></td><td>Workspace-root notes.</td></tr>
+                  <tr><td>WORKSPACE TODOS</td><td><code>tomAi.workspaceTodos</code></td><td>Workspace-root todos.</td></tr>
+                  <tr>
+                    <td>TODO LOG</td>
+                    <td><code>tomAi.todoLog</code></td>
+                    <td>Session-scoped execution log of completed todos.</td>
+                  </tr>
+                  <tr>
+                    <td>WINDOW STATUS</td>
+                    <td><code>tomAi.windowStatus</code></td>
+                    <td>Multi-window status overview with per-subsystem indicators.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h2>Purpose</h2>
+              <p>
+                Keep workspace context navigable without leaving Explorer / Activity Bar. Notes and todos are markdown / YAML files — the tree views are thin navigation shells with file-watcher refresh; the actual editor is VS Code's built-in markdown / YAML, or the custom 
+                <a href="https://github.com/al-the-bear/tom_vscode/blob/main/tom_vscode_extension/src/handlers/questTodoPanel-handler.ts">quest todo editor</a>
+                 for <code>*.todo.yaml</code> files.
+              </p>
+              <h2>Window Status specifics</h2>
+              <p>Shows one card per open <code>@Tom</code> window:</p>
+              <ul>
+                <li>workspace name + active quest,</li>
+                <li>
+                  per-subsystem indicators (Anthropic / Tom AI Chat / Copilot / Local LLM / AI Conversation) colored <strong>orange</strong>
+                   (prompt sent, awaiting answer) / <strong>green</strong> (answer received),
+                </li>
+                <li>relative timestamps for the most recent state change,</li>
+                <li>delete action to remove stale window entries.</li>
+              </ul>
+              <p>
+                Backed by <code>_ai/local/*.window-state.json</code> files (one per open window). Auto-refreshes via file watcher + 3-second poll.
+              </p>
+              <h2>Interaction with bottom panels</h2>
+              <ul>
+                <li>
+                  <code>@CHAT</code> does <strong>not</strong> host todo views — it focuses on chat. Todos live in this sidebar.
+                </li>
+                <li><code>@WS</code> embeds the Quest TODO panel and has a refresh watcher for updates.</li>
+              </ul>
+              <h2>Maintenance</h2>
+              <p>When changing view IDs, titles, or contributions:</p>
+              <p>
+                1. Update <code>package.json</code> <code>contributes.views.tomAi</code> and any menu contributions. 2. Update focus / open commands in 
+                <code>src/extension.ts</code> and the relevant handlers. 3. Update <a href="/docs?module=tom_vscode_extension&amp;path=doc%2Fquick_reference.md">../doc/quick_reference.md</a>
+                 and <a href="/docs?module=tom_vscode_extension&amp;path=doc%2Fuser_guide.md">../doc/user_guide.md</a>.
               </p>
             </div>
-            <div class="grouplbl">In this area</div>
-            <div class="grid cols-2" style="margin-top: 12px">
-              <a class="tile pub" style="text-decoration: none; color: inherit; display: block" href="/modules/tom_d4rt_generator">
-                <div class="top"></div>
-                <h4>tom_d4rt_generator <span class="badge b-pub"><span class="d"></span>Published</span></h4>
-                <div class="mono">tom_d4rt_generator · v1.9.2</div>
-                <div class="metricline">21.0k loc · 878 tests · 14.8k test LOC</div>
-                <div class="desc">
-                  Reads `buildkit.yaml`, follows barrel exports, and emits `*.b.dart` files that register native Dart APIs with the interpreter. The bridge-writing automation for the family.
-                </div>
-                <!--@quick_info data={"name":"tom_d4rt_generator","id":"tom_d4rt_generator","version":"1.9.2","statusBadgeClass":"b-pub","statusLabel":"Published","roleLabel":"extension","overview":"To call real Dart APIs from inside a sandboxed script, the interpreter needs a\nbridge — a class mapping interpreter calls to native invocations. `tom_d4rt_generator`\nautomates writing them.\n\nFrom a `d4rtgen:` block it follows barrel-file export chains, respects `show`/`hide`,\nand uses the analyzer to extract constructors, methods, getters, operators, type\nparameters, and defaults. It emits `BridgedClass` registrations, relaxer wrappers,\nproxy classes, and an entry point — never hand-edited.\n\nThe generated files are consumed at runtime by both interpreter lines and by bridge\ncorpus packages such as `tom_d4rt_flutter_ast`. Because the bridge API is shared, one\ngenerated bridge works against `tom_d4rt` and `tom_d4rt_ast` alike.","locLabel":"21.0k","testsLabel":"878","testLocLabel":"14.8k","docsCount":29,"refCount":0,"detailHref":"/modules/tom_d4rt_generator"}-->
-                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_d4rt_generator" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-pub"><span class="d"></span>Published</span><h4 style="margin-top: 10px">tom_d4rt_generator <span class="tagrole">role: extension</span></h4><div class="mono">tom_d4rt_generator · v1.9.2</div><p style="font-size: .86rem; margin: 10px 0 0">To call real Dart APIs from inside a sandboxed script, the interpreter needs a
-bridge — a class mapping interpreter calls to native invocations. `tom_d4rt_generator`
-automates writing them.
-
-From a `d4rtgen:` block it follows barrel-file export chains, respects `show`/`hide`,
-and uses the analyzer to extract constructors, methods, getters, operators, type
-parameters, and defaults. It emits `BridgedClass` registrations, relaxer wrappers,
-proxy classes, and an entry point — never hand-edited.
-
-The generated files are consumed at runtime by both interpreter lines and by bridge
-corpus packages such as `tom_d4rt_flutter_ast`. Because the bridge API is shared, one
-generated bridge works against `tom_d4rt` and `tom_d4rt_ast` alike.</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">21.0k</div></div><div class="qs"><div class="k">Tests</div><div class="v">878</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">14.8k</div></div></div><div class="more"><span class="muted">29 docs · 0 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
-                <!--/@quick_info-->
-              </a>
-              <a class="tile pub" style="text-decoration: none; color: inherit; display: block" href="/modules/tom_reflection_generator">
-                <div class="top"></div>
-                <h4>tom_reflection_generator <span class="badge b-pub"><span class="d"></span>Published</span></h4>
-                <div class="mono">tom_reflection_generator · v1.1.1</div>
-                <div class="metricline">7.0k loc · 4 tests · 46 test LOC</div>
-                <div class="desc">
-                  The standalone generator that produces the `.reflection.dart` files `tom_reflection` consumes. It runs as a build_runner builder or a CLI for one-off and CI builds.
-                  
-                </div>
-                <!--@quick_info data={"name":"tom_reflection_generator","id":"tom_reflection_generator","version":"1.1.1","statusBadgeClass":"b-pub","statusLabel":"Published","roleLabel":"extension","overview":"`tom_reflection_generator` builds the reflection data that `tom_reflection`\ndepends on. It scans annotated Dart sources and emits the\n`.reflection.dart` files that carry the mirror information for runtime\nintrospection and invocation.\n\nIt can run two ways: as a `build_runner` builder wired through `build.yaml`,\nor as a standalone command-line tool for single entry points, recursive\ndirectory processing, or CI pipelines. A programmatic API is also exposed\nfor embedding generation in other tools.\n\nThe package bundles the builder, the build_runner integration, and the CLI\nthat were previously part of the Tom build tooling, so any Dart or Flutter\nworkspace using `tom_reflection` can generate reflection without that\nheavier dependency.","locLabel":"7.0k","testsLabel":"4","testLocLabel":"46","docsCount":7,"refCount":1,"detailHref":"/modules/tom_reflection_generator"}-->
-                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_reflection_generator" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-pub"><span class="d"></span>Published</span><h4 style="margin-top: 10px">tom_reflection_generator <span class="tagrole">role: extension</span></h4><div class="mono">tom_reflection_generator · v1.1.1</div><p style="font-size: .86rem; margin: 10px 0 0">`tom_reflection_generator` builds the reflection data that `tom_reflection`
-depends on. It scans annotated Dart sources and emits the
-`.reflection.dart` files that carry the mirror information for runtime
-introspection and invocation.
-
-It can run two ways: as a `build_runner` builder wired through `build.yaml`,
-or as a standalone command-line tool for single entry points, recursive
-directory processing, or CI pipelines. A programmatic API is also exposed
-for embedding generation in other tools.
-
-The package bundles the builder, the build_runner integration, and the CLI
-that were previously part of the Tom build tooling, so any Dart or Flutter
-workspace using `tom_reflection` can generate reflection without that
-heavier dependency.</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">7.0k</div></div><div class="qs"><div class="k">Tests</div><div class="v">4</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">46</div></div></div><div class="more"><span class="muted">7 docs · 1 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
-                <!--/@quick_info-->
-              </a>
-            </div>
-            <div class="grouplbl">Explore other areas</div>
-            <div class="grid cols-3" style="margin-top: 12px">
-              <a class="mcard" style="text-decoration: none; color: inherit; display: block" href="/areas/dart_interpreter">
-                <span class="cardarrow">→</span>
-                <h3>Dart Interpreter</h3>
-                <div class="cat">1 member</div>
-                <div class="sum">Tom runs and generates code at runtime through a sandboxed Dart interpreter.</div>
-              </a>
-              <a class="mcard" style="text-decoration: none; color: inherit; display: block" href="/areas/reflection">
-                <span class="cardarrow">→</span>
-                <h3>Reflection</h3>
-                <div class="cat">1 member</div>
-                <div class="sum">
-                  Applications assemble themselves at runtime, and tools read a codebase's API without re-running the analyzer.
-                </div>
-              </a>
-              <a class="mcard" style="text-decoration: none; color: inherit; display: block" href="/areas/foundations">
-                <span class="cardarrow">→</span>
-                <h3>Foundations</h3>
-                <div class="cat">1 member</div>
-                <div class="sum">The shared floor every Tom package builds on.</div>
-              </a>
-            </div>
-          </div>
+          </section>
         </div>
       </main>
       <footer class="site-footer">

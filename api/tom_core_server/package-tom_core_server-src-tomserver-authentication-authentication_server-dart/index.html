@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1323,6 +1343,14 @@
                 <section id="LoginException" class="api-declaration">
                   <h3 class="api-decl-title">class LoginException</h3>
                   <code class="api-signature">class LoginException extends TomServerException</code>
+                  <div class="api-doc">
+                    <p>A server-side login failure.</p>
+                    <p>
+                      Thrown by a [TomAuthenticationService] (or its helpers) when a login cannot succeed — unknown client/user, invalid credentials, etc. Carries the kernel [TomServerException] payload (<code>key</code>, user message, 
+                      <code>parameters</code>, <code>stack</code>, <code>rootException</code>, <code>autoLog</code>); [TomAuthenticationServer] catches it and turns its 
+                      <code>key</code> into a failed [TomAuthenticationResult] rather than propagating.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="LoginException.new" class="api-member">
@@ -1331,26 +1359,44 @@
                           LoginException.new(String key, String userMessage, {Map&lt;String, Object?&gt;? parameters, Object? stack, Object? rootException, bool autoLog = false})
                         </code>
                       </div>
+                      <div class="api-doc"><p>Creates a login failure with a resource [key] and a default user message.</p></div>
                     </div>
                   </div>
                 </section>
                 <section id="Tom2FAAdaptor" class="api-declaration">
                   <h3 class="api-decl-title">class Tom2FAAdaptor</h3>
                   <code class="api-signature">class Tom2FAAdaptor</code>
+                  <div class="api-doc">
+                    <p>Marks a class as a server-side two-factor (2FA) adaptor for a given [type].</p>
+                    <p>
+                      The [type] names the second-factor mechanism (e.g. <code>'totp'</code>, <code>'sms'</code>). The annotation is reflection-discoverable so a runtime can dispatch the second authentication pass to the matching adaptor. The 2FA flow itself ([TomAuthenticationServer.authenticatePass2]) is not yet implemented.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="Tom2FAAdaptor.new" class="api-member">
                       <div class="api-member-head"><code class="api-signature">const Tom2FAAdaptor.new(String type)</code></div>
+                      <div class="api-doc"><p>Tags the annotated class as a 2FA adaptor for [type].</p></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="Tom2FAAdaptor.type" class="api-member"><div class="api-member-head"><code class="api-signature">final String type</code></div></div>
+                    <div id="Tom2FAAdaptor.type" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String type</code></div>
+                      <div class="api-doc"><p>The 2FA mechanism this adaptor implements (e.g. <code>'totp'</code>, <code>'sms'</code>).</p></div>
+                    </div>
                   </div>
                 </section>
                 <section id="Tom2FAService" class="api-declaration">
                   <h3 class="api-decl-title">class Tom2FAService</h3>
                   <code class="api-signature">abstract class Tom2FAService</code>
+                  <div class="api-doc">
+                    <p>Contract for a second-factor (2FA) authentication step.</p>
+                    <p>
+                      Placeholder: the second authentication pass is not yet implemented (see [TomAuthenticationServer.authenticatePass2]). The full contract must cover the available mechanisms (email, SMS, authenticator app, …) and a way to drive the second-factor UI on the 
+                      <em>client</em>, kept flexible enough that the server does not hard-code the mechanism set.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="Tom2FAService.new" class="api-member"><div class="api-member-head"><code class="api-signature">Tom2FAService.new()</code></div></div>
@@ -1359,23 +1405,44 @@
                 <section id="TomAuthenticationAdaptor" class="api-declaration">
                   <h3 class="api-decl-title">class TomAuthenticationAdaptor</h3>
                   <code class="api-signature">class TomAuthenticationAdaptor</code>
+                  <div class="api-doc">
+                    <p>Marks a class as an authentication adaptor and constrains which login flows it participates in.</p>
+                    <p>
+                      [guestOnly] restricts the adaptor to guest logins; [userOnly] restricts it to authenticated-user logins. Leaving both 
+                      <code>false</code> (the default) makes the adaptor eligible for either flow. The annotation is reflection-discoverable, so a runtime can enumerate the registered adaptors and route a login to the right one.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomAuthenticationAdaptor.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">TomAuthenticationAdaptor.new({bool guestOnly = false, bool userOnly = false})</code>
                       </div>
+                      <div class="api-doc"><p>Creates an adaptor marker; defaults make it eligible for both flows.</p></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="TomAuthenticationAdaptor.guestOnly" class="api-member"><div class="api-member-head"><code class="api-signature">final bool guestOnly</code></div></div>
-                    <div id="TomAuthenticationAdaptor.userOnly" class="api-member"><div class="api-member-head"><code class="api-signature">final bool userOnly</code></div></div>
+                    <div id="TomAuthenticationAdaptor.guestOnly" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final bool guestOnly</code></div>
+                      <div class="api-doc"><p>Whether this adaptor handles only guest logins.</p></div>
+                    </div>
+                    <div id="TomAuthenticationAdaptor.userOnly" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final bool userOnly</code></div>
+                      <div class="api-doc"><p>Whether this adaptor handles only authenticated-user logins.</p></div>
+                    </div>
                   </div>
                 </section>
                 <section id="TomAuthenticationData" class="api-declaration">
                   <h3 class="api-decl-title">class TomAuthenticationData</h3>
                   <code class="api-signature">class TomAuthenticationData</code>
+                  <div class="api-doc">
+                    <p>The data carried into a single authentication attempt.</p>
+                    <p>
+                      A [TomAuthenticationServer] builds this from an incoming <code>TomAuthenticationMessage</code> and passes it to the configured [TomAuthenticationService]. It identifies 
+                      <em>what</em> is being logged into (organization / application / process / client) and <em>who</em> ([username]), plus the credential ([key], e.g. the password) and the client locale (language / country / timezone). The fields are mutable so a service can enrich them while resolving the login.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomAuthenticationData.new" class="api-member">
@@ -1384,41 +1451,92 @@
                           TomAuthenticationData.new({required String username, Object? key, required String organization, required String application, required String process, required String language, required String country, required String timezone, required String client})
                         </code>
                       </div>
+                      <div class="api-doc"><p>Creates the data for one authentication attempt.</p></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="TomAuthenticationData.organization" class="api-member"><div class="api-member-head"><code class="api-signature">String organization</code></div></div>
-                    <div id="TomAuthenticationData.application" class="api-member"><div class="api-member-head"><code class="api-signature">String application</code></div></div>
-                    <div id="TomAuthenticationData.process" class="api-member"><div class="api-member-head"><code class="api-signature">String process</code></div></div>
-                    <div id="TomAuthenticationData.language" class="api-member"><div class="api-member-head"><code class="api-signature">String language</code></div></div>
-                    <div id="TomAuthenticationData.country" class="api-member"><div class="api-member-head"><code class="api-signature">String country</code></div></div>
-                    <div id="TomAuthenticationData.timezone" class="api-member"><div class="api-member-head"><code class="api-signature">String timezone</code></div></div>
-                    <div id="TomAuthenticationData.client" class="api-member"><div class="api-member-head"><code class="api-signature">String client</code></div></div>
-                    <div id="TomAuthenticationData.username" class="api-member"><div class="api-member-head"><code class="api-signature">String username</code></div></div>
-                    <div id="TomAuthenticationData.key" class="api-member"><div class="api-member-head"><code class="api-signature">Object? key</code></div></div>
+                    <div id="TomAuthenticationData.organization" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String organization</code></div>
+                      <div class="api-doc"><p>The organization being logged into.</p></div>
+                    </div>
+                    <div id="TomAuthenticationData.application" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String application</code></div>
+                      <div class="api-doc"><p>The application being logged into.</p></div>
+                    </div>
+                    <div id="TomAuthenticationData.process" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String process</code></div>
+                      <div class="api-doc"><p>The process (sub-context of the application) being logged into.</p></div>
+                    </div>
+                    <div id="TomAuthenticationData.language" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String language</code></div>
+                      <div class="api-doc"><p>The client's language code.</p></div>
+                    </div>
+                    <div id="TomAuthenticationData.country" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String country</code></div>
+                      <div class="api-doc"><p>The client's country code.</p></div>
+                    </div>
+                    <div id="TomAuthenticationData.timezone" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String timezone</code></div>
+                      <div class="api-doc"><p>The client's timezone identifier.</p></div>
+                    </div>
+                    <div id="TomAuthenticationData.client" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String client</code></div>
+                      <div class="api-doc"><p>The client (front-end) identifier the login originates from.</p></div>
+                    </div>
+                    <div id="TomAuthenticationData.username" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String username</code></div>
+                      <div class="api-doc"><p>The login name of the user (or <code>"GUEST"</code> for guest logins).</p></div>
+                    </div>
+                    <div id="TomAuthenticationData.key" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Object? key</code></div>
+                      <div class="api-doc"><p>The credential to verify (typically the password); <code>null</code> for guests.</p></div>
+                    </div>
                   </div>
                 </section>
                 <section id="TomAuthenticationInfo" class="api-declaration">
                   <h3 class="api-decl-title">class TomAuthenticationInfo</h3>
                   <code class="api-signature">class TomAuthenticationInfo</code>
+                  <div class="api-doc">
+                    <p>The successful outcome of a [TomAuthenticationService.authenticateUser] call.</p>
+                    <p>
+                      Pairs the authenticated [principal] (identity, locale, user record) with the [acd] — the access-control definition (groups/roles) that [TomAuthenticationServer] encodes into the issued authorization token.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomAuthenticationInfo.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">TomAuthenticationInfo.new(TomPrincipal principal, TomAccessControlDefinition acd)</code>
                       </div>
+                      <div class="api-doc"><p>Pairs an authenticated [principal] with its access-control definition.</p></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="TomAuthenticationInfo.principal" class="api-member"><div class="api-member-head"><code class="api-signature">TomPrincipal principal</code></div></div>
-                    <div id="TomAuthenticationInfo.acd" class="api-member"><div class="api-member-head"><code class="api-signature">TomAccessControlDefinition acd</code></div></div>
+                    <div id="TomAuthenticationInfo.principal" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomPrincipal principal</code></div>
+                      <div class="api-doc"><p>The authenticated principal (identity, locale, and user record).</p></div>
+                    </div>
+                    <div id="TomAuthenticationInfo.acd" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomAccessControlDefinition acd</code></div>
+                      <div class="api-doc"><p>The principal's access-control definition (groups and roles).</p></div>
+                    </div>
                   </div>
                 </section>
                 <section id="TomAuthenticationServer" class="api-declaration">
                   <h3 class="api-decl-title">class TomAuthenticationServer</h3>
                   <code class="api-signature">class TomAuthenticationServer</code>
+                  <div class="api-doc">
+                    <p>Orchestrates the server-side login flow and issues JWT tokens.</p>
+                    <p>
+                      A server endpoint subclasses this and exposes [authenticateGuest] / [authenticatePass1] / [authenticatePass2] as HTTP endpoints. Each takes a 
+                      <code>TomAuthenticationMessage</code> (the wire request), delegates credential checking to the configured [TomAuthenticationService], and — on success — encodes the resulting principal into two JWTs in the returned [TomAuthenticationResult]: an authentication token (public claims) and an authorization token (public claims plus the encrypted access-control payload).
+                    </p>
+                    <p>
+                      Which service is used is selected per flow via the static [globalSettingGuestAuthenticationService] / [globalSettingUserAuthenticationService]; the JWT issuer is [globalSettingJwtOrganization].
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomAuthenticationServer.new" class="api-member"><div class="api-member-head"><code class="api-signature">TomAuthenticationServer.new()</code></div></div>
@@ -1429,20 +1547,33 @@
                       <div class="api-member-head">
                         <code class="api-signature">Future&lt;TomAuthenticationResult&gt; authenticateGuest(TomAuthenticationMessage m)</code>
                       </div>
+                      <div class="api-doc"><p>Authenticates a guest login via [globalSettingGuestAuthenticationService].</p></div>
                     </div>
                     <div id="TomAuthenticationServer.authenticatePass1" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">Future&lt;TomAuthenticationResult&gt; authenticatePass1(TomAuthenticationMessage m)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          First authentication pass: validates user credentials via [globalSettingUserAuthenticationService] and issues tokens on success.
+                        </p>
                       </div>
                     </div>
                     <div id="TomAuthenticationServer.authenticatePass2" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">Future&lt;TomAuthenticationResult&gt; authenticatePass2(TomAuthenticationMessage m)</code>
                       </div>
+                      <div class="api-doc"><p>Second authentication pass (2FA). Not yet implemented — always throws [UnsupportedError].</p></div>
                     </div>
                     <div id="TomAuthenticationServer.authenticateUser" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">Future&lt;TomAuthenticationResult&gt; authenticateUser(TomAuthenticationMessage m, bool guestLogin)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Runs a login: builds [TomAuthenticationData] from the message, delegates to the guest or user service per [guestLogin], and encodes the principal into the authentication/authorization JWTs of the returned result. A [LoginException] yields a failed result carrying its 
+                          <code>key</code>; any other error yields a <code>"login.error.unknown"</code> result.
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -1452,20 +1583,29 @@
                       <div class="api-member-head">
                         <code class="api-signature">static TomAuthenticationService globalSettingUserAuthenticationService</code>
                       </div>
+                      <div class="api-doc"><p>The service used for authenticated-user logins (pass 1).</p></div>
                     </div>
                     <div id="TomAuthenticationServer.globalSettingGuestAuthenticationService" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">static TomAuthenticationService globalSettingGuestAuthenticationService</code>
                       </div>
+                      <div class="api-doc"><p>The service used for guest logins.</p></div>
                     </div>
                     <div id="TomAuthenticationServer.globalSettingJwtOrganization" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static String globalSettingJwtOrganization</code></div>
+                      <div class="api-doc"><p>The <code>iss</code> (issuer) organization stamped onto issued JWTs.</p></div>
                     </div>
                   </div>
                 </section>
                 <section id="TomAuthenticationService" class="api-declaration">
                   <h3 class="api-decl-title">class TomAuthenticationService</h3>
                   <code class="api-signature">abstract class TomAuthenticationService</code>
+                  <div class="api-doc">
+                    <p>The contract an application implements to authenticate a login.</p>
+                    <p>
+                      Implementations resolve the [TomAuthenticationData] against their user store (database, directory, etc.) and return a [TomAuthenticationInfo] carrying the authenticated principal and its access-control definition. On failure they throw a [LoginException]. The default implementation, [TomDummyAuthenticationService], accepts everything and is for scaffolding only.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomAuthenticationService.new" class="api-member"><div class="api-member-head"><code class="api-signature">TomAuthenticationService.new()</code></div></div>
@@ -1476,12 +1616,23 @@
                       <div class="api-member-head">
                         <code class="api-signature">Future&lt;TomAuthenticationInfo&gt; authenticateUser(TomAuthenticationData authData)</code>
                       </div>
+                      <div class="api-doc">
+                        <p>
+                          Authenticates [authData], returning the principal and its access rights, or throwing a [LoginException] when the login is rejected.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>
                 <section id="TomDummyAuthenticationService" class="api-declaration">
                   <h3 class="api-decl-title">class TomDummyAuthenticationService</h3>
                   <code class="api-signature">class TomDummyAuthenticationService implements TomAuthenticationService</code>
+                  <div class="api-doc">
+                    <p>A no-op [TomAuthenticationService] that authenticates any non-<code>"GUEST"</code> user.</p>
+                    <p>
+                      Provided as the default so a freshly scaffolded server can issue tokens without a user store wired up. It logs an error on every call (unless [showErrorMessage] is cleared) because relying on it outside scaffolding is a mistake — replace it with a real [TomAuthenticationService] via [TomAuthenticationServer.globalSettingUserAuthenticationService] / [TomAuthenticationServer.globalSettingGuestAuthenticationService].
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomDummyAuthenticationService.new" class="api-member">
@@ -1490,7 +1641,10 @@
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="TomDummyAuthenticationService.showErrorMessage" class="api-member"><div class="api-member-head"><code class="api-signature">bool showErrorMessage</code></div></div>
+                    <div id="TomDummyAuthenticationService.showErrorMessage" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool showErrorMessage</code></div>
+                      <div class="api-doc"><p>Whether to log the "you are using the dummy service" error on each call.</p></div>
+                    </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">

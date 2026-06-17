@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1324,17 +1344,7 @@
             <div>
               <div class="panel">
                 <h3>Overview</h3>
-                <p>
-                  `tom_crypto` collects the cryptographic primitives Tom's authentication
-                  and security code relies on. It issues and verifies JWT tokens with HMAC
-                  or RSA signing and encrypted payloads, and hashes passwords with Argon2
-                  for secure storage.
-                  
-                  For asymmetric work it provides RSA encryption with OAEP padding, digital
-                  signatures, and key management — generation plus PEM parsing and encoding
-                  in PKCS#1 and PKCS#8. Together these give the framework a consistent set
-                  of crypto operations to build identity and security features on.
-                </p>
+                <p>From the module readme.md file:</p>
                 <h4 style="font-size: 1rem; margin-top: 18px">What it enables</h4>
                 <p style="margin: 0">
                   Enables JWT authentication tokens, Argon2 password hashing, RSA encryption and signing, Key generation and parsing.
@@ -1393,93 +1403,436 @@
           <section class="section repodoc">
             <div class="pageprose">
               <h1>Tom Crypto</h1>
-              <p>Cryptographic utilities for secure authentication and data protection.</p>
-              <h2>Features</h2>
-              <ul>
-                <li>**JWT Tokens** - Token-based authentication with HMAC/RSA signing and encrypted payloads</li>
-                <li>**Password Hashing** - Secure password storage using Argon2 algorithm</li>
-                <li>**RSA Encryption** - Asymmetric encryption with OAEP padding and digital signatures</li>
-                <li>**RSA Key Management** - Key generation, PEM parsing/encoding (PKCS#1 and PKCS#8)</li>
-              </ul>
-              <h2>Getting Started</h2>
-              <p>Add the package to your `pubspec.yaml`:</p>
+              <p>
+                &gt; Part of the <strong>Tom framework</strong> by al-the-bear. &gt; © 2024–2026 Peter Nicolai Alexis Kyaw — BSD-3-Clause, see 
+                <a href="https://github.com/al-the-bear/tom_crypto/blob/main/LICENSE">LICENSE</a>. &gt; Portions of the RSA key handling are adapted from public examples (see &gt; 
+                <a href="#attribution">Attribution</a>); those parts retain their original licences.
+              </p>
+              <p>
+                Cryptographic utilities for secure authentication and data protection including JWT tokens, password hashing, and RSA encryption.
+              </p>
+              <p>---</p>
+              <h2>Overview</h2>
+              <p>
+                <code>tom_crypto</code> collects the small set of cryptographic primitives the Tom framework needs for 
+                <strong>authentication</strong> and <strong>confidentiality</strong>, wrapped in a task-oriented API so callers do not have to assemble PointyCastle engines by hand. It covers four jobs:
+              </p>
+              <ul><li><strong>Store passwords safely</strong> with Argon2 — the winner of the Password Hashing</li></ul>
+              <p>
+                Competition — including salt generation and a self-describing parameter string so you can rotate cost factors without invalidating old hashes. - 
+                <strong>Issue and verify JWTs</strong> with HMAC or RSA signing, plus an optional RSA-encrypted payload section for claims that must stay secret from the bearer. - 
+                <strong>Encrypt and sign arbitrary bytes</strong> with RSA-OAEP and RSA-SHA-256, block-chunked so payloads larger than one RSA block just work. - 
+                <strong>Generate and (de)serialise RSA keys</strong> to and from PEM (PKCS#1 and PKCS#8), with 2048-bit key generation backed by a Fortuna CSPRNG.
+              </p>
+              <p>
+                Everything is plain Dart (no Flutter dependency), runs on the server and in command-line tools, and builds on 
+                <a href="https://pub.dev/packages/pointycastle"><code>pointycastle</code></a>, <a href="https://pub.dev/packages/asn1lib"><code>asn1lib</code></a>, and 
+                <a href="https://pub.dev/packages/dart_jsonwebtoken"><code>dart_jsonwebtoken</code></a>.
+              </p>
+              <p>
+                &gt; <strong>Read the <a href="#security-notes">Security notes</a> before shipping.</strong> This package &gt; gives you correct primitives, but using them safely (key storage, dummy-key &gt; replacement, cost tuning) is the caller's responsibility, and the defaults &gt; are tuned for development, not production secrets.
+              </p>
+              <p>---</p>
+              <h2>Installation</h2>
               <pre><code>dependencies:
-  tom_crypto: ^1.0.0</code></pre>
-              <h2>Usage</h2>
-              <h3>Password Hashing</h3>
+  tom_crypto: ^1.0.1</code></pre>
+              <p>or from the command line:</p>
+              <pre><code>dart pub add tom_crypto</code></pre>
+              <p>
+                Requires the Dart SDK <code>^3.10.0</code> (records and patterns are used in the password API). Pure Dart — works in server apps, CLI tools, and Flutter alike.
+              </p>
+              <p>
+                When you work directly with RSA key objects (<code>RSAPublicKey</code>, <code>RSAPrivateKey</code>, <code>AsymmetricKeyPair</code>) you also import the types from PointyCastle, which 
+                <code>tom_crypto</code> does not re-export:
+              </p>
+              <pre><code>import 'package:tom_crypto/tom_crypto.dart';
+import 'package:pointycastle/export.dart';</code></pre>
+              <p>---</p>
+              <h2>Features</h2>
+              <h3>Password hashing — <code>TomPasswordHasher</code></h3>
+              <table class="mdtable">
+                <thead><tr><th>Capability</th><th>API</th><th>Notes</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>Hash a password</td>
+                    <td><code>hashPassword(password)</code> → <code>(hash, spec)</code></td>
+                    <td>Random per-password salt; returns a record</td>
+                  </tr>
+                  <tr>
+                    <td>Verify a password</td>
+                    <td><code>verifyPassword(password, hash, spec)</code></td>
+                    <td>Re-derives with the stored spec/salt</td>
+                  </tr>
+                  <tr>
+                    <td>Generate a salt</td>
+                    <td><code>generateSalt(length)</code></td>
+                    <td>Hex string from <code>Random.secure()</code></td>
+                  </tr>
+                  <tr>
+                    <td>Build a derivator</td>
+                    <td><code>buildKeyDerivator([spec, salt])</code></td>
+                    <td>Lower-level Argon2 access</td>
+                  </tr>
+                  <tr>
+                    <td>Tune defaults</td>
+                    <td><code>globalSettingDefaultHashSpec</code>, <code>globalSettingDefaultSaltLength</code></td>
+                    <td>Process-wide cost factors</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3>JWT tokens — <code>TomServerJwtToken</code> / <code>TomClientJwtToken</code></h3>
+              <table class="mdtable">
+                <thead><tr><th>Capability</th><th>API</th><th>Notes</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>Issue a signed token</td>
+                    <td><code>TomServerJwtToken(public, …).getJWT(issuer)</code></td>
+                    <td>HMAC (default) or RSA signing</td>
+                  </tr>
+                  <tr>
+                    <td>Encrypt sensitive claims</td>
+                    <td><code>encryptedData:</code> constructor argument</td>
+                    <td>RSA-OAEP encrypted <code>encrypted</code> claim</td>
+                  </tr>
+                  <tr>
+                    <td>Parse a token</td>
+                    <td><code>TomClientJwtToken(jwt)</code></td>
+                    <td>Decodes claims, auto-decrypts secrets</td>
+                  </tr>
+                  <tr>
+                    <td>Read public claims</td>
+                    <td>
+                      <code>.payload</code>
+                      , 
+                      <code>.issuer</code>
+                      , 
+                      <code>.subject</code>
+                      , 
+                      <code>.audience</code>
+                      , 
+                      <code>.jwtId</code>
+                    </td>
+                    <td>Standard JWT accessors</td>
+                  </tr>
+                  <tr>
+                    <td>Read decrypted claims</td>
+                    <td><code>.secretData</code></td>
+                    <td>Populated when <code>decrypt: true</code></td>
+                  </tr>
+                  <tr>
+                    <td>Configure keys/algorithm</td>
+                    <td><code>TomJwtConfiguration(...)</code>, <code>defaultSignConfiguration</code></td>
+                    <td>Swap dummy keys for production keys</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3>RSA encryption &amp; signatures — top-level functions</h3>
+              <table class="mdtable">
+                <thead><tr><th>Capability</th><th>API</th><th>Notes</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>Encrypt bytes</td>
+                    <td><code>rsaEncrypt(publicKey, bytes)</code></td>
+                    <td>OAEP padding, block-chunked</td>
+                  </tr>
+                  <tr>
+                    <td>Decrypt bytes</td>
+                    <td><code>rsaDecrypt(privateKey, cipher)</code></td>
+                    <td>OAEP padding, block-chunked</td>
+                  </tr>
+                  <tr><td>Sign bytes</td><td><code>rsaSign(privateKey, bytes)</code></td><td>SHA-256 digest</td></tr>
+                  <tr>
+                    <td>Verify a signature</td>
+                    <td><code>rsaVerify(publicKey, data, sig)</code></td>
+                    <td>Returns <code>false</code> on tampered input</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3>RSA key management — <code>RsaKeyHelper</code></h3>
+              <table class="mdtable">
+                <thead><tr><th>Capability</th><th>API</th><th>Notes</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>Seed a CSPRNG</td>
+                    <td><code>getSecureRandom()</code></td>
+                    <td>Fortuna, seeded from <code>Random.secure()</code></td>
+                  </tr>
+                  <tr>
+                    <td>Generate a key pair</td>
+                    <td><code>computeRSAKeyPair(random)</code></td>
+                    <td>2048-bit, exponent 65537</td>
+                  </tr>
+                  <tr>
+                    <td>Parse a public key</td>
+                    <td><code>parsePublicKeyFromPem(pem)</code></td>
+                    <td>PKCS#1 and PKCS#8 auto-detected</td>
+                  </tr>
+                  <tr>
+                    <td>Parse a private key</td>
+                    <td><code>parsePrivateKeyFromPem(pem)</code></td>
+                    <td>PKCS#1 and PKCS#8 auto-detected</td>
+                  </tr>
+                  <tr><td>Encode a public key</td><td><code>encodePublicKeyToPemPKCS1(key)</code></td><td>PEM output</td></tr>
+                  <tr>
+                    <td>Encode a private key</td>
+                    <td><code>encodePrivateKeyToPemPKCS1(key)</code></td>
+                    <td>PEM output</td>
+                  </tr>
+                  <tr>
+                    <td>Sign a string</td>
+                    <td><code>sign(plainText, privateKey)</code></td>
+                    <td>Base64 SHA-256 signature</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>---</p>
+              <h2>Quick start</h2>
+              <p>Hash a password, then verify it — the single most common use of this package:</p>
               <pre><code>import 'package:tom_crypto/tom_crypto.dart';
 
-// Hash a password
-final (hash, spec) = TomPasswordHasher.hashPassword('userPassword123');
+void main() {
+  // Hash a new password. You get back the hash and the spec that produced it.
+  final (hash, spec) = TomPasswordHasher.hashPassword('correct horse battery');
 
-// Store both hash and spec in your database
-await db.saveUser(passwordHash: hash, hashSpec: spec);
+  print('spec : $spec');
+  print('hash : ${hash.substring(0, 24)}…'); // salt$hash, hex-encoded
 
-// Verify the password later
-if (TomPasswordHasher.verifyPassword('userPassword123', hash, spec)) {
-  print('Login successful!');
+  // Store BOTH `hash` and `spec` in your database, then later:
+  final good = TomPasswordHasher.verifyPassword('correct horse battery', hash, spec);
+  final bad = TomPasswordHasher.verifyPassword('wrong password', hash, spec);
+
+  print('correct password valid? $good');
+  print('wrong   password valid? $bad');
 }</code></pre>
-              <h3>JWT Tokens</h3>
-              <pre><code>import 'package:tom_crypto/tom_crypto.dart';
+              <p>Output (the hash differs every run because the salt is random):</p>
+              <pre><code>spec : Argon2;2i,13,4,65536,4,128
+hash : 7f3c…$a91b…
+correct password valid? true
+wrong   password valid? false</code></pre>
+              <p>
+                The <code>spec</code> string is self-describing (<code>Argon2;variant,version,iterations,memory,lanes,keyLength</code>), so verification needs nothing but the values you already stored.
+              </p>
+              <p>---</p>
+              <h2>Example projects</h2>
+              <table class="mdtable">
+                <thead><tr><th>Example</th><th>What it shows</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_basics/tree/main/tom_basics_samples/tom_crypto_sample"><code>tom_crypto_sample</code></a>
+                    </td>
+                    <td>
+                      The full article-grade walkthrough — password hashing, JWT issue/verify/encrypt, and RSA encryption/signing/keygen — as seven runnable, offline examples with inline expected output.
+                    </td>
+                  </tr>
+                  <tr><td><a href="#quick-start">Quick start</a></td><td>Hash and verify a password</td></tr>
+                  <tr><td><a href="#password-hashing">Password hashing</a></td><td>Storage format and cost tuning</td></tr>
+                  <tr><td><a href="#jwt-tokens">JWT tokens</a></td><td>Issue, encrypt, parse, and read claims</td></tr>
+                  <tr><td><a href="#rsa-encryption">RSA encryption</a></td><td>Generate keys, encrypt, decrypt</td></tr>
+                  <tr><td><a href="#digital-signatures">Digital signatures</a></td><td>Sign data and verify integrity</td></tr>
+                  <tr><td><a href="#working-with-pem-keys">Working with PEM keys</a></td><td>Parse and encode PEM</td></tr>
+                </tbody>
+              </table>
+              <p>
+                &gt; For a self-contained runnable project, see the &gt; <a href="https://github.com/al-the-bear/tom_basics/tree/main/tom_basics_samples/tom_crypto_sample"><code>tom_crypto_sample</code></a>; the snippets &gt; below are each copy-paste runnable too.
+              </p>
+              <p>---</p>
+              <h2>Usage</h2>
+              <h3>Password hashing</h3>
+              <p>
+                <code>hashPassword</code> returns a <code>(hash, spec)</code> record. <strong>Persist both.</strong> The 
+                <code>hash</code> is <code>salt$hash</code> (both hex), and the <code>spec</code> carries every parameter 
+                <code>verifyPassword</code> needs to re-derive the key — so you can change the global defaults later without breaking existing accounts.
+              </p>
+              <pre><code>final (hash, spec) = TomPasswordHasher.hashPassword('userPassword123');
+// user.passwordHash = hash;
+// user.hashSpec     = spec;
 
-// Server: Create a token
+final ok = TomPasswordHasher.verifyPassword('userPassword123', hash, spec);</code></pre>
+              <p>
+                The default spec is <code>Argon2;2i,13,4,65536,4,128</code> — Argon2i, version 1.3, 4 iterations, 64 MB of memory, 4 lanes, 128-byte output. To raise the cost for new hashes (existing hashes keep verifying against their own stored spec):
+              </p>
+              <pre><code>// 6 iterations, 128 MB memory — slower, stronger.
+TomPasswordHasher.globalSettingDefaultHashSpec = 'Argon2;2i,13,6,131072,4,128';</code></pre>
+              <p>
+                Tune these on the hardware that will run the verification so a login stays comfortably under your latency budget.
+              </p>
+              <h3>JWT tokens</h3>
+              <p>
+                The <strong>server</strong> issues a token; the <strong>client</strong> parses it. Public claims live in the payload visible to anyone holding the token. Anything you pass via 
+                <code>encryptedData</code> is RSA-encrypted into a single <code>encrypted</code> claim and only recovers on a holder that owns the matching private key.
+              </p>
+              <pre><code>// --- Server side ---
 final token = TomServerJwtToken(
-  {'userId': '123', 'role': 'admin'},
-  encryptedData: {'permissions': ['read', 'write', 'delete']},
-  expiresIn: Duration(hours: 24),
+  {'userId': '123', 'role': 'admin'},        // public claims
+  encryptedData: {'sessionSecret': 'abc123'}, // RSA-encrypted claim
+  expiresIn: const Duration(hours: 24),
 );
 final jwtString = token.getJWT('my-auth-server');
 
-// Client: Parse the token
-final clientToken = TomClientJwtToken(jwtString);
-print('User ID: ${clientToken.payload?['userId']}');
-print('Permissions: ${clientToken.secretData?['permissions']}');</code></pre>
-              <h3>RSA Encryption</h3>
-              <pre><code>import 'package:tom_crypto/tom_crypto.dart';
-import 'dart:convert';
+// --- Client side ---
+final parsed = TomClientJwtToken(jwtString);
+print(parsed.issuer);                       // my-auth-server
+print(parsed.payload?['userId']);           // 123
+print(parsed.secretData?['sessionSecret']); // abc123  (decrypted)</code></pre>
+              <p>Skip decryption when you only need the public claims (and have no private key):</p>
+              <pre><code>final parsed = TomClientJwtToken(jwtString, decrypt: false);</code></pre>
+              <p>
+                Signing and encryption keys come from a <code>TomJwtConfiguration</code>. The bundled <code>TomJwtConfiguration.defaultSignConfiguration</code>
+                 uses <strong>development keys</strong> and logs a warning every time it encrypts or decrypts. Replace it once, at startup, with your real keys:
+              </p>
+              <pre><code>TomJwtConfiguration.defaultSignConfiguration = TomJwtConfiguration(
+  SecretKey(myHmacSecret),     // from package:dart_jsonwebtoken
+  JWTAlgorithm.HS256,
+  myRsaPrivateKey,
+  myRsaPublicKey,
+  false,                       // isDummy = false → no warning
+);</code></pre>
+              <h3>RSA encryption</h3>
+              <p>
+                Generate a 2048-bit key pair, then encrypt and decrypt bytes with OAEP padding. Inputs larger than one RSA block are chunked automatically.
+              </p>
+              <pre><code>import 'dart:convert';
 import 'dart:typed_data';
+import 'package:tom_crypto/tom_crypto.dart';
+import 'package:pointycastle/export.dart';
 
-// Generate keys
-final secureRandom = RsaKeyHelper.getSecureRandom();
-final keyPair = await RsaKeyHelper.computeRSAKeyPair(secureRandom);
-final publicKey = keyPair.publicKey as RSAPublicKey;
-final privateKey = keyPair.privateKey as RSAPrivateKey;
+Future&lt;void&gt; main() async {
+  final random = RsaKeyHelper.getSecureRandom();
+  final pair = await RsaKeyHelper.computeRSAKeyPair(random);
+  final publicKey = pair.publicKey as RSAPublicKey;
+  final privateKey = pair.privateKey as RSAPrivateKey;
 
-// Encrypt
-final plaintext = utf8.encode('Secret message');
-final encrypted = rsaEncrypt(publicKey, Uint8List.fromList(plaintext));
+  final plaintext = Uint8List.fromList(utf8.encode('Secret message'));
+  final cipher = rsaEncrypt(publicKey, plaintext);
+  final recovered = rsaDecrypt(privateKey, cipher);
 
-// Decrypt
-final decrypted = rsaDecrypt(privateKey, encrypted);
-final message = utf8.decode(decrypted);</code></pre>
-              <h2>Core Components</h2>
+  print(utf8.decode(recovered)); // Secret message
+}</code></pre>
+              <p>
+                &gt; RSA is for small payloads (keys, tokens, short secrets). For bulk data, &gt; encrypt the data with a symmetric cipher and use RSA only to wrap the &gt; symmetric key.
+              </p>
+              <h3>Digital signatures</h3>
+              <p>
+                Sign bytes with the private key; verify with the public key. <code>rsaVerify</code> returns <code>false</code>
+                 for tampered data rather than throwing.
+              </p>
+              <pre><code>final data = Uint8List.fromList(utf8.encode('Important message'));
+final signature = rsaSign(privateKey, data);
+
+final ok = rsaVerify(publicKey, data, signature);          // true
+final tampered = rsaVerify(publicKey, otherData, signature); // false</code></pre>
+              <p>
+                For a string convenience that returns a base64 signature, use <code>RsaKeyHelper.sign(plainText, privateKey)</code>.
+              </p>
+              <h3>Working with PEM keys</h3>
+              <p>Parse keys from PEM (PKCS#1 or PKCS#8 — the format is auto-detected) and encode them back out:</p>
+              <pre><code>final publicKey = RsaKeyHelper.parsePublicKeyFromPem(pemPublicString);
+final privateKey = RsaKeyHelper.parsePrivateKeyFromPem(pemPrivateString);
+
+final pemPublic = RsaKeyHelper.encodePublicKeyToPemPKCS1(publicKey);
+final pemPrivate = RsaKeyHelper.encodePrivateKeyToPemPKCS1(privateKey);</code></pre>
+              <p>---</p>
+              <h2>Architecture</h2>
+              <pre><code>package:tom_crypto/tom_crypto.dart   (single export surface)
+│
+├── password_hashing.dart   TomPasswordHasher          → Argon2 (pointycastle)
+│
+├── jwt_token.dart          TomServerJwtToken          → dart_jsonwebtoken
+│                           TomClientJwtToken            + rsa_encryption
+│                           TomJwtConfiguration
+│                           TomJwtTokenException        → tom_basics
+│
+├── rsa_encryption.dart     rsaEncrypt / rsaDecrypt     → pointycastle
+│                           rsaSign   / rsaVerify          (OAEP, RSA-SHA256)
+│
+└── rsa_tools.dart          RsaKeyHelper                → pointycastle + asn1lib
+                            getRsaKeyPair (top-level)      (key gen, PEM I/O)</code></pre>
               <table class="mdtable">
-                <thead><tr><th>Component</th><th>Purpose</th><th>Key Features</th></tr></thead>
+                <thead><tr><th>Type / function</th><th>Role</th></tr></thead>
                 <tbody>
+                  <tr><td><code>TomPasswordHasher</code></td><td>Argon2 password hashing and verification</td></tr>
+                  <tr><td><code>TomServerJwtToken</code></td><td>Issues signed (and optionally encrypted) JWTs</td></tr>
+                  <tr><td><code>TomClientJwtToken</code></td><td>Decodes and decrypts JWTs, exposes claims</td></tr>
+                  <tr><td><code>TomJwtConfiguration</code></td><td>Holds signing/encryption keys and algorithm</td></tr>
                   <tr>
-                    <td>`jwt_token.dart`</td>
-                    <td>Token-based authentication</td>
-                    <td>HMAC/RSA signing, encrypted payloads</td>
+                    <td><code>TomJwtTokenException</code></td>
+                    <td><code>TomBaseException</code> raised on JWT failures</td>
                   </tr>
-                  <tr>
-                    <td>`password_hashing.dart`</td>
-                    <td>Secure password storage</td>
-                    <td>Argon2 algorithm, configurable parameters</td>
-                  </tr>
-                  <tr>
-                    <td>`rsa_encryption.dart`</td>
-                    <td>Asymmetric encryption</td>
-                    <td>OAEP padding, digital signatures</td>
-                  </tr>
-                  <tr><td>`rsa_tools.dart`</td><td>RSA key management</td><td>Key generation, PEM parsing/encoding</td></tr>
+                  <tr><td><code>rsaEncrypt</code> / <code>rsaDecrypt</code></td><td>RSA-OAEP byte encryption</td></tr>
+                  <tr><td><code>rsaSign</code> / <code>rsaVerify</code></td><td>RSA-SHA-256 signatures</td></tr>
+                  <tr><td><code>RsaKeyHelper</code></td><td>Key generation and PEM parse/encode</td></tr>
                 </tbody>
               </table>
-              <h2>Additional Information</h2>
               <p>
-                This package is part of the TOM Framework. It depends on: - `tom_basics` - Basic utilities including exception handling
+                The JWT layer is the only part that reaches into <code>tom_basics</code> (for <code>TomBaseException</code>
+                 and <code>tomLog</code>); the password and RSA layers depend only on <code>pointycastle</code> and <code>asn1lib</code>.
               </p>
-              <h2>License</h2>
-              <p>BSD-3-Clause - See [LICENSE](LICENSE) for details.</p>
+              <p>---</p>
+              <h2>Security notes</h2>
+              <p>
+                This package provides correct primitives. Using them safely is on you — these are the caveats that matter most:
+              </p>
+              <ul>
+                <li>
+                  <strong>Replace the development keys.</strong> <code>TomJwtConfiguration.defaultSignConfiguration</code>
+                </li>
+              </ul>
+              <p>
+                ships with hard-coded HMAC and RSA keys (flagged in <code>false_secrets:</code>) purely so examples run. They are public — anyone can forge tokens against them. Set your own configuration with 
+                <code>isDummy: false</code> before issuing real tokens. - *<em>Store the hash </em>and<em> the spec together.</em>
+                <em> <code>verifyPassword</code> cannot work without the spec that produced the hash. Tune cost factors (<code>globalSettingDefaultHashSpec</code>) on production hardware; the defaults target development convenience, not a hostile attacker. - 
+                </em><em>Don't log token contents in production.</em><em> <code>TomClientJwtToken.toString()</code> includes the full payload and decrypted secrets by default. Set 
+                  <code>TomClientJwtToken.globalSettingShowContentInToString = false</code> in production. - </em>
+                <em>Public claims are not secret.</em><em> Anything in <code>publicData</code> is base64 — readable by anyone holding the token. Only <code>encryptedData</code>
+                   is confidential, and only while the RSA private key stays private. - </em><em>Use RSA for small payloads.</em>
+                <em> Encrypt bulk data with a symmetric cipher and wrap only the symmetric key with RSA. Keys are generated at 2048 bits with public exponent 65537 — the industry-standard minimum. - 
+                </em><em>Verify, then trust.</em>* <code>rsaVerify</code> returns <code>false</code>
+                 (it does not throw) on a modified signature; always check the boolean before acting on signed data.
+              </p>
+              <p>---</p>
+              <h2>Ecosystem</h2>
+              <p>
+                <code>tom_crypto</code> is one of the foundational packages under <a href="https://github.com/al-the-bear/tom_basics/tree/main"><code>tom_ai/basics/</code></a>. It pairs naturally with:
+              </p>
+              <ul>
+                <li>
+                  <strong><a href="https://github.com/al-the-bear/tom_basics/tree/main">tom_basics</a></strong> — exceptions (<code>TomBaseException</code>) and logging
+                </li>
+              </ul>
+              <p>
+                (<code>tomLog</code>) used by the JWT layer (direct dependency). - <strong><a href="https://github.com/al-the-bear/tom_basics/tree/main/tom_basics_network">tom_basics_network</a></strong>
+                 — HTTP/transport helpers that carry the JWTs this package issues.
+              </p>
+              <p>
+                All <code>tom_ai/basics/</code> packages share a single repository, <a href="https://github.com/al-the-bear/tom_basics"><code>tom_basics</code></a>.
+              </p>
+              <p>---</p>
+              <h2>Attribution</h2>
+              <p>
+                The RSA key generation and PEM parsing in <code>rsa_tools.dart</code> are adapted from the public example at 
+                <a href="https://github.com/Vanethos/flutter_rsa_generator_example/">flutter_rsa_generator_example</a>; those portions retain their original licensing. The remainder of the package is BSD-3-Clause as in 
+                <a href="https://github.com/al-the-bear/tom_crypto/blob/main/LICENSE">LICENSE</a>.
+              </p>
+              <p>---</p>
+              <h2>Further documentation</h2>
+              <ul>
+                <li>
+                  <a href="https://github.com/al-the-bear/tom_crypto/blob/main/LICENSE">LICENSE</a> — BSD-3-Clause licence text.
+                </li>
+                <li>Source library docs — every public type and function in <code>lib/src/</code> carries</li>
+              </ul>
+              <p>
+                dartdoc comments with usage examples. - <a href="https://pub.dev/packages/pointycastle"><code>pointycastle</code></a>, 
+                <a href="https://pub.dev/packages/asn1lib"><code>asn1lib</code></a>, <a href="https://pub.dev/packages/dart_jsonwebtoken"><code>dart_jsonwebtoken</code></a>
+                 — the underlying cryptographic libraries.
+              </p>
+              <p>---</p>
+              <h2>Status</h2>
+              <p>
+                Stable (<code>1.0.1</code>). Public API covers password hashing, JWT issuance/parsing, RSA encryption/signatures, and RSA key management. 
+                <code>dart analyze</code> is clean. A runnable, article-grade project lives in the <a href="https://github.com/al-the-bear/tom_basics/tree/main/tom_basics_samples/tom_crypto_sample"><code>tom_crypto_sample</code></a>.
+              </p>
             </div>
           </section>
           <details class="licbox">

@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1317,20 +1337,42 @@
                 <section id="TomSqlDialect" class="api-declaration">
                   <h3 class="api-decl-title">class TomSqlDialect</h3>
                   <code class="api-signature">class TomSqlDialect</code>
+                  <div class="api-doc">
+                    <p>
+                      Annotation marking a [TomStandardSqlDialect] subclass as the dialect for a named [dataSourceType] (e.g. 
+                      <code>"mariadb"</code>). Used by reflection-based dialect discovery to pick the right dialect for a data source.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomSqlDialect.new" class="api-member">
                       <div class="api-member-head"><code class="api-signature">const TomSqlDialect.new(String dataSourceType)</code></div>
+                      <div class="api-doc"><p>Binds this dialect to [dataSourceType].</p></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="TomSqlDialect.dataSourceType" class="api-member"><div class="api-member-head"><code class="api-signature">final String dataSourceType</code></div></div>
+                    <div id="TomSqlDialect.dataSourceType" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String dataSourceType</code></div>
+                      <div class="api-doc"><p>The data-source type this dialect serves (matches a driver's <code>type</code>).</p></div>
+                    </div>
                   </div>
                 </section>
                 <section id="TomStandardSqlDialect" class="api-declaration">
                   <h3 class="api-decl-title">class TomStandardSqlDialect</h3>
                   <code class="api-signature">class TomStandardSqlDialect</code>
+                  <div class="api-doc">
+                    <p>Generates standard-SQL fragments for the [TomOperator] expression tree.</p>
+                    <p>
+                      Every method renders one piece of SQL — a predicate (<code>IS NULL</code>, <code>LIKE</code>, <code>BETWEEN</code>, comparisons, 
+                      <code>AND</code>/<code>OR</code>), a literal (<code>text</code>, <code>intOp</code>, <code>dateOp</code>, 
+                      <code>objectOp</code>), a positional parameter placeholder ([p], rendered <code>:name</code>), or a qualified field reference (<code>textF</code>/<code>intF</code>/… rendered 
+                      <code>table.column</code>). The operators in the object-persistence query builder call back into the active dialect via [TomOperator.generate], so a driver can subclass this dialect to override any fragment for its database (see [MariadbSqlDialect]).
+                    </p>
+                    <p>
+                      The literal renderers interpolate values directly into the SQL string; for untrusted input prefer the parameterised form ([p]) so the driver binds the value. (Escaping of directly-interpolated literals is a tracked follow-up.)
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomStandardSqlDialect.new" class="api-member"><div class="api-member-head"><code class="api-signature">TomStandardSqlDialect.new()</code></div></div>
@@ -1339,128 +1381,190 @@
                   <div class="api-members">
                     <div id="TomStandardSqlDialect.isNull" class="api-member">
                       <div class="api-member-head"><code class="api-signature">String isNull&lt;T&gt;(TomOperator&lt;T&gt; what)</code></div>
+                      <div class="api-doc"><p>Renders <code>&lt;what&gt; IS NULL</code>.</p></div>
                     </div>
                     <div id="TomStandardSqlDialect.isNotNull" class="api-member">
                       <div class="api-member-head"><code class="api-signature">String isNotNull&lt;T&gt;(TomOperator&lt;T&gt; what)</code></div>
+                      <div class="api-doc"><p>Renders <code>&lt;what&gt; IS NOT NULL</code>.</p></div>
                     </div>
                     <div id="TomStandardSqlDialect.isin" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">String isin&lt;T&gt;(TomOperator&lt;T&gt; what, List&lt;TomOperator&lt;T&gt;&gt; choices)</code>
                       </div>
+                      <div class="api-doc"><p>Renders <code>&lt;what&gt; IN (&lt;choices...&gt;)</code> with the choices comma-separated.</p></div>
                     </div>
                     <div id="TomStandardSqlDialect.between" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">String between&lt;T&gt;(TomOperator&lt;T&gt; what, List&lt;TomOperator&lt;T&gt;&gt; betweenLimits)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Renders <code>&lt;what&gt; BETWEEN &lt;lo&gt; AND &lt;hi&gt;</code> from a two-element [betweenLimits].
+                        </p>
                       </div>
                     </div>
                     <div id="TomStandardSqlDialect.like" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">String like(TomOperator&lt;TomDbString&gt; text, TomOperator&lt;TomDbString&gt; test)</code>
                       </div>
+                      <div class="api-doc"><p>Renders <code>&lt;text&gt; LIKE &lt;test&gt;</code>.</p></div>
                     </div>
                     <div id="TomStandardSqlDialect.notLike" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">String notLike(TomOperator&lt;TomDbString&gt; text, TomOperator&lt;TomDbString&gt; test)</code>
                       </div>
+                      <div class="api-doc"><p>Renders <code>&lt;text&gt; NOT LIKE &lt;test&gt;</code>.</p></div>
                     </div>
                     <div id="TomStandardSqlDialect.regexp" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">String regexp(TomOperator&lt;TomDbString&gt; text, TomOperator&lt;TomDbString&gt; test)</code>
                       </div>
+                      <div class="api-doc"><p>Renders <code>&lt;text&gt; REGEXP &lt;test&gt;</code> (standard form; drivers may override).</p></div>
                     </div>
                     <div id="TomStandardSqlDialect.group" class="api-member">
                       <div class="api-member-head"><code class="api-signature">String group&lt;T&gt;(TomOperator&lt;T&gt; operant)</code></div>
+                      <div class="api-doc"><p>Wraps [operant] in parentheses: <code>( &lt;operant&gt; )</code>.</p></div>
                     </div>
                     <div id="TomStandardSqlDialect.eq" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">String eq&lt;T&gt;(TomOperator&lt;T&gt; operant1, TomOperator&lt;T&gt; operant2)</code>
                       </div>
+                      <div class="api-doc"><p>Renders <code>&lt;operant1&gt; = &lt;operant2&gt;</code>.</p></div>
                     </div>
                     <div id="TomStandardSqlDialect.neq" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">String neq&lt;T&gt;(TomOperator&lt;T&gt; operant1, TomOperator&lt;T&gt; operant2)</code>
                       </div>
+                      <div class="api-doc"><p>Renders <code>&lt;operant1&gt; &lt;&gt; &lt;operant2&gt;</code>.</p></div>
                     </div>
                     <div id="TomStandardSqlDialect.lt" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">String lt&lt;T&gt;(TomOperator&lt;T&gt; operant1, TomOperator&lt;T&gt; operant2)</code>
                       </div>
+                      <div class="api-doc"><p>Renders <code>&lt;operant1&gt; &lt; &lt;operant2&gt;</code>.</p></div>
                     </div>
                     <div id="TomStandardSqlDialect.lte" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">String lte&lt;T&gt;(TomOperator&lt;T&gt; operant1, TomOperator&lt;T&gt; operant2)</code>
                       </div>
+                      <div class="api-doc"><p>Renders <code>&lt;operant1&gt; &lt;= &lt;operant2&gt;</code>.</p></div>
                     </div>
                     <div id="TomStandardSqlDialect.gt" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">String gt&lt;T&gt;(TomOperator&lt;T&gt; operant1, TomOperator&lt;T&gt; operant2)</code>
                       </div>
+                      <div class="api-doc"><p>Renders <code>&lt;operant1&gt; &gt; &lt;operant2&gt;</code>.</p></div>
                     </div>
                     <div id="TomStandardSqlDialect.gte" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">String gte&lt;T&gt;(TomOperator&lt;T&gt; operant1, TomOperator&lt;T&gt; operant2)</code>
                       </div>
+                      <div class="api-doc"><p>Renders <code>&lt;operant1&gt; &gt;= &lt;operant2&gt;</code>.</p></div>
                     </div>
                     <div id="TomStandardSqlDialect.not" class="api-member">
                       <div class="api-member-head"><code class="api-signature">String not(TomOperator&lt;TomDbBool&gt; operant1)</code></div>
+                      <div class="api-doc"><p>Renders <code>NOT &lt;operant1&gt;</code>.</p></div>
                     </div>
                     <div id="TomStandardSqlDialect.and" class="api-member">
                       <div class="api-member-head"><code class="api-signature">String and(List&lt;TomOperator&lt;TomDbBool&gt;&gt; operant1)</code></div>
+                      <div class="api-doc"><p>Joins the [operant1] predicates with <code> AND </code>.</p></div>
                     </div>
                     <div id="TomStandardSqlDialect.or" class="api-member">
                       <div class="api-member-head"><code class="api-signature">String or(List&lt;TomOperator&lt;TomDbBool&gt;&gt; operant1)</code></div>
+                      <div class="api-doc"><p>Joins the [operant1] predicates with <code> OR </code>.</p></div>
                     </div>
-                    <div id="TomStandardSqlDialect.text" class="api-member"><div class="api-member-head"><code class="api-signature">String text(String text)</code></div></div>
-                    <div id="TomStandardSqlDialect.intOp" class="api-member"><div class="api-member-head"><code class="api-signature">String intOp(int value)</code></div></div>
-                    <div id="TomStandardSqlDialect.doubleOp" class="api-member"><div class="api-member-head"><code class="api-signature">String doubleOp(double value)</code></div></div>
-                    <div id="TomStandardSqlDialect.boolOp" class="api-member"><div class="api-member-head"><code class="api-signature">String boolOp(bool value)</code></div></div>
+                    <div id="TomStandardSqlDialect.text" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String text(String text)</code></div>
+                      <div class="api-doc"><p>Renders a string literal, single-quoted. (Not escaped — see [p] for untrusted input.)</p></div>
+                    </div>
+                    <div id="TomStandardSqlDialect.intOp" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String intOp(int value)</code></div>
+                      <div class="api-doc"><p>Renders an integer literal.</p></div>
+                    </div>
+                    <div id="TomStandardSqlDialect.doubleOp" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String doubleOp(double value)</code></div>
+                      <div class="api-doc"><p>Renders a double literal.</p></div>
+                    </div>
+                    <div id="TomStandardSqlDialect.boolOp" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String boolOp(bool value)</code></div>
+                      <div class="api-doc"><p>Renders a boolean literal.</p></div>
+                    </div>
                     <div id="TomStandardSqlDialect.dateTimeOp" class="api-member">
                       <div class="api-member-head"><code class="api-signature">String dateTimeOp(DateTime value)</code></div>
+                      <div class="api-doc"><p>Renders a timestamp literal as a single-quoted ISO-8601 string.</p></div>
                     </div>
-                    <div id="TomStandardSqlDialect.dateOp" class="api-member"><div class="api-member-head"><code class="api-signature">String dateOp(DateTime value)</code></div></div>
+                    <div id="TomStandardSqlDialect.dateOp" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String dateOp(DateTime value)</code></div>
+                      <div class="api-doc"><p>Renders a date literal as single-quoted <code>YYYY-M-D</code>.</p></div>
+                    </div>
                     <div id="TomStandardSqlDialect.iterableOp" class="api-member">
                       <div class="api-member-head"><code class="api-signature">String iterableOp(Iterable&lt;dynamic&gt; values)</code></div>
+                      <div class="api-doc"><p>Renders [values] as a comma-separated list of literals (each via [objectOp]).</p></div>
                     </div>
-                    <div id="TomStandardSqlDialect.nullOp" class="api-member"><div class="api-member-head"><code class="api-signature">String nullOp()</code></div></div>
-                    <div id="TomStandardSqlDialect.objectOp" class="api-member"><div class="api-member-head"><code class="api-signature">String objectOp(Object? o)</code></div></div>
+                    <div id="TomStandardSqlDialect.nullOp" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String nullOp()</code></div>
+                      <div class="api-doc"><p>Renders the SQL <code>NULL</code> literal.</p></div>
+                    </div>
+                    <div id="TomStandardSqlDialect.objectOp" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String objectOp(Object? o)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Renders [o] as the appropriate SQL literal, dispatching on its runtime type (<code>null</code> → <code>NULL</code>, 
+                          <code>String</code> → quoted, numbers/bool → bare, [TomZonedDate] → date, [DateTime] → timestamp, [Iterable] → list, anything else → its quoted 
+                          <code>toString()</code>).
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomStandardSqlDialect.p" class="api-member">
                       <div class="api-member-head"><code class="api-signature">String p&lt;T&gt;(String parameterName)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Renders a positional parameter placeholder <code>:&lt;parameterName&gt;</code> for a prepared statement (the driver binds the value, avoiding injection).
+                        </p>
+                      </div>
                     </div>
                     <div id="TomStandardSqlDialect.textF" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">String textF(String fieldName, DbCol&lt;dynamic&gt; column, Type dbType)</code>
                       </div>
+                      <div class="api-doc"><p>Renders a qualified reference to a <code>String</code> [column] as <code>table.column</code>.</p></div>
                     </div>
                     <div id="TomStandardSqlDialect.intF" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">String intF(String fieldName, DbCol&lt;dynamic&gt; column, Type dbType)</code>
                       </div>
+                      <div class="api-doc"><p>Renders a qualified reference to an <code>int</code> [column] as <code>table.column</code>.</p></div>
                     </div>
                     <div id="TomStandardSqlDialect.doubleF" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">String doubleF(String fieldName, DbCol&lt;dynamic&gt; column, Type dbType)</code>
                       </div>
+                      <div class="api-doc"><p>Renders a qualified reference to a <code>double</code> [column] as <code>table.column</code>.</p></div>
                     </div>
                     <div id="TomStandardSqlDialect.boolF" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">String boolF(String fieldName, DbCol&lt;dynamic&gt; column, Type dbType)</code>
                       </div>
+                      <div class="api-doc"><p>Renders a qualified reference to a <code>bool</code> [column] as <code>table.column</code>.</p></div>
                     </div>
                     <div id="TomStandardSqlDialect.dateTimeF" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">String dateTimeF(String fieldName, DbCol&lt;dynamic&gt; column, Type dbType)</code>
                       </div>
+                      <div class="api-doc"><p>Renders a qualified reference to a timestamp [column] as <code>table.column</code>.</p></div>
                     </div>
                     <div id="TomStandardSqlDialect.dateF" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">String dateF(String fieldName, DbCol&lt;dynamic&gt; column, Type dbType)</code>
                       </div>
+                      <div class="api-doc"><p>Renders a qualified reference to a date [column] as <code>table.column</code>.</p></div>
                     </div>
                   </div>
                 </section>
                 <section id="SqlString" class="api-declaration">
                   <h3 class="api-decl-title">typedef SqlString</h3>
                   <code class="api-signature">typedef SqlString = String</code>
+                  <div class="api-doc"><p>A SQL fragment. An alias for <code>String</code> that documents intent at call sites.</p></div>
                 </section>
               </div>
             </div>

@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1316,18 +1336,25 @@
                 <div class="api-doc">
                   <p>Annotations for D4rt user-defined proxy and relaxer generation directives.</p>
                   <p>
-                    These annotations let a downstream project declare proxy / relaxer generation for its **own** generic classes — including multi-type-parameter generics that the auto-generator does not cover — without editing `buildkit.yaml`. They mirror the conventions of [D4rtUserBridge]: a const annotation carrying string-syntax arguments, applied to a class extending a marker base (`D4UserProxy` / `D4UserRelaxer`) that the generator pre-scans.
+                    These annotations let a downstream project declare proxy / relaxer generation for its <strong>own</strong>
+                     generic classes — including multi-type-parameter generics that the auto-generator does not cover — without editing 
+                    <code>buildkit.yaml</code>. They mirror the conventions of [D4rtUserBridge]: a const annotation carrying string-syntax arguments, applied to a class extending a marker base (<code>D4UserProxy</code>
+                     / <code>D4UserRelaxer</code>) that the generator pre-scans.
                   </p>
                   <h2>Variant syntax</h2>
                   <p>
-                    Each entry in [D4rtUserProxy.variants] / [D4rtUserRelaxer.variants] is a comma-separated list of slots, one slot per type parameter of the generic base class. A slot is either a literal type name, or — for at most one slot per variant — a single-`*` wildcard pattern whose captures fill the other slots via `$0` / `$1` templates:
+                    Each entry in [D4rtUserProxy.variants] / [D4rtUserRelaxer.variants] is a comma-separated list of slots, one slot per type parameter of the generic base class. A slot is either a literal type name, or — for at most one slot per variant — a single-<code>*</code>
+                     wildcard pattern whose captures fill the other slots via <code>$0</code> / <code>$1</code> templates:
                   </p>
                   <ul>
-                    <li>`$0` = the full matched name (e.g. `CustomerDO`).</li>
-                    <li>`$1` = the wildcard-captured substring (e.g. `Customer`).</li>
-                    <li>The `*` must be at the start (`*DO` ⇒ `endsWith`) or end (`Customer*` ⇒</li>
+                    <li><code>$0</code> = the full matched name (e.g. <code>CustomerDO</code>).</li>
+                    <li><code>$1</code> = the wildcard-captured substring (e.g. <code>Customer</code>).</li>
+                    <li>
+                      The <code>*</code> must be at the start (<code>*DO</code> ⇒ <code>endsWith</code>) or end (<code>Customer*</code>
+                       ⇒
+                    </li>
                   </ul>
-                  <p>`startsWith`) of exactly one slot.</p>
+                  <p><code>startsWith</code>) of exactly one slot.</p>
                   <pre><code>// Explicit two-parameter combinations.
 @D4rtUserProxy(
   'package:my_pkg/forms.dart',
@@ -1347,20 +1374,22 @@ class TomFormListUserRelaxer extends D4UserRelaxer {
   String get baseTypeName =&gt; 'TomFormList';
 }</code></pre>
                   <p>
-                    The variant strings are parsed and expanded by the analyzer-free engine in `package:tom_d4rt_generator/src/user_variant_pattern.dart`.
+                    The variant strings are parsed and expanded by the analyzer-free engine in <code>package:tom_d4rt_generator/src/user_variant_pattern.dart</code>.
                   </p>
                   <h2>Placement</h2>
                   <p>
-                    User-proxy directive classes belong in `lib/src/d4rt_user_proxies/` and user-relaxer directive classes in `lib/src/d4rt_user_relaxers/` of the project that generates the bridges — modeled on the `lib/src/d4rt_user_bridges/` pre-scan folder.
+                    User-proxy directive classes belong in <code>lib/src/d4rt_user_proxies/</code> and user-relaxer directive classes in 
+                    <code>lib/src/d4rt_user_relaxers/</code> of the project that generates the bridges — modeled on the <code>lib/src/d4rt_user_bridges/</code>
+                     pre-scan folder.
                   </p>
                 </div>
                 <section id="D4rtUserProxy" class="api-declaration">
                   <h3 class="api-decl-title">class D4rtUserProxy</h3>
                   <code class="api-signature">class D4rtUserProxy</code>
                   <div class="api-doc">
-                    <p>Annotation marking a class as a D4rt user-defined **proxy** directive.</p>
+                    <p>Annotation marking a class as a D4rt user-defined <strong>proxy</strong> directive.</p>
                     <p>
-                      Drives generation of `D4rt&lt;Class&gt;` proxy subclasses for the generic base [baseClass] across the declared [variants]. See the library doc for the variant syntax.
+                      Drives generation of <code>D4rt&lt;Class&gt;</code> proxy subclasses for the generic base [baseClass] across the declared [variants]. See the library doc for the variant syntax.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1380,18 +1409,19 @@ class TomFormListUserRelaxer extends D4UserRelaxer {
                       <div class="api-member-head"><code class="api-signature">final String libraryPath</code></div>
                       <div class="api-doc">
                         <p>The package URI of the library declaring [baseClass].</p>
-                        <p>Format: `package:package_name/path/to/file.dart`.</p>
+                        <p>Format: <code>package:package_name/path/to/file.dart</code>.</p>
                       </div>
                     </div>
                     <div id="D4rtUserProxy.baseClass" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final String baseClass</code></div>
-                      <div class="api-doc"><p>The unparameterized generic base class name, e.g. `'TomFormList'`.</p></div>
+                      <div class="api-doc"><p>The unparameterized generic base class name, e.g. <code>'TomFormList'</code>.</p></div>
                     </div>
                     <div id="D4rtUserProxy.variants" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final List&lt;String&gt; variants</code></div>
                       <div class="api-doc">
                         <p>
-                          The declared type-argument variants. Each entry is a comma-separated slot list (one slot per type parameter), either explicit literals or a single wildcard-pattern slot with `$0`/`$1` templates.
+                          The declared type-argument variants. Each entry is a comma-separated slot list (one slot per type parameter), either explicit literals or a single wildcard-pattern slot with 
+                          <code>$0</code>/<code>$1</code> templates.
                         </p>
                       </div>
                     </div>
@@ -1401,9 +1431,9 @@ class TomFormListUserRelaxer extends D4UserRelaxer {
                   <h3 class="api-decl-title">class D4rtUserRelaxer</h3>
                   <code class="api-signature">class D4rtUserRelaxer</code>
                   <div class="api-doc">
-                    <p>Annotation marking a class as a D4rt user-defined **relaxer** directive.</p>
+                    <p>Annotation marking a class as a D4rt user-defined <strong>relaxer</strong> directive.</p>
                     <p>
-                      Drives generation of `$RelaxedClass&lt;V&gt;` relaxer cases for the generic base [baseClass] across the declared [variants]. See the library doc for the variant syntax.
+                      Drives generation of <code>$RelaxedClass&lt;V&gt;</code> relaxer cases for the generic base [baseClass] across the declared [variants]. See the library doc for the variant syntax.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1423,18 +1453,19 @@ class TomFormListUserRelaxer extends D4UserRelaxer {
                       <div class="api-member-head"><code class="api-signature">final String libraryPath</code></div>
                       <div class="api-doc">
                         <p>The package URI of the library declaring [baseClass].</p>
-                        <p>Format: `package:package_name/path/to/file.dart`.</p>
+                        <p>Format: <code>package:package_name/path/to/file.dart</code>.</p>
                       </div>
                     </div>
                     <div id="D4rtUserRelaxer.baseClass" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final String baseClass</code></div>
-                      <div class="api-doc"><p>The unparameterized generic base class name, e.g. `'TomFormList'`.</p></div>
+                      <div class="api-doc"><p>The unparameterized generic base class name, e.g. <code>'TomFormList'</code>.</p></div>
                     </div>
                     <div id="D4rtUserRelaxer.variants" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final List&lt;String&gt; variants</code></div>
                       <div class="api-doc">
                         <p>
-                          The declared type-argument variants. Each entry is a comma-separated slot list (one slot per type parameter), either explicit literals or a single wildcard-pattern slot with `$0`/`$1` templates.
+                          The declared type-argument variants. Each entry is a comma-separated slot list (one slot per type parameter), either explicit literals or a single wildcard-pattern slot with 
+                          <code>$0</code>/<code>$1</code> templates.
                         </p>
                       </div>
                     </div>

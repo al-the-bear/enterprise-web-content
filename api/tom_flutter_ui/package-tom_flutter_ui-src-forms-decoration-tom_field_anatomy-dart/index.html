@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1367,7 +1387,8 @@
                       Returns [border] with its [BorderRadius] replaced by [radius], when the border is one of Flutter's built-in rounded input-border types. For any other border (or null) the input is returned unchanged.
                     </p>
                     <p>
-                      Used by every spec-aligned field widget to make [TomFieldStyle.borderRadius] actually take effect: presets carry their own preconstructed borders (so setting `borderRadius` in isolation wouldn't otherwise do anything), and this helper reshapes them without rebuilding the whole preset.
+                      Used by every spec-aligned field widget to make [TomFieldStyle.borderRadius] actually take effect: presets carry their own preconstructed borders (so setting 
+                      <code>borderRadius</code> in isolation wouldn't otherwise do anything), and this helper reshapes them without rebuilding the whole preset.
                     </p>
                   </div>
                 </section>
@@ -1390,7 +1411,12 @@
                       Applies style-driven decoration add-ons to an [InputDecoration] — the fixed leading / trailing slots and (if the field is in error) the error border switch + trailing error icon.
                     </p>
                     <p>
-                      Called from per-widget build methods before the decoration is attached to the underlying Flutter widget. Behaviour: * [TomFieldStyle.leadingWidget] — always applied (independent of error state). Wrapped with right-padding [TomFieldStyle.leadingGap] and composed into [InputDecoration.prefixIcon]. Any field-supplied `prefixIcon` survives — the leading widget sits to its left so the style addition acts as an outermost decoration. * [TomFieldStyle.trailingWidget] — always applied. Wrapped with left-padding [TomFieldStyle.trailingGap] and composed into [InputDecoration.suffixIcon] *before* the error icon, so the error icon stays rightmost. * [TomFieldStyle.errorBorderEnabled] — when in error and enabled, replaces the enabled border with [TomFieldStyle.errorBorder] (fallback to the default `errorBorder` behaviour of Material). * [TomFieldStyle.errorIconEnabled] — when in error and enabled, appends a red circle-exclamation icon to the trailing slot; if a suffix icon already exists, the error icon appears immediately to its right.
+                      Called from per-widget build methods before the decoration is attached to the underlying Flutter widget. Behaviour: 
+                      <em> [TomFieldStyle.leadingWidget] — always applied (independent of error state). Wrapped with right-padding [TomFieldStyle.leadingGap] and composed into [InputDecoration.prefixIcon]. Any field-supplied 
+                        <code>prefixIcon</code> survives — the leading widget sits to its left so the style addition acts as an outermost decoration. 
+                      </em> [TomFieldStyle.trailingWidget] — always applied. Wrapped with left-padding [TomFieldStyle.trailingGap] and composed into [InputDecoration.suffixIcon] 
+                      <em>before</em> the error icon, so the error icon stays rightmost. <em> [TomFieldStyle.errorBorderEnabled] — when in error and enabled, replaces the enabled border with [TomFieldStyle.errorBorder] (fallback to the default 
+                        <code>errorBorder</code> behaviour of Material). </em> [TomFieldStyle.errorIconEnabled] — when in error and enabled, appends a red circle-exclamation icon to the trailing slot; if a suffix icon already exists, the error icon appears immediately to its right.
                     </p>
                     <p>
                       The function name retains "ErrorVisuals" for call-site stability — the extra leading/trailing branch is a strict superset of the previous behaviour so existing call sites pick it up automatically.
@@ -1407,7 +1433,9 @@
                       Builds the field's anatomy column around [innerWidget] using the fully-resolved [style] for the current width.
                     </p>
                     <p>
-                      Shared by every per-widget decoration mixin. Returns `SizedBox.shrink()` for `TomAuthState.none`. Applies `disabledOpacity` wrapping for `TomAuthState.disabled`. Paints `readOnlyBackground` in the read state.
+                      Shared by every per-widget decoration mixin. Returns <code>SizedBox.shrink()</code> for <code>TomAuthState.none</code>. Applies 
+                      <code>disabledOpacity</code> wrapping for <code>TomAuthState.disabled</code>. Paints <code>readOnlyBackground</code>
+                       in the read state.
                     </p>
                   </div>
                 </section>
@@ -1417,10 +1445,13 @@
                   <div class="api-doc">
                     <p>Composes [CupertinoTextField.prefix] with [TomFieldStyle.leadingWidget].</p>
                     <p>
-                      Cupertino inputs don't go through [InputDecoration]; they take a `prefix` / `suffix` Widget pair directly. To keep the same "field-supplied prefix inside, style leading widget outside" ordering as the Material side, this helper is used at every Cupertino input build site instead of the applyErrorVisuals path.
+                      Cupertino inputs don't go through [InputDecoration]; they take a <code>prefix</code> / <code>suffix</code>
+                       Widget pair directly. To keep the same "field-supplied prefix inside, style leading widget outside" ordering as the Material side, this helper is used at every Cupertino input build site instead of the applyErrorVisuals path.
                     </p>
                     <p>
-                      Returns: * `null` when both [fieldPrefix] and `style.leadingWidget` are null. * Just one of them when only one is set. * A `Row(min)` of `[styleLeading][gap][fieldPrefix]` when both exist.
+                      Returns: <em> <code>null</code> when both [fieldPrefix] and <code>style.leadingWidget</code> are null. </em>
+                       Just one of them when only one is set. * A <code>Row(min)</code> of <code>[styleLeading][gap][fieldPrefix]</code>
+                       when both exist.
                     </p>
                   </div>
                 </section>
@@ -1430,7 +1461,8 @@
                   <div class="api-doc">
                     <p>Mirror of [composeCupertinoLeading] for the trailing slot.</p>
                     <p>
-                      Order is `[fieldSuffix][gap][styleTrailing]` — the field-supplied suffix is the *innermost* trailing widget, matching the Material composition.
+                      Order is <code>[fieldSuffix][gap][styleTrailing]</code> — the field-supplied suffix is the <em>innermost</em>
+                       trailing widget, matching the Material composition.
                     </p>
                   </div>
                 </section>
@@ -1439,7 +1471,8 @@
                   <code class="api-signature">TextStyle? composeHintStyle(TomFieldStyle style, ThemeData theme)</code>
                   <div class="api-doc">
                     <p>
-                      Composes the effective hint [TextStyle] by layering [TomFieldStyle.hintFontWeight] and [TomFieldStyle.hintOpacity] on top of [TomFieldStyle.hintStyle]. Returns `null` when the style has no hint configuration at all (lets Flutter's TextField fall through to its own defaults).
+                      Composes the effective hint [TextStyle] by layering [TomFieldStyle.hintFontWeight] and [TomFieldStyle.hintOpacity] on top of [TomFieldStyle.hintStyle]. Returns 
+                      <code>null</code> when the style has no hint configuration at all (lets Flutter's TextField fall through to its own defaults).
                     </p>
                   </div>
                 </section>
@@ -1455,7 +1488,8 @@
                   </code>
                   <div class="api-doc">
                     <p>
-                      Text suffix for the required indicator in plain-text slots such as `InputDecoration.labelText` or `hintText`.
+                      Text suffix for the required indicator in plain-text slots such as <code>InputDecoration.labelText</code>
+                       or <code>hintText</code>.
                     </p>
                   </div>
                 </section>
@@ -1467,7 +1501,8 @@
                   <div class="api-doc">
                     <p>Resolves a validation-error message through the TomCtr resource chain.</p>
                     <p>
-                      Chain (most specific wins): 1. Field-scoped:  `basePath.errorKey` 2. Form-scoped:   `scope.errorKey` 3. Global:        `errorKey` Falls through to the raw errorKey as a development indicator.
+                      Chain (most specific wins): 1. Field-scoped:  <code>basePath.errorKey</code> 2. Form-scoped:   <code>scope.errorKey</code>
+                       3. Global:        <code>errorKey</code> Falls through to the raw errorKey as a development indicator.
                     </p>
                   </div>
                 </section>

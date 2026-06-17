@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1318,6 +1338,13 @@
                 <section id="TomTransaction" class="api-declaration">
                   <h3 class="api-decl-title">class TomTransaction</h3>
                   <code class="api-signature">class TomTransaction</code>
+                  <div class="api-doc">
+                    <p>A single unit of work coordinating one or more [TomTransactionParticipant]s.</p>
+                    <p>
+                      Instances are created only by [TomTransactionManager.startTransaction] (the constructor is private). Participants enlist via [registerParticipant] and the work is concluded with [commitTransaction] (commit-all, falling back to rollback if any participant vetoes) or [rollbackTransaction]. A transaction runs once: after it commits or rolls back, [isRunning] is 
+                      <code>false</code> and it can no longer accept participants.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomTransaction._" class="api-member">
@@ -1329,7 +1356,14 @@
                     <div id="TomTransaction._participants" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final Map&lt;String, TomTransactionParticipant&gt; _participants</code></div>
                     </div>
-                    <div id="TomTransaction.isReadOnly" class="api-member"><div class="api-member-head"><code class="api-signature">final bool isReadOnly</code></div></div>
+                    <div id="TomTransaction.isReadOnly" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final bool isReadOnly</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Whether this transaction was opened as read-only (advisory; surfaced to participants / callers — it does not by itself prevent writes).
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomTransaction._isRunning" class="api-member"><div class="api-member-head"><code class="api-signature">bool _isRunning</code></div></div>
                     <div id="TomTransaction.isRunning" class="api-member"><div class="api-member-head"><code class="api-signature">bool isRunning</code></div></div>
                   </div>
@@ -1338,22 +1372,44 @@
                     <div id="TomTransaction.registerParticipant" class="api-member">
                       <div class="api-member-head"><code class="api-signature">void registerParticipant(TomTransactionParticipant ttp)</code></div>
                       <div class="api-doc">
+                        <p>Enlists [ttp] in this transaction, calling its <code>startTransaction()</code> once.</p>
                         <p>
-                          you can register multiple times without problems, the participants will be called only once. Participant are distinguished by their ID. This will call startTransaction() on the participant.
+                          Participants are deduplicated by [TomTransactionParticipant.getParticipantId]; registering an already-enlisted id is a no-op, so callers may register freely without tracking membership. Throws [TomTransactionException] if the transaction is no longer running. (Declared 
+                          <code>void</code>/<code>async</code>: the participant's <code>startTransaction()</code> future is started but not surfaced to the caller.)
                         </p>
                       </div>
                     </div>
                     <div id="TomTransaction.commitTransaction" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Future&lt;bool&gt; commitTransaction()</code></div>
+                      <div class="api-doc">
+                        <p>Commits every participant, then ends them; clears the current transaction.</p>
+                        <p>
+                          Marks the transaction not-running, then calls <code>commit()</code> on each participant in registration order. If any participant vetoes (returns 
+                          <code>false</code>), the whole transaction is rolled back via [rollbackTransaction] instead. On a clean commit, 
+                          <code>endTransaction()</code> is called on every participant and the [TomTransactionManager] singleton is cleared. Returns whether the commit (and all end calls) succeeded.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomTransaction.rollbackTransaction" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Future&lt;bool&gt; rollbackTransaction()</code></div>
+                      <div class="api-doc">
+                        <p>Rolls back every participant, then ends them; clears the current transaction.</p>
+                        <p>
+                          Marks the transaction not-running, calls <code>rollback()</code> on every participant, then <code>endTransaction()</code>
+                           on each, and clears the [TomTransactionManager] singleton. Returns whether all end calls succeeded.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>
                 <section id="TomTransactionException" class="api-declaration">
                   <h3 class="api-decl-title">class TomTransactionException</h3>
                   <code class="api-signature">class TomTransactionException extends TomServerException</code>
+                  <div class="api-doc">
+                    <p>
+                      Raised when a transaction operation is attempted in an invalid state — for example registering a participant with a transaction that is no longer running. A [TomServerException], so it flows through the standard server error mapping.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomTransactionException.new" class="api-member">
@@ -1368,6 +1424,16 @@
                 <section id="TomTransactionManager" class="api-declaration">
                   <h3 class="api-decl-title">class TomTransactionManager</h3>
                   <code class="api-signature">abstract class TomTransactionManager</code>
+                  <div class="api-doc">
+                    <p>Ambient access to the current [TomTransaction].</p>
+                    <p>
+                      Holds a single current transaction (per isolate) so participants and the endpoint pipeline can join or conclude it without threading a handle through every call. The pipeline opens one with [startTransaction] for a 
+                      <code>@TomTransactional</code> endpoint and commits/rolls it back when the call returns; data sources enlist with the current transaction as they are used. The transaction clears itself from here on commit or rollback.
+                    </p>
+                    <p>
+                      The current transaction is a single static (not zone-scoped), so this models one active transaction per isolate at a time.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomTransactionManager.new" class="api-member"><div class="api-member-head"><code class="api-signature">TomTransactionManager.new()</code></div></div>
@@ -1382,18 +1448,32 @@
                       <div class="api-member-head">
                         <code class="api-signature">static (TomTransaction, bool) startTransaction([bool isReadOnly = false])</code>
                       </div>
+                      <div class="api-doc">
+                        <p>Returns the current transaction, creating one if none is active.</p>
+                        <p>
+                          The boolean is <code>true</code> when a new transaction was created and <code>false</code> when an existing one was returned — letting the caller that actually opened the transaction be the one responsible for concluding it. [isReadOnly] is only honoured when a new transaction is created.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomTransactionManager._clearTransaction" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static void _clearTransaction()</code></div>
                     </div>
                     <div id="TomTransactionManager.getCurrentTransaction" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static TomTransaction? getCurrentTransaction()</code></div>
+                      <div class="api-doc"><p>The current transaction, or <code>null</code> if none is active.</p></div>
                     </div>
                   </div>
                 </section>
                 <section id="TomTransactionParticipant" class="api-declaration">
                   <h3 class="api-decl-title">class TomTransactionParticipant</h3>
                   <code class="api-signature">abstract class TomTransactionParticipant</code>
+                  <div class="api-doc">
+                    <p>A resource that can enlist in a [TomTransaction] (two-phase style).</p>
+                    <p>
+                      Implemented by <code>TomDataSource</code>, so any data source used during a transaction joins it. Participants are keyed by [getParticipantId] — registering the same id twice enlists once. The coordinator drives the lifecycle: [startTransaction] on enlistment, then either [commit] followed by [endTransaction] on success, or [rollback] followed by [endTransaction] on failure. [commit] returns 
+                      <code>false</code> to veto the commit (which turns the whole transaction into a rollback); [endTransaction] releases any per-transaction resources (e.g. returning a connection to the pool).
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomTransactionParticipant.new" class="api-member">
@@ -1402,15 +1482,26 @@
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
-                    <div id="TomTransactionParticipant.getParticipantId" class="api-member"><div class="api-member-head"><code class="api-signature">String getParticipantId()</code></div></div>
+                    <div id="TomTransactionParticipant.getParticipantId" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String getParticipantId()</code></div>
+                      <div class="api-doc"><p>A stable id used to deduplicate this participant within a transaction.</p></div>
+                    </div>
                     <div id="TomTransactionParticipant.startTransaction" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Future&lt;bool&gt; startTransaction()</code></div>
+                      <div class="api-doc"><p>Begins the participant's part of the transaction; called once on enlist.</p></div>
                     </div>
                     <div id="TomTransactionParticipant.endTransaction" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Future&lt;bool&gt; endTransaction()</code></div>
+                      <div class="api-doc"><p>Releases per-transaction resources after commit or rollback.</p></div>
                     </div>
-                    <div id="TomTransactionParticipant.commit" class="api-member"><div class="api-member-head"><code class="api-signature">Future&lt;bool&gt; commit()</code></div></div>
-                    <div id="TomTransactionParticipant.rollback" class="api-member"><div class="api-member-head"><code class="api-signature">Future&lt;void&gt; rollback()</code></div></div>
+                    <div id="TomTransactionParticipant.commit" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;bool&gt; commit()</code></div>
+                      <div class="api-doc"><p>Commits the participant's work; returning <code>false</code> vetoes the transaction.</p></div>
+                    </div>
+                    <div id="TomTransactionParticipant.rollback" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;void&gt; rollback()</code></div>
+                      <div class="api-doc"><p>Undoes the participant's work when the transaction is rolled back.</p></div>
+                    </div>
                   </div>
                 </section>
               </div>

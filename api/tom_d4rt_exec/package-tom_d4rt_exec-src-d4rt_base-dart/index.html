@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1466,7 +1486,7 @@ final result = await interpreter.execute(source: '''
                       <div class="api-doc">
                         <p>GEN-074: Registers a class alias (type alias) for use in interpreted code.</p>
                         <p>
-                          Type aliases like `typedef MaterialStateProperty&lt;T&gt; = WidgetStateProperty&lt;T&gt;` are registered so that D4rt scripts can use the alias name to reference the target class.
+                          Type aliases like <code>typedef MaterialStateProperty&lt;T&gt; = WidgetStateProperty&lt;T&gt;</code> are registered so that D4rt scripts can use the alias name to reference the target class.
                         </p>
                         <p>
                           [aliasName] The alias name (e.g., 'MaterialStateProperty'). [targetName] The target class name (e.g., 'WidgetStateProperty'). [library] The library path where this alias is exported from.
@@ -1478,7 +1498,8 @@ final result = await interpreter.execute(source: '''
                       <div class="api-doc">
                         <p>Registers a function typedef so it can be used as a type in D4rt scripts.</p>
                         <p>
-                          Function typedefs like `typedef VoidCallback = void Function()` are not classes, but D4rt scripts may reference them as type arguments (e.g., `ObserverList&lt;VoidCallback&gt;()`). This registers the name so type resolution succeeds.
+                          Function typedefs like <code>typedef VoidCallback = void Function()</code> are not classes, but D4rt scripts may reference them as type arguments (e.g., 
+                          <code>ObserverList&lt;VoidCallback&gt;()</code>). This registers the name so type resolution succeeds.
                         </p>
                         <p>
                           [name] The typedef name (e.g., 'VoidCallback'). [library] The library path where this typedef is exported from.
@@ -1494,10 +1515,11 @@ final result = await interpreter.execute(source: '''
                       <div class="api-doc">
                         <p>GEN-107: Registers a re-export from one library to another.</p>
                         <p>
-                          Mirrors Dart's `export 'other/library.dart' [show/hide …]` directive: when [sourceUri] is loaded, the module loader will also merge the symbols from [targetUri] into the source library's per-module environment, applying [show] and [hide] filters.
+                          Mirrors Dart's <code>export 'other/library.dart' [show/hide …]</code> directive: when [sourceUri] is loaded, the module loader will also merge the symbols from [targetUri] into the source library's per-module environment, applying [show] and [hide] filters.
                         </p>
                         <p>
-                          Generated bridge code calls this once per `export` directive in the underlying Dart library so re-exports of stdlib types (e.g. `flutter/services.dart` re-exports `dart:typed_data`) become reachable through the source library without leaking into the global environment.
+                          Generated bridge code calls this once per <code>export</code> directive in the underlying Dart library so re-exports of stdlib types (e.g. 
+                          <code>flutter/services.dart</code> re-exports <code>dart:typed_data</code>) become reachable through the source library without leaking into the global environment.
                         </p>
                         <p>
                           [sourceUri] The library doing the re-exporting. [targetUri] The library being re-exported. [show] Optional set of names to include from [targetUri]. [hide] Optional set of names to exclude from [targetUri].
@@ -1614,7 +1636,7 @@ interpreter.registerGlobalSetter('counter', (v) =&gt; _counter = v as int, 'pack
                         </p>
                         <p>Returns a list of registration error messages. An empty list means all registrations are valid.</p>
                         <p>
-                          [source] The source code that imports all bridge modules (typically all the import statements plus `void main() {}`).
+                          [source] The source code that imports all bridge modules (typically all the import statements plus <code>void main() {}</code>).
                         </p>
                         <h2>Example:</h2>
                         <pre><code>final d4rt = D4rt();
@@ -1682,12 +1704,16 @@ interpreter.grant(NetworkPermission.any);</code></pre>
                       <div class="api-member-head"><code class="api-signature">void registerExtensions(String packageName, void Function() body)</code></div>
                       <div class="api-doc">
                         <p>
-                          Registers a [body] callback that runs additional bridge wiring (e.g. `registerRelaxers()`, `registerD4rtRuntimeExtensions()`, `registerD4rtInterfaceProxyOverrides()`) **after** the main bridge registrations for [packageName].
+                          Registers a [body] callback that runs additional bridge wiring (e.g. <code>registerRelaxers()</code>, 
+                          <code>registerD4rtRuntimeExtensions()</code>, <code>registerD4rtInterfaceProxyOverrides()</code>) <strong>after</strong>
+                           the main bridge registrations for [packageName].
                         </p>
                         <p>
                           The body is queued, not run immediately. It runs when [finalizeBridges] is called (or implicitly on the first execute call). See [D4rtRunner.registerExtensions] for the full contract.
                         </p>
-                        <p>**Idempotent on package name:** repeated calls with the same [packageName] overwrite the body.</p>
+                        <p>
+                          <strong>Idempotent on package name:</strong> repeated calls with the same [packageName] overwrite the body.
+                        </p>
                         <p>Throws [StateError] if [finalizeBridges] has already run.</p>
                       </div>
                     </div>
@@ -1698,7 +1724,7 @@ interpreter.grant(NetworkPermission.any);</code></pre>
                         <p>
                           Both [executeBundle] and the classic [execute] path call this implicitly on first invocation, so embedders rarely need to call it directly. Calling it explicitly is supported and lets you trigger the wiring at a deterministic moment (e.g. before the first script).
                         </p>
-                        <p>**Idempotent:** repeat calls return without re-running anything.</p>
+                        <p><strong>Idempotent:</strong> repeat calls return without re-running anything.</p>
                       </div>
                     </div>
                     <div id="D4rt.warmup" class="api-member">
@@ -1708,13 +1734,14 @@ interpreter.grant(NetworkPermission.any);</code></pre>
                           OPEN B.11 / U25 — Pre-builds the parser + bridge infrastructure so the first real build does not cold-start mid-test under host load.
                         </p>
                         <p>
-                          The first script run after a test harness' `setUpAll` historically flaked because the analyzer front-end, the AST converter, and the bridge/stdlib registration path all cold-started during that first build. This pays the cost up front:
+                          The first script run after a test harness' <code>setUpAll</code> historically flaked because the analyzer front-end, the AST converter, and the bridge/stdlib registration path all cold-started during that first build. This pays the cost up front:
                         </p>
                         <p>
-                          1. [D4rtRunner.warmup] on the inner runner — finalizes bridge extensions and warms the stdlib + bridged-definition registration used by the [executeBundle] path. 2. A trivial throwaway [execute] of `int main() =&gt; 0;`, which JIT-warms the analyzer parser, the [AstConverter], the classic module-loader environment, and the interpreter call path.
+                          1. [D4rtRunner.warmup] on the inner runner — finalizes bridge extensions and warms the stdlib + bridged-definition registration used by the [executeBundle] path. 2. A trivial throwaway [execute] of 
+                          <code>int main() =&gt; 0;</code>, which JIT-warms the analyzer parser, the [AstConverter], the classic module-loader environment, and the interpreter call path.
                         </p>
                         <p>
-                          **Idempotent and script-neutral:** every real [execute]/[executeBundle] rebuilds its environment from scratch, so the throwaway warmup state is discarded. Safe to call once after all bridge registration and before the first real build.
+                          <strong>Idempotent and script-neutral:</strong> every real [execute]/[executeBundle] rebuilds its environment from scratch, so the throwaway warmup state is discarded. Safe to call once after all bridge registration and before the first real build.
                         </p>
                       </div>
                     </div>
@@ -1722,13 +1749,14 @@ interpreter.grant(NetworkPermission.any);</code></pre>
                       <div class="api-member-head"><code class="api-signature">void resetScriptDeclarations()</code></div>
                       <div class="api-doc">
                         <p>
-                          §U28 / TODO #14 — Evict script-declared entries from the inner [D4rtRunner]'s global environment so a follower `executeBundle` call starts with the same name-set the first build saw.
+                          §U28 / TODO #14 — Evict script-declared entries from the inner [D4rtRunner]'s global environment so a follower 
+                          <code>executeBundle</code> call starts with the same name-set the first build saw.
                         </p>
                         <p>
                           Forwards to [D4rtRunner.resetScriptDeclarations]. See that method for the full contract and the architectural caveat (the runner already constructs a fresh [Environment] per [executeBundle] call, so this API is a forward-compatibility hook rather than the §U28 wedge fix).
                         </p>
                         <p>
-                          This method does NOT walk the classic [execute]-path's `_moduleLoader.globalEnvironment`. Callers that mix [execute] (source-direct) with [executeBundle] (AST-driven) and need both flushed should call this followed by re-instantiating the D4rt host (or open a follow-up issue if that becomes a real use case).
+                          This method does NOT walk the classic [execute]-path's <code>_moduleLoader.globalEnvironment</code>. Callers that mix [execute] (source-direct) with [executeBundle] (AST-driven) and need both flushed should call this followed by re-instantiating the D4rt host (or open a follow-up issue if that becomes a real use case).
                         </p>
                       </div>
                     </div>
@@ -1847,7 +1875,7 @@ d4rt.execute(
                           Unlike [execute], this method does NOT reset the global environment. It reuses the existing module loader and environment from a previous [execute] call, allowing you to add more declarations and call functions while preserving all previously defined variables, functions, and classes.
                         </p>
                         <p>
-                          **Important**: You must call [execute] at least once before calling [continuedExecute] to establish the execution context.
+                          <strong>Important</strong>: You must call [execute] at least once before calling [continuedExecute] to establish the execution context.
                         </p>
                         <p>[source] The source code to execute.</p>
                         <p>[name] The name of the function to call. Defaults to 'main'.</p>
@@ -1891,10 +1919,11 @@ final result = d4rt.eval('square(5)'); // Returns 25</code></pre>
                       <div class="api-doc">
                         <p>Creates a distributable [AstBundle] from a source code string.</p>
                         <p>
-                          The source is parsed and all imports are recursively resolved: - `dart:*` imports are skipped (stdlib, always available at runtime) - Bridged library imports are skipped (handled by native bridges) - Imports in [explicitSources] are included verbatim - Relative and same-package imports are auto-included from disk - Other `package:*` imports cause an error
+                          The source is parsed and all imports are recursively resolved: - <code>dart:*</code> imports are skipped (stdlib, always available at runtime) - Bridged library imports are skipped (handled by native bridges) - Imports in [explicitSources] are included verbatim - Relative and same-package imports are auto-included from disk - Other 
+                          <code>package:*</code> imports cause an error
                         </p>
                         <p>
-                          [source] The Dart source code to bundle. [sourcePath] Logical path for the entry point (default: `'main.dart'`). [explicitSources] Additional sources keyed by URI for imports not on disk. [bundlerConfig] Configuration for import resolution behavior.
+                          [source] The Dart source code to bundle. [sourcePath] Logical path for the entry point (default: <code>'main.dart'</code>). [explicitSources] Additional sources keyed by URI for imports not on disk. [bundlerConfig] Configuration for import resolution behavior.
                         </p>
                         <h2>Example</h2>
                         <pre><code>final d4rt = D4rt();
@@ -1938,7 +1967,7 @@ bundle.saveToFile('my_app.d4rtbundle');</code></pre>
                       <div class="api-doc">
                         <p>Builds a [FileAccessValidator] from the granted [FilesystemPermission]s.</p>
                         <p>
-                          Returns `null` (unrestricted) if no [FilesystemPermission]s have been granted at all — this preserves backward compatibility: when no permissions are configured, the bundler can read any file.
+                          Returns <code>null</code> (unrestricted) if no [FilesystemPermission]s have been granted at all — this preserves backward compatibility: when no permissions are configured, the bundler can read any file.
                         </p>
                         <p>
                           When at least one [FilesystemPermission] is granted: - [FilesystemPermission.read] or [FilesystemPermission.any] → allows all - [FilesystemPermission.readPath(path)] → allows only under that path - Multiple path-scoped permissions are OR-combined
@@ -1954,10 +1983,11 @@ bundle.saveToFile('my_app.d4rtbundle');</code></pre>
                       <div class="api-doc">
                         <p>Executes a pre-made [AstBundle] using [D4rtRunner].</p>
                         <p>
-                          This method does **not** require the Dart analyzer at runtime — all source code has already been parsed and bundled. The bundle is executed through the internal [D4rtRunner] which has all registered bridges and permissions.
+                          This method does <strong>not</strong> require the Dart analyzer at runtime — all source code has already been parsed and bundled. The bundle is executed through the internal [D4rtRunner] which has all registered bridges and permissions.
                         </p>
                         <p>
-                          [bundle] The bundle to execute. [entryPoint] Override the bundle's entry point URI. [name] The function to call (default: `'main'`). [positionalArgs] Positional arguments for the function. [namedArgs] Named arguments for the function.
+                          [bundle] The bundle to execute. [entryPoint] Override the bundle's entry point URI. [name] The function to call (default: 
+                          <code>'main'</code>). [positionalArgs] Positional arguments for the function. [namedArgs] Named arguments for the function.
                         </p>
                         <h2>Example</h2>
                         <pre><code>// Load a pre-built bundle (no analyzer needed)
@@ -1979,8 +2009,8 @@ final result = d4rt.executeBundle(bundle);</code></pre>
                         <p>
                           Forwards to [D4rtRunner.executeBundleAs] so the unwrap path is identical to the analyzer-free runner — callers get either a plain [T] or a [D4UnwrapException] (which extends [D4rtException] and auto-registers with [ErrorReporter]).
                         </p>
-                        <p>Use [executeBundleAsAsync] for `async` entry points that return a [Future].</p>
-                        <p>Step 2 of `tom_d4rt_flutterm/doc/d4rt_consolidation_plan.md`.</p>
+                        <p>Use [executeBundleAsAsync] for <code>async</code> entry points that return a [Future].</p>
+                        <p>Step 2 of <code>tom_d4rt_flutterm/doc/d4rt_consolidation_plan.md</code>.</p>
                       </div>
                     </div>
                     <div id="D4rt.executeBundleAsAsync" class="api-member">
@@ -2041,10 +2071,12 @@ print(result.variables); // [VariableInfo(greeting)]</code></pre>
                       <div class="api-doc">
                         <p>Evaluates an expression or statement in the context of previously executed code.</p>
                         <p>
-                          This method allows you to execute additional code in the same environment as a previous `execute()` call, similar to a REPL experience.
+                          This method allows you to execute additional code in the same environment as a previous <code>execute()</code>
+                           call, similar to a REPL experience.
                         </p>
                         <p>
-                          **Important**: You must call `execute()` at least once before calling `eval()` to establish the execution context.
+                          <strong>Important</strong>: You must call <code>execute()</code> at least once before calling <code>eval()</code>
+                           to establish the execution context.
                         </p>
                         <p>[expression] The Dart expression or statement to evaluate.</p>
                         <h2>Example:</h2>

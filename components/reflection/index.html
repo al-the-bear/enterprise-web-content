@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1309,7 +1329,7 @@
             </p>
             <div style="margin-top: 14px">
               <div class="mono" style="color: #B9CCDC">5 modules</div>
-              <div class="metricline" style="color: #B9CCDC">28.4k loc · 410 tests · 285.3k test LOC</div>
+              <div class="metricline" style="color: #B9CCDC">28.7k loc · 420 tests · 285.5k test LOC</div>
               <div class="dist" style="max-width: 280px; border-color: rgba(255,255,255,.16)">
                 <span style="width: 0.00%; background: #4EA72E"></span>
                 <span style="width: 40.00%; background: #0F9ED5"></span>
@@ -1325,17 +1345,316 @@
             </div>
           </div>
           <div class="fambody">
-            <div class="pageprose">
-              <p>
-                Reflection is the base technology that lets Tom applications assemble themselves at runtime. It provides two complementary capabilities: runtime reflection over Dart objects, and static analysis of source code into a structured API description.
-              </p>
-              <p>
-                Runtime reflection is delivered by `tom_reflection`, a code-generation-based mirror system that exposes class members, types, and metadata and allows methods and properties to be invoked by name. The reflection data it relies on is produced by `tom_reflection_generator`, which runs as a build_runner builder or a standalone CLI.
-              </p>
-              <p>
-                A second line analyzes Dart sources directly: `tom_reflector` walks a codebase with the Dart analyzer and emits a structured API snapshot, and `tom_reflector_model` defines the object model and serialization for that result. The serialized `analyzer_analysis.json` is what the website renders to describe each module's API.
-              </p>
-            </div>
+            <div class="pageprose"><p>From the component readme.md file:</p></div>
+            <section class="section repodoc">
+              <div class="pageprose">
+                <h1>Tom Reflection — runtime and build-time reflection for Dart</h1>
+                <p>
+                  &gt; Part of the Tom Framework. This repository carries <strong>mixed license lineage</strong>: &gt; the 
+                  <code>tom_reflection*</code> packages are <strong>derived from the &gt; <a href="https://pub.dev/packages/reflectable"><code>reflectable</code></a> package by the Dart team</strong>
+                   &gt; (<a href="https://github.com/google/reflectable.dart"><code>google/reflectable.dart</code></a>, &gt; "Copyright (c) 2015, Dart", BSD-3-Clause) — with Tom-specific refactoring, fixes &gt; and enhancements © 2024–2026 Peter Nicolai Alexis Kyaw, released under the same &gt; BSD-3-Clause terms — while the 
+                  <code>tom_reflector*</code> packages are <strong>original work</strong> &gt; (© 2024–2026 Peter Nicolai Alexis Kyaw, BSD-3-Clause) sharing no lineage with &gt; 
+                  <code>reflectable</code>. Each derived package retains the upstream copyright in its &gt; <code>LICENSE</code>
+                   and records the derivation in a <code>NOTICE</code> file. See &gt; <a href="/doc/tom_agent_container/tom_ai/reflection/LICENSE"><code>LICENSE.md</code></a>.
+                </p>
+                <p>
+                  This document is the <strong>map</strong>. It orients you to the whole reflection ecosystem and routes you to the one package you actually want — each package then has its own README with the full manual.
+                </p>
+                <p>
+                  <strong>New here?</strong> Start with the samples: <a href="/doc/tom_agent_container/tom_ai/reflection/tom_reflection_samples/reflection_introduction_sample/README"><code>tom_reflection_samples/reflection_introduction_sample</code></a>
+                   for runtime mirrors, or <a href="/doc/tom_agent_container/tom_ai/reflection/tom_reflection_samples/reflector_parser_introduction_sample/README"><code>tom_reflection_samples/reflector_parser_introduction_sample</code></a>
+                   for the build-time structural model.
+                </p>
+                <h2>What you can do with Tom Reflection</h2>
+                <ul><li><strong>Invoke members by name on a live object</strong> — call methods, read/write</li></ul>
+                <p>
+                  fields, construct instances and read metadata at runtime, without knowing the type at compile time (engine 1). - 
+                  <strong>Get a serializable model of your code's shape</strong> — classes, methods, parameters, types and annotations as plain data a code generator or tool can consume at build time (engine 2). - 
+                  <strong>Keep generated code small</strong> — declare exactly which reflective operations you need via 
+                  <em>capabilities</em>, so only the necessary mirror data is emitted. - *<em>Generate `</em>.reflection.dart
+                  <code> and </code><em>.r.dart`</em>* from <code>build_runner</code>, a standalone CLI, or nested under 
+                  <code>buildkit</code>.
+                </p>
+                <h2>Two engines (the one thing to understand first)</h2>
+                <p>
+                  This repo holds <strong>two distinct reflection technologies</strong>. They are not two versions of one thing — they have different origins, run at different times, and serve different consumers. Pick the right one before reading any package README.
+                </p>
+                <table class="mdtable">
+                  <thead>
+                    <tr>
+                      <th></th>
+                      <th><strong>Engine 1 — <code>tom_reflection</code></strong></th>
+                      <th><strong>Engine 2 — <code>tom_reflector</code></strong></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Origin</td>
+                      <td>fork of <code>reflectable</code> (Dart team)</td>
+                      <td>original work (ex <code>tom_analyzer</code>)</td>
+                    </tr>
+                    <tr>
+                      <td>When it runs</td>
+                      <td><strong>runtime</strong> — mirrors on live objects</td>
+                      <td><strong>build time</strong> — static analysis</td>
+                    </tr>
+                    <tr>
+                      <td>Output</td>
+                      <td><code>*.reflection.dart</code></td>
+                      <td><code>*.r.dart</code> + <code>tom_reflector_model</code> object graph</td>
+                    </tr>
+                    <tr>
+                      <td>Driven by</td>
+                      <td>capabilities + annotations</td>
+                      <td>barrels <strong>or</strong> entry-point reachability</td>
+                    </tr>
+                    <tr><td>Primary consumer</td><td>app code doing dynamic dispatch</td><td>code generators / tooling</td></tr>
+                    <tr><td>License lineage</td><td>BSD 3-Clause (retains © Dart)</td><td>BSD 3-Clause (Tom ©)</td></tr>
+                  </tbody>
+                </table>
+                <p>
+                  <strong>Use engine 1</strong> when code must invoke members / read metadata <em>by name at runtime</em>
+                   on real instances (serialization, dependency injection, dynamic dispatch). <strong>Use engine 2</strong>
+                   when a <em>code generator or tool</em> needs a stable, pre-resolved view of code structure at build time (bridge generation, doc generation, workspace indexing), insulated from analyzer/Dart version churn.
+                </p>
+                <h2>Components</h2>
+                <h3>Engine 1 — runtime mirrors</h3>
+                <table class="mdtable">
+                  <thead><tr><th>Package</th><th>What it is</th><th>Binary</th></tr></thead>
+                  <tbody>
+                    <tr>
+                      <td><a href="/docs?module=tom_reflection&amp;path=README.md"><code>tom_reflection</code></a></td>
+                      <td>
+                        Runtime mirror-based reflection library — the 
+                        <code>reflectable</code>
+                         fork. Defines 
+                        <code>Reflection</code>
+                        , the capability set, and the mirror API.
+                      </td>
+                      <td>—</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <a href="/docs?module=tom_reflection_generator&amp;path=README.md"><code>tom_reflection_generator</code></a>
+                      </td>
+                      <td>
+                        Code generator for engine 1: a 
+                        <code>build_runner</code>
+                         builder 
+                        <strong>and</strong>
+                         standalone/buildkit-nested CLI that emits 
+                        <code>*.reflection.dart</code>
+                        .
+                      </td>
+                      <td><code>reflectiongenerator</code></td>
+                    </tr>
+                    <tr>
+                      <td><a href="/docs?module=tom_reflection_test&amp;path=README.md"><code>tom_reflection_test</code></a></td>
+                      <td>End-to-end fixture suite exercising the engine-1 generator (not user-facing samples).</td>
+                      <td>—</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <h3>Engine 2 — build-time structural model</h3>
+                <table class="mdtable">
+                  <thead><tr><th>Package</th><th>What it is</th><th>Binary</th></tr></thead>
+                  <tbody>
+                    <tr>
+                      <td><a href="/docs?module=tom_reflector&amp;path=README.md"><code>tom_reflector</code></a></td>
+                      <td>
+                        Analyzer-based reflection engine + CLI. Two modes: legacy barrels and entry-point reachability. Emits 
+                        <code>*.r.dart</code>
+                        .
+                      </td>
+                      <td><code>reflector</code></td>
+                    </tr>
+                    <tr>
+                      <td><a href="/docs?module=tom_reflector_model&amp;path=README.md"><code>tom_reflector_model</code></a></td>
+                      <td>
+                        Pure, serializable object model for engine-2 results (classes, methods, parameters, types) with JSON/YAML round-trip.
+                      </td>
+                      <td>—</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <h3>Samples</h3>
+                <table class="mdtable">
+                  <thead><tr><th>Folder</th><th>What it is</th></tr></thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <a href="/doc/tom_agent_container/tom_ai/reflection/tom_reflection_samples/README"><code>tom_reflection_samples</code></a>
+                      </td>
+                      <td>Seven runnable sample projects with long-form tutorials, split across both engines.</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <h2>Getting started</h2>
+                <h3>Engine 1 — reflect on a live object</h3>
+                <pre><code>import 'package:tom_reflection/tom_reflection.dart';
+import 'person.reflection.dart'; // generated
+
+class MyReflector extends Reflection {
+  const MyReflector()
+      : super(invokingCapability, declarationsCapability, typeCapability);
+}
+
+const myReflector = MyReflector();
+
+@myReflector
+class Person {
+  String greet(String who) =&gt; 'Hello, $who!';
+}
+
+void main() {
+  initializeReflection();
+  final mirror = myReflector.reflect(Person());
+  print(mirror.invoke('greet', ['Alice'])); // Hello, Alice!
+}</code></pre>
+                <p>
+                  Generate the <code>*.reflection.dart</code> with the builder (<code>dart run build_runner build</code>) or the CLI (<code>reflectiongenerator</code>
+                   / <code>buildkit :reflectiongenerator</code>).
+                </p>
+                <h3>Engine 2 — analyze code into a model</h3>
+                <pre><code>import 'package:tom_reflector/tom_reflector.dart';
+
+void main() async {
+  final runner = AnalyzerRunner();
+  final AnalysisResult result = await runner.analyze(['lib/models.dart']);
+  for (final cls in result.allClasses) {
+    print('${cls.name}: ${cls.methods.length} methods'); // Order: 3 methods
+  }
+}</code></pre>
+                <p>
+                  Or run the CLI over a configured project: <code>reflector</code> / <code>buildkit :reflector</code>, which emits 
+                  <code>*.r.dart</code> plus the serializable <code>tom_reflector_model</code> graph.
+                </p>
+                <h2>Samples — learning path</h2>
+                <p>Ordered beginner → advanced; engine 1 first, then engine 2.</p>
+                <table class="mdtable">
+                  <thead><tr><th>Sample</th><th>Engine</th><th>Demonstrates</th></tr></thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <a href="/doc/tom_agent_container/tom_ai/reflection/tom_reflection_samples/reflection_introduction_sample/README"><code>reflection_introduction_sample</code></a>
+                      </td>
+                      <td>1</td>
+                      <td>Annotate → generate → reflect → invoke; read a getter on a small domain.</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <a href="/doc/tom_agent_container/tom_ai/reflection/tom_reflection_samples/reflection_advanced_sample/README"><code>reflection_advanced_sample</code></a>
+                      </td>
+                      <td>1</td>
+                      <td>Declarations, <code>newInstance</code>, static members, type relations, generics &amp; mixins.</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <a href="/doc/tom_agent_container/tom_ai/reflection/tom_reflection_samples/reflection_capability_sample/README"><code>reflection_capability_sample</code></a>
+                      </td>
+                      <td>1</td>
+                      <td>
+                        How each capability gates generated code; minimal vs 
+                        <code>useAllCapabilities</code>
+                        ; pattern capabilities.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <a href="/doc/tom_agent_container/tom_ai/reflection/tom_reflection_samples/reflector_parser_introduction_sample/README"><code>reflector_parser_introduction_sample</code></a>
+                      </td>
+                      <td>2</td>
+                      <td>Analyze sources → <code>AnalysisResult</code> → JSON round-trip → walk the model.</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <a href="/doc/tom_agent_container/tom_ai/reflection/tom_reflection_samples/reflector_reflection_introduction_sample/README"><code>reflector_reflection_introduction_sample</code></a>
+                      </td>
+                      <td>2</td>
+                      <td>Generate <code>*.r.dart</code> for a project and consume the reflection at runtime.</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <a href="/doc/tom_agent_container/tom_ai/reflection/tom_reflection_samples/reflector_parser_advanced_sample/README"><code>reflector_parser_advanced_sample</code></a>
+                      </td>
+                      <td>2</td>
+                      <td>Deep model dive: type-argument resolution, annotations, mixins/extensions, cycle-safe IDs, YAML.</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <a href="/doc/tom_agent_container/tom_ai/reflection/tom_reflection_samples/reflector_reflection_advanced_sample/README"><code>reflector_reflection_advanced_sample</code></a>
+                      </td>
+                      <td>2</td>
+                      <td>Entry-point reachability with filters, transitive resolution, coverage config.</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <h2>Documentation index</h2>
+                <table class="mdtable">
+                  <thead><tr><th>Topic</th><th>Document</th></tr></thead>
+                  <tbody>
+                    <tr>
+                      <td>Engine-1 generator (builder + CLI)</td>
+                      <td>
+                        <a href="/docs?module=tom_reflection_generator&amp;path=doc%2Freflection_generator.md"><code>tom_reflection_generator/doc/reflection_generator.md</code></a>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Engine-1 generator CLI reference</td>
+                      <td>
+                        <a href="/docs?module=tom_reflection_generator&amp;path=doc%2Freflectiongenerator_user_reference.md"><code>tom_reflection_generator/doc/reflectiongenerator_user_reference.md</code></a>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Engine-1 generator internals</td>
+                      <td>
+                        <a href="/docs?module=tom_reflection_generator&amp;path=doc%2Freflection_generator_implementation.md"><code>tom_reflection_generator/doc/reflection_generator_implementation.md</code></a>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Analyzer summary caching</td>
+                      <td>
+                        <a href="/docs?module=tom_reflection_generator&amp;path=doc%2Fanalyzer_summary_integration.md"><code>tom_reflection_generator/doc/analyzer_summary_integration.md</code></a>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Engine-2 CLI usage</td>
+                      <td>
+                        <a href="/docs?module=tom_reflector&amp;path=doc%2Freflector_usage_guide.md"><code>tom_reflector/doc/reflector_usage_guide.md</code></a>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Engine-2 reflection guide</td>
+                      <td>
+                        <a href="/docs?module=tom_reflector&amp;path=doc%2Freflection_user_guide.md"><code>tom_reflector/doc/reflection_user_guide.md</code></a>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Engine-2 design (ex <code>tom_analyzer</code>)</td>
+                      <td>
+                        <a href="/docs?module=tom_reflector&amp;path=doc%2Ftom_analyzer_design.md"><code>tom_reflector/doc/tom_analyzer_design.md</code></a>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <h2>Repository layout</h2>
+                <pre><code>tom_reflection/                  # this repo (GitHub: al-the-bear/tom_reflection, public, BSD 3-Clause)
+├── tom_reflection/              # engine 1: runtime mirror library (reflectable fork)
+├── tom_reflection_generator/    # engine 1: *.reflection.dart generator (builder + `reflectiongenerator` CLI)
+├── tom_reflection_test/         # engine 1: end-to-end fixture suite
+├── tom_reflector/               # engine 2: analyzer-based engine + `reflector` CLI → *.r.dart
+├── tom_reflector_model/         # engine 2: pure serializable object model
+├── tom_reflection_samples/      # seven runnable sample projects (both engines)
+└── LICENSE.md                   # points at each package's own LICENSE</code></pre>
+                <h2>License</h2>
+                <p>
+                  BSD-3-Clause, public. Lineage is load-bearing: <code>tom_reflection*</code> retain the upstream <code>reflectable</code>
+                   copyright ("Copyright (c) 2015, Dart" — <code>reflectable</code> is by the Dart team, <a href="https://github.com/google/reflectable.dart"><code>google/reflectable.dart</code></a>) alongside Tom's modifications (© 2024–2026 Peter Nicolai Alexis Kyaw) and record the derivation in each derived package's 
+                  <code>NOTICE</code>; <code>tom_reflector*</code> are Tom's own work. See <a href="/doc/tom_agent_container/tom_ai/reflection/LICENSE"><code>LICENSE.md</code></a>
+                   and each package's <code>LICENSE</code>.
+                </p>
+              </div>
+            </section>
             <div class="grouplbl">Reflectable forks</div>
             <div class="grid cols-3" style="margin-top: 12px">
               <a class="tile pub" style="text-decoration: none; color: inherit; display: block" href="/modules/tom_reflection">
@@ -1347,46 +1666,21 @@
                   Runtime reflection support for Dart based on code generation, using capabilities to select which operations to support. It exposes class structure and metadata and invokes methods and properties by name.
                   
                 </div>
-                <!--@quick_info data={"name":"tom_reflection","id":"tom_reflection","version":"1.0.2","statusBadgeClass":"b-pub","statusLabel":"Published","roleLabel":"foundation","overview":"`tom_reflection` provides runtime introspection and dynamic invocation for\nDart. Code marked with a reflector annotation can be examined at runtime —\nits members, types, and metadata — and its methods, constructors, and\nproperties can be called by name.\n\nReflection support is opt-in through capabilities, so a program includes\nonly the operations it needs and keeps generated code small. The mirror\ndata itself is produced ahead of time rather than at runtime; in Tom that\ngeneration is handled by `tom_reflection_generator`.\n\nIt is a fork of the `reflectable` package adapted to the Tom framework. As\nthe base technology for runtime reflection, it underpins the auto-assembly\nof Tom applications.","locLabel":"3.0k","testsLabel":"0","testLocLabel":"0","docsCount":2,"refCount":1,"detailHref":"/modules/tom_reflection"}-->
-                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_reflection" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-pub"><span class="d"></span>Published</span><h4 style="margin-top: 10px">tom_reflection <span class="tagrole">role: foundation</span></h4><div class="mono">tom_reflection · v1.0.2</div><p style="font-size: .86rem; margin: 10px 0 0">`tom_reflection` provides runtime introspection and dynamic invocation for
-Dart. Code marked with a reflector annotation can be examined at runtime —
-its members, types, and metadata — and its methods, constructors, and
-properties can be called by name.
-
-Reflection support is opt-in through capabilities, so a program includes
-only the operations it needs and keeps generated code small. The mirror
-data itself is produced ahead of time rather than at runtime; in Tom that
-generation is handled by `tom_reflection_generator`.
-
-It is a fork of the `reflectable` package adapted to the Tom framework. As
-the base technology for runtime reflection, it underpins the auto-assembly
-of Tom applications.</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">3.0k</div></div><div class="qs"><div class="k">Tests</div><div class="v">0</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">0</div></div></div><div class="more"><span class="muted">2 docs · 1 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
+                <!--@quick_info data={"name":"tom_reflection","id":"tom_reflection","version":"1.0.2","statusBadgeClass":"b-pub","statusLabel":"Published","roleLabel":"foundation","overview":"From the module readme.md file:","locLabel":"3.0k","testsLabel":"0","testLocLabel":"0","docsCount":2,"refCount":1,"detailHref":"/modules/tom_reflection"}-->
+                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_reflection" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-pub"><span class="d"></span>Published</span><h4 style="margin-top: 10px">tom_reflection <span class="tagrole">role: foundation</span></h4><div class="mono">tom_reflection · v1.0.2</div><p style="font-size: .86rem; margin: 10px 0 0">From the module readme.md file:</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">3.0k</div></div><div class="qs"><div class="k">Tests</div><div class="v">0</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">0</div></div></div><div class="more"><span class="muted">2 docs · 1 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
                 <!--/@quick_info-->
               </a>
               <a class="tile pub" style="text-decoration: none; color: inherit; display: block" href="/modules/tom_reflection_generator">
                 <div class="top"></div>
                 <h4>tom_reflection_generator <span class="badge b-pub"><span class="d"></span>Published</span></h4>
                 <div class="mono">tom_reflection_generator · v1.1.1</div>
-                <div class="metricline">7.0k loc · 4 tests · 46 test LOC</div>
+                <div class="metricline">7.3k loc · 14 tests · 200 test LOC</div>
                 <div class="desc">
                   The standalone generator that produces the `.reflection.dart` files `tom_reflection` consumes. It runs as a build_runner builder or a CLI for one-off and CI builds.
                   
                 </div>
-                <!--@quick_info data={"name":"tom_reflection_generator","id":"tom_reflection_generator","version":"1.1.1","statusBadgeClass":"b-pub","statusLabel":"Published","roleLabel":"extension","overview":"`tom_reflection_generator` builds the reflection data that `tom_reflection`\ndepends on. It scans annotated Dart sources and emits the\n`.reflection.dart` files that carry the mirror information for runtime\nintrospection and invocation.\n\nIt can run two ways: as a `build_runner` builder wired through `build.yaml`,\nor as a standalone command-line tool for single entry points, recursive\ndirectory processing, or CI pipelines. A programmatic API is also exposed\nfor embedding generation in other tools.\n\nThe package bundles the builder, the build_runner integration, and the CLI\nthat were previously part of the Tom build tooling, so any Dart or Flutter\nworkspace using `tom_reflection` can generate reflection without that\nheavier dependency.","locLabel":"7.0k","testsLabel":"4","testLocLabel":"46","docsCount":7,"refCount":1,"detailHref":"/modules/tom_reflection_generator"}-->
-                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_reflection_generator" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-pub"><span class="d"></span>Published</span><h4 style="margin-top: 10px">tom_reflection_generator <span class="tagrole">role: extension</span></h4><div class="mono">tom_reflection_generator · v1.1.1</div><p style="font-size: .86rem; margin: 10px 0 0">`tom_reflection_generator` builds the reflection data that `tom_reflection`
-depends on. It scans annotated Dart sources and emits the
-`.reflection.dart` files that carry the mirror information for runtime
-introspection and invocation.
-
-It can run two ways: as a `build_runner` builder wired through `build.yaml`,
-or as a standalone command-line tool for single entry points, recursive
-directory processing, or CI pipelines. A programmatic API is also exposed
-for embedding generation in other tools.
-
-The package bundles the builder, the build_runner integration, and the CLI
-that were previously part of the Tom build tooling, so any Dart or Flutter
-workspace using `tom_reflection` can generate reflection without that
-heavier dependency.</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">7.0k</div></div><div class="qs"><div class="k">Tests</div><div class="v">4</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">46</div></div></div><div class="more"><span class="muted">7 docs · 1 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
+                <!--@quick_info data={"name":"tom_reflection_generator","id":"tom_reflection_generator","version":"1.1.1","statusBadgeClass":"b-pub","statusLabel":"Published","roleLabel":"extension","overview":"From the module readme.md file:","locLabel":"7.3k","testsLabel":"14","testLocLabel":"200","docsCount":7,"refCount":1,"detailHref":"/modules/tom_reflection_generator"}-->
+                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_reflection_generator" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-pub"><span class="d"></span>Published</span><h4 style="margin-top: 10px">tom_reflection_generator <span class="tagrole">role: extension</span></h4><div class="mono">tom_reflection_generator · v1.1.1</div><p style="font-size: .86rem; margin: 10px 0 0">From the module readme.md file:</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">7.3k</div></div><div class="qs"><div class="k">Tests</div><div class="v">14</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">200</div></div></div><div class="more"><span class="muted">7 docs · 1 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
                 <!--/@quick_info-->
               </a>
               <a class="tile ns" style="text-decoration: none; color: inherit; display: block" href="/modules/tom_reflection_test">
@@ -1395,12 +1689,11 @@ heavier dependency.</p><div class="quickstats"><div class="qs"><div class="k">LO
                 <div class="mono">tom_reflection_test · v1.0.1</div>
                 <div class="metricline">82 loc · 215 tests · 61.7k test LOC</div>
                 <div class="desc">
-                  Tests for the `tom_reflection` standalone reflection generator.
+                  The end-to-end fixture suite for `tom_reflection`: 72 fixtures, each paired with its committed expected `*.reflection.dart`, so it catches both runtime-behaviour regressions and generator-output drift. The reference oracle for `tom_reflection_generator` correctness.
                   
                 </div>
-                <!--@quick_info data={"name":"tom_reflection_test","id":"tom_reflection_test","version":"1.0.1","statusBadgeClass":"b-ns","statusLabel":"Not started","roleLabel":"extension","overview":"Tests for the `tom_reflection` standalone reflection generator.\n","locLabel":"82","testsLabel":"215","testLocLabel":"61.7k","docsCount":2,"refCount":1,"detailHref":"/modules/tom_reflection_test"}-->
-                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_reflection_test" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-ns"><span class="d"></span>Not started</span><h4 style="margin-top: 10px">tom_reflection_test <span class="tagrole">role: extension</span></h4><div class="mono">tom_reflection_test · v1.0.1</div><p style="font-size: .86rem; margin: 10px 0 0">Tests for the `tom_reflection` standalone reflection generator.
-</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">82</div></div><div class="qs"><div class="k">Tests</div><div class="v">215</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">61.7k</div></div></div><div class="more"><span class="muted">2 docs · 1 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
+                <!--@quick_info data={"name":"tom_reflection_test","id":"tom_reflection_test","version":"1.0.1","statusBadgeClass":"b-ns","statusLabel":"Not started","roleLabel":"extension","overview":"From the module readme.md file:","locLabel":"82","testsLabel":"215","testLocLabel":"61.7k","docsCount":2,"refCount":1,"detailHref":"/modules/tom_reflection_test"}-->
+                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_reflection_test" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-ns"><span class="d"></span>Not started</span><h4 style="margin-top: 10px">tom_reflection_test <span class="tagrole">role: extension</span></h4><div class="mono">tom_reflection_test · v1.0.1</div><p style="font-size: .86rem; margin: 10px 0 0">From the module readme.md file:</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">82</div></div><div class="qs"><div class="k">Tests</div><div class="v">215</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">61.7k</div></div></div><div class="more"><span class="muted">2 docs · 1 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
                 <!--/@quick_info-->
               </a>
             </div>
@@ -1410,26 +1703,13 @@ heavier dependency.</p><div class="quickstats"><div class="qs"><div class="k">LO
                 <div class="top"></div>
                 <h4>tom_reflector <span class="badge b-works"><span class="d"></span>In the works</span></h4>
                 <div class="mono">tom_reflector · v1.0.0</div>
-                <div class="metricline">14.9k loc · 191 tests · 223.6k test LOC</div>
+                <div class="metricline">15.0k loc · 191 tests · 223.6k test LOC</div>
                 <div class="desc">
                   Analyzer-based code reflection engine for the Tom framework. It walks Dart sources with the Dart analyzer and produces a structured snapshot of a codebase's API.
                   
                 </div>
-                <!--@quick_info data={"name":"tom_reflector","id":"tom_reflector","version":"1.0.0","statusBadgeClass":"b-works","statusLabel":"In the works","roleLabel":"extension","overview":"`tom_reflector` analyzes Dart source code and captures a complete, stable\ndescription of its API. It uses the Dart analyzer to resolve exports,\ntypes, generics, and members, then serializes the result so downstream\ntools can consume it without re-running the analyzer.\n\nIt runs as a standalone CLI, a build_runner builder, or a library. Two\nmodes are supported: a barrel-based analysis of all exports, and an\nentry-point mode with reachability analysis and rich include/exclude\nfiltering by package, annotation, path, type, or element.\n\nThe serialized output is the `analyzer_analysis.json` the website renders\nto describe each module's API. The structure is insulated from analyzer and\nDart version changes, giving downstream tools a stable API surface to build\non.","locLabel":"14.9k","testsLabel":"191","testLocLabel":"223.6k","docsCount":16,"refCount":1,"detailHref":"/modules/tom_reflector"}-->
-                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_reflector" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-works"><span class="d"></span>In the works</span><h4 style="margin-top: 10px">tom_reflector <span class="tagrole">role: extension</span></h4><div class="mono">tom_reflector · v1.0.0</div><p style="font-size: .86rem; margin: 10px 0 0">`tom_reflector` analyzes Dart source code and captures a complete, stable
-description of its API. It uses the Dart analyzer to resolve exports,
-types, generics, and members, then serializes the result so downstream
-tools can consume it without re-running the analyzer.
-
-It runs as a standalone CLI, a build_runner builder, or a library. Two
-modes are supported: a barrel-based analysis of all exports, and an
-entry-point mode with reachability analysis and rich include/exclude
-filtering by package, annotation, path, type, or element.
-
-The serialized output is the `analyzer_analysis.json` the website renders
-to describe each module's API. The structure is insulated from analyzer and
-Dart version changes, giving downstream tools a stable API surface to build
-on.</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">14.9k</div></div><div class="qs"><div class="k">Tests</div><div class="v">191</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">223.6k</div></div></div><div class="more"><span class="muted">16 docs · 1 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
+                <!--@quick_info data={"name":"tom_reflector","id":"tom_reflector","version":"1.0.0","statusBadgeClass":"b-works","statusLabel":"In the works","roleLabel":"extension","overview":"From the module readme.md file:","locLabel":"15.0k","testsLabel":"191","testLocLabel":"223.6k","docsCount":16,"refCount":1,"detailHref":"/modules/tom_reflector"}-->
+                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_reflector" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-works"><span class="d"></span>In the works</span><h4 style="margin-top: 10px">tom_reflector <span class="tagrole">role: extension</span></h4><div class="mono">tom_reflector · v1.0.0</div><p style="font-size: .86rem; margin: 10px 0 0">From the module readme.md file:</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">15.0k</div></div><div class="qs"><div class="k">Tests</div><div class="v">191</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">223.6k</div></div></div><div class="more"><span class="muted">16 docs · 1 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
                 <!--/@quick_info-->
               </a>
               <a class="tile works" style="text-decoration: none; color: inherit; display: block" href="/modules/tom_reflector_model">
@@ -1438,22 +1718,11 @@ on.</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div clas
                 <div class="mono">tom_reflector_model · v1.0.0</div>
                 <div class="metricline">3.3k loc · 0 tests · 0 test LOC</div>
                 <div class="desc">
-                  The object model and serialization for `tom_reflector`'s code-analysis results. It defines the data structures that represent an analyzed codebase's API and their JSON round-trip.
+                  The pure, serializable object model behind `tom_reflector` — the typed snapshot of a codebase's structure that downstream tools consume. Deliberately analyzer-free (only `collection` + `yaml`), with JSON/YAML round-trip and cycle-safe id references.
                   
                 </div>
-                <!--@quick_info data={"name":"tom_reflector_model","id":"tom_reflector_model","version":"1.0.0","statusBadgeClass":"b-works","statusLabel":"In the works","roleLabel":"extension","overview":"`tom_reflector_model` defines the data model that `tom_reflector` populates:\nthe classes, types, members, and metadata that represent an analyzed\ncodebase's API.\n\nIt handles full JSON serialization and deserialization of that model, so\nanalysis results can be written out, stored, and read back without\nre-running the analyzer. This is the shape of the `analyzer_analysis.json`\nthat downstream tools and the website consume.\n\nKeeping the model in its own package lets consumers depend on the\nstructured result and its serialization without pulling in the analyzer\nengine itself.","locLabel":"3.3k","testsLabel":"0","testLocLabel":"0","docsCount":0,"refCount":1,"detailHref":"/modules/tom_reflector_model"}-->
-                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_reflector_model" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-works"><span class="d"></span>In the works</span><h4 style="margin-top: 10px">tom_reflector_model <span class="tagrole">role: extension</span></h4><div class="mono">tom_reflector_model · v1.0.0</div><p style="font-size: .86rem; margin: 10px 0 0">`tom_reflector_model` defines the data model that `tom_reflector` populates:
-the classes, types, members, and metadata that represent an analyzed
-codebase's API.
-
-It handles full JSON serialization and deserialization of that model, so
-analysis results can be written out, stored, and read back without
-re-running the analyzer. This is the shape of the `analyzer_analysis.json`
-that downstream tools and the website consume.
-
-Keeping the model in its own package lets consumers depend on the
-structured result and its serialization without pulling in the analyzer
-engine itself.</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">3.3k</div></div><div class="qs"><div class="k">Tests</div><div class="v">0</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">0</div></div></div><div class="more"><span class="muted">0 docs · 1 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
+                <!--@quick_info data={"name":"tom_reflector_model","id":"tom_reflector_model","version":"1.0.0","statusBadgeClass":"b-works","statusLabel":"In the works","roleLabel":"extension","overview":"From the module readme.md file:","locLabel":"3.3k","testsLabel":"0","testLocLabel":"0","docsCount":1,"refCount":1,"detailHref":"/modules/tom_reflector_model"}-->
+                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_reflector_model" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-works"><span class="d"></span>In the works</span><h4 style="margin-top: 10px">tom_reflector_model <span class="tagrole">role: extension</span></h4><div class="mono">tom_reflector_model · v1.0.0</div><p style="font-size: .86rem; margin: 10px 0 0">From the module readme.md file:</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">3.3k</div></div><div class="qs"><div class="k">Tests</div><div class="v">0</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">0</div></div></div><div class="more"><span class="muted">1 docs · 1 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
                 <!--/@quick_info-->
               </a>
             </div>

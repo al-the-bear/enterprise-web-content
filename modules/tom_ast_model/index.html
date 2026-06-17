@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1305,7 +1325,7 @@
               <span style="display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap"><span class="badge b-pub"><span class="d"></span>Published</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">role: foundation</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">license: BSD-3-Clause</span></span>
             </div>
             <h2>tom_ast_model</h2>
-            <div class="mono" style="color: #9FB6C9">tom_ast_model · v0.1.1</div>
+            <div class="mono" style="color: #9FB6C9">tom_ast_model · v0.1.3</div>
             <p style="margin-top: 10px">
               A complete mirror of the Dart analyzer's node hierarchy with JSON round-tripping and no analyzer dependency. The shared data contract under the analyzer-free interpreter line.
             </p>
@@ -1324,21 +1344,7 @@
             <div>
               <div class="panel">
                 <h3>Overview</h3>
-                <p>
-                  `tom_ast_model` is a self-contained representation of the Dart AST that deliberately
-                  carries no dependency on the `analyzer` package. Every analyzer node has a direct
-                  `S`-prefixed counterpart with `toJson()`/`fromJson()`, source positions, and a
-                  double-dispatch visitor.
-                  
-                  The motivation is on-device interpretation: the analyzer is too large to ship inside
-                  a Flutter app. Separating the pure data model from parsing lets a source file be
-                  parsed once on a build machine, serialized, bundled, and later evaluated at runtime
-                  with no analyzer present.
-                  
-                  Extracted from `tom_d4rt_ast`, it versions the AST contract independently of any
-                  execution engine, so `tom_ast_generator`, `tom_d4rt_ast`, and `tom_d4rt_exec` all
-                  agree on one node format.
-                </p>
+                <p>From the module readme.md file:</p>
                 <h4 style="font-size: 1rem; margin-top: 18px">What it enables</h4>
                 <p style="margin: 0">Enables analyzer-free AST transport, JSON-serialized bundles, on-device interpretation.</p>
               </div>
@@ -1403,89 +1409,169 @@
             <div class="pageprose">
               <h1>tom_ast_model</h1>
               <p>
+                &gt; <strong>Attribution.</strong> The <code>tom_d4rt</code> project is an extended clone of the original &gt; d4rt project by Moustapha Kodjo Amadou, initially published in 2025. The &gt; complete interpreter is based on his idea.
+              </p>
+              <p>
                 A zero-dependency, serializable AST model for Dart source code — a complete mirror of the Dart analyzer's node hierarchy with JSON round-tripping and structural diffing.
               </p>
               <h2>Overview</h2>
               <p>
-                `tom_ast_model` provides a self-contained representation of the Dart AST that deliberately carries **no dependency on the `analyzer` package**. Every node in the Dart analyzer's AST hierarchy has a direct counterpart here, prefixed with `S` (for Serializable). Each concrete node implements `toJson()` / `fromJson()`, carries `offset` and `length` source position fields, and participates in a double-dispatch visitor.
+                <code>tom_ast_model</code> provides a self-contained representation of the Dart AST that deliberately carries 
+                <strong>no dependency on the <code>analyzer</code> package</strong>. Every node in the Dart analyzer's AST hierarchy has a direct counterpart here, prefixed with 
+                <code>S</code> (for Serializable). Each concrete node implements <code>toJson()</code> / <code>fromJson()</code>, carries 
+                <code>offset</code> and <code>length</code> source position fields, and participates in a double-dispatch visitor.
               </p>
               <p>
-                The primary motivation is **on-device Dart interpretation and pre-compiled AST distribution**. The `analyzer` package is too large to ship inside a Flutter application. By separating the pure data model from the parsing and analysis machinery, a Dart source file can be parsed once on a server or build machine, serialized to JSON, bundled into an app asset, and then deserialized and evaluated at runtime — all without any analyzer dependency in the deployed binary.
+                The primary motivation is <strong>on-device Dart interpretation and pre-compiled AST distribution</strong>. The 
+                <code>analyzer</code> package is too large to ship inside a Flutter application. By separating the pure data model from the parsing and analysis machinery, a Dart source file can be parsed once on a server or build machine, serialized to JSON, bundled into an app asset, and then deserialized and evaluated at runtime — all without any analyzer dependency in the deployed binary.
               </p>
               <p>
-                The package is extracted from `tom_d4rt_ast`, the analyzer-free interpreter runtime, so that the AST data contract is versioned and shared independently of any execution engine.
+                The package is extracted from <code>tom_d4rt_ast</code>, the analyzer-free interpreter runtime, so that the AST data contract is versioned and shared independently of any execution engine.
+              </p>
+              <h3>Data only — where interpretation lives</h3>
+              <p>
+                <code>tom_ast_model</code> is <strong>pure data</strong>. It defines the <code>SAstNode</code> tree, JSON round-tripping, structural equality/diffing, and the visitor scaffolding — and nothing else. It does 
+                <strong>not</strong> parse Dart source, and it does <strong>not</strong> execute anything:
+              </p>
+              <ul><li><strong>Producing</strong> these trees from Dart source is owned by</li></ul>
+              <p>
+                <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_ast_generator"><code>tom_ast_generator</code></a>
+                 (analyzer-based, build time). - <strong>Interpreting</strong> these trees is owned by <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_ast"><code>tom_d4rt_ast</code></a>
+                 (the analyzer-free runtime), which adds the <code>InterpreterVisitor</code>, <code>Environment</code>, bridging, and standard library on top of this model.
+              </p>
+              <p>
+                Keeping the data contract in its own zero-dependency package is what lets the same <code>SAstNode</code>
+                 JSON flow from a build server into a Flutter app without dragging either the analyzer or an interpreter into the dependency graph.
+              </p>
+              <h3>Where it sits — the analyzer-free family</h3>
+              <p>
+                D4rt ships in <strong>two execution families</strong>. The <strong>source-based</strong> line (<code>tom_d4rt</code>, 
+                <code>tom_d4rt_dcli</code>, <code>tom_d4rt_flutter</code>) parses Dart with the <code>analyzer</code>
+                 package and is the <strong>stable reference, usually the preferable choice</strong>. The <strong>analyzer-free</strong>
+                 line — <code>tom_ast_model</code>, <code>tom_d4rt_ast</code>, <code>tom_ast_generator</code>, <code>tom_d4rt_exec</code>, 
+                <code>tom_dcli_exec</code>, <code>tom_d4rt_flutter_ast</code> — runs from pre-compiled <code>SAstNode</code>
+                 trees with <strong>no analyzer dependency</strong>, which is what makes it viable on the <strong>web</strong>
+                 (the analyzer is too large to ship) and for <strong>on-the-fly / OTA UI updates</strong>. Because the generated AST bundles are large, reach for the analyzer-free line only when that web/OTA constraint applies. This package is the 
+                <strong>foundation of that line</strong> — every analyzer-free package depends, directly or transitively, on the model defined here.
               </p>
               <h2>Installation</h2>
               <pre><code>dart pub add tom_ast_model</code></pre>
-              <p>Or add it manually to `pubspec.yaml`:</p>
+              <p>Or add it manually to <code>pubspec.yaml</code>:</p>
               <pre><code>dependencies:
-  tom_ast_model: ^0.1.1</code></pre>
+  tom_ast_model: ^0.1.3</code></pre>
               <p>
-                The only transitive dependency is `dart:convert` from the Dart SDK itself; there are no pub.dev dependencies.
+                The only transitive dependency is <code>dart:convert</code> from the Dart SDK itself; there are no pub.dev dependencies.
               </p>
               <h2>Features</h2>
               <ul>
                 <li>
-                  **Complete node hierarchy** — every significant node category from the Dart analyzer AST is represented:
+                  <strong>Complete node hierarchy</strong> — every significant node category from the Dart analyzer AST is represented:
                 </li>
-                <li>`SCompilationUnit` — the root node for a full Dart file</li>
+                <li><code>SCompilationUnit</code> — the root node for a full Dart file</li>
                 <li>
-                  Declarations: `SClassDeclaration`, `SMixinDeclaration`, `SEnumDeclaration`, `SExtensionDeclaration`, `SExtensionTypeDeclaration`, `SFunctionDeclaration`, `SMethodDeclaration`, `SConstructorDeclaration`, `SFieldDeclaration`, `SVariableDeclaration`, `SVariableDeclarationList`, `STopLevelVariableDeclaration`, `STypedefDeclaration`, `SEnumConstantDeclaration`, `SRepresentationDeclaration`
-                </li>
-                <li>
-                  Statements: `SBlock`, `SIfStatement`, `SForStatement`, `SForEachStatement`, `SWhileStatement`, `SDoStatement`, `SSwitchStatement`, `STryStatement`, `SReturnStatement`, `SBreakStatement`, `SContinueStatement`, `SAssertStatement`, `SYieldStatement`, `SLabeledStatement`, `SEmptyStatement`, `SExpressionStatement`, `SVariableDeclarationStatement`, `SFunctionDeclarationStatement`, `SPatternVariableDeclarationStatement`
-                </li>
-                <li>
-                  Expressions: `SBinaryExpression`, `SPrefixExpression`, `SPostfixExpression`, `SAssignmentExpression`, `SConditionalExpression`, `SMethodInvocation`, `SFunctionExpressionInvocation`, `SIndexExpression`, `SPropertyAccess`, `SSimpleIdentifier`, `SPrefixedIdentifier`, `SFunctionExpression`, `SInstanceCreationExpression`, `SThisExpression`, `SSuperExpression`, `SThrowExpression`, `SAwaitExpression`, `SAsExpression`, `SIsExpression`, `SCascadeExpression`, `SRethrowExpression`, `SNamedExpression`, `SParenthesizedExpression`, `SSwitchExpression`, `SFunctionReference`, `SConstructorReference`, `SPatternAssignment`, plus collection-control elements `SSpreadElement`, `SNullAwareElement`, `SIfElement`, `SForElement`
+                  Declarations: <code>SClassDeclaration</code>, <code>SMixinDeclaration</code>, <code>SEnumDeclaration</code>, 
+                  <code>SExtensionDeclaration</code>, <code>SExtensionTypeDeclaration</code>, <code>SFunctionDeclaration</code>, 
+                  <code>SMethodDeclaration</code>, <code>SConstructorDeclaration</code>, <code>SFieldDeclaration</code>, 
+                  <code>SVariableDeclaration</code>, <code>SVariableDeclarationList</code>, <code>STopLevelVariableDeclaration</code>, 
+                  <code>STypedefDeclaration</code>, <code>SEnumConstantDeclaration</code>, <code>SRepresentationDeclaration</code>
                 </li>
                 <li>
-                  Literals: `SIntegerLiteral`, `SDoubleLiteral`, `SBooleanLiteral`, `SNullLiteral`, `SSimpleStringLiteral`, `SStringInterpolation`, `SAdjacentStrings`, `SListLiteral`, `SSetOrMapLiteral`, `SMapLiteralEntry`, `SSymbolLiteral`, `SRecordLiteral`, `SInterpolationExpression`, `SInterpolationString`
+                  Statements: <code>SBlock</code>, <code>SIfStatement</code>, <code>SForStatement</code>, <code>SForEachStatement</code>, 
+                  <code>SWhileStatement</code>, <code>SDoStatement</code>, <code>SSwitchStatement</code>, <code>STryStatement</code>, 
+                  <code>SReturnStatement</code>, <code>SBreakStatement</code>, <code>SContinueStatement</code>, <code>SAssertStatement</code>, 
+                  <code>SYieldStatement</code>, <code>SLabeledStatement</code>, <code>SEmptyStatement</code>, <code>SExpressionStatement</code>, 
+                  <code>SVariableDeclarationStatement</code>, <code>SFunctionDeclarationStatement</code>, <code>SPatternVariableDeclarationStatement</code>
                 </li>
                 <li>
-                  Type annotations: `SNamedType`, `SGenericFunctionType`, `SRecordTypeAnnotation`, `STypeArgumentList`, `STypeParameterList`, `STypeParameter`
+                  Expressions: <code>SBinaryExpression</code>, <code>SPrefixExpression</code>, <code>SPostfixExpression</code>, 
+                  <code>SAssignmentExpression</code>, <code>SConditionalExpression</code>, <code>SMethodInvocation</code>, 
+                  <code>SFunctionExpressionInvocation</code>, <code>SIndexExpression</code>, <code>SPropertyAccess</code>, 
+                  <code>SSimpleIdentifier</code>, <code>SPrefixedIdentifier</code>, <code>SFunctionExpression</code>, <code>SInstanceCreationExpression</code>, 
+                  <code>SThisExpression</code>, <code>SSuperExpression</code>, <code>SThrowExpression</code>, <code>SAwaitExpression</code>, 
+                  <code>SAsExpression</code>, <code>SIsExpression</code>, <code>SCascadeExpression</code>, <code>SRethrowExpression</code>, 
+                  <code>SNamedExpression</code>, <code>SParenthesizedExpression</code>, <code>SSwitchExpression</code>, 
+                  <code>SFunctionReference</code>, <code>SConstructorReference</code>, <code>SPatternAssignment</code>, plus collection-control elements 
+                  <code>SSpreadElement</code>, <code>SNullAwareElement</code>, <code>SIfElement</code>, <code>SForElement</code>
                 </li>
                 <li>
-                  Directives: `SImportDirective`, `SExportDirective`, `SPartDirective`, `SPartOfDirective`, `SLibraryDirective`
+                  Literals: <code>SIntegerLiteral</code>, <code>SDoubleLiteral</code>, <code>SBooleanLiteral</code>, <code>SNullLiteral</code>, 
+                  <code>SSimpleStringLiteral</code>, <code>SStringInterpolation</code>, <code>SAdjacentStrings</code>, 
+                  <code>SListLiteral</code>, <code>SSetOrMapLiteral</code>, <code>SMapLiteralEntry</code>, <code>SSymbolLiteral</code>, 
+                  <code>SRecordLiteral</code>, <code>SInterpolationExpression</code>, <code>SInterpolationString</code>
                 </li>
                 <li>
-                  Patterns (Dart 3.0+): `SConstantPattern`, `SWildcardPattern`, `SDeclaredVariablePattern`, `SAssignedVariablePattern`, `SObjectPattern`, `SListPattern`, `SMapPattern`, `SRecordPattern`, `SLogicalOrPattern`, `SLogicalAndPattern`, `SCastPattern`, `SRelationalPattern`, `SNullCheckPattern`, `SNullAssertPattern`, `SParenthesizedPattern`, `SGuardedPattern`, `SWhenClause`, `SCaseClause`, `SSwitchPatternCase`, `SSwitchExpressionCase`, `SRestPatternElement`, `SPatternVariableDeclaration`, `SPatternField`, `SPatternFieldName`, `SMapPatternEntry`
+                  Type annotations: <code>SNamedType</code>, <code>SGenericFunctionType</code>, <code>SRecordTypeAnnotation</code>, 
+                  <code>STypeArgumentList</code>, <code>STypeParameterList</code>, <code>STypeParameter</code>
                 </li>
                 <li>
-                  Miscellaneous support nodes: `SArgumentList`, `SAnnotation`, `SComment`, `SToken`, `SFormalParameterList`, `SSimpleFormalParameter`, `SDefaultFormalParameter`, `SFieldFormalParameter`, `SFunctionTypedFormalParameter`, `SSuperFormalParameter`, `SBlockFunctionBody`, `SExpressionFunctionBody`, `SEmptyFunctionBody`, `SNativeFunctionBody`, `SConstructorName`, `SSuperConstructorInvocation`, `SRedirectingConstructorInvocation`, `SConstructorFieldInitializer`, `SAssertInitializer`, `SExtendsClause`, `SImplementsClause`, `SWithClause`, `SOnClause`, `SShowCombinator`, `SHideCombinator`, `SLabel`, `SDeclaredIdentifier`, `SForPartsWithDeclarations`, `SForPartsWithExpression`, `SForEachPartsWithDeclaration`, `SForEachPartsWithIdentifier`, `SForEachPartsWithPattern`, `SSwitchCase`, `SSwitchDefault`, `SCatchClause`
+                  Directives: <code>SImportDirective</code>, <code>SExportDirective</code>, <code>SPartDirective</code>, 
+                  <code>SPartOfDirective</code>, <code>SLibraryDirective</code>
+                </li>
+                <li>
+                  Patterns (Dart 3.0+): <code>SConstantPattern</code>, <code>SWildcardPattern</code>, <code>SDeclaredVariablePattern</code>, 
+                  <code>SAssignedVariablePattern</code>, <code>SObjectPattern</code>, <code>SListPattern</code>, <code>SMapPattern</code>, 
+                  <code>SRecordPattern</code>, <code>SLogicalOrPattern</code>, <code>SLogicalAndPattern</code>, <code>SCastPattern</code>, 
+                  <code>SRelationalPattern</code>, <code>SNullCheckPattern</code>, <code>SNullAssertPattern</code>, <code>SParenthesizedPattern</code>, 
+                  <code>SGuardedPattern</code>, <code>SWhenClause</code>, <code>SCaseClause</code>, <code>SSwitchPatternCase</code>, 
+                  <code>SSwitchExpressionCase</code>, <code>SRestPatternElement</code>, <code>SPatternVariableDeclaration</code>, 
+                  <code>SPatternField</code>, <code>SPatternFieldName</code>, <code>SMapPatternEntry</code>
+                </li>
+                <li>
+                  Miscellaneous support nodes: <code>SArgumentList</code>, <code>SAnnotation</code>, <code>SComment</code>, 
+                  <code>SToken</code>, <code>SFormalParameterList</code>, <code>SSimpleFormalParameter</code>, <code>SDefaultFormalParameter</code>, 
+                  <code>SFieldFormalParameter</code>, <code>SFunctionTypedFormalParameter</code>, <code>SSuperFormalParameter</code>, 
+                  <code>SBlockFunctionBody</code>, <code>SExpressionFunctionBody</code>, <code>SEmptyFunctionBody</code>, 
+                  <code>SNativeFunctionBody</code>, <code>SConstructorName</code>, <code>SSuperConstructorInvocation</code>, 
+                  <code>SRedirectingConstructorInvocation</code>, <code>SConstructorFieldInitializer</code>, <code>SAssertInitializer</code>, 
+                  <code>SExtendsClause</code>, <code>SImplementsClause</code>, <code>SWithClause</code>, <code>SOnClause</code>, 
+                  <code>SShowCombinator</code>, <code>SHideCombinator</code>, <code>SLabel</code>, <code>SDeclaredIdentifier</code>, 
+                  <code>SForPartsWithDeclarations</code>, <code>SForPartsWithExpression</code>, <code>SForEachPartsWithDeclaration</code>, 
+                  <code>SForEachPartsWithIdentifier</code>, <code>SForEachPartsWithPattern</code>, <code>SSwitchCase</code>, 
+                  <code>SSwitchDefault</code>, <code>SCatchClause</code>
                 </li>
               </ul>
               <ul>
                 <li>
-                  **JSON round-tripping** — every node serializes to a plain `Map&lt;String, dynamic&gt;` via `toJson()` and deserializes through `SAstNodeFactory.fromJson()` with automatic dispatch on the `"nodeType"` discriminator field
+                  <strong>JSON round-tripping</strong> — every node serializes to a plain <code>Map&lt;String, dynamic&gt;</code>
+                   via <code>toJson()</code> and deserializes through <code>SAstNodeFactory.fromJson()</code> with automatic dispatch on the 
+                  <code>"nodeType"</code> discriminator field
                 </li>
               </ul>
               <ul>
                 <li>
-                  **Structural equality and diffing** — `SAstNode.equals(other, [log])` compares two trees via their JSON representations; an optional `List&lt;String&gt;` collects human-readable difference messages using JSON-path notation (`$.declarations[0].name`)
+                  <strong>Structural equality and diffing</strong> — <code>SAstNode.equals(other, [log])</code> compares two trees via their JSON representations; an optional 
+                  <code>List&lt;String&gt;</code> collects human-readable difference messages using JSON-path notation (<code>$.declarations[0].name</code>)
                 </li>
               </ul>
               <ul>
-                <li>**Visitor pattern** — two visitor base classes cover all node types:</li>
-                <li>`SAstVisitor&lt;T&gt;` — flat visitor; all methods default to `visitNode(node)` which returns `null`</li>
+                <li><strong>Visitor pattern</strong> — two visitor base classes cover all node types:</li>
                 <li>
-                  `GeneralizingSAstVisitor&lt;T&gt;` — mirrors the analyzer's generalizing visitor; overriding a category method (e.g. `visitExpression`) handles all subtypes automatically
+                  <code>SAstVisitor&lt;T&gt;</code> — flat visitor; all methods default to <code>visitNode(node)</code>
+                   which returns <code>null</code>
+                </li>
+                <li>
+                  <code>GeneralizingSAstVisitor&lt;T&gt;</code> — mirrors the analyzer's generalizing visitor; overriding a category method (e.g. 
+                  <code>visitExpression</code>) handles all subtypes automatically
                 </li>
               </ul>
               <ul>
                 <li>
-                  **Token model** — `SToken` captures `offset`, `length`, `lexeme`, and `tokenType` with its own `equals()` and `toJson()`/`fromJson()`
+                  <strong>Token model</strong> — <code>SToken</code> captures <code>offset</code>, <code>length</code>, 
+                  <code>lexeme</code>, and <code>tokenType</code> with its own <code>equals()</code> and <code>toJson()</code>/<code>fromJson()</code>
                 </li>
               </ul>
               <ul>
                 <li>
-                  **Unknown-node recovery** — `SAstNodeFactory.fromJson()` returns a lightweight `_SUnknownNode` for any unrecognized `nodeType`, enabling forward compatibility
+                  <strong>Unknown-node recovery</strong> — <code>SAstNodeFactory.fromJson()</code> returns a lightweight 
+                  <code>_SUnknownNode</code> for any unrecognized <code>nodeType</code>, enabling forward compatibility
                 </li>
               </ul>
-              <ul><li>**Zero external dependencies** — only `dart:convert`</li></ul>
+              <ul><li><strong>Zero external dependencies</strong> — only <code>dart:convert</code></li></ul>
               <h2>Usage</h2>
               <h3>Deserializing a pre-compiled AST</h3>
               <p>
-                When a tool such as `tom_ast_generator` converts analyzer output to JSON, the result is fed into `SAstNodeFactory.fromJson()` or directly into `SCompilationUnit.fromJson()`:
+                When a tool such as <code>tom_ast_generator</code> converts analyzer output to JSON, the result is fed into 
+                <code>SAstNodeFactory.fromJson()</code> or directly into <code>SCompilationUnit.fromJson()</code>:
               </p>
               <pre><code>import 'dart:convert';
 import 'package:tom_ast_model/tom_ast_model.dart';
@@ -1579,56 +1665,99 @@ final SAstNode? node = SAstNodeFactory.fromJson(rawMap);
 // Deserialize a typed list
 final List&lt;SStatement&gt; stmts =
     SAstNodeFactory.listFromJson&lt;SStatement&gt;(rawList);</code></pre>
-              <h2>Architecture and Key Concepts</h2>
-              <h3>SAstNode — the universal base</h3>
-              <p>Every node in the model extends `SAstNode`, which mandates:</p>
+              <h2>Examples and next steps</h2>
+              <p>
+                This package is <strong>infrastructure</strong> — a data model consumed by the interpreter and generator, not a runtime you write programs against — so it ships no sample programs of its own. See 
+                <a href="/doc/tom_agent_container/tom_ai/d4rt/tom_ast_model/example/README"><code>example/README.md</code></a>, which points at the three canonical sample homes for runnable D4rt scripts.
+              </p>
+              <p>Where to go next depends on what you need:</p>
               <ul>
                 <li>
-                  `String get nodeType` — the discriminator string used during deserialization (e.g. `'ClassDeclaration'`)
+                  To <strong>run</strong> an <code>SAstNode</code> tree, move to <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_ast"><code>tom_d4rt_ast</code></a>
+                   — the
                 </li>
-                <li>`int get offset` / `int get length` — source position in the original file</li>
-                <li>`Map&lt;String, dynamic&gt; toJson()` — self-serialization</li>
-                <li>`String toJsonString({bool pretty})` — convenience wrapper around `dart:convert`</li>
-                <li>`bool equals(Object other, [List&lt;String&gt;? log])` — deep structural comparison via JSON diff</li>
-                <li>`T? accept&lt;T&gt;(SAstVisitor&lt;T&gt; visitor)` — double-dispatch entry point</li>
-                <li>`void visitChildren(SAstVisitor visitor)` — iterates over direct child nodes</li>
               </ul>
-              <p>`operator ==` delegates to `equals()` so nodes can be compared with `==` directly.</p>
+              <p>
+                analyzer-free interpreter that consumes this model. - To <strong>produce</strong> an <code>SAstNode</code>
+                 tree from Dart source, see <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_ast_generator"><code>tom_ast_generator</code></a>. - For the full 
+                <strong>source → bundle → run</strong> pipeline, see <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_exec"><code>tom_d4rt_exec</code></a>. - For runnable language/bridging samples, see 
+                <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_samples"><code>tom_d4rt_samples/</code></a>
+                 (e.g. <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_samples/d4rt_introduction_sample"><code>d4rt_introduction_sample</code></a>, 
+                <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_samples/d4rt_advanced_sample"><code>d4rt_advanced_sample</code></a>).
+              </p>
+              <h2>Architecture and Key Concepts</h2>
+              <h3>SAstNode — the universal base</h3>
+              <p>Every node in the model extends <code>SAstNode</code>, which mandates:</p>
+              <ul>
+                <li>
+                  <code>String get nodeType</code> — the discriminator string used during deserialization (e.g. <code>'ClassDeclaration'</code>)
+                </li>
+                <li><code>int get offset</code> / <code>int get length</code> — source position in the original file</li>
+                <li><code>Map&lt;String, dynamic&gt; toJson()</code> — self-serialization</li>
+                <li>
+                  <code>String toJsonString({bool pretty})</code> — convenience wrapper around <code>dart:convert</code>
+                </li>
+                <li>
+                  <code>bool equals(Object other, [List&lt;String&gt;? log])</code> — deep structural comparison via JSON diff
+                </li>
+                <li><code>T? accept&lt;T&gt;(SAstVisitor&lt;T&gt; visitor)</code> — double-dispatch entry point</li>
+                <li><code>void visitChildren(SAstVisitor visitor)</code> — iterates over direct child nodes</li>
+              </ul>
+              <p>
+                <code>operator ==</code> delegates to <code>equals()</code> so nodes can be compared with <code>==</code>
+                 directly.
+              </p>
               <h3>1:1 mapping with the analyzer AST</h3>
               <p>
-                The class hierarchy mirrors the Dart analyzer's `AstNode` hierarchy at every level. The abstract intermediate types in `ast_categories.dart` reproduce the same inheritance ladder (`SAnnotatedNode`, `SDeclaration`, `SCompilationUnitMember`, `SNamedCompilationUnitMember`, `SExpression`, `SLiteral`, `STypedLiteral`, `SStringLiteral`, `SSingleStringLiteral`, `SDirective`, `SNamespaceDirective`, `SFormalParameter`, `SNormalFormalParameter`, `SFunctionBody`, `STypeAnnotation`, `SDartPattern`, `SVariablePattern`, `SForLoopParts`, `SForEachParts`, `SForParts`, etc.) so that interpreter or analysis code written against the analyzer hierarchy can be ported with minimal friction.
+                The class hierarchy mirrors the Dart analyzer's <code>AstNode</code> hierarchy at every level. The abstract intermediate types in 
+                <code>ast_categories.dart</code> reproduce the same inheritance ladder (<code>SAnnotatedNode</code>, 
+                <code>SDeclaration</code>, <code>SCompilationUnitMember</code>, <code>SNamedCompilationUnitMember</code>, 
+                <code>SExpression</code>, <code>SLiteral</code>, <code>STypedLiteral</code>, <code>SStringLiteral</code>, 
+                <code>SSingleStringLiteral</code>, <code>SDirective</code>, <code>SNamespaceDirective</code>, <code>SFormalParameter</code>, 
+                <code>SNormalFormalParameter</code>, <code>SFunctionBody</code>, <code>STypeAnnotation</code>, <code>SDartPattern</code>, 
+                <code>SVariablePattern</code>, <code>SForLoopParts</code>, <code>SForEachParts</code>, <code>SForParts</code>, etc.) so that interpreter or analysis code written against the analyzer hierarchy can be ported with minimal friction.
               </p>
               <h3>JSON serialization contract</h3>
               <p>
-                Each node serializes to an object that always includes a `"nodeType"` string key. `SAstNodeFactory` maintains a registry of `String -&gt; fromJson` factory functions, initialized lazily on first use. Deserialization dispatches on `"nodeType"` and falls through to `_SUnknownNode` for any key not in the registry.
+                Each node serializes to an object that always includes a <code>"nodeType"</code> string key. <code>SAstNodeFactory</code>
+                 maintains a registry of <code>String -&gt; fromJson</code> factory functions, initialized lazily on first use. Deserialization dispatches on 
+                <code>"nodeType"</code> and falls through to <code>_SUnknownNode</code> for any key not in the registry.
               </p>
               <p>
-                Child nodes are embedded as nested objects; lists of children are JSON arrays. Optional fields are omitted from `toJson()` output when `null`, keeping payloads compact.
+                Child nodes are embedded as nested objects; lists of children are JSON arrays. Optional fields are omitted from 
+                <code>toJson()</code> output when <code>null</code>, keeping payloads compact.
               </p>
               <h3>Structural equality and diffing</h3>
               <p>
-                `SAstNode.equals()` serializes both sides to `Map&lt;String, dynamic&gt;` and recursively compares the maps. When a `List&lt;String&gt; log` is passed, every discrepancy is recorded as a JSON-path string:
+                <code>SAstNode.equals()</code> serializes both sides to <code>Map&lt;String, dynamic&gt;</code> and recursively compares the maps. When a 
+                <code>List&lt;String&gt; log</code> is passed, every discrepancy is recorded as a JSON-path string:
               </p>
               <pre><code>$.declarations[1].members[0].body.statements[2].expression.operator: + != -</code></pre>
               <p>This is useful for test assertions and round-trip verification.</p>
               <h3>Visitor hierarchy</h3>
               <p>
-                `SAstVisitor&lt;T&gt;` is a flat interface with one method per concrete node type, all defaulting to `visitNode(node)`. `GeneralizingSAstVisitor&lt;T&gt;` extends it with category-level methods that chain up to their parent category, reproducing the delegation ladder documented in the analyzer. The full chain for, say, `SSimpleIdentifier` is:
+                <code>SAstVisitor&lt;T&gt;</code> is a flat interface with one method per concrete node type, all defaulting to 
+                <code>visitNode(node)</code>. <code>GeneralizingSAstVisitor&lt;T&gt;</code> extends it with category-level methods that chain up to their parent category, reproducing the delegation ladder documented in the analyzer. The full chain for, say, 
+                <code>SSimpleIdentifier</code> is:
               </p>
               <pre><code>visitSimpleIdentifier → visitIdentifier → visitExpression
     → visitCollectionElement → visitNode</code></pre>
-              <h2>Documentation</h2>
+              <h2>Further documentation</h2>
               <table class="mdtable">
                 <thead><tr><th>Document</th><th>Purpose</th></tr></thead>
                 <tbody>
                   <tr>
-                    <td>[doc/tom_ast_model_user_guide.md](doc/tom_ast_model_user_guide.md)</td>
+                    <td>
+                      <a href="/docs?module=tom_ast_model&amp;path=doc%2Ftom_ast_model_user_guide.md">doc/tom_ast_model_user_guide.md</a>
+                    </td>
                     <td>
                       Differences-only orientation: the model's shape, the four capabilities (typed tree, JSON round-trip, equality/diff, visitors), and the interpreter binding-hint fields.
                     </td>
                   </tr>
                   <tr>
-                    <td>[doc/tom_ast_model_limitations.md](doc/tom_ast_model_limitations.md)</td>
+                    <td>
+                      <a href="/docs?module=tom_ast_model&amp;path=doc%2Ftom_ast_model_limitations.md">doc/tom_ast_model_limitations.md</a>
+                    </td>
                     <td>
                       Model-specific deltas (syntax-not-semantics, coverage tracking, JSON compatibility boundary); backlinks to the canonical interpreter limitations.
                     </td>
@@ -1638,9 +1767,13 @@ final List&lt;SStatement&gt; stmts =
               <p>
                 This package adds no interpreter behaviour of its own — shared semantics and language coverage are documented once in the base projects:
               </p>
-              <ul><li>[tom_d4rt User Guide](../tom_d4rt/doc/d4rt_user_guide.md) and</li></ul>
+              <ul>
+                <li><a href="/docs?module=tom_d4rt&amp;path=doc%2Fd4rt_user_guide.md">tom_d4rt User Guide</a> and</li>
+              </ul>
               <p>
-                [Limitations (canonical)](../tom_d4rt/doc/d4rt_limitations.md). - [tom_ast_generator User Guide](../tom_ast_generator/doc/tom_ast_generator_user_guide.md) — produces these trees; [tom_d4rt_ast User Guide](../tom_d4rt_ast/doc/tom_d4rt_ast_user_guide.md) — interprets them.
+                <a href="/docs?module=tom_d4rt&amp;path=doc%2Fd4rt_limitations.md">Limitations (canonical)</a>. - <a href="/docs?module=tom_ast_generator&amp;path=doc%2Ftom_ast_generator_user_guide.md">tom_ast_generator User Guide</a>
+                 — produces these trees; <a href="/docs?module=tom_d4rt_ast&amp;path=doc%2Ftom_d4rt_ast_user_guide.md">tom_d4rt_ast User Guide</a>
+                 — interprets them.
               </p>
               <h2>Where it fits in the D4rt ecosystem</h2>
               <pre><code>tom_ast_model            (this package — zero-dep serializable AST model)
@@ -1657,26 +1790,42 @@ tom_d4rt_exec            (analyzer-free interpreter exec entry point)
     |
 tom_dcli_exec            (analyzer-free DCli CLI)</code></pre>
               <p>
-                Separately, `tom_d4rt` is the original analyzer-based interpreter and `tom_d4rt_generator` is the D4rt bridge generator. `tom_ast_model` lives at the bottom of the analyzer-free chain so it can be used in Flutter apps and other contexts where the `analyzer` package cannot be included.
+                Separately, <code>tom_d4rt</code> is the original analyzer-based interpreter and <code>tom_d4rt_generator</code>
+                 is the D4rt bridge generator. <code>tom_ast_model</code> lives at the bottom of the analyzer-free chain so it can be used in Flutter apps and other contexts where the 
+                <code>analyzer</code> package cannot be included.
               </p>
               <h2>Status and Repository</h2>
               <p>
-                This is an early-stage package at version `0.1.1`, extracted from `tom_d4rt_ast` and first independently published at `0.1.0`. The API surface may evolve as the D4rt ecosystem matures.
+                This is an early-stage package at version <code>0.1.3</code>, extracted from <code>tom_d4rt_ast</code>
+                 and first independently published at <code>0.1.0</code>. The API surface may evolve as the D4rt ecosystem matures.
               </p>
               <ul>
-                <li>**Repository**: https://github.com/al-the-bear/tom_d4rt/tree/main/tom_ast_model</li>
-                <li>**SDK requirement**: Dart `^3.10.4`</li>
-                <li>**License**: see `LICENSE` in the repository</li>
+                <li><strong>Repository</strong>: https://github.com/al-the-bear/tom_d4rt/tree/main/tom_ast_model</li>
+                <li><strong>SDK requirement</strong>: Dart <code>^3.10.4</code></li>
+                <li><strong>License</strong>: see <code>LICENSE</code> in the repository</li>
               </ul>
               <h2>Changelog</h2>
-              <h3>0.1.1</h3>
-              <ul><li>Add `StaticResolver` and the `resolvedSlot` / `declSlot` node fields that</li></ul>
+              <h3>0.1.3</h3>
+              <ul><li>Housekeeping: test artifacts now live in a gitignored <code>testlog/</code> folder;</li></ul>
               <p>
-                back the interpreter's slot-based variable resolution (static name → frame slot binding computed once, replacing per-access map lookups). - Add `ForEachPartsWithPattern` support so pattern-destructuring `for-in` loops round-trip through the serializable AST.
+                <code>doc/</code> no longer ships machine-generated baselines or <code>last_testrun.json</code>. No code changes.
+              </p>
+              <h3>0.1.2</h3>
+              <ul><li>Documentation: limitations and user guide updated; README aligned with the</li></ul>
+              <p>source-primary documentation reframe across the D4rt ecosystem.</p>
+              <h3>0.1.1</h3>
+              <ul>
+                <li>
+                  Add <code>StaticResolver</code> and the <code>resolvedSlot</code> / <code>declSlot</code> node fields that
+                </li>
+              </ul>
+              <p>
+                back the interpreter's slot-based variable resolution (static name → frame slot binding computed once, replacing per-access map lookups). - Add 
+                <code>ForEachPartsWithPattern</code> support so pattern-destructuring <code>for-in</code> loops round-trip through the serializable AST.
               </p>
               <h3>0.1.0</h3>
               <ul>
-                <li>Initial release — extracted from `tom_d4rt_ast`</li>
+                <li>Initial release — extracted from <code>tom_d4rt_ast</code></li>
                 <li>Pure AST model classes with JSON serialization</li>
                 <li>Zero external dependencies</li>
               </ul>

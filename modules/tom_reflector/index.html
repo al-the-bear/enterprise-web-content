@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1317,7 +1337,7 @@
               <div class="k">Status</div>
               <div class="v" style="font-size: 1.05rem; color: #D85F23">In the works</div>
             </div>
-            <div class="stat"><div class="k">LOC</div><div class="v">14.9k</div></div>
+            <div class="stat"><div class="k">LOC</div><div class="v">15.0k</div></div>
             <div class="stat"><div class="k">Tests</div><div class="v">191</div></div>
             <div class="stat"><div class="k">Test LOC</div><div class="v">223.6k</div></div>
           </div>
@@ -1325,24 +1345,9 @@
             <div>
               <div class="panel">
                 <h3>Overview</h3>
-                <p>
-                  `tom_reflector` analyzes Dart source code and captures a complete, stable
-                  description of its API. It uses the Dart analyzer to resolve exports,
-                  types, generics, and members, then serializes the result so downstream
-                  tools can consume it without re-running the analyzer.
-                  
-                  It runs as a standalone CLI, a build_runner builder, or a library. Two
-                  modes are supported: a barrel-based analysis of all exports, and an
-                  entry-point mode with reachability analysis and rich include/exclude
-                  filtering by package, annotation, path, type, or element.
-                  
-                  The serialized output is the `analyzer_analysis.json` the website renders
-                  to describe each module's API. The structure is insulated from analyzer and
-                  Dart version changes, giving downstream tools a stable API surface to build
-                  on.
-                </p>
+                <p>From the module readme.md file:</p>
                 <h4 style="font-size: 1rem; margin-top: 18px">What it enables</h4>
-                <p style="margin: 0">Enables API extraction, analyzer_analysis.json output, Stable downstream API surface.</p>
+                <p style="margin: 0">Enables API extraction, *.r.dart reflection output, Stable downstream API surface.</p>
               </div>
               <div class="panel"><h3>Relationships</h3><p class="muted" style="margin: 0">Standalone — no declared relationships.</p></div>
             </div>
@@ -1487,8 +1492,429 @@
           </div>
           <section class="section repodoc">
             <div class="pageprose">
+              <h1>tom_reflector</h1>
               <p>
-                A sample command-line application with an entrypoint in `bin/`, library code in `lib/`, and example unit test in `test/`.
+                &gt; Part of the Tom Framework reflection toolkit — an <strong>original</strong> analyzer-based &gt; build-time reflection engine © 2024–2026 Peter Nicolai Alexis Kyaw &gt; (BSD-3-Clause). Unlike its engine-1 siblings &gt; 
+                <a href="/docs?module=tom_reflection&amp;path=README.md"><code>tom_reflection</code></a> / &gt; <a href="/docs?module=tom_reflection_generator&amp;path=README.md"><code>tom_reflection_generator</code></a>
+                 — which are &gt; derived from the <a href="https://pub.dev/packages/reflectable"><code>reflectable</code></a>
+                 package &gt; by the Dart team ("Copyright (c) 2015, Dart", BSD-3-Clause) — <code>tom_reflector</code>
+                 &gt; shares <strong>no lineage or code</strong> with <code>reflectable</code>. See <a href="LICENSE"><code>LICENSE</code></a>.
+              </p>
+              <p>
+                Build-time, <strong>structural</strong> reflection for Dart. <code>tom_reflector</code> is <strong>engine 2</strong>
+                 of the Tom reflection toolkit: instead of mirrors on live objects, it walks the Dart <strong>analyzer</strong>
+                 element model and produces a serializable <strong>object graph of your code's shape</strong> — classes, methods, parameters, types, annotations — plus optional 
+                <code>*.r.dart</code> reflection output that tooling consumes at build time.
+              </p>
+              <p>
+                This is <strong>original work</strong> (renamed from <code>tom_analyzer</code>), with no shared lineage with 
+                <code>reflectable</code>. For runtime mirrors on real instances, use the sibling engine <a href="/docs?module=tom_reflection&amp;path=README.md"><code>tom_reflection</code></a>
+                 instead — see the repo <a href="/doc/tom_agent_container/tom_ai/reflection/README"><code>README</code></a>
+                 for how to choose.
+              </p>
+              <h2>Overview</h2>
+              <p>
+                A code generator or workspace tool often needs to know the <em>shape</em> of code — "what classes are here, what do they implement, what are their members and annotations?" — without running that code. 
+                <code>dart:mirrors</code> can't help (it's runtime and unavailable in AOT), and re-running the analyzer in every downstream tool is slow and couples you to a specific analyzer/Dart version.
+              </p>
+              <p>
+                <code>tom_reflector</code> solves this by analyzing once and emitting a <strong>stable, pre-resolved model</strong>
+                 (<a href="/docs?module=tom_reflector_model&amp;path=README.md"><code>tom_reflector_model</code></a>) that any tool can read as plain data. The model is comprehensive (modifiers, type parameters with bounds, annotations with arguments, source locations), round-trips through JSON/YAML, and uses cycle-safe ID references when serialized. That stability is the point: downstream generators are insulated from analyzer churn.
+              </p>
+              <pre><code>   your sources           tom_reflector (analyzer)            outputs
+lib/models.dart  ─────►  reachability / barrel analysis  ─►  models.r.dart
+lib/app.dart             + element walking                   + AnalysisResult graph
+                                                               (tom_reflector_model)</code></pre>
+              <h2>Installation</h2>
+              <p>
+                <code>tom_reflector</code> is an internal workspace package (<code>publish_to: none</code>); depend on it by path from within the workspace:
+              </p>
+              <pre><code>dependencies:
+  tom_reflector:
+    path: ../tom_reflector</code></pre>
+              <p>
+                <strong>SDK:</strong> Dart <code>^3.10.4</code>; uses <code>analyzer ^8</code>. The compiled <code>reflector</code>
+                 binary is produced by the workspace build (<code>~/.tom/bin/&lt;platform&gt;/reflector</code>) and is also reachable as 
+                <code>buildkit :reflector</code>.
+              </p>
+              <h2>Two generation modes</h2>
+              <table class="mdtable">
+                <thead><tr><th>Mode</th><th>Driven by</th><th>Use it when</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Legacy (barrel)</strong></td>
+                    <td>a barrel file whose exports are all analyzed</td>
+                    <td>you want reflection for <em>everything</em> a package exports.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Entry-point (reachability)</strong></td>
+                    <td>entry points + include/exclude filters</td>
+                    <td>you want precise control — reflect only what's reachable and wanted.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3>Legacy (barrel) mode</h3>
+              <pre><code># buildkit.yaml
+tom_reflector:
+  barrels:
+    - lib/my_package.dart
+  follow_re_exports: true
+  skip_re_exports:
+    - dart.core</code></pre>
+              <p>Generates <code>lib/my_package.r.dart</code> for all exports of the barrel.</p>
+              <h3>Entry-point (reachability) mode</h3>
+              <p>
+                Performs reachability analysis from entry points, with rich <strong>filters</strong>, configurable <strong>transitive dependency resolution</strong>, and fine-grained 
+                <strong>coverage</strong>:
+              </p>
+              <pre><code># buildkit.yaml
+tom_reflector:
+  entry_points:
+    - lib/my_app.dart
+  output: lib/generated/reflection.r.dart
+
+  defaults:
+    exclude_packages: ['dart.*']
+    include_annotations: ['Reflectable']
+
+  filters:
+    - include: { packages: ['my_package'] }
+    - exclude: { annotations: ['DoNotReflect'] }
+
+  dependency_config:
+    superclasses:   { enabled: true, depth: -1 }
+    interfaces:     { enabled: true }
+    mixins:         { enabled: true }
+    type_arguments: { enabled: true }
+    code_bodies:    { enabled: false }
+
+  coverage_config:
+    instance_members: { enabled: true }
+    static_members:   { enabled: true }
+    constructors:     { enabled: true }
+    metadata:         { enabled: true }</code></pre>
+              <p><strong>Configuration reference (entry-point mode):</strong></p>
+              <table class="mdtable">
+                <thead><tr><th>Section</th><th>Key</th><th>Default</th><th>Purpose</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>top-level</td>
+                    <td><code>entry_points</code></td>
+                    <td><code>[]</code></td>
+                    <td>Roots for reachability analysis.</td>
+                  </tr>
+                  <tr>
+                    <td></td>
+                    <td><code>output</code></td>
+                    <td><em>(derived)</em></td>
+                    <td>Output path; <code>.r.dart</code> appended automatically.</td>
+                  </tr>
+                  <tr>
+                    <td></td>
+                    <td><code>include_private</code></td>
+                    <td><code>false</code></td>
+                    <td>Include private members.</td>
+                  </tr>
+                  <tr>
+                    <td><code>defaults</code></td>
+                    <td><code>exclude_packages</code> / <code>include_packages</code></td>
+                    <td><code>[]</code></td>
+                    <td>Package globs always excluded / included.</td>
+                  </tr>
+                  <tr>
+                    <td></td>
+                    <td><code>include_annotations</code></td>
+                    <td><code>[]</code></td>
+                    <td>Annotations that auto-include their target.</td>
+                  </tr>
+                  <tr>
+                    <td><code>filters</code></td>
+                    <td><code>include</code> / <code>exclude</code> selectors</td>
+                    <td><code>[]</code></td>
+                    <td>
+                      Ordered rules by 
+                      <code>packages</code>
+                      , 
+                      <code>annotations</code>
+                      , 
+                      <code>paths</code>
+                      , 
+                      <code>types</code>
+                      , 
+                      <code>elements</code>
+                      .
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>dependency_config</code></td>
+                    <td>
+                      <code>superclasses</code>
+                      , 
+                      <code>interfaces</code>
+                      , 
+                      <code>mixins</code>
+                      , 
+                      <code>type_arguments</code>
+                      , 
+                      <code>code_bodies</code>
+                    </td>
+                    <td>varies</td>
+                    <td>
+                      Transitive resolution (
+                      <code>enabled</code>
+                      , 
+                      <code>depth</code>
+                      , 
+                      <code>external_depth</code>
+                      , 
+                      <code>exclude_types</code>
+                      ).
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>coverage_config</code></td>
+                    <td>
+                      <code>instance_members</code>
+                      , 
+                      <code>static_members</code>
+                      , 
+                      <code>constructors</code>
+                      , 
+                      <code>metadata</code>
+                    </td>
+                    <td><code>enabled: true</code></td>
+                    <td>Which invokers/data to generate.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h2>CLI</h2>
+              <p>Run over a configured project, or scan the whole workspace:</p>
+              <pre><code>reflector                 # generate for the current project (reads buildkit.yaml)
+reflector -R              # recursively scan the workspace for tom_reflector: projects
+reflector -e lib/app.dart # entry-point mode (bypasses barrel config)
+reflector --list          # list projects that would be processed (no action)
+buildkit :reflector       # equivalent, nested under buildkit</code></pre>
+              <p><code>dart run bin/reflector.dart [options]</code> is equivalent before the binary is compiled.</p>
+              <p>
+                <strong>Options</strong> (navigation flags like <code>-R</code>, <code>-s</code>, <code>-p</code> come from 
+                <code>tom_build_base</code>):
+              </p>
+              <table class="mdtable">
+                <thead><tr><th>Option</th><th>Short</th><th>Default</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><code>--config=&lt;path&gt;</code></td>
+                    <td><code>-c</code></td>
+                    <td><code>buildkit.yaml</code></td>
+                    <td>Config file path.</td>
+                  </tr>
+                  <tr>
+                    <td><code>--entry=&lt;file&gt;</code></td>
+                    <td><code>-e</code></td>
+                    <td></td>
+                    <td>Entry point(s), repeatable/comma-separated — switches to entry-point mode.</td>
+                  </tr>
+                  <tr>
+                    <td><code>--barrel=&lt;path&gt;</code></td>
+                    <td></td>
+                    <td><em>(from config)</em></td>
+                    <td>Barrel for legacy mode (overrides config).</td>
+                  </tr>
+                  <tr>
+                    <td><code>--output=&lt;path&gt;</code></td>
+                    <td></td>
+                    <td><em>(auto)</em></td>
+                    <td>Output file path.</td>
+                  </tr>
+                  <tr>
+                    <td><code>--list</code></td>
+                    <td><code>-l</code></td>
+                    <td><code>false</code></td>
+                    <td>List target projects, take no action.</td>
+                  </tr>
+                  <tr>
+                    <td><code>--verbose</code></td>
+                    <td><code>-v</code></td>
+                    <td><code>false</code></td>
+                    <td>Verbose output.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>
+                <strong>Override precedence:</strong> <code>buildkit.yaml</code> <code>tom_reflector:</code> loads first → 
+                <code>--barrel</code> overrides <code>barrels</code> → <code>--output</code> overrides the derived path → 
+                <code>--entry</code> <strong>bypasses</strong> barrel config entirely and switches to entry-point mode.
+              </p>
+              <h2>Programmatic usage</h2>
+              <h3>Barrel analysis → model</h3>
+              <pre><code>import 'package:tom_reflector/tom_reflector.dart';
+
+Future&lt;void&gt; main() async {
+  final runner = AnalyzerRunner();
+  final AnalysisResult result = await runner.analyzeBarrel(
+    barrelPath: 'lib/models.dart',
+    skipReExports: const ['dart.core'],
+  );
+
+  for (final cls in result.allClasses) {
+    print('${cls.name}: ${cls.methods.length} methods'); // Order: 3 methods
+  }
+}</code></pre>
+              <h3>Entry-point reachability → model</h3>
+              <pre><code>import 'package:tom_reflector/tom_reflector.dart';
+
+Future&lt;void&gt; main() async {
+  final config = ReflectionConfig(
+    entryPoints: const ['lib/my_app.dart'],
+    defaults: const ReflectionDefaults(includeAnnotations: ['Reflectable']),
+  );
+  final analyzer = EntryPointAnalyzer(config);
+  final result = await analyzer.analyze();
+  // result holds the reachable, filtered set; feed it to ReflectionGenerator.
+}</code></pre>
+              <h2><code>.r.dart</code> output</h2>
+              <p>
+                In either mode the <code>ReflectionGenerator</code> emits a <code>*.r.dart</code> file holding the reflection data alongside the source. Treat 
+                <code>*.r.dart</code> as a <strong>build output</strong> — never hand-edit it; fix the generator/config and regenerate.
+              </p>
+              <h2>Architecture</h2>
+              <pre><code>package:tom_reflector/tom_reflector.dart   (public API; re-exports tom_reflector_model)
+├── src/analyzer/         drive the analyzer &amp; build the model
+│   ├── AnalyzerRunner            barrel analysis → AnalysisResult
+│   ├── AnalyzerContextBuilder    analysis context setup
+│   ├── BarrelAnalyzer            legacy barrel mode
+│   ├── ElementVisitor / TypeResolver, AnnotationParser
+├── src/reflection/generator/    entry-point reachability
+│   ├── EntryPointAnalyzer        reachability + filters → ReflectionAnalysisResult
+│   ├── ReflectionConfig          filters, dependency &amp; coverage config
+│   └── ReflectionGenerator       emits *.r.dart
+└── src/v2/   reflectorTool + ReflectorExecutor (tom_build_base CLI)
+
+bin/reflector.dart  → ToolRunner(reflectorTool)  → `reflector` / `buildkit :reflector`</code></pre>
+              <h3>Key types</h3>
+              <table class="mdtable">
+                <thead><tr><th>Type</th><th>Responsibility</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><code>AnalyzerRunner</code></td>
+                    <td>
+                      Entry point for 
+                      <strong>barrel</strong>
+                       analysis (
+                      <code>analyzeBarrel</code>
+                      ) → 
+                      <code>AnalysisResult</code>
+                      .
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>AnalyzerContextBuilder</code></td>
+                    <td>Builds the analyzer <code>AnalysisContextCollection</code>.</td>
+                  </tr>
+                  <tr><td><code>BarrelAnalyzer</code></td><td>Legacy barrel-export walking.</td></tr>
+                  <tr>
+                    <td><code>EntryPointAnalyzer</code></td>
+                    <td><strong>Reachability</strong> analysis from entry points (<code>analyze()</code>).</td>
+                  </tr>
+                  <tr>
+                    <td><code>ReflectionConfig</code></td>
+                    <td>
+                      Entry-point configuration: 
+                      <code>entryPoints</code>
+                      , 
+                      <code>filters</code>
+                      , 
+                      <code>dependencyConfig</code>
+                      , 
+                      <code>coverageConfig</code>
+                      , 
+                      <code>includePrivate</code>
+                      ; 
+                      <code>load()</code>
+                       / 
+                      <code>fromMap()</code>
+                      .
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>ReflectionGenerator</code></td>
+                    <td>Emits <code>*.r.dart</code> from the analyzed model.</td>
+                  </tr>
+                  <tr><td><code>ReflectionModel</code></td><td>In-memory reflection model for generation.</td></tr>
+                  <tr>
+                    <td><code>reflectorTool</code> / <code>ReflectorExecutor</code></td>
+                    <td><code>tom_build_base</code> CLI surface (<code>reflector</code>).</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>
+                The pure data model itself (<code>AnalysisResult</code>, <code>ClassInfo</code>, …) lives in <a href="/docs?module=tom_reflector_model&amp;path=README.md"><code>tom_reflector_model</code></a>
+                 and is re-exported here.
+              </p>
+              <h2>Ecosystem</h2>
+              <pre><code>tom_reflector_model   pure serializable model (AnalysisResult, ClassInfo, …)
+      ▲ re-exports
+tom_reflector         THIS PACKAGE — analyzer engine + `reflector` CLI → *.r.dart
+      │ builds on
+      ├── tom_build_base   v2 tool framework (CLI, navigation, version flags)
+      └── tom_d4rt_ast     AST modelling (cross-repo: tom_ai/d4rt/)</code></pre>
+              <p>
+                &gt; <code>tom_d4rt_ast</code> lives in the <strong>d4rt</strong> repo; changes there can affect this &gt; package — coordinate with the d4rt quest on breaking changes.
+              </p>
+              <p>
+                This is the engine-2 generator. The runtime mirror engine (<a href="/docs?module=tom_reflection&amp;path=README.md"><code>tom_reflection</code></a>) is a separate technology with its own generator emitting 
+                <code>*.reflection.dart</code>.
+              </p>
+              <h2>Further documentation</h2>
+              <ul>
+                <li>
+                  CLI usage: <a href="/docs?module=tom_reflector&amp;path=doc%2Freflector_usage_guide.md"><code>doc/reflector_usage_guide.md</code></a>
+                </li>
+                <li>
+                  Reflection guide: <a href="/docs?module=tom_reflector&amp;path=doc%2Freflection_user_guide.md"><code>doc/reflection_user_guide.md</code></a>
+                </li>
+                <li>
+                  Analyzer usage &amp; config reference: <a href="/docs?module=tom_reflector&amp;path=doc%2Fanalyzer_usage_guide.md"><code>doc/analyzer_usage_guide.md</code></a>
+                </li>
+                <li>
+                  Implementation notes: <a href="/docs?module=tom_reflector&amp;path=doc%2Freflection_implementation.md"><code>doc/reflection_implementation.md</code></a>
+                </li>
+                <li>
+                  Design (pre-rename <code>tom_analyzer</code>): <a href="/docs?module=tom_reflector&amp;path=doc%2Ftom_analyzer_design.md"><code>doc/tom_analyzer_design.md</code></a>
+                </li>
+                <li>
+                  Analyzer element API: <a href="/docs?module=tom_reflector&amp;path=doc%2Fanalyzer_element_api.md"><code>doc/analyzer_element_api.md</code></a>
+                </li>
+              </ul>
+              <h3>Runnable samples (engine 2)</h3>
+              <ul>
+                <li>
+                  Parser mode (no codegen): <a href="/doc/tom_agent_container/tom_ai/reflection/tom_reflection_samples/reflector_parser_introduction_sample/README"><code>reflector_parser_introduction_sample</code></a>
+                </li>
+              </ul>
+              <p>
+                → <a href="/doc/tom_agent_container/tom_ai/reflection/tom_reflection_samples/reflector_parser_advanced_sample/README"><code>reflector_parser_advanced_sample</code></a>
+                 - Codegen mode (<code>*.r.dart</code>): <a href="/doc/tom_agent_container/tom_ai/reflection/tom_reflection_samples/reflector_reflection_introduction_sample/README"><code>reflector_reflection_introduction_sample</code></a>
+                 → <a href="/doc/tom_agent_container/tom_ai/reflection/tom_reflection_samples/reflector_reflection_advanced_sample/README"><code>reflector_reflection_advanced_sample</code></a>
+              </p>
+              <p>
+                &gt; <strong>Naming note:</strong> some <code>doc/</code> files predate the <code>tom_analyzer → tom_reflector</code>
+                 &gt; rename and still say "tom_analyzer"/"tom_analyzer_model". Read those names as &gt; the pre-rename identity of 
+                <code>tom_reflector</code>/<code>tom_reflector_model</code>.
+              </p>
+              <h2>Status</h2>
+              <ul>
+                <li><strong>Version:</strong> 1.0.0 (<code>publish_to: none</code>, internal workspace package).</li>
+                <li><strong>SDK:</strong> Dart <code>^3.10.4</code>; <code>analyzer ^8</code>.</li>
+                <li><strong>Modes:</strong> legacy barrel + entry-point reachability, both implemented.</li>
+                <li>
+                  <strong>CLI:</strong> <code>reflector</code> standalone and <code>buildkit :reflector</code>, on <code>tom_build_base</code>
+                </li>
+              </ul>
+              <p>navigation.</p>
+              <h2>License</h2>
+              <p>
+                BSD 3-Clause — original Tom Framework work (no <code>reflectable</code> lineage). See <a href="LICENSE"><code>LICENSE</code></a>.
               </p>
             </div>
           </section>

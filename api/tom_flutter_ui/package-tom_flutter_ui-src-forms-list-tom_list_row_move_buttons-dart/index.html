@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1314,12 +1334,13 @@
                     class TomListRowMoveButtons&lt;TItem extends InvalidType, TForm extends TomForm&lt;TItem&gt;&gt; extends TomContainerBase
                   </code>
                   <div class="api-doc">
-                    <p>A pair of *Move up* / *Move down* buttons bound to row [index] of a [TomListForm].</p>
+                    <p>A pair of <em>Move up</em> / <em>Move down</em> buttons bound to row [index] of a [TomListForm].</p>
                     <p>
                       This is the row-level counterpart to the toolbar move buttons in [TomListFormToolbar] — drop it inside a row builder when the host has no master selection (or no master pane at all) and so the toolbar's selection-driven move buttons aren't a fit.
                     </p>
                     <p>
-                      Each button is enabled only when the row can actually move: * Move up disabled when [index] is 0. * Move down disabled when [index] is the last row.
+                      Each button is enabled only when the row can actually move: <em> Move up disabled when [index] is 0. </em>
+                       Move down disabled when [index] is the last row.
                     </p>
                     <p>Example (inside an inline list row builder):</p>
                     <pre><code>rowBuilder: (ctx, i, form) =&gt; Row(children: [
@@ -1328,24 +1349,40 @@
   Expanded(child: form.label.widget),
 ])</code></pre>
                     <p>
-                      The widget calls [TomListForm.move] directly — the same code path the toolbar uses — so reorder events fire through the standard child-container chain and the parent form's `isDirty` follows along.
+                      The widget calls [TomListForm.move] directly — the same code path the toolbar uses — so reorder events fire through the standard child-container chain and the parent form's 
+                      <code>isDirty</code> follows along.
                     </p>
                     <p>
-                      **Resource resolution.** When [tomId] is set, the following keys are consulted (each falls back to the constructor argument or a hard- coded default if no resource exists):
+                      <strong>Resource resolution.</strong> When [tomId] is set, the following keys are consulted (each falls back to the constructor argument or a hard- coded default if no resource exists):
                     </p>
                     <table class="mdtable">
                       <thead><tr><th>Key</th><th>Type</th><th>Default</th></tr></thead>
                       <tbody>
-                        <tr><td>`&lt;basePath&gt;.moveUp.icon`</td><td>icon</td><td>`Icons.arrow_upward`</td></tr>
-                        <tr><td>`&lt;basePath&gt;.moveUp.tooltip`</td><td>string</td><td>`'Move up'`</td></tr>
-                        <tr><td>`&lt;basePath&gt;.moveDown.icon`</td><td>icon</td><td>`Icons.arrow_downward`</td></tr>
-                        <tr><td>`&lt;basePath&gt;.moveDown.tooltip`</td><td>string</td><td>`'Move down'`</td></tr>
-                        <tr><td>`&lt;basePath&gt;.size`</td><td>double</td><td>`18`</td></tr>
-                        <tr><td>`&lt;basePath&gt;.spacing`</td><td>double</td><td>`0`</td></tr>
+                        <tr>
+                          <td><code>&lt;basePath&gt;.moveUp.icon</code></td>
+                          <td>icon</td>
+                          <td><code>Icons.arrow_upward</code></td>
+                        </tr>
+                        <tr><td><code>&lt;basePath&gt;.moveUp.tooltip</code></td><td>string</td><td><code>'Move up'</code></td></tr>
+                        <tr>
+                          <td><code>&lt;basePath&gt;.moveDown.icon</code></td>
+                          <td>icon</td>
+                          <td><code>Icons.arrow_downward</code></td>
+                        </tr>
+                        <tr>
+                          <td><code>&lt;basePath&gt;.moveDown.tooltip</code></td>
+                          <td>string</td>
+                          <td><code>'Move down'</code></td>
+                        </tr>
+                        <tr><td><code>&lt;basePath&gt;.size</code></td><td>double</td><td><code>18</code></td></tr>
+                        <tr><td><code>&lt;basePath&gt;.spacing</code></td><td>double</td><td><code>0</code></td></tr>
                       </tbody>
                     </table>
                     <p>
-                      **Authorization.** The widget passes through the standard [TomPolicyNodeBase] gate at `&lt;basePath&gt;` — `none` hides the entire pair, `disabled` greys both out and absorbs taps, `read` applies the readonly visual treatment. Per-button auth is resolved at `&lt;basePath&gt;.moveUp` and `&lt;basePath&gt;.moveDown` using the same rules as [TomListFormToolbar].
+                      <strong>Authorization.</strong> The widget passes through the standard [TomPolicyNodeBase] gate at <code>&lt;basePath&gt;</code>
+                       — <code>none</code> hides the entire pair, <code>disabled</code> greys both out and absorbs taps, <code>read</code>
+                       applies the readonly visual treatment. Per-button auth is resolved at <code>&lt;basePath&gt;.moveUp</code>
+                       and <code>&lt;basePath&gt;.moveDown</code> using the same rules as [TomListFormToolbar].
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1368,7 +1405,8 @@
                       <div class="api-member-head"><code class="api-signature">final int index</code></div>
                       <div class="api-doc">
                         <p>
-                          The row this button pair belongs to. The button pair operates on `index` — clicking *Move up* runs `listForm.move(index, index - 1)`, *Move down* runs `listForm.move(index, index + 1)`.
+                          The row this button pair belongs to. The button pair operates on <code>index</code> — clicking <em>Move up</em>
+                           runs <code>listForm.move(index, index - 1)</code>, <em>Move down</em> runs <code>listForm.move(index, index + 1)</code>.
                         </p>
                       </div>
                     </div>
@@ -1382,13 +1420,17 @@
                     </div>
                     <div id="TomListRowMoveButtons.beforeMove" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final Future&lt;bool&gt; Function(int, int)?? beforeMove</code></div>
-                      <div class="api-doc"><p>Optional veto fired before a move. Receives `(from, to)`. Return `false` to cancel.</p></div>
+                      <div class="api-doc">
+                        <p>
+                          Optional veto fired before a move. Receives <code>(from, to)</code>. Return <code>false</code> to cancel.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomListRowMoveButtons.dense" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final bool dense</code></div>
                       <div class="api-doc">
                         <p>
-                          When `true` (default), uses small icon buttons with compact visual density. When `false`, the buttons are full-size.
+                          When <code>true</code> (default), uses small icon buttons with compact visual density. When <code>false</code>, the buttons are full-size.
                         </p>
                       </div>
                     </div>

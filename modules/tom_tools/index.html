@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1307,7 +1327,7 @@
             <h2>tom_tools</h2>
             <div class="mono" style="color: #9FB6C9">tom_tools · v1.0.1</div>
             <p style="margin-top: 10px">
-              A sample command-line application scaffold with a `bin/` entrypoint, library code, and an example unit test.
+              A thin home for one-off Tom developer command-line tools; today a single `key_generator` that emits a fresh 2048-bit RSA keypair as PEM PKCS#1 keys, built on `tom_crypto`.
             </p>
             <div style="margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap"><a class="btn btn-ghost" href="/modules/tom_tools#license">See License</a></div>
           </div>
@@ -1324,11 +1344,9 @@
             <div>
               <div class="panel">
                 <h3>Overview</h3>
-                <p>
-                  A sample command-line application scaffold with a `bin/` entrypoint, library code, and an example unit test.
-                </p>
+                <p>From the module readme.md file:</p>
                 <h4 style="font-size: 1rem; margin-top: 18px">What it enables</h4>
-                <p class="muted" style="margin: 0">No downstream modules declared yet.</p>
+                <p style="margin: 0">Enables RSA keypair generation, Development signing keys, JWT-signing key material.</p>
               </div>
               <div class="panel"><h3>Relationships</h3><p class="muted" style="margin: 0">Standalone — no declared relationships.</p></div>
             </div>
@@ -1369,8 +1387,197 @@
           </div>
           <section class="section repodoc">
             <div class="pageprose">
+              <h1>Tom Tools</h1>
               <p>
-                A sample command-line application with an entrypoint in `bin/`, library code in `lib/`, and example unit test in `test/`.
+                &gt; Part of the <strong>Tom framework</strong> by al-the-bear. &gt; © 2024–2026 Peter Nicolai Alexis Kyaw — BSD-3-Clause, see 
+                <a href="https://github.com/al-the-bear/tom_basics/blob/main/tom_tools/LICENSE">LICENSE</a>.
+              </p>
+              <p>
+                Small command-line tools for the Tom framework. Currently an RSA keypair generator that prints PEM PKCS#1 public and private keys, built on 
+                <a href="https://github.com/al-the-bear/tom_crypto/tree/main"><code>tom_crypto</code></a>.
+              </p>
+              <p>---</p>
+              <h2>Overview</h2>
+              <p>
+                <code>tom_tools</code> is a thin home for one-off developer command-line utilities that don't warrant a package of their own. Today it ships a single tool:
+              </p>
+              <ul>
+                <li>
+                  <strong><code>key_generator</code></strong> — generate a fresh 2048-bit RSA keypair and print both keys
+                </li>
+              </ul>
+              <p>
+                in <strong>PEM PKCS#1</strong> form (the <code>-----BEGIN PUBLIC KEY----- / -----BEGIN PRIVATE KEY-----</code>
+                 envelope), ready to paste into a config file, a secret store, or a JWT-signing setup.
+              </p>
+              <p>
+                The heavy lifting is done by <a href="https://github.com/al-the-bear/tom_crypto/tree/main"><code>tom_crypto</code></a>'s 
+                <code>RsaKeyHelper</code>; this package is just the CLI front-end. If you need to generate keys <em>inside</em>
+                 your own Dart code rather than from the command line, call <code>RsaKeyHelper</code> directly (see <a href="#generating-keys-in-dart-code">Generating keys in Dart code</a>) — you don't need 
+                <code>tom_tools</code> for that.
+              </p>
+              <p>
+                &gt; <strong>The private key is a secret.</strong> <code>key_generator</code> prints the <strong>private</strong>
+                 key to &gt; stdout. Redirect it straight into a protected file and never commit it or paste &gt; it into a shared channel — see 
+                <a href="#handling-the-output">Handling the output</a>.
+              </p>
+              <p>---</p>
+              <h2>Installation</h2>
+              <p>
+                This is a <strong>workspace-internal</strong> package (<code>publish_to: none</code>); it is consumed by path, not from pub.dev:
+              </p>
+              <pre><code>dependencies:
+  tom_tools:
+    path: ../../basics/tom_tools</code></pre>
+              <p>
+                It depends (by path) on <a href="https://github.com/al-the-bear/tom_crypto/tree/main"><code>tom_crypto</code></a>
+                 for <code>RsaKeyHelper</code>, plus <code>pointycastle</code> / <code>asn1lib</code> / <code>cryptography</code>
+                 for the underlying RSA primitives. Requires the Dart SDK <code>^3.9.2</code>.
+              </p>
+              <p>
+                In practice you rarely <em>depend</em> on <code>tom_tools</code> — you run its tool from a checkout of the package (see 
+                <a href="#running-the-key-generator">Running the key generator</a>).
+              </p>
+              <p>---</p>
+              <h2>Features</h2>
+              <table class="mdtable">
+                <thead><tr><th>Capability</th><th>Entrypoint</th><th>Notes</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>Generate an RSA keypair</td>
+                    <td><code>lib/key_generator.dart</code> (<code>main</code>)</td>
+                    <td>Prints PEM PKCS#1 public + private keys to stdout</td>
+                  </tr>
+                  <tr>
+                    <td>Reuse the generator in code</td>
+                    <td><code>tom_crypto</code>'s <code>RsaKeyHelper</code></td>
+                    <td>The same helper the CLI wraps — call it directly</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>---</p>
+              <h2>Quick start</h2>
+              <p>Run the key generator from a checkout of the package:</p>
+              <pre><code>cd tom_ai/basics/tom_tools
+dart pub get
+dart run lib/key_generator.dart</code></pre>
+              <p>
+                Output — a freshly generated keypair (the key bodies are random on every run, and abbreviated here with 
+                <code>…</code>):
+              </p>
+              <pre><code>Public Key
+-----BEGIN PUBLIC KEY-----
+MIIBCgKCAQEAhIX014nch7ZGsf0tV5UK/yBwxeIrytl1TC3DKuyTB+homRawwHq…
+-----END PUBLIC KEY-----
+Private Key
+-----BEGIN PRIVATE KEY-----
+MIIFowIBAAKCAQEAhIX014nch7ZGsf0tV5UK/yBwxeIrytl1TC3DKuyTB+homRa…
+-----END PRIVATE KEY-----</code></pre>
+              <p>Each run produces a brand-new keypair — there is no seed or fixed output.</p>
+              <p>---</p>
+              <h2>Usage</h2>
+              <h3>Running the key generator</h3>
+              <p>
+                <code>key_generator</code> is a plain <code>main()</code> in <code>lib/key_generator.dart</code>, so you run it by file path with 
+                <code>dart run</code>:
+              </p>
+              <pre><code>dart run lib/key_generator.dart</code></pre>
+              <p>
+                It prints two PEM blocks to stdout: the public key first (under the line <code>Public Key</code>), then the private key (under 
+                <code>Private Key</code>). Both use the <strong>PKCS#1</strong> envelope produced by <code>RsaKeyHelper.encodePublicKeyToPemPKCS1</code>
+                 / <code>encodePrivateKeyToPemPKCS1</code>.
+              </p>
+              <h3>Handling the output</h3>
+              <p>
+                Because the private key is printed to stdout, capture it directly into a protected file rather than letting it scroll past in a shared terminal:
+              </p>
+              <pre><code># Capture the whole keypair into one file, then restrict it.
+dart run lib/key_generator.dart &gt; keypair.pem
+chmod 600 keypair.pem        # restrict before anyone else can read it</code></pre>
+              <p>
+                Then split the two PEM blocks into separate files as your tooling needs. <strong>Never commit the private key</strong>
+                 or paste it into chat/issue trackers — treat <code>keypair.pem</code> like any other credential.
+              </p>
+              <h3>Generating keys in Dart code</h3>
+              <p>
+                If you want a keypair <em>inside</em> an application rather than from the command line, skip <code>tom_tools</code>
+                 entirely and call <code>tom_crypto</code>'s <code>RsaKeyHelper</code> directly — it is exactly what the CLI wraps:
+              </p>
+              <pre><code>import 'package:pointycastle/asymmetric/api.dart';
+import 'package:tom_crypto/tom_crypto.dart';
+
+Future&lt;void&gt; main() async {
+  final keypair =
+      await RsaKeyHelper.computeRSAKeyPair(RsaKeyHelper.getSecureRandom());
+
+  final publicPem = RsaKeyHelper.encodePublicKeyToPemPKCS1(
+      keypair.publicKey as RSAPublicKey);
+  final privatePem = RsaKeyHelper.encodePrivateKeyToPemPKCS1(
+      keypair.privateKey as RSAPrivateKey);
+
+  // ... store publicPem / privatePem securely; never log the private key.
+}</code></pre>
+              <p>
+                See the <a href="https://github.com/al-the-bear/tom_crypto/tree/main"><code>tom_crypto</code> README</a>
+                 for the full RSA surface — encryption, signing, and PEM parsing back into key objects.
+              </p>
+              <p>---</p>
+              <h2>Architecture</h2>
+              <pre><code>tom_tools  (workspace-internal CLI package)
+│
+└── lib/key_generator.dart            main(): print PEM PKCS#1 public + private keys
+        │
+        └── delegates all crypto to
+            package:tom_crypto
+            └── RsaKeyHelper
+                ├── getSecureRandom()              seeded CSPRNG
+                ├── computeRSAKeyPair(random)      2048-bit RSA keypair
+                ├── encodePublicKeyToPemPKCS1(k)   PEM (PKCS#1) public key
+                └── encodePrivateKeyToPemPKCS1(k)  PEM (PKCS#1) private key</code></pre>
+              <table class="mdtable">
+                <thead><tr><th>File / member</th><th>Role</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><code>lib/key_generator.dart</code></td>
+                    <td>The CLI entrypoint — generates a keypair and prints both PEM blocks</td>
+                  </tr>
+                  <tr>
+                    <td><code>RsaKeyHelper</code> (from <code>tom_crypto</code>)</td>
+                    <td>Does the actual key generation and PEM encoding</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>
+                <code>tom_tools</code> carries no logic of its own beyond wiring stdout to <code>RsaKeyHelper</code>; it is intentionally minimal.
+              </p>
+              <p>---</p>
+              <h2>Ecosystem</h2>
+              <p>
+                <code>tom_tools</code> is one of the foundational packages under <a href="https://github.com/al-the-bear/tom_basics/tree/main"><code>tom_ai/basics/</code></a>. All 
+                <code>tom_ai/basics/</code> packages share a single repository, <a href="https://github.com/al-the-bear/tom_basics"><code>tom_basics</code></a>. It builds directly on 
+                <a href="https://github.com/al-the-bear/tom_crypto/tree/main"><code>tom_crypto</code></a>, the framework's cryptography library (JWT, password hashing, RSA), and exists to give that library's RSA keygen a one-command front-end.
+              </p>
+              <p>---</p>
+              <h2>Further documentation</h2>
+              <ul>
+                <li>
+                  <a href="https://github.com/al-the-bear/tom_basics/blob/main/tom_tools/LICENSE">LICENSE</a> — BSD-3-Clause licence text.
+                </li>
+                <li>
+                  <a href="https://github.com/al-the-bear/tom_crypto/tree/main"><code>tom_crypto</code></a> — the cryptography library 
+                  <code>key_generator</code> wraps;
+                </li>
+              </ul>
+              <p>
+                full RSA / JWT / password-hashing surface. - <a href="/docs?module=tom_tools&amp;path=CHANGELOG.md">CHANGELOG.md</a>
+                 — release history.
+              </p>
+              <p>---</p>
+              <h2>Status</h2>
+              <p>
+                Stable (<code>1.0.1</code>). Workspace-internal (<code>publish_to: none</code>), consumed by path. A deliberately small package: one CLI tool wrapping 
+                <code>tom_crypto</code>'s <code>RsaKeyHelper</code>. <code>dart analyze</code> is clean. The generator runs against the live 
+                <code>tom_crypto</code> RSA primitives — every invocation produces a fresh keypair.
               </p>
             </div>
           </section>

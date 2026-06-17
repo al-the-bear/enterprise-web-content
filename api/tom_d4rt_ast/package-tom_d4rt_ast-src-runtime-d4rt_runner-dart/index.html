@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1418,10 +1438,14 @@ final result = await runner.executeFromJsonFile('script.ast.json');</code></pre>
                       <div class="api-doc">
                         <p>GEN-107: Bridge re-exports modelled in the runtime.</p>
                         <p>
-                          Maps a source library URI to the list of libraries it re-exports (with optional `show` / `hide` filters). The module loader consults this map after registering a library's own bridges and merges each re-exported library's symbols into the source library's per-module environment, mirroring how Dart's `export 'other/library.dart' [show/hide …]` directives publish another library's symbols under the source library's URI.
+                          Maps a source library URI to the list of libraries it re-exports (with optional <code>show</code> / <code>hide</code>
+                           filters). The module loader consults this map after registering a library's own bridges and merges each re-exported library's symbols into the source library's per-module environment, mirroring how Dart's 
+                          <code>export 'other/library.dart' [show/hide …]</code> directives publish another library's symbols under the source library's URI.
                         </p>
                         <p>
-                          Without this, scripts that legitimately reach a stdlib type via a transitive re-export chain in real Dart (e.g. `flutter/services.dart → dart:typed_data → ByteData`) fail at interpret time with "Undefined variable: …" once per-module bridge isolation is in place — the workaround being the historical `_isolatedStdlibs = {'math'}` band-aid that lets every other stdlib leak into `globalEnvironment`.
+                          Without this, scripts that legitimately reach a stdlib type via a transitive re-export chain in real Dart (e.g. 
+                          <code>flutter/services.dart → dart:typed_data → ByteData</code>) fail at interpret time with "Undefined variable: …" once per-module bridge isolation is in place — the workaround being the historical 
+                          <code>_isolatedStdlibs = {'math'}</code> band-aid that lets every other stdlib leak into <code>globalEnvironment</code>.
                         </p>
                       </div>
                     </div>
@@ -1434,7 +1458,7 @@ final result = await runner.executeFromJsonFile('script.ast.json');</code></pre>
                       <div class="api-member-head"><code class="api-signature">Set&lt;String&gt;? _baselineValueKeys</code></div>
                       <div class="api-doc">
                         <p>
-                          §U28 / TODO #14 — snapshot of [_globalEnvironment].`values` keys captured at the end of [_initEnvironment], i.e. AFTER stdlib + bridge registration but BEFORE the DeclarationVisitor visits the script's top-level declarations.
+                          §U28 / TODO #14 — snapshot of [_globalEnvironment].<code>values</code> keys captured at the end of [_initEnvironment], i.e. AFTER stdlib + bridge registration but BEFORE the DeclarationVisitor visits the script's top-level declarations.
                         </p>
                         <p>
                           Used by [resetScriptDeclarations] to distinguish entries created by the script from entries created by the runner's own bridge / stdlib registration. The former are evicted on reset; the latter are preserved.
@@ -1448,10 +1472,12 @@ final result = await runner.executeFromJsonFile('script.ast.json');</code></pre>
                       <div class="api-member-head"><code class="api-signature">final Map&lt;String, void Function()&gt; _extensionCallbacks</code></div>
                       <div class="api-doc">
                         <p>
-                          Step 6: extension callbacks registered by bridge packages, keyed by package name. Insertion order is preserved (Dart `Map` literals are `LinkedHashMap`) so [finalizeBridges] runs callbacks deterministically.
+                          Step 6: extension callbacks registered by bridge packages, keyed by package name. Insertion order is preserved (Dart 
+                          <code>Map</code> literals are <code>LinkedHashMap</code>) so [finalizeBridges] runs callbacks deterministically.
                         </p>
                         <p>
-                          Re-registering with the same `packageName` overwrites the previous body — the contract is one extension callback per bridge package, which makes the call idempotent if a process spins up multiple runners that each fire the same package's `register*` shape.
+                          Re-registering with the same <code>packageName</code> overwrites the previous body — the contract is one extension callback per bridge package, which makes the call idempotent if a process spins up multiple runners that each fire the same package's 
+                          <code>register*</code> shape.
                         </p>
                       </div>
                     </div>
@@ -1524,7 +1550,7 @@ final result = await runner.executeFromJsonFile('script.ast.json');</code></pre>
                       <div class="api-doc">
                         <p>GEN-074: Registers a class alias (type alias).</p>
                         <p>
-                          Type aliases like `typedef MaterialStateProperty&lt;T&gt; = WidgetStateProperty&lt;T&gt;` are registered so that D4rt scripts can use the alias name.
+                          Type aliases like <code>typedef MaterialStateProperty&lt;T&gt; = WidgetStateProperty&lt;T&gt;</code> are registered so that D4rt scripts can use the alias name.
                         </p>
                         <p>
                           [aliasName] The alias name (e.g., 'MaterialStateProperty'). [targetName] The target class name (e.g., 'WidgetStateProperty'). [library] The library path where this alias is exported from.
@@ -1536,7 +1562,9 @@ final result = await runner.executeFromJsonFile('script.ast.json');</code></pre>
                       <div class="api-doc">
                         <p>Registers a function typedef so it can be resolved as a type.</p>
                         <p>
-                          Function typedefs like `typedef VoidCallback = void Function()` are not classes, but D4rt scripts may reference them as type arguments (e.g., `ObserverList&lt;VoidCallback&gt;()`). This registers the name as a `BridgedClass` with `nativeType: Function` so type resolution succeeds.
+                          Function typedefs like <code>typedef VoidCallback = void Function()</code> are not classes, but D4rt scripts may reference them as type arguments (e.g., 
+                          <code>ObserverList&lt;VoidCallback&gt;()</code>). This registers the name as a <code>BridgedClass</code>
+                           with <code>nativeType: Function</code> so type resolution succeeds.
                         </p>
                         <p>
                           [name] The typedef name (e.g., 'VoidCallback'). [library] The library path where this typedef is exported from.
@@ -1552,13 +1580,15 @@ final result = await runner.executeFromJsonFile('script.ast.json');</code></pre>
                       <div class="api-doc">
                         <p>GEN-107: Registers a re-export from one library to another.</p>
                         <p>
-                          This mirrors Dart's `export 'other/library.dart' [show/hide …]` directive: when [sourceUri] is loaded, the module loader will also merge the symbols from [targetUri] into the source library's per-module environment, applying [show] and [hide] filters.
+                          This mirrors Dart's <code>export 'other/library.dart' [show/hide …]</code> directive: when [sourceUri] is loaded, the module loader will also merge the symbols from [targetUri] into the source library's per-module environment, applying [show] and [hide] filters.
                         </p>
                         <p>
-                          Generated bridge code calls this once per `export` directive in the underlying Dart library so re-exports of stdlib types (e.g. `flutter/services.dart` re-exports `dart:typed_data`) become reachable through the source library without leaking into the global environment.
+                          Generated bridge code calls this once per <code>export</code> directive in the underlying Dart library so re-exports of stdlib types (e.g. 
+                          <code>flutter/services.dart</code> re-exports <code>dart:typed_data</code>) become reachable through the source library without leaking into the global environment.
                         </p>
                         <p>
-                          [sourceUri] The library doing the re-exporting (e.g. `package:flutter/services.dart`). [targetUri] The library being re-exported (e.g. `dart:typed_data`). [show] Optional set of names to include from [targetUri]. [hide] Optional set of names to exclude from [targetUri].
+                          [sourceUri] The library doing the re-exporting (e.g. <code>package:flutter/services.dart</code>). [targetUri] The library being re-exported (e.g. 
+                          <code>dart:typed_data</code>). [show] Optional set of names to include from [targetUri]. [hide] Optional set of names to exclude from [targetUri].
                         </p>
                       </div>
                     </div>
@@ -1587,7 +1617,11 @@ final result = await runner.executeFromJsonFile('script.ast.json');</code></pre>
                       <div class="api-doc">
                         <p>Lower-case alias for [registerTopLevelFunction].</p>
                         <p>
-                          The D4rt bridge generator emits `interpreter.registertopLevelFunction(...)` (note the lower-case `t`). The analyzer-based `D4rt` front-ends in `tom_d4rt` and `tom_d4rt_exec` carry the same alias so generated bridge files compile against them. This alias lets the generated Flutter bridges target `D4rtRunner` directly (via `package:tom_d4rt_ast/d4rt.dart`), keeping `tom_d4rt_ast` free of any dependency on `tom_d4rt_exec`.
+                          The D4rt bridge generator emits <code>interpreter.registertopLevelFunction(...)</code> (note the lower-case 
+                          <code>t</code>). The analyzer-based <code>D4rt</code> front-ends in <code>tom_d4rt</code> and <code>tom_d4rt_exec</code>
+                           carry the same alias so generated bridge files compile against them. This alias lets the generated Flutter bridges target 
+                          <code>D4rtRunner</code> directly (via <code>package:tom_d4rt_ast/d4rt.dart</code>), keeping <code>tom_d4rt_ast</code>
+                           free of any dependency on <code>tom_d4rt_exec</code>.
                         </p>
                       </div>
                     </div>
@@ -1637,13 +1671,18 @@ final result = await runner.executeFromJsonFile('script.ast.json');</code></pre>
                       <div class="api-member-head"><code class="api-signature">void registerExtensions(String packageName, void Function() body)</code></div>
                       <div class="api-doc">
                         <p>
-                          Registers a [body] callback that wires additional bridge state (e.g. `registerRelaxers()`, `registerD4rtRuntimeExtensions()`, `registerD4rtInterfaceProxyOverrides()`) **after** the main `registerBridgedClass`/`registerBridgedEnum`/etc. registrations for [packageName] have happened.
+                          Registers a [body] callback that wires additional bridge state (e.g. <code>registerRelaxers()</code>, 
+                          <code>registerD4rtRuntimeExtensions()</code>, <code>registerD4rtInterfaceProxyOverrides()</code>) <strong>after</strong>
+                           the main <code>registerBridgedClass</code>/<code>registerBridgedEnum</code>/etc. registrations for [packageName] have happened.
                         </p>
                         <p>
-                          The body is *not* run immediately — the runner queues it and runs every queued body in registration order when [finalizeBridges] is called (or implicitly on the first `execute*`/`executeBundle*` call that follows). This replaces the comment-driven "must run AFTER bridges" rule (formerly enforced by code ordering inside `FlutterD4rt._registerBridges`) with an enforced mechanism: bridge packages declare their wiring up front, and the runner controls when it runs.
+                          The body is <em>not</em> run immediately — the runner queues it and runs every queued body in registration order when [finalizeBridges] is called (or implicitly on the first 
+                          <code>execute*</code>/<code>executeBundle*</code> call that follows). This replaces the comment-driven "must run AFTER bridges" rule (formerly enforced by code ordering inside 
+                          <code>FlutterD4rt._registerBridges</code>) with an enforced mechanism: bridge packages declare their wiring up front, and the runner controls when it runs.
                         </p>
                         <p>
-                          **Idempotent on package name:** a second call with the same [packageName] overwrites the previous body — the contract is one extension callback per bridge package. The body itself must internally tolerate being run more than once if the embedder constructs multiple [D4rtRunner] instances in the same process, since the D4 / BridgedClass registries it touches are static. (Step 5 made all the per-key D4 registries idempotent on factory identity, so this contract is satisfied for the standard `register*` calls.)
+                          <strong>Idempotent on package name:</strong> a second call with the same [packageName] overwrites the previous body — the contract is one extension callback per bridge package. The body itself must internally tolerate being run more than once if the embedder constructs multiple [D4rtRunner] instances in the same process, since the D4 / BridgedClass registries it touches are static. (Step 5 made all the per-key D4 registries idempotent on factory identity, so this contract is satisfied for the standard 
+                          <code>register*</code> calls.)
                         </p>
                         <p>
                           Throws [StateError] if [finalizeBridges] has already run on this runner — adding extensions after finalization is a misuse.
@@ -1657,10 +1696,10 @@ final result = await runner.executeFromJsonFile('script.ast.json');</code></pre>
                           Runs every extension callback registered via [registerExtensions] in registration order, then marks the runner as finalized.
                         </p>
                         <p>
-                          `execute*`/`executeBundle*` invoke this implicitly on first run if it has not been called already, so embedders don't have to remember to call it. Calling it explicitly first is supported and preferred when an embedder needs deterministic timing (e.g. a constructor of a Flutter helper that touches bridges before the first script runs).
+                          <code>execute*</code>/<code>executeBundle*</code> invoke this implicitly on first run if it has not been called already, so embedders don't have to remember to call it. Calling it explicitly first is supported and preferred when an embedder needs deterministic timing (e.g. a constructor of a Flutter helper that touches bridges before the first script runs).
                         </p>
                         <p>
-                          **Idempotent:** repeat calls return without re-running any callback — the contract is "run once, then frozen". After this call returns, [registerExtensions] throws [StateError].
+                          <strong>Idempotent:</strong> repeat calls return without re-running any callback — the contract is "run once, then frozen". After this call returns, [registerExtensions] throws [StateError].
                         </p>
                       </div>
                     </div>
@@ -1672,17 +1711,21 @@ final result = await runner.executeFromJsonFile('script.ast.json');</code></pre>
                         </p>
                         <h2>Why this exists</h2>
                         <p>
-                          The first script run after a test harness' `setUpAll` historically flaked under host load because the interpreter infrastructure (extension finalization, the ~30 stdlib bridges, and the registered bridged-class/enum definitions) cold-started during that first build. The shipped reset API ([resetScriptDeclarations]) does not warm anything — it only evicts script declarations. This method pays that cold-start cost *up front*, before the first real build, so the first build behaves like a warm one.
+                          The first script run after a test harness' <code>setUpAll</code> historically flaked under host load because the interpreter infrastructure (extension finalization, the ~30 stdlib bridges, and the registered bridged-class/enum definitions) cold-started during that first build. The shipped reset API ([resetScriptDeclarations]) does not warm anything — it only evicts script declarations. This method pays that cold-start cost 
+                          <em>up front</em>, before the first real build, so the first build behaves like a warm one.
                         </p>
                         <h2>What it warms</h2>
                         <p>
-                          1. [finalizeBridges] — fires every queued extension callback (relaxers, interface proxies, generic constructors) and freezes the runner. After this the bridge surface is fully wired. 2. A throwaway global [Environment] built via [_initEnvironment], which exercises the full `Stdlib(...).register()` + bridged-definition registration path that every build would otherwise pay on first run.
+                          1. [finalizeBridges] — fires every queued extension callback (relaxers, interface proxies, generic constructors) and freezes the runner. After this the bridge surface is fully wired. 2. A throwaway global [Environment] built via [_initEnvironment], which exercises the full 
+                          <code>Stdlib(...).register()</code> + bridged-definition registration path that every build would otherwise pay on first run.
                         </p>
                         <p>
-                          The runner has no Dart source parser (that lives in `tom_d4rt_exec`'s `D4rt`, which warms the analyzer front-end in its own `warmup`), so this warms only the bridge/stdlib half — which is the portion the parser-less Flutter runtime (and the test app's `/warmup` endpoint) shares.
+                          The runner has no Dart source parser (that lives in <code>tom_d4rt_exec</code>'s <code>D4rt</code>, which warms the analyzer front-end in its own 
+                          <code>warmup</code>), so this warms only the bridge/stdlib half — which is the portion the parser-less Flutter runtime (and the test app's 
+                          <code>/warmup</code> endpoint) shares.
                         </p>
                         <p>
-                          **Idempotent and script-neutral:** the warmup environment is discarded; it leaves no script declarations behind. The next real [execute]/[executeBundle] rebuilds a fresh environment as usual.
+                          <strong>Idempotent and script-neutral:</strong> the warmup environment is discarded; it leaves no script declarations behind. The next real [execute]/[executeBundle] rebuilds a fresh environment as usual.
                         </p>
                       </div>
                     </div>
@@ -1693,7 +1736,8 @@ final result = await runner.executeFromJsonFile('script.ast.json');</code></pre>
                       <div class="api-doc">
                         <p>Registers a relaxer (generic-type-wrapper) factory for [baseTypeName].</p>
                         <p>
-                          A relaxer converts an interpreted/bridged value into a native instance of a parameterized (or plain) bridged type when an argument of that type is required. [baseTypeName] is the *base* type name without type arguments (e.g. `'ValueListenable'`, `'MyBox'`). Delegates to [D4.registerGenericTypeWrapper]; registration is idempotent on factory identity and chains new-first.
+                          A relaxer converts an interpreted/bridged value into a native instance of a parameterized (or plain) bridged type when an argument of that type is required. [baseTypeName] is the 
+                          <em>base</em> type name without type arguments (e.g. <code>'ValueListenable'</code>, <code>'MyBox'</code>). Delegates to [D4.registerGenericTypeWrapper]; registration is idempotent on factory identity and chains new-first.
                         </p>
                         <p>Intended for use inside a [registerExtensions] body.</p>
                       </div>
@@ -1721,7 +1765,8 @@ final result = await runner.executeFromJsonFile('script.ast.json');</code></pre>
                       <div class="api-doc">
                         <p>Registers a generic-constructor factory for [className].[constructorName].</p>
                         <p>
-                          Used by the interpreter's construction path to build a native instance of a generic bridged class from interpreted arguments and type arguments. Use `''` for the unnamed constructor. Delegates to [D4.registerGenericConstructor]; registration is idempotent on factory identity and chains new-first.
+                          Used by the interpreter's construction path to build a native instance of a generic bridged class from interpreted arguments and type arguments. Use 
+                          <code>''</code> for the unnamed constructor. Delegates to [D4.registerGenericConstructor]; registration is idempotent on factory identity and chains new-first.
                         </p>
                         <p>Intended for use inside a [registerExtensions] body.</p>
                       </div>
@@ -1745,20 +1790,25 @@ final result = await runner.executeFromJsonFile('script.ast.json');</code></pre>
                       <div class="api-member-head"><code class="api-signature">void resetScriptDeclarations()</code></div>
                       <div class="api-doc">
                         <p>
-                          §U28 / TODO #14 — Evict script-declared entries from the current global environment so a follower `executeBundle` call starts with the same name-set the first build saw.
+                          §U28 / TODO #14 — Evict script-declared entries from the current global environment so a follower <code>executeBundle</code>
+                           call starts with the same name-set the first build saw.
                         </p>
                         <p>
-                          Walks [_globalEnvironment].`values` and removes any key not present in [_baselineValueKeys] (the snapshot captured at the end of the last [_initEnvironment]). Bridge registrations (`_bridgedClasses`, `_bridgedClassesLookupByType`, `_bridgedEnums`) are NOT touched.
+                          Walks [_globalEnvironment].<code>values</code> and removes any key not present in [_baselineValueKeys] (the snapshot captured at the end of the last [_initEnvironment]). Bridge registrations (<code>_bridgedClasses</code>, 
+                          <code>_bridgedClassesLookupByType</code>, <code>_bridgedEnums</code>) are NOT touched.
                         </p>
                         <p>
-                          It additionally clears the process-global native-side accumulator via [D4.resetNativeAccumulators] — the [D4] `_nativeToInterpreted` Expando and its registration counter. That Expando is the genuine cross-build accumulator (OPEN B.12 / §U28): its entries are pinned by framework objects the embedder keeps alive across `/build` cycles, so unlike the per-call-fresh `_values` map it does NOT self-clear. Dropping it here is what makes the reset API more than a no-op for the §U28 wedge.
+                          It additionally clears the process-global native-side accumulator via [D4.resetNativeAccumulators] — the [D4] 
+                          <code>_nativeToInterpreted</code> Expando and its registration counter. That Expando is the genuine cross-build accumulator (OPEN B.12 / §U28): its entries are pinned by framework objects the embedder keeps alive across 
+                          <code>/build</code> cycles, so unlike the per-call-fresh <code>_values</code> map it does NOT self-clear. Dropping it here is what makes the reset API more than a no-op for the §U28 wedge.
                         </p>
                         <h2>Architectural note</h2>
                         <p>
-                          As of the 2026‑05‑28 audit (interpreter_unfixable.md §U28), [executeBundle] and [execute] already call [_initEnvironment] on every invocation, which constructs a brand-new [Environment]. The previous environment is dropped on the floor by the next build, so script declarations do NOT accumulate across `/build` cycles in `_values`. The `_values` eviction below is therefore a forward-compatibility hook (frees GC roots earlier; survives any future change to the per-call fresh-environment invariant). The native-accumulator clear, by contrast, addresses real cross-build state — see OPEN B.12.
+                          As of the 2026‑05‑28 audit (interpreter_unfixable.md §U28), [executeBundle] and [execute] already call [_initEnvironment] on every invocation, which constructs a brand-new [Environment]. The previous environment is dropped on the floor by the next build, so script declarations do NOT accumulate across 
+                          <code>/build</code> cycles in <code>_values</code>. The <code>_values</code> eviction below is therefore a forward-compatibility hook (frees GC roots earlier; survives any future change to the per-call fresh-environment invariant). The native-accumulator clear, by contrast, addresses real cross-build state — see OPEN B.12.
                         </p>
                         <p>
-                          No-op on the `_values` half if no execution has happened yet (no global environment to walk) or if no baseline was captured; the native-accumulator clear runs unconditionally.
+                          No-op on the <code>_values</code> half if no execution has happened yet (no global environment to walk) or if no baseline was captured; the native-accumulator clear runs unconditionally.
                         </p>
                       </div>
                     </div>
@@ -1834,9 +1884,9 @@ final result = runner.executeBundle(bundle);</code></pre>
                           This is the typed entry point that consolidates the unwrap path — callers don't need to know about [BridgedInstance], [BridgedEnumValue], or [InterpretedInstance]; they get a plain [T] back (or a [D4UnwrapException] if the result can't be coerced).
                         </p>
                         <p>
-                          For results that may be a [Future] (i.e. from `async` entry points), use [executeBundleAsAsync] instead.
+                          For results that may be a [Future] (i.e. from <code>async</code> entry points), use [executeBundleAsAsync] instead.
                         </p>
-                        <p>Step 2 of `tom_d4rt_flutterm/doc/d4rt_consolidation_plan.md`.</p>
+                        <p>Step 2 of <code>tom_d4rt_flutterm/doc/d4rt_consolidation_plan.md</code>.</p>
                       </div>
                     </div>
                     <div id="D4rtRunner.executeBundleAsAsync" class="api-member">
@@ -1848,7 +1898,7 @@ final result = runner.executeBundle(bundle);</code></pre>
                       <div class="api-doc">
                         <p>Async variant of [executeBundleAs] — awaits the result if it is a [Future] before unwrapping to [T].</p>
                         <p>
-                          Use this when the bundle's entry point is `async` (or otherwise returns a Future). When the bundle is synchronous the awaited value is the raw return — both paths converge on [D4.unwrapAs] for the cast.
+                          Use this when the bundle's entry point is <code>async</code> (or otherwise returns a Future). When the bundle is synchronous the awaited value is the raw return — both paths converge on [D4.unwrapAs] for the cast.
                         </p>
                       </div>
                     </div>
@@ -1876,10 +1926,12 @@ final result = runner.executeBundle(bundle);</code></pre>
                           Recursively convert interpreter-side values into their native Dart equivalents at the script→host boundary.
                         </p>
                         <p>
-                          Mirrors `_bridgeInterpreterValueToNative` in `tom_d4rt/lib/src/d4rt_base.dart` (line ~1938). Same body, same record arity ladder (0..16 positional). Leaf-level [BridgedInstance]/[BridgedEnumValue] cases delegate to [D4.unwrapAs] — matching the leaf-level twins in this package's [InterpreterVisitor] and in `tom_d4rt`'s `_bridgeInterpreterValueToNative` (Step 4 of the consolidation plan).
+                          Mirrors <code>_bridgeInterpreterValueToNative</code> in <code>tom_d4rt/lib/src/d4rt_base.dart</code> (line ~1938). Same body, same record arity ladder (0..16 positional). Leaf-level [BridgedInstance]/[BridgedEnumValue] cases delegate to [D4.unwrapAs] — matching the leaf-level twins in this package's [InterpreterVisitor] and in 
+                          <code>tom_d4rt</code>'s <code>_bridgeInterpreterValueToNative</code> (Step 4 of the consolidation plan).
                         </p>
                         <p>
-                          The recursion is intentionally outside [D4.unwrapAs]: that helper's contract is single-level (the `unwrapInterpreterValue` docstring explicitly notes that recursing through Lists/Maps would destroy reified generics). The top-level script-return unwrap is a separate concern — flat callers want native records and unwrapped collection elements.
+                          The recursion is intentionally outside [D4.unwrapAs]: that helper's contract is single-level (the <code>unwrapInterpreterValue</code>
+                           docstring explicitly notes that recursing through Lists/Maps would destroy reified generics). The top-level script-return unwrap is a separate concern — flat callers want native records and unwrapped collection elements.
                         </p>
                       </div>
                     </div>

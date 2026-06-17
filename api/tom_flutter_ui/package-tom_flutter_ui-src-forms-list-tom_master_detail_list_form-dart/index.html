@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1324,10 +1344,14 @@
                       Two-pane master-detail layout that consumes a [TomListForm] directly — no separate "detail form" instance is needed.
                     </p>
                     <p>
-                      This is the no-sibling-form architecture of [TomInlineListForm] and [TomExpandableListForm] applied to the master-detail UX: when the user picks row N in the master pane, the detail builder is handed `listForm[N]` (the [TForm] the list itself owns). Because there is no second form bound to the same [TomClass], dirty state and value changes propagate cleanly through the standard child-container chain — the detail's `isDirty` rolls into the master list-form's `isDirty`, which rolls into the parent form's `isDirty`, and so on.
+                      This is the no-sibling-form architecture of [TomInlineListForm] and [TomExpandableListForm] applied to the master-detail UX: when the user picks row N in the master pane, the detail builder is handed 
+                      <code>listForm[N]</code> (the [TForm] the list itself owns). Because there is no second form bound to the same [TomClass], dirty state and value changes propagate cleanly through the standard child-container chain — the detail's 
+                      <code>isDirty</code> rolls into the master list-form's <code>isDirty</code>, which rolls into the parent form's 
+                      <code>isDirty</code>, and so on.
                     </p>
                     <p>
-                      The widget is layout-agnostic: callers supply [masterBuilder] for the left pane and [detailBuilder] for the right pane. The master builder receives the current selection + a `selectIndex` callback that runs the unsaved-changes guard (when [guardUnsavedSelectionChange] is true) before rebuilding.
+                      The widget is layout-agnostic: callers supply [masterBuilder] for the left pane and [detailBuilder] for the right pane. The master builder receives the current selection + a 
+                      <code>selectIndex</code> callback that runs the unsaved-changes guard (when [guardUnsavedSelectionChange] is true) before rebuilding.
                     </p>
                     <p>Example:</p>
                     <pre><code>TomMasterDetailListForm&lt;ShippingAddress, ShippingAddressForm&gt;(
@@ -1342,24 +1366,28 @@
                       Multiple [TomMasterDetailListForm] instances may share the same [TomListForm] — each maintains its own selection observable, so scaffold A may be looking at row 0 while scaffold B is looking at row 2. (See Demo H-A for the canonical two-scaffold-one-list demo.)
                     </p>
                     <p>
-                      **Resource resolution.** When [tomId] is set, the following keys are consulted (each falls back to the constructor argument or a hard- coded default if no resource exists):
+                      <strong>Resource resolution.</strong> When [tomId] is set, the following keys are consulted (each falls back to the constructor argument or a hard- coded default if no resource exists):
                     </p>
                     <table class="mdtable">
                       <thead><tr><th>Key</th><th>Type</th><th>Default</th></tr></thead>
                       <tbody>
-                        <tr><td>`&lt;basePath&gt;.padding`</td><td>EdgeInsets</td><td>(no padding)</td></tr>
-                        <tr><td>`&lt;basePath&gt;.empty`</td><td>string</td><td>the built-in italic hint</td></tr>
-                        <tr><td>`&lt;basePath&gt;.masterPaneWidth`</td><td>double</td><td>`280`</td></tr>
-                        <tr><td>`&lt;basePath&gt;.gap`</td><td>double</td><td>`16`</td></tr>
-                        <tr><td>`&lt;basePath&gt;.minMasterPaneWidth`</td><td>double</td><td>`120`</td></tr>
-                        <tr><td>`&lt;basePath&gt;.maxMasterPaneWidth`</td><td>double</td><td>(half of viewport)</td></tr>
+                        <tr><td><code>&lt;basePath&gt;.padding</code></td><td>EdgeInsets</td><td>(no padding)</td></tr>
+                        <tr><td><code>&lt;basePath&gt;.empty</code></td><td>string</td><td>the built-in italic hint</td></tr>
+                        <tr><td><code>&lt;basePath&gt;.masterPaneWidth</code></td><td>double</td><td><code>280</code></td></tr>
+                        <tr><td><code>&lt;basePath&gt;.gap</code></td><td>double</td><td><code>16</code></td></tr>
+                        <tr><td><code>&lt;basePath&gt;.minMasterPaneWidth</code></td><td>double</td><td><code>120</code></td></tr>
+                        <tr><td><code>&lt;basePath&gt;.maxMasterPaneWidth</code></td><td>double</td><td>(half of viewport)</td></tr>
                       </tbody>
                     </table>
                     <p>
-                      **Draggable splitter.** Pass [draggableSplitter]: true to make the gap between the master and detail panes a horizontal-resize handle. The user can then drag the splitter to widen or shrink the master pane between [minMasterPaneWidth] and [maxMasterPaneWidth] (or, when [maxMasterPaneWidth] is null, half the available width). The starting width is [masterPaneWidth] (or its resource fallback).
+                      <strong>Draggable splitter.</strong> Pass [draggableSplitter]: true to make the gap between the master and detail panes a horizontal-resize handle. The user can then drag the splitter to widen or shrink the master pane between [minMasterPaneWidth] and [maxMasterPaneWidth] (or, when [maxMasterPaneWidth] is null, half the available width). The starting width is [masterPaneWidth] (or its resource fallback).
                     </p>
                     <p>
-                      **Authorization.** The whole widget passes through the standard [TomPolicyNodeBase] gate at `&lt;basePath&gt;` — `none` hides the entire scaffold (both panes), `disabled` greys it out and absorbs pointers, `read` applies the readonly visual treatment. Per-row authorization is **not** supported by design — every row of a list shares the list's auth state. Authorize the *fields* of the row sub-form via the field widgets themselves; the same field auth applies to every row.
+                      <strong>Authorization.</strong> The whole widget passes through the standard [TomPolicyNodeBase] gate at 
+                      <code>&lt;basePath&gt;</code> — <code>none</code> hides the entire scaffold (both panes), <code>disabled</code>
+                       greys it out and absorbs pointers, <code>read</code> applies the readonly visual treatment. Per-row authorization is 
+                      <strong>not</strong> supported by design — every row of a list shares the list's auth state. Authorize the 
+                      <em>fields</em> of the row sub-form via the field widgets themselves; the same field auth applies to every row.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1382,7 +1410,8 @@
                       <div class="api-member-head"><code class="api-signature">final int? initialSelectedIndex</code></div>
                       <div class="api-doc">
                         <p>
-                          Optional initial selection. When non-null, the widget runs `selectIndex(initialSelectedIndex)` on the first frame so the detail pane comes up already showing that row.
+                          Optional initial selection. When non-null, the widget runs <code>selectIndex(initialSelectedIndex)</code>
+                           on the first frame so the detail pane comes up already showing that row.
                         </p>
                         <p>
                           The value is consulted only on the very first build; subsequent changes are ignored (selection becomes user-driven from then on).
@@ -1405,7 +1434,7 @@
                       <div class="api-member-head"><code class="api-signature">final Widget Function(BuildContext, int, TForm) detailBuilder</code></div>
                       <div class="api-doc">
                         <p>
-                          Builds the detail pane. The provided [rowForm] is the row's own sub-form (`listForm[selectedIndex]`) — bind any field widgets, Save/Discard buttons, error views directly to it.
+                          Builds the detail pane. The provided [rowForm] is the row's own sub-form (<code>listForm[selectedIndex]</code>) — bind any field widgets, Save/Discard buttons, error views directly to it.
                         </p>
                         <p>
                           When nothing is selected (or the index is out of range) this builder is NOT called — [emptyDetailBuilder] runs instead.
@@ -1416,7 +1445,8 @@
                       <div class="api-member-head"><code class="api-signature">final Widget Function(BuildContext)?? emptyDetailBuilder</code></div>
                       <div class="api-doc">
                         <p>
-                          Optional widget shown when nothing is selected. Defaults to a centred italic hint (resolved from `&lt;basePath&gt;.empty` if set, otherwise the built-in fallback).
+                          Optional widget shown when nothing is selected. Defaults to a centred italic hint (resolved from <code>&lt;basePath&gt;.empty</code>
+                           if set, otherwise the built-in fallback).
                         </p>
                       </div>
                     </div>
@@ -1451,7 +1481,8 @@
                       <div class="api-member-head"><code class="api-signature">final bool guardUnsavedSelectionChange</code></div>
                       <div class="api-doc">
                         <p>
-                          When `true` (default), selection changes prompt Save/Discard/Cancel if the currently-selected row's sub-form is dirty. Set to `false` to switch silently.
+                          When <code>true</code> (default), selection changes prompt Save/Discard/Cancel if the currently-selected row's sub-form is dirty. Set to 
+                          <code>false</code> to switch silently.
                         </p>
                       </div>
                     </div>
@@ -1459,7 +1490,8 @@
                       <div class="api-member-head"><code class="api-signature">final bool draggableSplitter</code></div>
                       <div class="api-doc">
                         <p>
-                          When `true`, the gap between the master pane and the detail pane becomes a draggable splitter handle that lets the user resize the master pane interactively. Defaults to `false` so existing scaffolds keep their fixed-width master pane.
+                          When <code>true</code>, the gap between the master pane and the detail pane becomes a draggable splitter handle that lets the user resize the master pane interactively. Defaults to 
+                          <code>false</code> so existing scaffolds keep their fixed-width master pane.
                         </p>
                       </div>
                     </div>
@@ -1562,7 +1594,8 @@
                       <div class="api-member-head"><code class="api-signature">double _masterPaneWidth</code></div>
                       <div class="api-doc">
                         <p>
-                          Live master pane width when the splitter is draggable. Initialised to the constructor / resource value and adjusted on horizontal drag. When the splitter is disabled this field is unused — the build path goes straight through `widget.masterPaneWidth`.
+                          Live master pane width when the splitter is draggable. Initialised to the constructor / resource value and adjusted on horizontal drag. When the splitter is disabled this field is unused — the build path goes straight through 
+                          <code>widget.masterPaneWidth</code>.
                         </p>
                       </div>
                     </div>
@@ -1603,7 +1636,7 @@
                       <div class="api-member-head"><code class="api-signature">double _clampWidth(double candidate, double availableWidth)</code></div>
                       <div class="api-doc">
                         <p>
-                          Clamps a candidate master pane width into the [min, max] range, where `max` defaults to half of the available width when not supplied by the host.
+                          Clamps a candidate master pane width into the [min, max] range, where <code>max</code> defaults to half of the available width when not supplied by the host.
                         </p>
                       </div>
                     </div>

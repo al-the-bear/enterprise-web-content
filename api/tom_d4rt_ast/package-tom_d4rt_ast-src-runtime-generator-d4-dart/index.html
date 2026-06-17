@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1354,12 +1374,16 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                     <div id="D4._typeNameCache" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static Map&lt;Type, String&gt; _typeNameCache</code></div>
                       <div class="api-doc">
-                        <p>Memoized `Type.toString()` results.</p>
+                        <p>Memoized <code>Type.toString()</code> results.</p>
                         <p>
-                          The generic coercion helpers below repeatedly render a type parameter (`T`, `V`) or `value.runtimeType` to its string form purely to inspect it for control flow (`startsWith('List&lt;')`, `== 'double?'`, etc.). `Type.toString()` showed up as a ~3.5% self-time hotspot (`_AbstractType.toString`) in the CPU profile because it was recomputed on every call.
+                          The generic coercion helpers below repeatedly render a type parameter (<code>T</code>, <code>V</code>) or 
+                          <code>value.runtimeType</code> to its string form purely to inspect it for control flow (<code>startsWith('List&lt;')</code>, 
+                          <code>== 'double?'</code>, etc.). <code>Type.toString()</code> showed up as a ~3.5% self-time hotspot (<code>_AbstractType.toString</code>) in the CPU profile because it was recomputed on every call.
                         </p>
                         <p>
-                          For a fixed `Type` the rendered name is invariant, and `Type` objects are canonical per type in the VM (identity-stable), so memoizing by the `Type` key is a pure optimization with zero semantic change and never needs invalidation. Only HOT inspection sites are routed through here; cold error-message interpolation keeps calling `toString()` directly.
+                          For a fixed <code>Type</code> the rendered name is invariant, and <code>Type</code> objects are canonical per type in the VM (identity-stable), so memoizing by the 
+                          <code>Type</code> key is a pure optimization with zero semantic change and never needs invalidation. Only HOT inspection sites are routed through here; cold error-message interpolation keeps calling 
+                          <code>toString()</code> directly.
                         </p>
                       </div>
                     </div>
@@ -1393,13 +1417,16 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                       <div class="api-member-head"><code class="api-signature">static Expando&lt;Object&gt; _nativeToInterpreted</code></div>
                       <div class="api-doc">
                         <p>
-                          Maps a native bridged-super object back to the [InterpretedInstance] that owns it. Populated by [extractBridgedArg] when an `InterpretedInstance.bridgedSuperObject` is returned to native code (e.g. `_invokeInterpretedAs&lt;RenderObject&gt;` returns the bridged super of a script's `_RenderMeasureBox` to the Flutter framework). The interpreter consults this map at property-assignment sites when the bridge has no matching setter, so script-defined fields on a concrete subclass (`_RenderMeasureBox.onLayout`) can still be reached after the framework has handed the native side back to script code.
+                          Maps a native bridged-super object back to the [InterpretedInstance] that owns it. Populated by [extractBridgedArg] when an 
+                          <code>InterpretedInstance.bridgedSuperObject</code> is returned to native code (e.g. <code>_invokeInterpretedAs&lt;RenderObject&gt;</code>
+                           returns the bridged super of a script's <code>_RenderMeasureBox</code> to the Flutter framework). The interpreter consults this map at property-assignment sites when the bridge has no matching setter, so script-defined fields on a concrete subclass (<code>_RenderMeasureBox.onLayout</code>) can still be reached after the framework has handed the native side back to script code.
                         </p>
                         <p>
                           [Expando] is used so the map entries do not pin the native object against garbage collection. Each native object can have at most one associated InterpretedInstance (the last extracted one wins — extractBridgedArg is idempotent within one interpreter session, so re-extractions of the same arg overwrite with the same value).
                         </p>
                         <p>
-                          Non-`final` so [resetNativeAccumulators] can swap in a fresh [Expando]: although individual entries are weak, the framework (Flutter Elements / RenderObjects / animations) keeps the *native keys* alive across `/build` cycles, so the entries pinned by them survive too. That is the genuine cross-build accumulator identified in OPEN B.12 / §U28.
+                          Non-<code>final</code> so [resetNativeAccumulators] can swap in a fresh [Expando]: although individual entries are weak, the framework (Flutter Elements / RenderObjects / animations) keeps the 
+                          <em>native keys</em> alive across <code>/build</code> cycles, so the entries pinned by them survive too. That is the genuine cross-build accumulator identified in OPEN B.12 / §U28.
                         </p>
                       </div>
                     </div>
@@ -1407,7 +1434,8 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                       <div class="api-member-head"><code class="api-signature">static int _nativeRegistrationCount</code></div>
                       <div class="api-doc">
                         <p>
-                          Cumulative count of [registerInterpretedForNative] calls since the last [resetNativeAccumulators]. The [Expando] itself exposes no length, so this counter is the observable proxy for "how much native→interpreted state has built up" — it lets embedders and tests detect accumulation across `/build` cycles and verify a reset returns it to baseline.
+                          Cumulative count of [registerInterpretedForNative] calls since the last [resetNativeAccumulators]. The [Expando] itself exposes no length, so this counter is the observable proxy for "how much native→interpreted state has built up" — it lets embedders and tests detect accumulation across 
+                          <code>/build</code> cycles and verify a reset returns it to baseline.
                         </p>
                       </div>
                     </div>
@@ -1431,13 +1459,16 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                       <div class="api-member-head"><code class="api-signature">static Set&lt;String&gt; _superArgCapturingProxies</code></div>
                       <div class="api-doc">
                         <p>
-                          Bridged-class names whose proxy `create()` reads the script's `super(...)` argument list off [InterpretedInstance.superCallNamedArgs] / [InterpretedInstance.superCallPositionalArgs].
+                          Bridged-class names whose proxy <code>create()</code> reads the script's <code>super(...)</code> argument list off [InterpretedInstance.superCallNamedArgs] / [InterpretedInstance.superCallPositionalArgs].
                         </p>
                         <p>
-                          The vast majority of registered proxies (LeafRenderObjectWidget, SingleChildRenderObjectWidget, Intent, Action, InheritedWidget, the StatelessWidget/StatefulWidget tag-wrappers, …) do not need the super-args because the relevant state lives on the InterpretedInstance fields. For those, evaluating the super(...) args at the proxy-no-op branch is pure overhead and — empirically — leaks references through the captured `child` / `children` arguments, polluting the test app across the rendering test stream and producing 30 s HTTP timeouts on `render_error_box_test.dart` and following.
+                          The vast majority of registered proxies (LeafRenderObjectWidget, SingleChildRenderObjectWidget, Intent, Action, InheritedWidget, the StatelessWidget/StatefulWidget tag-wrappers, …) do not need the super-args because the relevant state lives on the InterpretedInstance fields. For those, evaluating the super(...) args at the proxy-no-op branch is pure overhead and — empirically — leaks references through the captured 
+                          <code>child</code> / <code>children</code> arguments, polluting the test app across the rendering test stream and producing 30 s HTTP timeouts on 
+                          <code>render_error_box_test.dart</code> and following.
                         </p>
                         <p>
-                          C7 introduces a small set of proxies (TwoDimensionalScrollView / TwoDimensionalViewport / RenderTwoDimensionalViewport) that *do* need the super-args to forward to the native super-constructor. Those proxies opt in via [markProxyCapturesSuperArgs].
+                          C7 introduces a small set of proxies (TwoDimensionalScrollView / TwoDimensionalViewport / RenderTwoDimensionalViewport) that 
+                          <em>do</em> need the super-args to forward to the native super-constructor. Those proxies opt in via [markProxyCapturesSuperArgs].
                         </p>
                       </div>
                     </div>
@@ -1461,7 +1492,8 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                       </div>
                       <div class="api-doc">
                         <p>
-                          Per-base-type identity tracking for [registerGenericTypeWrapper] — keyed by the same [baseTypeName] used by [_genericTypeWrappers]. Lets the registration call dedupe by factory identity so a second `registerRelaxers()` does not re-append the same factory.
+                          Per-base-type identity tracking for [registerGenericTypeWrapper] — keyed by the same [baseTypeName] used by [_genericTypeWrappers]. Lets the registration call dedupe by factory identity so a second 
+                          <code>registerRelaxers()</code> does not re-append the same factory.
                         </p>
                       </div>
                     </div>
@@ -1474,7 +1506,7 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                       <div class="api-doc">
                         <p>Registered generic constructor factories keyed by "ClassName.ctorName".</p>
                         <p>
-                          When a bridged class constructor is called with type arguments (e.g., `GlobalKey&lt;NavigatorState&gt;()`), the interpreter checks this map first. If found, the factory handles the construction with proper generic type arguments. Otherwise, the regular constructor adapter runs.
+                          When a bridged class constructor is called with type arguments (e.g., <code>GlobalKey&lt;NavigatorState&gt;()</code>), the interpreter checks this map first. If found, the factory handles the construction with proper generic type arguments. Otherwise, the regular constructor adapter runs.
                         </p>
                       </div>
                     </div>
@@ -1486,7 +1518,11 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                       </div>
                       <div class="api-doc">
                         <p>
-                          Per-key identity tracking for [registerGenericConstructor]. The chained-factory closure captures and grows on every call, which is the right behaviour for *distinct* factories layering on top of each other but the wrong behaviour for the *same* factory firing twice (e.g. when `registerRelaxers()` is invoked on every `FlutterD4rt` instance after the `_relaxersRegistered` guard is removed). We dedupe by factory identity, keyed by `'$className.$constructorName'`.
+                          Per-key identity tracking for [registerGenericConstructor]. The chained-factory closure captures and grows on every call, which is the right behaviour for 
+                          <em>distinct</em> factories layering on top of each other but the wrong behaviour for the <em>same</em>
+                           factory firing twice (e.g. when <code>registerRelaxers()</code> is invoked on every <code>FlutterD4rt</code>
+                           instance after the <code>_relaxersRegistered</code> guard is removed). We dedupe by factory identity, keyed by 
+                          <code>'$className.$constructorName'</code>.
                         </p>
                       </div>
                     </div>
@@ -1494,13 +1530,15 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                       <div class="api-member-head"><code class="api-signature">static bool usageLogEnabled</code></div>
                       <div class="api-doc">
                         <p>
-                          Opt-in instrumentation toggle. When `true`, [extractBridgedArg] and the interpreter's generic-constructor path record each relaxer / interface-proxy / type-coercion / generic-constructor *hit* and each unresolved *miss*, keyed by category + base type + type-argument. The accumulated data drives the mass-generation reduction work (P&amp;R steps 4–5): it reveals which generated cases real scripts actually exercise.
+                          Opt-in instrumentation toggle. When <code>true</code>, [extractBridgedArg] and the interpreter's generic-constructor path record each relaxer / interface-proxy / type-coercion / generic-constructor 
+                          <em>hit</em> and each unresolved <em>miss</em>, keyed by category + base type + type-argument. The accumulated data drives the mass-generation reduction work (P&amp;R steps 4–5): it reveals which generated cases real scripts actually exercise.
                         </p>
                         <p>
-                          Defaults to `false`. Every instrumentation call site guards on this flag *before* composing any log key, so the log is completely silent and zero-overhead when disabled.
+                          Defaults to <code>false</code>. Every instrumentation call site guards on this flag <em>before</em> composing any log key, so the log is completely silent and zero-overhead when disabled.
                         </p>
                         <p>
-                          Web note: this flag is purely programmatic here (no `dart:io`). The VM `D4rt` facade additionally defaults it from the `D4RT_LOG_RELAXER_USAGE` environment variable; the web-capable `tom_d4rt_ast` twin cannot read environment variables, so callers enable it directly. This is the only deliberate twin divergence for this feature.
+                          Web note: this flag is purely programmatic here (no <code>dart:io</code>). The VM <code>D4rt</code> facade additionally defaults it from the 
+                          <code>D4RT_LOG_RELAXER_USAGE</code> environment variable; the web-capable <code>tom_d4rt_ast</code> twin cannot read environment variables, so callers enable it directly. This is the only deliberate twin divergence for this feature.
                         </p>
                       </div>
                     </div>
@@ -1540,10 +1578,14 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                       <div class="api-doc">
                         <p>Bridged method interceptors keyed by class name then method name.</p>
                         <p>
-                          Generated bridge adapters for selected methods (currently `Element.dependOnInheritedWidgetOfExactType`, `Element.getInheritedWidgetOfExactType`, `Element.getElementForInheritedWidgetOfExactType`) emit a hook check at the top of their adapter body. If an interceptor is registered for the owning class + method name, it runs in place of the native call, receiving the full `(visitor, target, positional, named, typeArgs)` tuple — including any script-supplied generic type arguments which the native bridge call would otherwise drop.
+                          Generated bridge adapters for selected methods (currently <code>Element.dependOnInheritedWidgetOfExactType</code>, 
+                          <code>Element.getInheritedWidgetOfExactType</code>, <code>Element.getElementForInheritedWidgetOfExactType</code>) emit a hook check at the top of their adapter body. If an interceptor is registered for the owning class + method name, it runs in place of the native call, receiving the full 
+                          <code>(visitor, target, positional, named, typeArgs)</code> tuple — including any script-supplied generic type arguments which the native bridge call would otherwise drop.
                         </p>
                         <p>
-                          Used by `tom_d4rt_flutterm` to resolve interpreted `InheritedWidget` subclasses by walking the element tree and matching `_InterpretedInheritedWidget._instance.klass` against `typeArgs[0]`, since interpreted subclasses share the same native runtimeType and Flutter's `_inheritedElements[T]` lookup is type-erased.
+                          Used by <code>tom_d4rt_flutterm</code> to resolve interpreted <code>InheritedWidget</code> subclasses by walking the element tree and matching 
+                          <code>_InterpretedInheritedWidget._instance.klass</code> against <code>typeArgs[0]</code>, since interpreted subclasses share the same native runtimeType and Flutter's 
+                          <code>_inheritedElements[T]</code> lookup is type-erased.
                         </p>
                       </div>
                     </div>
@@ -1560,13 +1602,14 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                       </div>
                       <div class="api-doc">
                         <p>
-                          Static getter adapters for bridged enums, keyed by enum name then getter name. These allow injecting non-constant static members (e.g. `WidgetState.any`) at runtime without modifying generated bridge files.
+                          Static getter adapters for bridged enums, keyed by enum name then getter name. These allow injecting non-constant static members (e.g. 
+                          <code>WidgetState.any</code>) at runtime without modifying generated bridge files.
                         </p>
                       </div>
                     </div>
                     <div id="D4.typeName" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static String typeName(Type t)</code></div>
-                      <div class="api-doc"><p>Returns the (memoized) `toString()` of [t]. See [_typeNameCache].</p></div>
+                      <div class="api-doc"><p>Returns the (memoized) <code>toString()</code> of [t]. See [_typeNameCache].</p></div>
                     </div>
                     <div id="D4.withActiveVisitor" class="api-member">
                       <div class="api-member-head">
@@ -1592,7 +1635,9 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                       <div class="api-member-head"><code class="api-signature">static Object? interpretedForNative(Object? nativeObject)</code></div>
                       <div class="api-doc">
                         <p>
-                          Returns the [InterpretedInstance] previously registered for [nativeObject], or `null` if none. The return type is `Object?` to avoid a cross-module import of `InterpretedInstance` here; callers in the interpreter cast to `InterpretedInstance`.
+                          Returns the [InterpretedInstance] previously registered for [nativeObject], or <code>null</code> if none. The return type is 
+                          <code>Object?</code> to avoid a cross-module import of <code>InterpretedInstance</code> here; callers in the interpreter cast to 
+                          <code>InterpretedInstance</code>.
                         </p>
                       </div>
                     </div>
@@ -1601,13 +1646,16 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                       <div class="api-doc">
                         <p>Clears the cross-build native-side accumulator (OPEN B.12 / §U28).</p>
                         <p>
-                          Replaces the [_nativeToInterpreted] [Expando] with a fresh instance — the only way to bulk-drop its entries, since [Expando] exposes neither a `clear()` nor an iterator — and zeroes [nativeRegistrationCount]. Any native object previously mapped reads back as `null` afterwards.
+                          Replaces the [_nativeToInterpreted] [Expando] with a fresh instance — the only way to bulk-drop its entries, since [Expando] exposes neither a 
+                          <code>clear()</code> nor an iterator — and zeroes [nativeRegistrationCount]. Any native object previously mapped reads back as 
+                          <code>null</code> afterwards.
                         </p>
                         <p>
-                          Wired into the runtime reset API ([D4rtRunner.resetScriptDeclarations] / `D4rt.resetScriptDeclarations`) so an embedder's `/clear` actually frees the native→interpreted entries pinned by the previous build's framework objects, instead of leaking them until process recycle.
+                          Wired into the runtime reset API ([D4rtRunner.resetScriptDeclarations] / <code>D4rt.resetScriptDeclarations</code>) so an embedder's 
+                          <code>/clear</code> actually frees the native→interpreted entries pinned by the previous build's framework objects, instead of leaking them until process recycle.
                         </p>
                         <p>
-                          NOTE: this state is **process-global** (static on [D4]), shared by every live interpreter. It does not touch the registration caches ([_interfaceProxies], [_genericConstructors], [_typeCoercions], …) — those are populated once at bridge finalization and must persist across builds.
+                          NOTE: this state is <strong>process-global</strong> (static on [D4]), shared by every live interpreter. It does not touch the registration caches ([_interfaceProxies], [_genericConstructors], [_typeCoercions], …) — those are populated once at bridge finalization and must persist across builds.
                         </p>
                       </div>
                     </div>
@@ -1623,7 +1671,8 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                           The [bridgedTypeName] is the name of the bridged class/interface. The [factory] creates a native proxy that delegates to the InterpreterVisitor.
                         </p>
                         <p>
-                          **Idempotent:** Repeated calls with the same [bridgedTypeName] simply overwrite the previously registered factory — calling this twice (e.g. from a generated `registerProxyFactories()` that fires on every `FlutterD4rt` instance) is safe and well-defined.
+                          <strong>Idempotent:</strong> Repeated calls with the same [bridgedTypeName] simply overwrite the previously registered factory — calling this twice (e.g. from a generated 
+                          <code>registerProxyFactories()</code> that fires on every <code>FlutterD4rt</code> instance) is safe and well-defined.
                         </p>
                       </div>
                     </div>
@@ -1634,7 +1683,9 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                           Returns true when an interface-proxy factory has been registered for the bridged type [bridgedTypeName] (via [registerInterfaceProxy]).
                         </p>
                         <p>
-                          Used by the interpreter (`super(...)` resolution in callable.dart) to skip the missing-bridge-constructor error for abstract widget bases like `SingleChildRenderObjectWidget` / `LeafRenderObjectWidget`: when a script subclass calls `super(...)` and the abstract base has no emitted constructor adapter, the interpreter would normally throw "Bridged superclass 'X' does not have a constructor named ''.". When a proxy is registered for that bridged type, the interpreter knows that [tryCreateInterfaceProxyWithVisitor] will later wrap the InterpretedInstance into a native widget at every bridge boundary, so the super-constructor call can be a no-op.
+                          Used by the interpreter (<code>super(...)</code> resolution in callable.dart) to skip the missing-bridge-constructor error for abstract widget bases like 
+                          <code>SingleChildRenderObjectWidget</code> / <code>LeafRenderObjectWidget</code>: when a script subclass calls 
+                          <code>super(...)</code> and the abstract base has no emitted constructor adapter, the interpreter would normally throw "Bridged superclass 'X' does not have a constructor named ''.". When a proxy is registered for that bridged type, the interpreter knows that [tryCreateInterfaceProxyWithVisitor] will later wrap the InterpretedInstance into a native widget at every bridge boundary, so the super-constructor call can be a no-op.
                         </p>
                       </div>
                     </div>
@@ -1642,7 +1693,7 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                       <div class="api-member-head"><code class="api-signature">static void markProxyCapturesSuperArgs(String bridgedTypeName)</code></div>
                       <div class="api-doc">
                         <p>
-                          Mark [bridgedTypeName] as a proxy that needs `super(...)` args captured onto the [InterpretedInstance]. See [_superArgCapturingProxies].
+                          Mark [bridgedTypeName] as a proxy that needs <code>super(...)</code> args captured onto the [InterpretedInstance]. See [_superArgCapturingProxies].
                         </p>
                       </div>
                     </div>
@@ -1650,7 +1701,8 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                       <div class="api-member-head"><code class="api-signature">static bool proxyCapturesSuperArgs(String bridgedTypeName)</code></div>
                       <div class="api-doc">
                         <p>
-                          Returns true when the proxy registered for [bridgedTypeName] needs the script's `super(...)` argument list captured. See [_superArgCapturingProxies].
+                          Returns true when the proxy registered for [bridgedTypeName] needs the script's <code>super(...)</code>
+                           argument list captured. See [_superArgCapturingProxies].
                         </p>
                       </div>
                     </div>
@@ -1666,7 +1718,8 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                           [sourceTypeName] is the runtime type name of the source (e.g., 'TextStyle'). [targetTypeName] is the expected type name (e.g., 'TextStyle') — but in a different package. The key used is "sourceType-&gt;targetType" but since both may have the same name, we use the native [Type] objects. [sourceType] and [targetType] are the actual Dart [Type] objects. The [factory] converts the source to the target type.
                         </p>
                         <p>
-                          **Idempotent:** Repeated calls with the same `(sourceType, targetType)` pair overwrite the previously registered factory in both [_typeCoercions] and [_typeCoercionsByType] — safe to invoke twice when a process re-runs the generator's `registerRelaxers()` block.
+                          <strong>Idempotent:</strong> Repeated calls with the same <code>(sourceType, targetType)</code> pair overwrite the previously registered factory in both [_typeCoercions] and [_typeCoercionsByType] — safe to invoke twice when a process re-runs the generator's 
+                          <code>registerRelaxers()</code> block.
                         </p>
                       </div>
                     </div>
@@ -1685,7 +1738,9 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                           The [baseTypeName] is the unparameterized type name (e.g., 'WidgetStateProperty'). The [factory] receives the raw value and the desired inner type argument string.
                         </p>
                         <p>
-                          **Idempotent:** If the same [factory] (compared by identity) has already been registered for [baseTypeName], the call is a no-op. Distinct factories for the same base type are still appended in registration order. This lets `registerRelaxers()` and similar generator-emitted blocks fire multiple times (e.g. on a second `FlutterD4rt` instance) without growing the per-key list.
+                          <strong>Idempotent:</strong> If the same [factory] (compared by identity) has already been registered for [baseTypeName], the call is a no-op. Distinct factories for the same base type are still appended in registration order. This lets 
+                          <code>registerRelaxers()</code> and similar generator-emitted blocks fire multiple times (e.g. on a second 
+                          <code>FlutterD4rt</code> instance) without growing the per-key list.
                         </p>
                       </div>
                     </div>
@@ -1701,10 +1756,11 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                           [className] - The bridged class name (e.g., 'GlobalKey'). [constructorName] - The constructor name ('' for default, 'named' for named). [factory] - Creates the native object using the provided type arguments.
                         </p>
                         <p>
-                          **Chaining:** If a factory is already registered for the same key, the new factory runs first. If it returns `null` (unhandled type), the previously-registered factory runs as fallback. This enables downstream packages to extend type dispatches without knowledge of upstream types.
+                          <strong>Chaining:</strong> If a factory is already registered for the same key, the new factory runs first. If it returns 
+                          <code>null</code> (unhandled type), the previously-registered factory runs as fallback. This enables downstream packages to extend type dispatches without knowledge of upstream types.
                         </p>
                         <p>
-                          **Idempotent:** If the same [factory] (by identity) is already registered for `$className.$constructorName`, the call is a no-op — no extra chaining, no duplicate dispatch. Distinct factories for the same key still chain as documented above.
+                          <strong>Idempotent:</strong> If the same [factory] (by identity) is already registered for <code>$className.$constructorName</code>, the call is a no-op — no extra chaining, no duplicate dispatch. Distinct factories for the same key still chain as documented above.
                         </p>
                       </div>
                     </div>
@@ -1728,7 +1784,8 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                       <div class="api-member-head"><code class="api-signature">static String _baseTypeName(String typeStr)</code></div>
                       <div class="api-doc">
                         <p>
-                          Parse the base type name from a type string, e.g. `List&lt;int&gt;?` → `List`, `Color` → `Color`. Used to key usage records by base type.
+                          Parse the base type name from a type string, e.g. <code>List&lt;int&gt;?</code> → <code>List</code>, 
+                          <code>Color</code> → <code>Color</code>. Used to key usage records by base type.
                         </p>
                       </div>
                     </div>
@@ -1736,7 +1793,7 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                       <div class="api-member-head"><code class="api-signature">static String _innerTypeArg(String typeStr)</code></div>
                       <div class="api-doc">
                         <p>
-                          Parse the inner type-argument from a generic type string, e.g. `List&lt;int&gt;` → `int`; returns `` (empty) for a non-generic type.
+                          Parse the inner type-argument from a generic type string, e.g. <code>List&lt;int&gt;</code> → <code>int</code>; returns `` (empty) for a non-generic type.
                         </p>
                       </div>
                     </div>
@@ -1746,7 +1803,8 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                       </div>
                       <div class="api-doc">
                         <p>
-                          Record a successful resolution of [category] (`relaxer`, `proxy`, `coercion`, or `ctor`) for [base] with [typeArg]. No-op unless [usageLogEnabled]; call sites still guard the flag to avoid key allocation when logging is off.
+                          Record a successful resolution of [category] (<code>relaxer</code>, <code>proxy</code>, <code>coercion</code>, or 
+                          <code>ctor</code>) for [base] with [typeArg]. No-op unless [usageLogEnabled]; call sites still guard the flag to avoid key allocation when logging is off.
                         </p>
                       </div>
                     </div>
@@ -1782,10 +1840,15 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                           Build an enriched diagnostic message for an unresolved [extractBridgedArg] resolution (P&amp;R#2 / request g).
                         </p>
                         <p>
-                          Beyond the bare "expected/got" line, it reports: - the **base type** (`expectedType` stripped of nullability + type args), - the **unmatched type-argument** (if `expectedType` is generic), - the **registration state** — whether a relaxer (generic-type wrapper), interface-proxy, or generic-constructor factory is registered for the *base* type even though none matched *this* argument, and - the concrete **remedy** (add the inner type to `additionalRelaxerTypes:` in the bridge config, or register a factory programmatically).
+                          Beyond the bare "expected/got" line, it reports: - the <strong>base type</strong> (<code>expectedType</code>
+                           stripped of nullability + type args), - the <strong>unmatched type-argument</strong> (if <code>expectedType</code>
+                           is generic), - the <strong>registration state</strong> — whether a relaxer (generic-type wrapper), interface-proxy, or generic-constructor factory is registered for the 
+                          <em>base</em> type even though none matched <em>this</em> argument, and - the concrete <strong>remedy</strong>
+                           (add the inner type to <code>additionalRelaxerTypes:</code> in the bridge config, or register a factory programmatically).
                         </p>
                         <p>
-                          The first line preserves the historical `Invalid parameter "&lt;name&gt;": expected &lt;T&gt;, got &lt;actual&gt;` prefix so callers that match on it keep working; the diagnostics follow on indented lines.
+                          The first line preserves the historical <code>Invalid parameter "&lt;name&gt;": expected &lt;T&gt;, got &lt;actual&gt;</code>
+                           prefix so callers that match on it keep working; the diagnostics follow on indented lines.
                         </p>
                       </div>
                     </div>
@@ -1801,7 +1864,8 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                           [bridgedClassName] - The name of the bridged class. [methodName] - The method name to add. [adapter] - The method adapter (same signature as generated adapters).
                         </p>
                         <p>
-                          **Idempotent:** Repeated calls with the same `(bridgedClassName, methodName)` overwrite the previously registered adapter — safe to call twice when generator-emitted blocks fire multiple times.
+                          <strong>Idempotent:</strong> Repeated calls with the same <code>(bridgedClassName, methodName)</code>
+                           overwrite the previously registered adapter — safe to call twice when generator-emitted blocks fire multiple times.
                         </p>
                       </div>
                     </div>
@@ -1821,10 +1885,11 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                       </div>
                       <div class="api-doc">
                         <p>
-                          Register an interceptor for a bridged method. Replaces any previously registered interceptor for the same `(className, methodName)` pair.
+                          Register an interceptor for a bridged method. Replaces any previously registered interceptor for the same 
+                          <code>(className, methodName)</code> pair.
                         </p>
                         <p>
-                          The [className] is the conceptual owner of the method (e.g. `'Element'`) — bridge adapters generated on subclasses look up the same key.
+                          The [className] is the conceptual owner of the method (e.g. <code>'Element'</code>) — bridge adapters generated on subclasses look up the same key.
                         </p>
                       </div>
                     </div>
@@ -1836,7 +1901,8 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                       </div>
                       <div class="api-doc">
                         <p>
-                          Look up a bridged method interceptor for `(className, methodName)`. Returns `null` when no interceptor has been registered.
+                          Look up a bridged method interceptor for <code>(className, methodName)</code>. Returns <code>null</code>
+                           when no interceptor has been registered.
                         </p>
                       </div>
                     </div>
@@ -1848,7 +1914,8 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                       </div>
                       <div class="api-doc">
                         <p>
-                          Register an interceptor for a bridged static method. Replaces any previously registered interceptor for the same `(className, methodName)` pair.
+                          Register an interceptor for a bridged static method. Replaces any previously registered interceptor for the same 
+                          <code>(className, methodName)</code> pair.
                         </p>
                       </div>
                     </div>
@@ -1860,7 +1927,8 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                       </div>
                       <div class="api-doc">
                         <p>
-                          Look up a bridged static method interceptor for `(className, methodName)`. Returns `null` when no interceptor has been registered.
+                          Look up a bridged static method interceptor for <code>(className, methodName)</code>. Returns <code>null</code>
+                           when no interceptor has been registered.
                         </p>
                       </div>
                     </div>
@@ -1871,7 +1939,8 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                       <div class="api-doc">
                         <p>Register a static getter on a bridged enum type.</p>
                         <p>
-                          Used for enum static members that are not enum constants (e.g. `WidgetState.any` which returns a `WidgetStatesConstraint`).
+                          Used for enum static members that are not enum constants (e.g. <code>WidgetState.any</code> which returns a 
+                          <code>WidgetStatesConstraint</code>).
                         </p>
                       </div>
                     </div>
@@ -1888,7 +1957,7 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                       <div class="api-doc">
                         <p>Coerce a List from D4rt to a typed List.</p>
                         <p>
-                          D4rt creates `List&lt;Object?&gt;` when evaluating list literals, even if all elements are of the same type. This function coerces the list to the expected type by casting each element.
+                          D4rt creates <code>List&lt;Object?&gt;</code> when evaluating list literals, even if all elements are of the same type. This function coerces the list to the expected type by casting each element.
                         </p>
                       </div>
                     </div>
@@ -1907,9 +1976,10 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                     <div id="D4._splitTopLevelComma" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static int _splitTopLevelComma(String s)</code></div>
                       <div class="api-doc">
-                        <p>MAP-COERCE: split a generic argument list `K, V` at the top-level comma.</p>
+                        <p>MAP-COERCE: split a generic argument list <code>K, V</code> at the top-level comma.</p>
                         <p>
-                          Respects nested angle brackets so `Map&lt;K, V&gt;` arguments containing other generics (e.g. `Map&lt;String, List&lt;int&gt;&gt;`) are split correctly. Returns the index of the top-level comma, or -1 if no top-level comma is found.
+                          Respects nested angle brackets so <code>Map&lt;K, V&gt;</code> arguments containing other generics (e.g. 
+                          <code>Map&lt;String, List&lt;int&gt;&gt;</code>) are split correctly. Returns the index of the top-level comma, or -1 if no top-level comma is found.
                         </p>
                       </div>
                     </div>
@@ -1921,10 +1991,12 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                       </div>
                       <div class="api-doc">
                         <p>
-                          MAP-COERCE: rebuild [source] as a `Map&lt;K, V&gt;` for common primitive combinations, dispatching on the parsed type-string pair.
+                          MAP-COERCE: rebuild [source] as a <code>Map&lt;K, V&gt;</code> for common primitive combinations, dispatching on the parsed type-string pair.
                         </p>
                         <p>
-                          `extractBridgedArg&lt;Map&lt;K, V&gt;&gt;` cannot use compile-time type parameters, so a typed cast of `Map&lt;Object?, Object?&gt;` to the requested `Map&lt;String, String&gt;` (etc.) fails on reified generics. This helper rebuilds the map with concrete element types for the cases that show up in real bridges — covering the dcli `withEnvironmentAsync` case (`Map&lt;String, String&gt;`) plus the other primitive shapes that appear in stdlib and Flutter bridges. Returns null if the K|V combination is not handled, in which case the caller falls back to the existing unwrapped/rewrapped map paths.
+                          <code>extractBridgedArg&lt;Map&lt;K, V&gt;&gt;</code> cannot use compile-time type parameters, so a typed cast of 
+                          <code>Map&lt;Object?, Object?&gt;</code> to the requested <code>Map&lt;String, String&gt;</code> (etc.) fails on reified generics. This helper rebuilds the map with concrete element types for the cases that show up in real bridges — covering the dcli 
+                          <code>withEnvironmentAsync</code> case (<code>Map&lt;String, String&gt;</code>) plus the other primitive shapes that appear in stdlib and Flutter bridges. Returns null if the K|V combination is not handled, in which case the caller falls back to the existing unwrapped/rewrapped map paths.
                         </p>
                       </div>
                     </div>
@@ -1933,9 +2005,11 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                       <div class="api-doc">
                         <p>GEN-079: Try to resolve a value through registered generic type wrapper factories.</p>
                         <p>
-                          When T is a parameterized generic (e.g., `TweenSequenceItem&lt;double&gt;`) and [value] has the right base type but wrong type arguments (e.g., `TweenSequenceItem&lt;dynamic&gt;`), registered wrapper factories can create a properly typed proxy (e.g., `$RelaxedTweenSequenceItem&lt;double&gt;`).
+                          When T is a parameterized generic (e.g., <code>TweenSequenceItem&lt;double&gt;</code>) and [value] has the right base type but wrong type arguments (e.g., 
+                          <code>TweenSequenceItem&lt;dynamic&gt;</code>), registered wrapper factories can create a properly typed proxy (e.g., 
+                          <code>$RelaxedTweenSequenceItem&lt;double&gt;</code>).
                         </p>
-                        <p>Returns the wrapped value if a factory succeeds, or `null` if no factory matched.</p>
+                        <p>Returns the wrapped value if a factory succeeds, or <code>null</code> if no factory matched.</p>
                       </div>
                     </div>
                     <div id="D4._tryUserFactoryResolution" class="api-member">
@@ -1945,12 +2019,16 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                           P&amp;R#3: Last-resort user-factory resolution, tried immediately before [extractBridgedArg] gives up and throws.
                         </p>
                         <p>
-                          The inlined relaxer lookup inside [extractBridgedArg] only consults [_genericTypeWrappers] when `T` is itself parameterized (its string form contains `&lt;…&gt;`). A relaxer registered for a *non-generic* user type — the common case when an embedder calls `D4rtRunner.registerRelaxerFactory` / [registerGenericTypeWrapper] for one of its own classes — would therefore never be reached. This helper closes that gap: it looks the base type name up in [_genericTypeWrappers] (passing an empty inner type argument for non-generic `T`) and returns the first factory result that satisfies `T`.
+                          The inlined relaxer lookup inside [extractBridgedArg] only consults [_genericTypeWrappers] when <code>T</code>
+                           is itself parameterized (its string form contains <code>&lt;…&gt;</code>). A relaxer registered for a 
+                          <em>non-generic</em> user type — the common case when an embedder calls <code>D4rtRunner.registerRelaxerFactory</code>
+                           / [registerGenericTypeWrapper] for one of its own classes — would therefore never be reached. This helper closes that gap: it looks the base type name up in [_genericTypeWrappers] (passing an empty inner type argument for non-generic 
+                          <code>T</code>) and returns the first factory result that satisfies <code>T</code>.
                         </p>
                         <p>
                           Strictly additive — it runs only on the path that would otherwise throw, so it can turn a previous failure into a success but can never change the result of an argument that already resolved.
                         </p>
-                        <p>Returns the resolved value, or `null` if no user factory matched.</p>
+                        <p>Returns the resolved value, or <code>null</code> if no user factory matched.</p>
                       </div>
                     </div>
                     <div id="D4.coerceListOrNull" class="api-member">
@@ -1964,9 +2042,11 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                         <code class="api-signature">static List&lt;List&lt;T&gt;&gt; coerceNestedList&lt;T&gt;(Object? arg, String paramName)</code>
                       </div>
                       <div class="api-doc">
-                        <p>Coerce a nested `List&lt;List&lt;T&gt;&gt;` from D4rt.</p>
+                        <p>Coerce a nested <code>List&lt;List&lt;T&gt;&gt;</code> from D4rt.</p>
                         <p>
-                          For parameters like `List&lt;List&lt;Widget&gt;&gt;`, the outer list contains inner lists that each need element-level coercion. Standard `coerceList&lt;List&lt;T&gt;&gt;` can't handle this because inner lists are `List&lt;dynamic&gt;` which can't be cast to `List&lt;T&gt;` directly.
+                          For parameters like <code>List&lt;List&lt;Widget&gt;&gt;</code>, the outer list contains inner lists that each need element-level coercion. Standard 
+                          <code>coerceList&lt;List&lt;T&gt;&gt;</code> can't handle this because inner lists are <code>List&lt;dynamic&gt;</code>
+                           which can't be cast to <code>List&lt;T&gt;</code> directly.
                         </p>
                       </div>
                     </div>
@@ -1976,7 +2056,8 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                       </div>
                       <div class="api-doc">
                         <p>
-                          GEN-096 (D8g): nullable variant of [coerceNestedList]. Returns null if `arg` is null, otherwise delegates to [coerceNestedList]. Used by the bridge generator for parameters typed `List&lt;List&lt;T&gt;&gt;?`.
+                          GEN-096 (D8g): nullable variant of [coerceNestedList]. Returns null if <code>arg</code> is null, otherwise delegates to [coerceNestedList]. Used by the bridge generator for parameters typed 
+                          <code>List&lt;List&lt;T&gt;&gt;?</code>.
                         </p>
                       </div>
                     </div>
@@ -1987,7 +2068,7 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                       <div class="api-doc">
                         <p>Coerce a Set from D4rt to a typed Set.</p>
                         <p>
-                          D4rt creates `Set&lt;Object?&gt;` when evaluating set literals. This function coerces the set to the expected element type by unwrapping BridgedInstance, BridgedEnumValue, and InterpretedInstance elements.
+                          D4rt creates <code>Set&lt;Object?&gt;</code> when evaluating set literals. This function coerces the set to the expected element type by unwrapping BridgedInstance, BridgedEnumValue, and InterpretedInstance elements.
                         </p>
                       </div>
                     </div>
@@ -2006,7 +2087,7 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                       <div class="api-doc">
                         <p>Coerce a Map from D4rt to a typed Map.</p>
                         <p>
-                          D4rt creates `Map&lt;Object?, Object?&gt;` when evaluating map literals. This function coerces the map to the expected key and value types.
+                          D4rt creates <code>Map&lt;Object?, Object?&gt;</code> when evaluating map literals. This function coerces the map to the expected key and value types.
                         </p>
                         <p>
                           If [visitor] is provided and the value type V is a function type, InterpretedFunction values will be wrapped in proper callbacks.
@@ -2054,7 +2135,8 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                       <div class="api-doc">
                         <p>Wrap an InterpretedFunction/Callable for use as a Map value function.</p>
                         <p>
-                          Detects the expected return type from V and creates an appropriate wrapper. For common widget builder patterns like `Widget Function(BuildContext)`, returns the correctly typed wrapper.
+                          Detects the expected return type from V and creates an appropriate wrapper. For common widget builder patterns like 
+                          <code>Widget Function(BuildContext)</code>, returns the correctly typed wrapper.
                         </p>
                       </div>
                     </div>
@@ -2086,10 +2168,13 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                       <div class="api-member-head"><code class="api-signature">static Object? _deepUnwrap(Object? value)</code></div>
                       <div class="api-doc">
                         <p>
-                          Recursively unwrap [BridgedInstance] and [BridgedEnumValue] values that may be nested inside `Map`, `List`, or `Set` containers.
+                          Recursively unwrap [BridgedInstance] and [BridgedEnumValue] values that may be nested inside <code>Map</code>, 
+                          <code>List</code>, or <code>Set</code> containers.
                         </p>
                         <p>
-                          Used by [extractBridgedArg] when the requested type `T` is unbounded (`dynamic`/`Object`/`Object?`). Native code receiving such values (e.g. `StandardMessageCodec.encodeMessage`, JSON codecs) cannot interpret the `BridgedInstance` wrapper and rejects it with `Invalid argument: Instance of 'BridgedInstance&lt;...&gt;'`.
+                          Used by [extractBridgedArg] when the requested type <code>T</code> is unbounded (<code>dynamic</code>/<code>Object</code>/<code>Object?</code>). Native code receiving such values (e.g. 
+                          <code>StandardMessageCodec.encodeMessage</code>, JSON codecs) cannot interpret the <code>BridgedInstance</code>
+                           wrapper and rejects it with <code>Invalid argument: Instance of 'BridgedInstance&lt;...&gt;'</code>.
                         </p>
                         <p>
                           Typed parameters use [coerceMap]/[coerceList]/[coerceSet] instead, which recurse with element-type information.
@@ -2168,7 +2253,7 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                       <div class="api-doc">
                         <p>Get a required named argument with type checking.</p>
                         <p>
-                          Throws [ArgumentD4rtException] if the argument is missing. For nullable required parameters (e.g., `required bool? value`), null is a valid value — only absence is an error.
+                          Throws [ArgumentD4rtException] if the argument is missing. For nullable required parameters (e.g., <code>required bool? value</code>), null is a valid value — only absence is an error.
                         </p>
                       </div>
                     </div>
@@ -2190,10 +2275,16 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                       <div class="api-doc">
                         <p>Get an optional named argument with default value.</p>
                         <p>
-                          Returns `defaultValue` only when the key is **absent** from `named`. When the key is present with an explicit `null`: • if `T` is nullable, returns `null` (the script's intent — Flutter uses `null` as a sentinel in several APIs, e.g. `TextField.maxLines: null` meaning "grow without bound"). The constructor default must not be substituted in that case. • if `T` is non-nullable, falls back to `defaultValue` (an explicit null on a non-nullable param is treated as an omission). Throws if present but the wrong runtime type.
+                          Returns <code>defaultValue</code> only when the key is <strong>absent</strong> from <code>named</code>. When the key is present with an explicit 
+                          <code>null</code>: • if <code>T</code> is nullable, returns <code>null</code> (the script's intent — Flutter uses 
+                          <code>null</code> as a sentinel in several APIs, e.g. <code>TextField.maxLines: null</code> meaning "grow without bound"). The constructor default must not be substituted in that case. • if 
+                          <code>T</code> is non-nullable, falls back to <code>defaultValue</code> (an explicit null on a non-nullable param is treated as an omission). Throws if present but the wrong runtime type.
                         </p>
                         <p>
-                          Bug §G1 (2026-05-04): the prior implementation treated "key absent" and "explicit null" identically — `!containsKey || value == null → defaultValue` — which silently rewrote `maxLines: null` to `1` and triggered Flutter's `(maxLines == null) || (minLines == null) || (maxLines &gt;= minLines)` assertion when paired with `minLines &gt;= 2`.
+                          Bug §G1 (2026-05-04): the prior implementation treated "key absent" and "explicit null" identically — 
+                          <code>!containsKey || value == null → defaultValue</code> — which silently rewrote <code>maxLines: null</code>
+                           to <code>1</code> and triggered Flutter's <code>(maxLines == null) || (minLines == null) || (maxLines &gt;= minLines)</code>
+                           assertion when paired with <code>minLines &gt;= 2</code>.
                         </p>
                       </div>
                     </div>
@@ -2256,12 +2347,16 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                       </div>
                       <div class="api-doc">
                         <p>
-                          GEN-110: Wrap a [Callable] (typically an [InterpretedFunction]) as a native Dart function value, so it can be passed to native code that expects a typed `Function` argument — e.g. `VoidCallback`, `ValueChanged&lt;T&gt;`, `StateSetter`, `(BuildContext) =&gt; Widget`.
+                          GEN-110: Wrap a [Callable] (typically an [InterpretedFunction]) as a native Dart function value, so it can be passed to native code that expects a typed 
+                          <code>Function</code> argument — e.g. <code>VoidCallback</code>, <code>ValueChanged&lt;T&gt;</code>, 
+                          <code>StateSetter</code>, <code>(BuildContext) =&gt; Widget</code>.
                         </p>
                         <p>
-                          Used by `visitMethodInvocation` / `visitFunctionExpressionInvocation` at the `Function.apply(...)` fallback. Without this wrapping the underlying Dart runtime throws `type 'InterpretedFunction' is not a subtype of type '() =&gt; void'` because the interpreter's `Callable.call` signature (`(visitor, positional, [named, typeArgs])`) doesn't match any native function type. The arity of the wrapper matches the Callable's declared required-positional count.
+                          Used by <code>visitMethodInvocation</code> / <code>visitFunctionExpressionInvocation</code> at the <code>Function.apply(...)</code>
+                           fallback. Without this wrapping the underlying Dart runtime throws <code>type 'InterpretedFunction' is not a subtype of type '() =&gt; void'</code>
+                           because the interpreter's <code>Callable.call</code> signature (<code>(visitor, positional, [named, typeArgs])</code>) doesn't match any native function type. The arity of the wrapper matches the Callable's declared required-positional count.
                         </p>
-                        <p>Mirrors `tom_d4rt/lib/src/generator/d4.dart` per the quest's sync rule.</p>
+                        <p>Mirrors <code>tom_d4rt/lib/src/generator/d4.dart</code> per the quest's sync rule.</p>
                       </div>
                     </div>
                     <div id="D4.callInterpreterCallback" class="api-member">
@@ -2273,10 +2368,12 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                       <div class="api-doc">
                         <p>Call an interpreter callback that may be either an InterpretedFunction or a NativeFunction.</p>
                         <p>
-                          G-DCLI-07 FIX: When bridge code needs to invoke a callback parameter (e.g., `forEach(print)`), the callback may be a NativeFunction (like `print`) or an InterpretedFunction (user-defined lambda). This method handles both.
+                          G-DCLI-07 FIX: When bridge code needs to invoke a callback parameter (e.g., <code>forEach(print)</code>), the callback may be a NativeFunction (like 
+                          <code>print</code>) or an InterpretedFunction (user-defined lambda). This method handles both.
                         </p>
                         <p>
-                          The result is automatically unwrapped: [BridgedInstance] returns its [BridgedInstance.nativeObject], [BridgedEnumValue] returns its [BridgedEnumValue.nativeValue], and all other values pass through. This ensures generated bridge code casts (e.g., `as Widget`) succeed when the interpreter returns wrapped bridge values.
+                          The result is automatically unwrapped: [BridgedInstance] returns its [BridgedInstance.nativeObject], [BridgedEnumValue] returns its [BridgedEnumValue.nativeValue], and all other values pass through. This ensures generated bridge code casts (e.g., 
+                          <code>as Widget</code>) succeed when the interpreter returns wrapped bridge values.
                         </p>
                         <p>Returns the unwrapped native result of calling the callback.</p>
                       </div>
@@ -2286,7 +2383,9 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                       <div class="api-doc">
                         <p>ENG-011: Safely cast a callback result to the expected type [R].</p>
                         <p>
-                          This handles the case where a generic method callback may return null but the expected type [R] may or may not be nullable. For example, `SynchronousFuture.then&lt;R&gt;()` where `R` could be `String` (non-nullable) or `String?` (nullable).
+                          This handles the case where a generic method callback may return null but the expected type [R] may or may not be nullable. For example, 
+                          <code>SynchronousFuture.then&lt;R&gt;()</code> where <code>R</code> could be <code>String</code> (non-nullable) or 
+                          <code>String?</code> (nullable).
                         </p>
                         <p>Usage in generated bridge code:</p>
                         <pre><code>return t.then((p0) {
@@ -2306,7 +2405,8 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                         </ul>
                         <p>pass through unchanged.</p>
                         <p>
-                          Note: Lists and Maps are NOT recursively unwrapped because doing so destroys Dart's reified generic type information. For example, `Map&lt;String, String&gt;` would become `Map&lt;Object?, Object?&gt;` after `.map()`. If a callback returns a List/Map containing BridgedInstance values, the generated bridge code must handle the element-level unwrapping explicitly.
+                          Note: Lists and Maps are NOT recursively unwrapped because doing so destroys Dart's reified generic type information. For example, 
+                          <code>Map&lt;String, String&gt;</code> would become <code>Map&lt;Object?, Object?&gt;</code> after <code>.map()</code>. If a callback returns a List/Map containing BridgedInstance values, the generated bridge code must handle the element-level unwrapping explicitly.
                         </p>
                       </div>
                     </div>
@@ -2319,13 +2419,18 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                       <div class="api-doc">
                         <p>Unwrap an interpreter result to the requested native type [T].</p>
                         <p>
-                          This is the canonical lift-and-cast helper used by embedders that need a typed native value out of a value produced by `executeBundle`, `eval`, or any bridge-boundary callback. It consolidates the three scattered unwrap paths previously open-coded in `FlutterD4rt._unwrap`, generated bridge adapters, and ad-hoc embedder code.
+                          This is the canonical lift-and-cast helper used by embedders that need a typed native value out of a value produced by 
+                          <code>executeBundle</code>, <code>eval</code>, or any bridge-boundary callback. It consolidates the three scattered unwrap paths previously open-coded in 
+                          <code>FlutterD4rt._unwrap</code>, generated bridge adapters, and ad-hoc embedder code.
                         </p>
                         <p>
-                          Behaviour: 1. `null` → returned as-is when `null is T` (i.e. `T` is nullable); otherwise throws [D4UnwrapException]. 2. [BridgedInstance] → returns [BridgedInstance.nativeObject] cast to [T] when assignable; otherwise throws [D4UnwrapException]. 3. [BridgedEnumValue] → returns [BridgedEnumValue.nativeValue] cast to [T] when assignable; otherwise throws [D4UnwrapException]. 4. [InterpretedInstance] → returns [InterpretedInstance.bridgedSuperObject] when it is a `T`, or asks the active visitor to construct an interface proxy via [tryCreateInterfaceProxyWithVisitor]. Falls back to [D4.activeVisitor] when [visitor] is null. Throws [D4UnwrapException] when no proxy can be produced. 5. Any other value that already `is T` is returned as-is. 6. Otherwise throws [D4UnwrapException].
+                          Behaviour: 1. <code>null</code> → returned as-is when <code>null is T</code> (i.e. <code>T</code> is nullable); otherwise throws [D4UnwrapException]. 2. [BridgedInstance] → returns [BridgedInstance.nativeObject] cast to [T] when assignable; otherwise throws [D4UnwrapException]. 3. [BridgedEnumValue] → returns [BridgedEnumValue.nativeValue] cast to [T] when assignable; otherwise throws [D4UnwrapException]. 4. [InterpretedInstance] → returns [InterpretedInstance.bridgedSuperObject] when it is a 
+                          <code>T</code>, or asks the active visitor to construct an interface proxy via [tryCreateInterfaceProxyWithVisitor]. Falls back to [D4.activeVisitor] when [visitor] is null. Throws [D4UnwrapException] when no proxy can be produced. 5. Any other value that already 
+                          <code>is T</code> is returned as-is. 6. Otherwise throws [D4UnwrapException].
                         </p>
                         <p>
-                          [expectedDescription] overrides the default `T.toString()` in generated error messages — useful when the calling context already knows a more specific description than the type system can express (e.g. `'Widget (top-level build result)'`).
+                          [expectedDescription] overrides the default <code>T.toString()</code> in generated error messages — useful when the calling context already knows a more specific description than the type system can express (e.g. 
+                          <code>'Widget (top-level build result)'</code>).
                         </p>
                       </div>
                     </div>
@@ -2351,9 +2456,12 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                       <div class="api-doc">
                         <p>Try to create an interface proxy keyed by the bridged-type name.</p>
                         <p>
-                          Step 3 (1449 plan): bridged-mixin dispatch needs a way to obtain a native shadow for the *specific* mixin being dispatched, without type-driven inference. The dispatcher knows `bridgedMixinName` as a string (e.g. `'DiagnosticableTreeMixin'`) — this helper looks up the factory registered with that exact name and invokes it. The caller is responsible for any subsequent `is`/`as` check against the expected native type.
+                          Step 3 (1449 plan): bridged-mixin dispatch needs a way to obtain a native shadow for the <em>specific</em>
+                           mixin being dispatched, without type-driven inference. The dispatcher knows <code>bridgedMixinName</code>
+                           as a string (e.g. <code>'DiagnosticableTreeMixin'</code>) — this helper looks up the factory registered with that exact name and invokes it. The caller is responsible for any subsequent 
+                          <code>is</code>/<code>as</code> check against the expected native type.
                         </p>
-                        <p>Returns the proxy if a factory is registered, otherwise `null`.</p>
+                        <p>Returns the proxy if a factory is registered, otherwise <code>null</code>.</p>
                       </div>
                     </div>
                   </div>
@@ -2364,13 +2472,14 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                   <div class="api-doc">
                     <p>Base class for user-defined bridge overrides.</p>
                     <p>
-                      Extend this class to provide custom implementations for specific bridge members that the generator cannot handle correctly (e.g., operators, complex generics, or classes needing `nativeNames`).
+                      Extend this class to provide custom implementations for specific bridge members that the generator cannot handle correctly (e.g., operators, complex generics, or classes needing 
+                      <code>nativeNames</code>).
                     </p>
                     <p>
                       This is a marker class - extending it tells the generator: 1. This class should be excluded from bridge generation 2. Static methods matching the override naming convention should be used
                     </p>
                     <h2>Naming Convention</h2>
-                    <p>Create a class named `{ClassName}UserBridge` that extends `D4UserBridge`:</p>
+                    <p>Create a class named <code>{ClassName}UserBridge</code> that extends <code>D4UserBridge</code>:</p>
                     <pre><code>class MyListUserBridge extends D4UserBridge {
   // Static override methods...
 }</code></pre>
@@ -2378,21 +2487,24 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                     <table class="mdtable">
                       <thead><tr><th>Member Type</th><th>Static Override Method</th></tr></thead>
                       <tbody>
-                        <tr><td>Constructor `Foo()`</td><td>`static overrideConstructor(...)`</td></tr>
-                        <tr><td>Constructor `Foo.named()`</td><td>`static overrideConstructorNamed(...)`</td></tr>
-                        <tr><td>Getter `value`</td><td>`static overrideGetterValue(...)`</td></tr>
-                        <tr><td>Setter `value=`</td><td>`static overrideSetterValue(...)`</td></tr>
-                        <tr><td>Method `doWork()`</td><td>`static overrideMethodDoWork(...)`</td></tr>
-                        <tr><td>Static getter</td><td>`static overrideStaticGetterName(...)`</td></tr>
-                        <tr><td>Static setter</td><td>`static overrideStaticSetterName(...)`</td></tr>
-                        <tr><td>Static method</td><td>`static overrideStaticMethodName(...)`</td></tr>
-                        <tr><td>Operator `[]`</td><td>`static overrideOperatorIndex(...)`</td></tr>
-                        <tr><td>Operator `[]=`</td><td>`static overrideOperatorIndexAssign(...)`</td></tr>
-                        <tr><td>Operator `+`</td><td>`static overrideOperatorPlus(...)`</td></tr>
+                        <tr><td>Constructor <code>Foo()</code></td><td><code>static overrideConstructor(...)</code></td></tr>
+                        <tr>
+                          <td>Constructor <code>Foo.named()</code></td>
+                          <td><code>static overrideConstructorNamed(...)</code></td>
+                        </tr>
+                        <tr><td>Getter <code>value</code></td><td><code>static overrideGetterValue(...)</code></td></tr>
+                        <tr><td>Setter <code>value=</code></td><td><code>static overrideSetterValue(...)</code></td></tr>
+                        <tr><td>Method <code>doWork()</code></td><td><code>static overrideMethodDoWork(...)</code></td></tr>
+                        <tr><td>Static getter</td><td><code>static overrideStaticGetterName(...)</code></td></tr>
+                        <tr><td>Static setter</td><td><code>static overrideStaticSetterName(...)</code></td></tr>
+                        <tr><td>Static method</td><td><code>static overrideStaticMethodName(...)</code></td></tr>
+                        <tr><td>Operator <code>[]</code></td><td><code>static overrideOperatorIndex(...)</code></td></tr>
+                        <tr><td>Operator <code>[]=</code></td><td><code>static overrideOperatorIndexAssign(...)</code></td></tr>
+                        <tr><td>Operator <code>+</code></td><td><code>static overrideOperatorPlus(...)</code></td></tr>
                       </tbody>
                     </table>
                     <h2>Special Properties</h2>
-                    <ul><li>`nativeNames`: Define as a static getter to provide internal type names</li></ul>
+                    <ul><li><code>nativeNames</code>: Define as a static getter to provide internal type names</li></ul>
                     <h2>Example</h2>
                     <pre><code>class MyListUserBridge extends D4UserBridge {
   /// Map internal List implementations to this bridge.
@@ -2411,7 +2523,10 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
   }
 }</code></pre>
                     <p>
-                      The generator will: 1. Detect `MyListUserBridge` extending `D4UserBridge` 2. Skip `MyListUserBridge` from bridge generation 3. For class `MyList`, check if `MyListUserBridge` exists 4. Use `MyListUserBridge.overrideOperatorIndex` instead of generating `[]` 5. Use `MyListUserBridge.nativeNames` in the generated `BridgedClass`
+                      The generator will: 1. Detect <code>MyListUserBridge</code> extending <code>D4UserBridge</code> 2. Skip 
+                      <code>MyListUserBridge</code> from bridge generation 3. For class <code>MyList</code>, check if <code>MyListUserBridge</code>
+                       exists 4. Use <code>MyListUserBridge.overrideOperatorIndex</code> instead of generating <code>[]</code>
+                       5. Use <code>MyListUserBridge.nativeNames</code> in the generated <code>BridgedClass</code>
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -2425,7 +2540,8 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                   <div class="api-doc">
                     <p>Base class for user-defined proxy-generation directives.</p>
                     <p>
-                      Extend this class (and apply `@D4rtUserProxy`) to drive generation of `D4rt&lt;Class&gt;` proxy subclasses for a generic base — including multi-type-parameter generics — over an explicit or wildcard-pattern set of type-argument variants.
+                      Extend this class (and apply <code>@D4rtUserProxy</code>) to drive generation of <code>D4rt&lt;Class&gt;</code>
+                       proxy subclasses for a generic base — including multi-type-parameter generics — over an explicit or wildcard-pattern set of type-argument variants.
                     </p>
                     <p>
                       This is a marker class: like [D4UserBridge] / [D4UserRelaxer], classes extending it are excluded from bridge generation and picked up by the generator's user-proxy pre-scan.
@@ -2483,7 +2599,10 @@ class TomFormListUserProxy extends D4UserProxy {}</code></pre>
                   <div class="api-doc">
                     <p>Lazy element-wise cast wrapper around an arbitrary [Iterator].</p>
                     <p>
-                      The interpreter materializes typed list literals as `List&lt;Object?&gt;` so `&lt;int&gt;[1, 2, 3].iterator` arrives at a bridge constructor as `ListIterator&lt;Object?&gt;`. Reified generics then reject it against `Iterator&lt;int&gt;`. [_CastIterator] satisfies the strict type without copying by casting each `current` element on access — same idea as `Iterable.cast&lt;T&gt;().iterator`, but for a bare iterator.
+                      The interpreter materializes typed list literals as <code>List&lt;Object?&gt;</code> so <code>&lt;int&gt;[1, 2, 3].iterator</code>
+                       arrives at a bridge constructor as <code>ListIterator&lt;Object?&gt;</code>. Reified generics then reject it against 
+                      <code>Iterator&lt;int&gt;</code>. [_CastIterator] satisfies the strict type without copying by casting each 
+                      <code>current</code> element on access — same idea as <code>Iterable.cast&lt;T&gt;().iterator</code>, but for a bare iterator.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -2514,7 +2633,8 @@ class TomFormListUserProxy extends D4UserProxy {}</code></pre>
                   <code class="api-signature">class _PromotingDoubleIterator implements Iterator&lt;double&gt;</code>
                   <div class="api-doc">
                     <p>
-                      `Iterator&lt;Object?&gt; → Iterator&lt;double&gt;` with `int → double` promotion on the fly. Mirrors the int-to-double promotion the List branch already performs for `&lt;double&gt;[1, 2, 3]`-style literals.
+                      <code>Iterator&lt;Object?&gt; → Iterator&lt;double&gt;</code> with <code>int → double</code> promotion on the fly. Mirrors the int-to-double promotion the List branch already performs for 
+                      <code>&lt;double&gt;[1, 2, 3]</code>-style literals.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -2574,7 +2694,7 @@ class TomFormListUserProxy extends D4UserProxy {}</code></pre>
                   <div class="api-doc">
                     <p>RC-2: Factory for constructing generic bridged classes with type arguments.</p>
                     <p>
-                      When a D4rt script calls `GlobalKey&lt;NavigatorState&gt;()`, the type argument is evaluated at runtime but Dart requires compile-time generic types. This factory receives the evaluated [RuntimeType] list and dispatches to the correct statically-typed constructor.
+                      When a D4rt script calls <code>GlobalKey&lt;NavigatorState&gt;()</code>, the type argument is evaluated at runtime but Dart requires compile-time generic types. This factory receives the evaluated [RuntimeType] list and dispatches to the correct statically-typed constructor.
                     </p>
                     <p>
                       The [visitor] is the current interpreter context. [positionalArgs] and [namedArgs] are the converted arguments. [typeArguments] are the evaluated type arguments from the script, or null when called without type arguments (constructor override).
@@ -2587,7 +2707,7 @@ class TomFormListUserProxy extends D4UserProxy {}</code></pre>
                   <div class="api-doc">
                     <p>GEN-079: Factory callback for creating typed wrappers.</p>
                     <p>
-                      Takes the raw unwrapped value and the inner type argument string (e.g., 'Color?' for `WidgetStateProperty&lt;Color?&gt;`). Returns a properly typed wrapper, or null if the type arg is not supported.
+                      Takes the raw unwrapped value and the inner type argument string (e.g., 'Color?' for <code>WidgetStateProperty&lt;Color?&gt;</code>). Returns a properly typed wrapper, or null if the type arg is not supported.
                     </p>
                   </div>
                 </section>
@@ -2599,7 +2719,7 @@ class TomFormListUserProxy extends D4UserProxy {}</code></pre>
                       RC-1: Factory for creating native proxy objects that delegate method calls back to an [InterpretedInstance].
                     </p>
                     <p>
-                      When a D4rt script class implements or extends a bridged abstract class or interface (e.g., `class MyClipper extends CustomClipper&lt;Path&gt;`), the resulting [InterpretedInstance] cannot be used directly as the native type. An interface proxy wraps it in a native object that delegates method calls back to the interpreter.
+                      When a D4rt script class implements or extends a bridged abstract class or interface (e.g., <code>class MyClipper extends CustomClipper&lt;Path&gt;</code>), the resulting [InterpretedInstance] cannot be used directly as the native type. An interface proxy wraps it in a native object that delegates method calls back to the interpreter.
                     </p>
                     <p>
                       The [visitor] is the current interpreter for dispatching callbacks. The [instance] is the D4rt interpreted instance that provides the implementation.
@@ -2613,7 +2733,9 @@ class TomFormListUserProxy extends D4UserProxy {}</code></pre>
                     <p>
                       RC-3: Factory for converting one type to another when they represent the same concept but live in different packages.
                     </p>
-                    <p>Example: `painting.TextStyle` → `dart:ui.TextStyle` via `getTextStyle()`.</p>
+                    <p>
+                      Example: <code>painting.TextStyle</code> → <code>dart:ui.TextStyle</code> via <code>getTextStyle()</code>.
+                    </p>
                   </div>
                 </section>
               </div>

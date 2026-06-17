@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1305,7 +1325,7 @@
               <span style="display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap"><span class="badge b-pub"><span class="d"></span>Published</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">role: foundation</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">license: BSD-3-Clause</span></span>
             </div>
             <h2>tom_build_base</h2>
-            <div class="mono" style="color: #9FB6C9">tom_build_base · v2.6.21</div>
+            <div class="mono" style="color: #9FB6C9">tom_build_base · v2.6.25</div>
             <p style="margin-top: 10px">
               The CLI and tooling framework Tom's build tools are built on: declarative tool, command, and option definitions with workspace traversal, pipelines, and configuration loading.
             </p>
@@ -1316,29 +1336,15 @@
           </div>
           <div class="statgrid">
             <div class="stat"><div class="k">Status</div><div class="v" style="font-size: 1.05rem; color: #0F7FB0">Published</div></div>
-            <div class="stat"><div class="k">LOC</div><div class="v">9.1k</div></div>
-            <div class="stat"><div class="k">Tests</div><div class="v">754</div></div>
-            <div class="stat"><div class="k">Test LOC</div><div class="v">11.1k</div></div>
+            <div class="stat"><div class="k">LOC</div><div class="v">9.2k</div></div>
+            <div class="stat"><div class="k">Tests</div><div class="v">788</div></div>
+            <div class="stat"><div class="k">Test LOC</div><div class="v">11.7k</div></div>
           </div>
           <div class="dcols">
             <div>
               <div class="panel">
                 <h3>Overview</h3>
-                <p>
-                  `tom_build_base` is the foundation under Tom's command-line build tools.
-                  Tools declare themselves as immutable `ToolDefinition`, `CommandDefinition`,
-                  and `OptionDefinition` data, and the framework handles help generation,
-                  project and git traversal, and folder-nature detection.
-                  
-                  Multi-command tools gain pipelines, runtime macros, and persistent defines
-                  automatically, plus declarative wiring of nested external tool binaries. It
-                  also reads `buildkit.yaml` configuration, runs external processes, and
-                  renders console Markdown.
-                  
-                  Build tools such as buildkit, testkit, and the code-generation CLIs are
-                  thin users of this framework, which keeps their behaviour and help output
-                  uniform across the workspace.
-                </p>
+                <p>From the module readme.md file:</p>
                 <h4 style="font-size: 1rem; margin-top: 18px">What it enables</h4>
                 <p style="margin: 0">
                   Enables Declarative CLI tools, Workspace and git traversal, Pipelines and macros, Build configuration loading.
@@ -1431,50 +1437,267 @@
           </div>
           <section class="section repodoc">
             <div class="pageprose">
-              <h1>Tom Build Base</h1>
+              <h1>tom_build_base</h1>
+              <p>
+                &gt; Part of the <strong>Tom framework</strong> by al-the-bear. &gt; © 2024–2026 Peter Nicolai Alexis Kyaw — BSD-3-Clause, see 
+                <a href="https://github.com/al-the-bear/tom_basics/blob/main/tom_build_base/LICENSE">LICENSE</a>.
+              </p>
               <p>
                 Unified CLI framework for workspace traversal, tool definition, pipeline execution, and build configuration.
               </p>
               <p>
-                This package provides the foundation that Tom CLI build tools (like `buildkit`, `testkit`, `d4rtgen`, etc.) use to define commands, discover projects, and traverse directory structures.
+                <code>tom_build_base</code> is the foundation every Tom command-line tool is built on — <code>buildkit</code>, 
+                <code>testkit</code>, <code>issuekit</code>, <code>d4rtgen</code>, and the rest. It answers the questions that 
+                <em>every</em> workspace tool has to answer and that nobody should have to re-answer: how do I declare commands and options, how do I generate help, how do I find the projects in this workspace, in what order do I process them, and how do I run a pipeline of shell and tool steps over them. A tool author declares 
+                <strong>what</strong> their tool does (a <code>ToolDefinition</code> with commands and an executor per command); 
+                <code>tom_build_base</code> supplies <strong>how</strong> it runs.
               </p>
-              <h2>Features</h2>
+              <p>
+                This is a deliberately large, single-purpose package. It is also the reason the Tom CLI tools feel like one product rather than a pile of scripts: they share this framework, so they share their navigation flags, their help format, their configuration model, and their end-of-run summaries.
+              </p>
+              <p>---</p>
+              <h2>Overview</h2>
+              <p>
+                A workspace tool is mostly the same machinery wrapped around a small core of tool-specific logic. Without a shared base, every tool reinvents argument parsing, copies a help formatter, writes its own directory walk, and disagrees with its siblings about what 
+                <code>--project</code> means. <code>tom_build_base</code> collapses all of that into one framework with four cooperating layers:
+              </p>
               <ul>
                 <li>
-                  **Declarative tool definition** — `ToolDefinition`, `CommandDefinition`, `OptionDefinition` for structured CLI tools
-                </li>
-                <li>
-                  **Automatic help generation** — `--help`, `help &lt;command&gt;`, `help &lt;topic&gt;` with consistent formatting
-                </li>
-                <li>**Built-in traversal** — Project and git traversal with folder nature detection</li>
-                <li>
-                  **Pipelines, macros, defines** — Multi-command tools get pipelines, runtime macros, and persistent defines automatically
-                </li>
-                <li>
-                  **Pipeline print prefix** — `print &lt;message&gt;` emits one resolved message without shell execution noise
-                </li>
-                <li>**Nested tool wiring** — Declarative integration of external tool binaries</li>
-                <li>**Configuration loading** — `TomBuildConfig` for reading `buildkit.yaml` and `buildkit_master.yaml`</li>
-                <li>**YAML utilities** — `yamlToMap()`, `yamlListToList()`, `toStringList()` for converting YAML nodes</li>
-                <li>
-                  **Cross-platform symlink API** — `MkLinkExecutor` and dcli-backed `createSymLink()` integration for tool commands
+                  <strong>Tool definition</strong> — <code>ToolDefinition</code>, <code>CommandDefinition</code>, <code>OptionDefinition</code>
                 </li>
               </ul>
+              <p>
+                describe a tool <em>declaratively</em>. From that description the framework derives argument parsing, 
+                <code>--help</code>/<code>--version</code>, shell completion, and the standard navigation flags — no imperative wiring per tool. - 
+                <strong>Execution</strong> — <code>ToolRunner</code> takes a definition plus a <code>CommandExecutor</code>
+                 per command, parses the arguments, runs the right command across the traversal, and aggregates per-item outcomes into a single 
+                <code>ToolResult</code>. - <strong>Traversal</strong> — <code>BuildBase.traverse</code> (and the higher-level runner) scans the filesystem, detects each folder's 
+                <em>natures</em> (Dart project, git repo, buildkit folder…), filters by project/module selectors, orders by dependency build order or git depth, and invokes a callback with a typed 
+                <code>CommandContext</code> per match. - <strong>Pipelines &amp; configuration</strong> — multi-command tools get pipelines, runtime macros, and persistent defines automatically; 
+                <code>TomBuildConfig</code> reads the two-tier <code>…_master.yaml</code> / project-level YAML configuration.
+              </p>
+              <p>
+                The package ships two entry points. <code>package:tom_build_base/tom_build_base.dart</code> is the full surface (tool framework + traversal + config + utilities); 
+                <code>package:tom_build_base/tom_build_base_v2.dart</code> is the same modern surface without the few legacy utility exports, for tools that only need the v2 framework.
+              </p>
+              <p>---</p>
               <h2>Installation</h2>
               <pre><code>dependencies:
   tom_build_base: ^2.6.0</code></pre>
-              <h2>Quick Start</h2>
-              <pre><code>import 'package:tom_build_base/tom_build_base.dart';
+              <p>Or from the command line:</p>
+              <pre><code>dart pub add tom_build_base</code></pre>
+              <p>Then import the entry point:</p>
+              <pre><code>import 'package:tom_build_base/tom_build_base.dart';</code></pre>
+              <p>
+                Requires Dart SDK <code>^3.10.4</code>. It depends on <code>args</code>, <code>console_markdown</code>, 
+                <code>dcli</code>, <code>glob</code>, <code>path</code>, and <code>yaml</code>. It is a <code>dart:io</code>
+                 package — it runs on desktop, server, and CLI hosts, not the web.
+              </p>
+              <p>---</p>
+              <h2>Features</h2>
+              <h3>Tool definition</h3>
+              <table class="mdtable">
+                <thead><tr><th>API</th><th>Kind</th><th>Purpose</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><code>ToolDefinition</code></td>
+                    <td>class</td>
+                    <td>Declares a tool: name, version, mode, commands, features</td>
+                  </tr>
+                  <tr>
+                    <td><code>CommandDefinition</code></td>
+                    <td>class</td>
+                    <td>One command: name, aliases, options, nature requirements</td>
+                  </tr>
+                  <tr>
+                    <td><code>OptionDefinition</code></td>
+                    <td>class</td>
+                    <td>
+                      One flag/option/multi-option, with 
+                      <code>.flag</code>
+                      /
+                      <code>.option</code>
+                      /
+                      <code>.multi</code>
+                       constructors
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>ToolMode</code></td>
+                    <td>enum</td>
+                    <td><code>singleCommand</code>, <code>multiCommand</code>, or <code>hybrid</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>NavigationFeatures</code></td>
+                    <td>class</td>
+                    <td>
+                      Which navigation flags a tool exposes (
+                      <code>projectTool</code>
+                      , 
+                      <code>gitTool</code>
+                      , 
+                      <code>all</code>
+                      , …)
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>CommandListOps</code></td>
+                    <td>extension</td>
+                    <td><code>without</code> / <code>replacing</code> / <code>plus</code> for deriving command lists</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3>Execution</h3>
+              <table class="mdtable">
+                <thead><tr><th>API</th><th>Kind</th><th>Purpose</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><code>ToolRunner</code></td>
+                    <td>class</td>
+                    <td>Parses args, routes commands, drives traversal, aggregates results</td>
+                  </tr>
+                  <tr>
+                    <td><code>CommandExecutor</code></td>
+                    <td>abstract</td>
+                    <td>The contract: run a command on one folder</td>
+                  </tr>
+                  <tr><td><code>CallbackExecutor</code></td><td>class</td><td>Build an executor from a closure</td></tr>
+                  <tr>
+                    <td>
+                      <code>SyncExecutor</code>
+                       / 
+                      <code>ListExecutor</code>
+                       / 
+                      <code>ShellExecutor</code>
+                       / 
+                      <code>DartExecutor</code>
+                    </td>
+                    <td>class</td>
+                    <td>Ready-made executors</td>
+                  </tr>
+                  <tr>
+                    <td><code>ItemResult</code></td>
+                    <td>class</td>
+                    <td>Outcome for one folder: success / skipped / failure</td>
+                  </tr>
+                  <tr>
+                    <td><code>ToolResult</code></td>
+                    <td>class</td>
+                    <td>Aggregated run outcome + <code>renderRunSummary()</code></td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3>Traversal</h3>
+              <table class="mdtable">
+                <thead><tr><th>API</th><th>Kind</th><th>Purpose</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><code>BuildBase.traverse</code></td>
+                    <td>static</td>
+                    <td>Scan → detect → filter → order → run a callback per folder</td>
+                  </tr>
+                  <tr>
+                    <td><code>BaseTraversalInfo</code></td>
+                    <td>abstract</td>
+                    <td>Shared traversal config (exclude patterns, test-project toggles)</td>
+                  </tr>
+                  <tr>
+                    <td><code>ProjectTraversalInfo</code></td>
+                    <td>class</td>
+                    <td>Project-mode config (scan path, recursive, build-order, selectors)</td>
+                  </tr>
+                  <tr>
+                    <td><code>GitTraversalInfo</code></td>
+                    <td>class</td>
+                    <td>Git-mode config (modules, inner/outer-first order)</td>
+                  </tr>
+                  <tr>
+                    <td><code>CommandContext</code></td>
+                    <td>class</td>
+                    <td>Per-folder context: path, natures, <code>getNature&lt;T&gt;()</code></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <code>DartProjectFolder</code>
+                       / 
+                      <code>GitFolder</code>
+                       / 
+                      <code>BuildkitFolder</code>
+                       / 
+                      <code>ExtensionFolder</code>
+                    </td>
+                    <td>nature</td>
+                    <td>Detected folder kinds with typed metadata</td>
+                  </tr>
+                  <tr>
+                    <td><code>FilterPipeline</code> / <code>FolderSorter</code></td>
+                    <td>class</td>
+                    <td>Project/module filtering and build-order/git-depth ordering</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h3>Pipelines, configuration &amp; utilities</h3>
+              <table class="mdtable">
+                <thead><tr><th>API</th><th>Kind</th><th>Purpose</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><code>PipelineConfig</code> / <code>PipelineExecutor</code></td>
+                    <td>class</td>
+                    <td>
+                      Multi-step pipelines (
+                      <code>shell</code>
+                      , 
+                      <code>shell-scan</code>
+                      , 
+                      <code>stdin</code>
+                      , 
+                      <code>print</code>
+                      , 
+                      <code>{TOOL}</code>
+                      )
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>TomBuildConfig</code></td>
+                    <td>class</td>
+                    <td>Two-tier <code>…_master.yaml</code> + project-level config loading</td>
+                  </tr>
+                  <tr>
+                    <td><code>HelpGenerator</code> / <code>CompletionGenerator</code></td>
+                    <td>class</td>
+                    <td>Auto-generated help and shell completion</td>
+                  </tr>
+                  <tr>
+                    <td><code>yamlToMap</code> / <code>yamlListToList</code> / <code>toStringList</code></td>
+                    <td>function</td>
+                    <td>YAML-node conversion helpers</td>
+                  </tr>
+                  <tr>
+                    <td><code>MkLinkExecutor</code> / <code>createSymLink</code></td>
+                    <td>API</td>
+                    <td>Cross-platform symlink creation for tool commands</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>---</p>
+              <h2>Quick start</h2>
+              <p>
+                A complete tool is a <code>ToolDefinition</code>, one <code>CommandExecutor</code> per command, and a 
+                <code>ToolRunner</code> to glue them together:
+              </p>
+              <pre><code>import 'dart:io';
+import 'package:tom_build_base/tom_build_base.dart';
 
 const myTool = ToolDefinition(
   name: 'mytool',
   description: 'My custom build tool',
   version: '1.0.0',
   mode: ToolMode.multiCommand,
+  features: NavigationFeatures.projectTool,
   commands: [
     CommandDefinition(
-      name: 'build',
-      description: 'Build the project',
+      name: 'list',
+      description: 'List discovered Dart projects',
       requiredNatures: {DartProjectFolder},
     ),
   ],
@@ -1484,9 +1707,10 @@ void main(List&lt;String&gt; args) async {
   final runner = ToolRunner(
     tool: myTool,
     executors: {
-      'build': CallbackExecutor(
+      'list': CallbackExecutor(
         onExecute: (context, args) async {
-          print('Building ${context.name}');
+          final dart = context.getNature&lt;DartProjectFolder&gt;();
+          print('  ${dart.projectName} v${dart.version}');
           return ItemResult.success(path: context.path, name: context.name);
         },
       ),
@@ -1495,38 +1719,432 @@ void main(List&lt;String&gt; args) async {
   final result = await runner.run(args);
   exit(result.success ? 0 : 1);
 }</code></pre>
-              <h2>Configuration Format</h2>
-              <p>Tom build tools use a two-tier configuration pattern:</p>
-              <h3>buildkit_master.yaml (workspace root)</h3>
-              <pre><code>navigation:                   # shared defaults for all tools
+              <p>
+                That ~30-line tool already supports <code>mytool :list</code>, <code>mytool --help</code>, <code>mytool --version</code>, the full 
+                <code>--project</code> / <code>--exclude</code> / <code>--scan</code> / <code>--build-order</code> navigation flag set, dependency-ordered traversal, and a consolidated end-of-run summary. 
+                <code>--version</code> prints:
+              </p>
+              <pre><code>mytool v1.0.0</code></pre>
+              <p>
+                and <code>--help</code> prints the tool description, every global option, and the command list — all derived from the definition, none of it hand-written.
+              </p>
+              <p>
+                &gt; The runnable version of this tool lives in &gt; <a href="https://github.com/al-the-bear/tom_basics/blob/main/tom_build_base/example/tom_build_base_example.dart"><code>example/tom_build_base_example.dart</code></a>.
+              </p>
+              <p>---</p>
+              <h2>Example projects</h2>
+              <table class="mdtable">
+                <thead><tr><th>Example</th><th>What it shows</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_basics/blob/main/tom_build_base/example/tom_build_base_example.dart"><code>example/tom_build_base_example.dart</code></a>
+                    </td>
+                    <td>A two-command (<code>hello</code>, <code>list</code>) <code>ToolRunner</code> tool</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_basics/tree/main/tom_basics_samples/tom_build_base_introduction_sample"><code>tom_build_base_introduction_sample</code></a>
+                    </td>
+                    <td>
+                      A simple single-command build tool, built from one 
+                      <code>ToolDefinition</code>
+                       and run over a fixture workspace — the introductory article.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_basics/tree/main/tom_basics_samples/tom_build_base_advanced_sample"><code>tom_build_base_advanced_sample</code></a>
+                    </td>
+                    <td>
+                      A nestable, multi-command tool: per-command options, audit/exit codes, sequencing and nested invocation — the advanced article.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_basics/tree/main/tom_basics_samples/tom_build_base_advanced_analyzer_sample"><code>tom_build_base_advanced_analyzer_sample</code></a>
+                    </td>
+                    <td>
+                      A nestable single-command tool whose traversal feeds an analyzer-summary cache (
+                      <code>tom_analyzer_shared</code>
+                      ) — the caching article.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>Run the local example with:</p>
+              <pre><code>dart run example/tom_build_base_example.dart --help
+dart run example/tom_build_base_example.dart :list</code></pre>
+              <p>
+                For full worked tutorials, start with the <a href="https://github.com/al-the-bear/tom_basics/tree/main/tom_basics_samples/tom_build_base_introduction_sample"><code>tom_build_base_introduction_sample</code></a>
+                 and progress through the <a href="https://github.com/al-the-bear/tom_basics/tree/main/tom_basics_samples/tom_build_base_advanced_sample">advanced</a>
+                 and <a href="https://github.com/al-the-bear/tom_basics/tree/main/tom_basics_samples/tom_build_base_advanced_analyzer_sample">analyzer-caching</a>
+                 samples; the usage sections below and the <a href="#further-documentation"><code>doc/</code></a> guides are the inline reference.
+              </p>
+              <p>---</p>
+              <h2>Usage</h2>
+              <h3>Defining a tool</h3>
+              <p>
+                A <code>ToolDefinition</code> is a <code>const</code> value object. Its <code>mode</code> decides the calling convention:
+              </p>
+              <ul>
+                <li>
+                  <code>ToolMode.singleCommand</code> — the tool <em>is</em> one operation (<code>mytool [options]</code>).
+                </li>
+                <li><code>ToolMode.multiCommand</code> — the tool dispatches to named commands, invoked with</li>
+              </ul>
+              <p>
+                a colon prefix (<code>mytool :build</code>, <code>mytool :clean</code>). - <code>ToolMode.hybrid</code>
+                 — supports both.
+              </p>
+              <p>
+                <code>features</code> selects which standard flags appear. The presets cover the common cases — <code>NavigationFeatures.projectTool</code>
+                 (project traversal + recursion), <code>NavigationFeatures.gitTool</code> (git traversal), <code>NavigationFeatures.all</code>, 
+                <code>NavigationFeatures.minimal</code> — or construct one to enable exactly the flags you want (<code>jsonOutput</code>, 
+                <code>interactiveMode</code>, <code>dryRun</code>, …).
+              </p>
+              <pre><code>const tool = ToolDefinition(
+  name: 'mytool',
+  description: 'Demonstrates the definition surface',
+  version: '2.0.0',
+  mode: ToolMode.multiCommand,
+  features: NavigationFeatures.projectTool,
+  commands: [
+    CommandDefinition(
+      name: 'build',
+      description: 'Compile each package',
+      aliases: ['b'],
+      requiredNatures: {DartProjectFolder},
+      examples: ['mytool :build', 'mytool :build --project app_*'],
+    ),
+  ],
+);</code></pre>
+              <p>
+                <code>CommandDefinition.requiredNatures</code> is the filter that makes a command run only where it makes sense: 
+                <code>{DartProjectFolder}</code> means "only on folders that are Dart projects". Commands resolve by exact name, alias, or 
+                <strong>unambiguous prefix</strong> — <code>mytool :b</code> and <code>mytool :bui</code> both reach 
+                <code>build</code>, and an ambiguous prefix resolves to nothing rather than guessing.
+              </p>
+              <h3>Options</h3>
+              <p>
+                <code>OptionDefinition</code> has three named constructors for the three kinds of option, and a <code>.usage</code>
+                 getter the help generator uses:
+              </p>
+              <pre><code>const verbose = OptionDefinition.flag(
+    name: 'verbose', abbr: 'v', description: 'Verbose output');
+const config = OptionDefinition.option(
+    name: 'config', abbr: 'c', description: 'Config path', valueName: 'path');
+const exclude = OptionDefinition.multi(
+    name: 'exclude', description: 'Skip these', valueName: 'pattern');
+
+print(verbose.usage); // -v, --verbose
+print(config.usage);  // -c, --config=&lt;path&gt;
+print(exclude.type);  // OptionType.multiOption</code></pre>
+              <p>
+                You rarely define the navigation options yourself — <code>projectTraversalOptions</code>, <code>gitTraversalOptions</code>, and 
+                <code>commonOptions</code> are contributed automatically based on the tool's <code>features</code>. Define options only for behaviour unique to your tool.
+              </p>
+              <h3>Deriving a tool from another</h3>
+              <p>
+                Because a <code>ToolDefinition</code> is immutable, you extend one with <code>copyWith</code>, and the 
+                <code>CommandListOps</code> extension (<code>without</code> / <code>replacing</code> / <code>plus</code>) edits the command list functionally. This is how a specialised tool reuses a general one without inheritance:
+              </p>
+              <pre><code>final superTool = baseTool.copyWith(
+  name: 'supertool',
+  commands: baseTool.commands
+      .without({'clean'})                       // drop a command
+      .replacing('build', fasterBuildCommand)   // swap one out, keep its slot
+      .plus([shipCommand]),                      // add new ones
+);
+
+print(superTool.commands.map((c) =&gt; c.name)); // (build, ship)
+print(superTool.findCommand('sh')?.name);      // ship  (prefix match)</code></pre>
+              <h3>Running commands</h3>
+              <p>
+                <code>ToolRunner</code> ties a definition to behaviour. Each command name maps to a <code>CommandExecutor</code>; the simplest is 
+                <code>CallbackExecutor</code>, which wraps a closure. The closure receives a <code>CommandContext</code>
+                 (the folder and its natures) and the parsed <code>CliArgs</code>, and returns an <code>ItemResult</code>:
+              </p>
+              <pre><code>final runner = ToolRunner(
+  tool: myTool,
+  executors: {
+    'build': CallbackExecutor(
+      onExecute: (context, args) async {
+        if (!context.isDartProject) {
+          return ItemResult.skipped(
+              path: context.path, name: context.name, message: 'not a package');
+        }
+        // … do the build …
+        return ItemResult.success(path: context.path, name: context.name);
+      },
+    ),
+  },
+);
+await runner.run(args);</code></pre>
+              <p>
+                For common shapes there are ready-made executors: <code>ShellExecutor</code> (run a shell command per folder), 
+                <code>DartExecutor</code> (a <code>Future&lt;bool&gt;</code> function per folder), <code>SyncExecutor</code>
+                 (a synchronous callback), and <code>ListExecutor</code> (just enumerate).
+              </p>
+              <h3>Reading results</h3>
+              <p>
+                Each folder yields an <code>ItemResult</code> — <code>success</code>, <code>skipped</code> (a deliberate, non-failing skip), or 
+                <code>failure</code>. <code>ToolResult.fromItems</code> aggregates them, and <code>renderRunSummary()</code>
+                 produces the uniform end-of-run block every Tom tool prints:
+              </p>
+              <pre><code>final result = ToolResult.fromItems([
+  ItemResult.success(path: '/a', name: 'a', commandName: 'build'),
+  ItemResult.skipped(path: '/b', name: 'b', commandName: 'build', message: 'no changes'),
+  ItemResult.failure(path: '/c', name: 'c', commandName: 'build', error: 'compile failed'),
+]);
+
+print('success=${result.success} failed=${result.failedCount}');
+print(result.renderRunSummary());</code></pre>
+              <p>Output:</p>
+              <pre><code>success=false failed=1
+=== Skipped ===
+  b :build — no changes
+1 project(s) skipped.
+
+=== Errors ===
+  c :build — compile failed
+1 error(s) in 1 project(s).</code></pre>
+              <p>
+                A skipped item is still a <em>success</em> — it never affects the exit code — but it is reported separately from items that did real work, so a long run ends with one readable account of what was built, what was skipped and why, and what failed.
+              </p>
+              <h3>Traversal without the full runner</h3>
+              <p>
+                When you want the scanning and ordering machinery but not the CLI layer — say, inside another tool or a test — call 
+                <code>BuildBase.traverse</code> directly. You give it a traversal config and a nature filter; it scans, detects natures, filters, orders, and invokes your callback with a typed 
+                <code>CommandContext</code>:
+              </p>
+              <pre><code>await BuildBase.traverse(
+  info: ProjectTraversalInfo(
+    scan: workspaceRoot,
+    recursive: true,
+    executionRoot: workspaceRoot,
+  ),
+  requiredNatures: {DartProjectFolder},
+  run: (ctx) async {
+    final dart = ctx.getNature&lt;DartProjectFolder&gt;();
+    print('${dart.projectName} v${dart.version}');
+    return true;
+  },
+);</code></pre>
+              <p>Over a workspace containing <code>alpha</code> and <code>beta</code> packages this prints:</p>
+              <pre><code>alpha v1.2.3
+beta v1.2.3</code></pre>
+              <p>
+                By default <code>ProjectTraversalInfo.buildOrder</code> is <code>true</code>, so packages arrive in dependency order (a package's dependencies before the package itself) computed across 
+                <em>all</em> scanned projects — not just the filtered subset — so ordering stays correct even when <code>--project</code>
+                 narrows the run. At least one of <code>requiredNatures</code> / <code>worksWithNatures</code> must be set; use 
+                <code>{FsFolder}</code> to match every folder.
+              </p>
+              <h3>Natures</h3>
+              <p>
+                A <em>nature</em> is a capability the framework detects on a folder. One folder can have several — a Dart package inside a git repo is both a 
+                <code>DartProjectFolder</code> and a <code>GitFolder</code>. <code>CommandContext</code> exposes them type-safely:
+              </p>
+              <pre><code>if (ctx.hasNature&lt;DartProjectFolder&gt;()) {
+  final dart = ctx.getNature&lt;DartProjectFolder&gt;();      // throws if absent
+  print(dart.dependencies.keys);
+}
+final git = ctx.tryGetNature&lt;GitFolder&gt;();              // null if absent</code></pre>
+              <table class="mdtable">
+                <thead><tr><th>Nature</th><th>Detected when</th><th>Carries</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><code>DartProjectFolder</code></td>
+                    <td>folder has <code>pubspec.yaml</code></td>
+                    <td>
+                      <code>projectName</code>
+                      , 
+                      <code>version</code>
+                      , 
+                      <code>dependencies</code>
+                      , 
+                      <code>devDependencies</code>
+                      , 
+                      <code>pubspec</code>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>GitFolder</code></td>
+                    <td>folder has <code>.git/</code></td>
+                    <td>git repository metadata</td>
+                  </tr>
+                  <tr>
+                    <td><code>BuildkitFolder</code></td>
+                    <td>folder has <code>buildkit.yaml</code></td>
+                    <td>tool configuration presence</td>
+                  </tr>
+                  <tr>
+                    <td><code>ExtensionFolder</code></td>
+                    <td>a VS Code / tool extension folder</td>
+                    <td>extension metadata</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>
+                <code>DartProjectFolder</code> is hierarchy-aware: a Flutter package is a <code>FlutterProjectFolder</code>
+                 <em>and</em> matches <code>DartProjectFolder</code>, so a <code>requiredNatures: {DartProjectFolder}</code>
+                 filter catches every Dart project subtype.
+              </p>
+              <h3>Configuration</h3>
+              <p>
+                Tom tools read configuration from two tiers: a workspace-root master file (<code>{tool}_master.yaml</code>, e.g. 
+                <code>buildkit_master.yaml</code>) for shared defaults, and a per-project file (<code>buildkit.yaml</code>) that overrides them. 
+                <code>TomBuildConfig.load</code> and <code>TomBuildConfig.loadMaster</code> read these:
+              </p>
+              <pre><code># buildkit_master.yaml (workspace root) — shared defaults
+navigation:
   scan: .
   recursive: true
   exclude: [.git, build]
 
-mytool:                       # tool-specific workspace defaults
-  verbose: false</code></pre>
-              <h3>buildkit.yaml (inside a project)</h3>
-              <pre><code>mytool:
-  verbose: true               # overrides workspace default</code></pre>
-              <h2>Pipeline Prefixes</h2>
-              <p>Pipeline commands support these execution prefixes:</p>
+mytool:
+  verbose: false
+
+# buildkit.yaml (inside a project) — overrides
+mytool:
+  verbose: true</code></pre>
+              <h3>Pipelines</h3>
+              <p>
+                Multi-command tools get pipelines for free. A pipeline is a list of steps, each with a prefix that decides how the step runs:
+              </p>
+              <table class="mdtable">
+                <thead><tr><th>Prefix</th><th>Behaviour</th></tr></thead>
+                <tbody>
+                  <tr><td><code>shell &lt;cmd&gt;</code></td><td>Run a shell command once</td></tr>
+                  <tr><td><code>shell-scan &lt;cmd&gt;</code></td><td>Run the command once per traversed project</td></tr>
+                  <tr><td><code>stdin &lt;cmd&gt;</code></td><td>Run with multiline stdin content</td></tr>
+                  <tr><td><code>print &lt;msg&gt;</code></td><td>Print exactly one resolved message (no shell noise)</td></tr>
+                  <tr><td><code>{TOOL} &lt;cmd&gt;</code></td><td>Delegate to one of the tool's own commands</td></tr>
+                </tbody>
+              </table>
+              <p>
+                Pipelines also support runtime <strong>macros</strong> (<code>$name</code>, defined on the command line and persisted per tool) and persistent 
+                <strong>defines</strong> (key/value pairs in the master and project YAML). See <a href="/docs?module=tom_build_base&amp;path=doc%2Fmultiws_pipelines_macros_defines.md"><code>multiws_pipelines_macros_defines.md</code></a>
+                 and <a href="/docs?module=tom_build_base&amp;path=doc%2Fmodes_and_placeholders.md"><code>modes_and_placeholders.md</code></a>
+                 for the full model.
+              </p>
+              <p>---</p>
+              <h2>Architecture</h2>
+              <pre><code>package:tom_build_base/tom_build_base.dart   (full surface)
+package:tom_build_base/tom_build_base_v2.dart (framework only, no legacy utils)
+        │
+   ┌────┴───────────────── Tool definition ──────────────────┐
+   │ ToolDefinition ── commands ─▶ CommandDefinition          │
+   │      │                             │                     │
+   │   features                      options ─▶ OptionDefinition
+   │   (NavigationFeatures)                                   │
+   └──────────────┬──────────────────────────────────────────┘
+                  │ given to
+                  ▼
+            ToolRunner ── executors: { name → CommandExecutor }
+                  │  parse args → route command → traverse → aggregate
+                  ▼
+            BuildBase.traverse
+                  │ scan ─▶ NatureDetector ─▶ FilterPipeline ─▶ FolderSorter
+                  ▼
+            CommandContext (path + natures) ─▶ executor ─▶ ItemResult
+                  │
+                  ▼
+            ToolResult.fromItems(...) ─▶ renderRunSummary()</code></pre>
+              <table class="mdtable">
+                <thead><tr><th>Type</th><th>Role</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><code>ToolDefinition</code></td>
+                    <td>Declarative description of a tool (the single source of truth)</td>
+                  </tr>
+                  <tr><td><code>CommandDefinition</code></td><td>One command within a multi-command tool</td></tr>
+                  <tr><td><code>OptionDefinition</code></td><td>One flag/option/multi-option</td></tr>
+                  <tr>
+                    <td><code>ToolRunner</code></td>
+                    <td>Parses args, routes to a command, drives traversal, aggregates</td>
+                  </tr>
+                  <tr>
+                    <td><code>CommandExecutor</code></td>
+                    <td>The per-folder behaviour contract (<code>CallbackExecutor</code> et al.)</td>
+                  </tr>
+                  <tr>
+                    <td><code>BuildBase</code></td>
+                    <td>Static traversal engine: scan → detect → filter → order → run</td>
+                  </tr>
+                  <tr>
+                    <td><code>BaseTraversalInfo</code> / <code>ProjectTraversalInfo</code> / <code>GitTraversalInfo</code></td>
+                    <td>Traversal configuration (project vs git mode)</td>
+                  </tr>
+                  <tr><td><code>CommandContext</code></td><td>Typed per-folder context with nature accessors</td></tr>
+                  <tr><td><code>FilterPipeline</code> / <code>FolderSorter</code></td><td>Selection and ordering</td></tr>
+                  <tr><td><code>ItemResult</code> / <code>ToolResult</code></td><td>Per-item and aggregated outcomes</td></tr>
+                  <tr><td><code>TomBuildConfig</code></td><td>Two-tier YAML configuration loader</td></tr>
+                </tbody>
+              </table>
+              <p>
+                The framework holds no global mutable state across tools: a <code>ToolDefinition</code> is an immutable value, traversal is a pure scan over the filesystem, and a 
+                <code>ToolRunner</code> owns only the state of its own invocation.
+              </p>
+              <p>---</p>
+              <h2>Ecosystem</h2>
+              <p>
+                <code>tom_build_base</code> is the build-framework member of the <a href="https://github.com/al-the-bear/tom_basics/tree/main"><code>tom_ai/basics</code></a>
+                 foundation layer:
+              </p>
               <ul>
-                <li>`shell &lt;cmd&gt;` — execute a shell command</li>
-                <li>`shell-scan &lt;cmd&gt;` — execute once per traversed project</li>
-                <li>`stdin &lt;cmd&gt;` — execute with multiline stdin content</li>
-                <li>`print &lt;msg&gt;` — print exactly once after placeholder resolution</li>
-                <li>`{TOOL} &lt;cmd&gt;` — delegate to tool command execution</li>
-              </ul>
-              <h2>Documentation</h2>
-              <ul>
-                <li>[build_base_user_guide.md](doc/build_base_user_guide.md) — Complete user guide with API reference</li>
                 <li>
-                  [cli_tools_navigation.md](doc/cli_tools_navigation.md) — CLI navigation options and implementation guide
+                  <a href="https://github.com/al-the-bear/tom_basics/tree/main"><code>tom_basics</code></a> — exceptions, logging, the platform seam, and
                 </li>
               </ul>
-              <h2>License</h2>
-              <p>BSD 3-Clause License — see [LICENSE](LICENSE) for details.</p>
-              <p>Author: Alexis Kyaw ([LinkedIn](https://www.linkedin.com/in/nickmeinhold/))</p>
+              <p>
+                the runtime model. - <a href="https://github.com/al-the-bear/tom_basics/tree/main/tom_basics_console"><code>tom_basics_console</code></a>
+                 — the standalone/server platform implementation. - <a href="https://github.com/al-the-bear/tom_basics/tree/main/tom_basics_network"><code>tom_basics_network</code></a>
+                 — HTTP retry and LAN server discovery.
+              </p>
+              <p>
+                Downstream, the Tom CLI tools are <em>all</em> <code>tom_build_base</code> tools: <code>buildkit</code>, 
+                <code>testkit</code>, <code>issuekit</code>, and the code generators each ship a <code>ToolDefinition</code>
+                 and a set of executors and let this package supply everything else. That is the design rule for the workspace — shared CLI infrastructure lives here, never re-implemented in a tool. New capability that a tool needs is added to 
+                <code>tom_build_base</code>, published, and then consumed.
+              </p>
+              <p>---</p>
+              <h2>Further documentation</h2>
+              <p>
+                The <a href="https://github.com/al-the-bear/tom_basics/tree/main/tom_build_base/doc"><code>doc/</code></a>
+                 folder holds the in-depth guides:
+              </p>
+              <ul>
+                <li>
+                  <a href="/docs?module=tom_build_base&amp;path=doc%2Fbuild_base_user_guide.md"><code>build_base_user_guide.md</code></a>
+                   — the complete user
+                </li>
+              </ul>
+              <p>
+                guide and API reference. - <a href="/docs?module=tom_build_base&amp;path=doc%2Fcli_tools_navigation.md"><code>cli_tools_navigation.md</code></a>
+                 — the navigation flag model and how traversal selection works. - <a href="/docs?module=tom_build_base&amp;path=doc%2Fmodes_and_placeholders.md"><code>modes_and_placeholders.md</code></a>
+                 — modes and placeholder resolution. - <a href="/docs?module=tom_build_base&amp;path=doc%2Fmultiws_pipelines_macros_defines.md"><code>multiws_pipelines_macros_defines.md</code></a>
+                 — pipelines, multi-workspace runs, macros, and defines. - <a href="/docs?module=tom_build_base&amp;path=doc%2Ftool_inheritance_and_nesting.md"><code>tool_inheritance_and_nesting.md</code></a>
+                 — deriving tools (<code>copyWith</code> + <code>CommandListOps</code>) and nested tool wiring. - <a href="/docs?module=tom_build_base&amp;path=doc%2Ftest_coverage.md"><code>test_coverage.md</code></a>
+                 — the test-coverage map.
+              </p>
+              <p>
+                See also <a href="/doc/tom_agent_container/tom_ai/basics/README"><code>../README.md</code></a>, the <code>tom_ai/basics</code>
+                 package map, and <a href="https://github.com/al-the-bear/tom_basics/blob/main/tom_build_base/example/tom_build_base_example.dart"><code>example/tom_build_base_example.dart</code></a>.
+              </p>
+              <p>---</p>
+              <h2>Status</h2>
+              <ul>
+                <li><strong>Version:</strong> 2.6.25</li>
+                <li>
+                  <strong>Tests:</strong> an extensive suite under <code>test/</code> (<code>dart test</code> / <code>testkit :test</code>)
+                </li>
+              </ul>
+              <p>
+                covering tool definition, argument parsing, help and completion generation, traversal, filtering and build-order, pipelines, macros and defines, and configuration loading. - 
+                <strong>Analysis:</strong> clean under <code>package:lints</code> (<code>dart analyze</code> — no issues). - 
+                <strong>Platforms:</strong> any Dart runtime with <code>dart:io</code> (desktop, server, CLI).
+              </p>
             </div>
           </section>
           <details class="licbox">

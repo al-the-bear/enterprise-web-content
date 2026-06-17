@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1322,14 +1342,16 @@
                   </p>
                   <h2>Gating contract (enforced server-side)</h2>
                   <p>
-                    Both the listing ([getToolsJson]) and the invocation ([invokeTool]) are scoped to the **currently active Anthropic profile**:
+                    Both the listing ([getToolsJson]) and the invocation ([invokeTool]) are scoped to the <strong>currently active Anthropic profile</strong>:
                   </p>
                   <ul><li>The available tools are exactly the profile's tool set</li></ul>
                   <p>
-                    (`toolsEnabled` / `enabledTools`). - When the Send-to-Chat target is Copilot, **no** tools are available — the list is empty and every invoke is refused.
+                    (<code>toolsEnabled</code> / <code>enabledTools</code>). - When the Send-to-Chat target is Copilot, <strong>no</strong>
+                     tools are available — the list is empty and every invoke is refused.
                   </p>
                   <p>
-                    The gate lives **inside the VS Code extension**, not in this Dart API. This package is a thin pass-through: it performs **no** client-side filtering and adds no checks of its own. A tool the active profile hides cannot be invoked by passing its name to [invokeTool] — the extension refuses it before the executor runs and returns an error string. The extension is the single authority, so a buggy or malicious client cannot widen its own access.
+                    The gate lives <strong>inside the VS Code extension</strong>, not in this Dart API. This package is a thin pass-through: it performs 
+                    <strong>no</strong> client-side filtering and adds no checks of its own. A tool the active profile hides cannot be invoked by passing its name to [invokeTool] — the extension refuses it before the executor runs and returns an error string. The extension is the single authority, so a buggy or malicious client cannot widen its own access.
                   </p>
                 </div>
                 <section id="TomToolsApi" class="api-declaration">
@@ -1362,10 +1384,11 @@
                       <div class="api-doc">
                         <p>Universally invoke a registered tool by name.</p>
                         <p>
-                          [name] is the tool name (e.g. `tomAi_readFile`). [arguments] is the tool's argument map. Returns the tool's string result; unknown tools and execution failures surface as an error string (the tool registry never throws across the bridge for these cases).
+                          [name] is the tool name (e.g. <code>tomAi_readFile</code>). [arguments] is the tool's argument map. Returns the tool's string result; unknown tools and execution failures surface as an error string (the tool registry never throws across the bridge for these cases).
                         </p>
                         <p>
-                          **Gated by the active Anthropic profile, enforced server-side.** Only tools the current profile permits can be invoked; a name the profile hides — or any name while the Send-to-Chat target is Copilot — is refused inside the extension **before** the executor runs, returning an error string. This package applies no filtering of its own; the extension is the sole authority. The set of invokable tools matches the names returned by [getToolsJson].
+                          <strong>Gated by the active Anthropic profile, enforced server-side.</strong> Only tools the current profile permits can be invoked; a name the profile hides — or any name while the Send-to-Chat target is Copilot — is refused inside the extension 
+                          <strong>before</strong> the executor runs, returning an error string. This package applies no filtering of its own; the extension is the sole authority. The set of invokable tools matches the names returned by [getToolsJson].
                         </p>
                       </div>
                     </div>
@@ -1376,10 +1399,10 @@
                       <div class="api-doc">
                         <p>Generate the Anthropic-shaped tools JSON for the active profile.</p>
                         <p>
-                          Reflects the currently active Anthropic profile's tool settings (`toolsEnabled` / `enabledTools`). Returns an empty list when the configured Send-to-Chat target is Copilot.
+                          Reflects the currently active Anthropic profile's tool settings (<code>toolsEnabled</code> / <code>enabledTools</code>). Returns an empty list when the configured Send-to-Chat target is Copilot.
                         </p>
                         <p>
-                          The returned set is resolved **server-side** by the extension and is the authoritative list of invokable tools: the same gate scopes [invokeTool], so a name absent from this list cannot be invoked. No Dart-side filtering is applied here.
+                          The returned set is resolved <strong>server-side</strong> by the extension and is the authoritative list of invokable tools: the same gate scopes [invokeTool], so a name absent from this list cannot be invoked. No Dart-side filtering is applied here.
                         </p>
                       </div>
                     </div>
@@ -1390,7 +1413,7 @@
                           The names of the tools the active profile permits — a cheap convenience for pre-validating a name before calling [invokeTool].
                         </p>
                         <p>
-                          Backed by the same `tools.getJsonVce` op as [getToolsJson] (so it honours the identical server-side gate: active-profile scoped, empty for the Copilot target). This is an ergonomic shortcut only — the extension still re-checks on [invokeTool], so skipping the pre-check is always safe.
+                          Backed by the same <code>tools.getJsonVce</code> op as [getToolsJson] (so it honours the identical server-side gate: active-profile scoped, empty for the Copilot target). This is an ergonomic shortcut only — the extension still re-checks on [invokeTool], so skipping the pre-check is always safe.
                         </p>
                       </div>
                     </div>
@@ -1399,7 +1422,7 @@
                 <section id="ToolDefinitionJson" class="api-declaration">
                   <h3 class="api-decl-title">class ToolDefinitionJson</h3>
                   <code class="api-signature">class ToolDefinitionJson</code>
-                  <div class="api-doc"><p>An Anthropic-shaped tool definition: `{name, description, input_schema}`.</p></div>
+                  <div class="api-doc"><p>An Anthropic-shaped tool definition: <code>{name, description, input_schema}</code>.</p></div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="ToolDefinitionJson.new" class="api-member">
@@ -1429,7 +1452,7 @@
                       <div class="api-member-head"><code class="api-signature">Map&lt;String, dynamic&gt; toJson()</code></div>
                       <div class="api-doc">
                         <p>
-                          Convert back to the Anthropic wire shape (`input_schema`, not `inputSchema`) so the result can be injected into a prompt verbatim.
+                          Convert back to the Anthropic wire shape (<code>input_schema</code>, not <code>inputSchema</code>) so the result can be injected into a prompt verbatim.
                         </p>
                       </div>
                     </div>

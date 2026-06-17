@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1319,17 +1339,19 @@
                   <div class="api-doc">
                     <p>Represents a timezone with its name and location data.</p>
                     <p>
-                      [TomTimezone] provides a unified interface for working with timezones across the Tom framework. It wraps the `timezone` package's functionality and provides:
+                      [TomTimezone] provides a unified interface for working with timezones across the Tom framework. It wraps the 
+                      <code>timezone</code> package's functionality and provides:
                     </p>
                     <ul>
-                      <li>**Timezone lookup**: Find timezones by name or UTC offset</li>
-                      <li>**Offset calculation**: Get UTC offset for any timezone at any point in time</li>
-                      <li>**DateTime conversion**: Convert between timezones and to/from TZDateTime</li>
-                      <li>**DST awareness**: Automatically handles daylight saving time transitions</li>
+                      <li><strong>Timezone lookup</strong>: Find timezones by name or UTC offset</li>
+                      <li><strong>Offset calculation</strong>: Get UTC offset for any timezone at any point in time</li>
+                      <li><strong>DateTime conversion</strong>: Convert between timezones and to/from TZDateTime</li>
+                      <li><strong>DST awareness</strong>: Automatically handles daylight saving time transitions</li>
                     </ul>
                     <h2>Initialization</h2>
                     <p>
-                      The timezone database is initialized automatically on first access. No manual initialization is required - the `_initialize()` method handles calling `initializeTimeZones()` internally.
+                      The timezone database is initialized automatically on first access. No manual initialization is required - the 
+                      <code>_initialize()</code> method handles calling <code>initializeTimeZones()</code> internally.
                     </p>
                     <h2>Common Usage</h2>
                     <pre><code>// Get a timezone by name
@@ -1372,7 +1394,7 @@ final tzList = TomTimezone.allWithOffset(0); // All UTC+0 timezones</code></pre>
                     <div id="TomTimezone.location" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final Location location</code></div>
                       <div class="api-doc">
-                        <p>The underlying timezone location from the `timezone` package.</p>
+                        <p>The underlying timezone location from the <code>timezone</code> package.</p>
                         <p>Provides access to low-level timezone operations and data.</p>
                       </div>
                     </div>
@@ -1388,7 +1410,8 @@ final tzList = TomTimezone.allWithOffset(0); // All UTC+0 timezones</code></pre>
                       <div class="api-doc">
                         <p>Returns a string representation of this timezone.</p>
                         <p>
-                          Format: `{offset}_{timezone}` where offset is in format `Z` for UTC or `+HH:MM`/`-HH:MM` for other timezones.
+                          Format: <code>{offset}_{timezone}</code> where offset is in format <code>Z</code> for UTC or <code>+HH:MM</code>/<code>-HH:MM</code>
+                           for other timezones.
                         </p>
                         <p>Example:</p>
                         <pre><code>print(TomTimezone.utc.toString()); // 'Z_UTC '
@@ -1400,7 +1423,7 @@ print(TomTimezone.fromName('Asia/Tokyo')!.toString()); // '+09:00_Asia/Tokyo '</
                       <div class="api-doc">
                         <p>Returns a string representation of this timezone at a specific date/time.</p>
                         <p>
-                          Format: `{offset}_{timezone}` where offset is calculated for the given date, accounting for DST transitions.
+                          Format: <code>{offset}_{timezone}</code> where offset is calculated for the given date, accounting for DST transitions.
                         </p>
                         <p>[when] The DateTime to calculate the offset for.</p>
                         <p>Example:</p>
@@ -1446,14 +1469,14 @@ print(berlin.getUtcOffsetStringOn(DateTime.utc(2024, 7, 15))); // '+02:00'</code
                       <div class="api-member-head"><code class="api-signature">int getCurrentUtcOffset()</code></div>
                       <div class="api-doc">
                         <p>Returns the current UTC offset in minutes for this timezone.</p>
-                        <p>Equivalent to calling `getUtcOffsetOn(DateTime.now())`.</p>
+                        <p>Equivalent to calling <code>getUtcOffsetOn(DateTime.now())</code>.</p>
                       </div>
                     </div>
                     <div id="TomTimezone.getCurrentUtcOffsetString" class="api-member">
                       <div class="api-member-head"><code class="api-signature">String getCurrentUtcOffsetString()</code></div>
                       <div class="api-doc">
                         <p>Returns the current UTC offset string for this timezone.</p>
-                        <p>Equivalent to calling `getUtcOffsetStringOn(DateTime.now())`.</p>
+                        <p>Equivalent to calling <code>getUtcOffsetStringOn(DateTime.now())</code>.</p>
                       </div>
                     </div>
                     <div id="TomTimezone.toTZDateTime" class="api-member">
@@ -1533,7 +1556,9 @@ print(utc.timezoneOffsetMin); // 0</code></pre>
                       <div class="api-member-head"><code class="api-signature">static TomTimezone? fromName(String name)</code></div>
                       <div class="api-doc">
                         <p>Finds a timezone by its IANA name.</p>
-                        <p>The lookup is case-insensitive. Returns `null` if the timezone is not found in the database.</p>
+                        <p>
+                          The lookup is case-insensitive. Returns <code>null</code> if the timezone is not found in the database.
+                        </p>
                         <p>[name] The IANA timezone name (e.g., 'America/New_York', 'Europe/Berlin').</p>
                         <p>Example:</p>
                         <pre><code>final tz1 = TomTimezone.fromName('Asia/Tokyo');
@@ -1546,7 +1571,7 @@ final tz3 = TomTimezone.fromName('Unknown/Zone'); // Returns null</code></pre>
                       <div class="api-doc">
                         <p>Returns the first timezone matching the given UTC offset.</p>
                         <p>[utcOffsetMinutes] The UTC offset in minutes (e.g., 540 for UTC+9).</p>
-                        <p>Returns `null` if no timezone matches the offset.</p>
+                        <p>Returns <code>null</code> if no timezone matches the offset.</p>
                         <p>Example:</p>
                         <pre><code>final tz = TomTimezone.firstWithOffset(540); // UTC+9
 print(tz?.timezone); // Might be 'Asia/Tokyo' or another UTC+9 timezone</code></pre>
@@ -1559,7 +1584,7 @@ print(tz?.timezone); // Might be 'Asia/Tokyo' or another UTC+9 timezone</code></
                       <div class="api-doc">
                         <p>Returns all timezones matching the given UTC offset.</p>
                         <p>[utcOffsetMinutes] The UTC offset in minutes.</p>
-                        <p>Returns `null` if no timezones match the offset.</p>
+                        <p>Returns <code>null</code> if no timezones match the offset.</p>
                         <p>Example:</p>
                         <pre><code>final tzList = TomTimezone.allWithOffset(0); // All UTC+0 timezones
 for (final tz in tzList ?? []) {
@@ -1580,7 +1605,8 @@ for (final tz in tzList ?? []) {
                           [name] The timezone name (optional). [utcOffsetMinutes] The expected UTC offset in minutes (optional).
                         </p>
                         <p>
-                          Returns: - The matching timezone if name and offset are valid - First timezone with the given offset if name is null - `null` if both parameters are null
+                          Returns: - The matching timezone if name and offset are valid - First timezone with the given offset if name is null - 
+                          <code>null</code> if both parameters are null
                         </p>
                         <p>Throws [TomTimezoneException] if name exists but offset doesn't match.</p>
                         <p>Example:</p>
@@ -1596,7 +1622,10 @@ TomTimezone.findTimezone('UTC', 60); // TomTimezoneException</code></pre>
                       <div class="api-doc">
                         <p>Converts a UTC offset in minutes to a formatted string.</p>
                         <p>[totalMinutes] The UTC offset in minutes (positive = east of UTC).</p>
-                        <p>Returns: - `'Z'` for offset of 0 - `'+HH:MM'` for positive offsets - `'-HH:MM'` for negative offsets</p>
+                        <p>
+                          Returns: - <code>'Z'</code> for offset of 0 - <code>'+HH:MM'</code> for positive offsets - <code>'-HH:MM'</code>
+                           for negative offsets
+                        </p>
                         <p>Example:</p>
                         <pre><code>print(TomTimezone.convertMinutesToUtcOffset(0));    // 'Z'
 print(TomTimezone.convertMinutesToUtcOffset(540));  // '+09:00'

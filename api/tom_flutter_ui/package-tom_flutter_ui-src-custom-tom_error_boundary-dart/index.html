@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1320,7 +1340,7 @@
                 <h2 class="api-library-title">package:tom_flutter_ui/src/custom/tom_error_boundary.dart</h2>
                 <code class="api-import">import 'package:tom_flutter_ui/src/custom/tom_error_boundary.dart';</code>
                 <div class="api-doc">
-                  <p>Phase 6 — `TomErrorBoundary`.</p>
+                  <p>Phase 6 — <code>TomErrorBoundary</code>.</p>
                   <p>
                     Catches widget-build errors raised inside [child] (and any descendant builder error reported through the [FlutterError.onError] hook) and renders a fallback UI instead of letting the error propagate up to the global error widget.
                   </p>
@@ -1359,7 +1379,11 @@
                       <div class="api-member-head">
                         <code class="api-signature">final Widget Function(BuildContext, FlutterErrorDetails, void Function())?? fallbackBuilder</code>
                       </div>
-                      <div class="api-doc"><p>Optional fallback builder. When `null`, the boundary renders a Material-themed error card.</p></div>
+                      <div class="api-doc">
+                        <p>
+                          Optional fallback builder. When <code>null</code>, the boundary renders a Material-themed error card.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomErrorBoundary.onError" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final void Function(FlutterErrorDetails)?? onError</code></div>
@@ -1415,13 +1439,18 @@
                   <code class="api-signature">class _ErrorBoundaryHost extends StatefulWidget</code>
                   <div class="api-doc">
                     <p>
-                      Wraps the guarded subtree with an [ErrorWidget.builder] that returns a [_ErrorReporter] in place of the failing widget. The reporter then walks up the element tree to find the *nearest* enclosing [_TomErrorBoundaryState] and forwards the error to it.
+                      Wraps the guarded subtree with an [ErrorWidget.builder] that returns a [_ErrorReporter] in place of the failing widget. The reporter then walks up the element tree to find the 
+                      <em>nearest</em> enclosing [_TomErrorBoundaryState] and forwards the error to it.
                     </p>
                     <p>
-                      This element-tree routing — rather than the more obvious "current host's `widget.onError` is called by the global hook" approach — is what makes nested boundaries correct. The global [ErrorWidget.builder] is, well, global: when boundary A and B are both mounted, whichever called `initState` *last* owns the hook. If A throws while B is the active hook, B's `onError` would fire — routing A's error to B. Per-row containment in a list (where dozens of boundaries are mounted simultaneously) becomes impossible. By having the hook return a placeholder widget that looks up the boundary via `findAncestorStateOfType`, the error always reaches the *enclosing* boundary, regardless of mount order.
+                      This element-tree routing — rather than the more obvious "current host's <code>widget.onError</code> is called by the global hook" approach — is what makes nested boundaries correct. The global [ErrorWidget.builder] is, well, global: when boundary A and B are both mounted, whichever called 
+                      <code>initState</code> <em>last</em> owns the hook. If A throws while B is the active hook, B's <code>onError</code>
+                       would fire — routing A's error to B. Per-row containment in a list (where dozens of boundaries are mounted simultaneously) becomes impossible. By having the hook return a placeholder widget that looks up the boundary via 
+                      <code>findAncestorStateOfType</code>, the error always reaches the <em>enclosing</em> boundary, regardless of mount order.
                     </p>
                     <p>
-                      Boundary ref-counting: `_ErrorBoundaryHostState` increments [_activeBoundaries] in `initState` and decrements in `dispose`. The global hook is installed when the count goes 0→1 and restored when it goes 1→0 — so the original builder is preserved across the entire lifetime of the outermost boundary, not stomped each time a new boundary mounts.
+                      Boundary ref-counting: <code>_ErrorBoundaryHostState</code> increments [_activeBoundaries] in <code>initState</code>
+                       and decrements in <code>dispose</code>. The global hook is installed when the count goes 0→1 and restored when it goes 1→0 — so the original builder is preserved across the entire lifetime of the outermost boundary, not stomped each time a new boundary mounts.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1561,7 +1590,8 @@
                   </code>
                   <div class="api-doc">
                     <p>
-                      Builder signature for the fallback UI rendered when an error is caught. Receives the captured [FlutterErrorDetails] plus a `retry` closure that resets the boundary and re-attempts the build.
+                      Builder signature for the fallback UI rendered when an error is caught. Receives the captured [FlutterErrorDetails] plus a 
+                      <code>retry</code> closure that resets the boundary and re-attempts the build.
                     </p>
                   </div>
                 </section>

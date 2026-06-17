@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1305,7 +1325,7 @@
               <span style="display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap"><span class="badge b-pub"><span class="d"></span>Published</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">role: extension</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">license: BSD-3-Clause</span></span>
             </div>
             <h2>tom_ast_generator</h2>
-            <div class="mono" style="color: #9FB6C9">tom_ast_generator · v0.1.1</div>
+            <div class="mono" style="color: #9FB6C9">tom_ast_generator · v0.1.3</div>
             <p style="margin-top: 10px">
               Walks an analyzer compilation unit and emits a structurally identical `SAstNode` tree, then bundles it for analyzer-free execution. The build-time half of the on-device interpreter line.
             </p>
@@ -1324,20 +1344,7 @@
             <div>
               <div class="panel">
                 <h3>Overview</h3>
-                <p>
-                  `tom_ast_generator` sits at the boundary between the Dart `analyzer` and the
-                  analyzer-free runtime. It converts each analyzer node into the matching
-                  `SAstNode` from `tom_ast_model`, losing no structure.
-                  
-                  Once converted, the mirror tree carries no analyzer dependency. It serializes to
-                  JSON or YAML, bundles alongside app assets, and runs later on `tom_d4rt_exec` or
-                  `tom_d4rt_ast` with the analyzer absent — the key to shipping Dart scripting into
-                  a Flutter app.
-                  
-                  The `astgen` CLI automates conversion across a whole workspace from
-                  `buildkit.yaml` configuration. It is the parse-once step feeding the on-device
-                  execution line.
-                </p>
+                <p>From the module readme.md file:</p>
                 <h4 style="font-size: 1rem; margin-top: 18px">What it enables</h4>
                 <p style="margin: 0">Enables on-device interpretation, parse-once asset bundles, over-the-air UI updates.</p>
               </div>
@@ -1410,14 +1417,21 @@
             <div class="pageprose">
               <h1>tom_ast_generator</h1>
               <p>
+                &gt; <strong>Attribution.</strong> The <code>tom_d4rt</code> project is an extended clone of the original &gt; d4rt project by Moustapha Kodjo Amadou, initially published in 2025. The &gt; complete interpreter is based on his idea.
+              </p>
+              <p>
                 A 1:1 converter from the Dart analyzer AST to a fully serializable mirror AST, with bundling machinery that enables parse-once, serialize, and interpret-without-analyzer workflows.
               </p>
               <h2>Overview</h2>
               <p>
-                `tom_ast_generator` sits at the boundary between the Dart `analyzer` package and the analyzer-free D4rt runtime. Its job is precise: walk every node of an `analyzer.CompilationUnit`, and produce a structurally identical tree of `SAstNode` objects (defined in `tom_ast_model` / `tom_d4rt_ast`) — one mirror node per analyzer node, one field per field, no information lost.
+                <code>tom_ast_generator</code> sits at the boundary between the Dart <code>analyzer</code> package and the analyzer-free D4rt runtime. Its job is precise: walk every node of an 
+                <code>analyzer.CompilationUnit</code>, and produce a structurally identical tree of <code>SAstNode</code>
+                 objects (defined in <code>tom_ast_model</code> / <code>tom_d4rt_ast</code>) — one mirror node per analyzer node, one field per field, no information lost.
               </p>
               <p>
-                Once converted, the mirror AST has no dependency on the Dart analyzer. It can be serialized to JSON (or YAML), bundled alongside application assets, and later interpreted by `tom_d4rt_exec` or any D4rt-compatible runtime without the analyzer ever being present. This matters most in Flutter applications, where shipping the `analyzer` package is impractical. The pipeline is:
+                Once converted, the mirror AST has no dependency on the Dart analyzer. It can be serialized to JSON (or YAML), bundled alongside application assets, and later interpreted by 
+                <code>tom_d4rt_exec</code> or any D4rt-compatible runtime without the analyzer ever being present. This matters most in Flutter applications, where shipping the 
+                <code>analyzer</code> package is impractical. The pipeline is:
               </p>
               <pre><code>Dart source files
        │
@@ -1433,102 +1447,153 @@ SAstNode tree (tom_ast_model)
        ▼  (tom_d4rt_ast / tom_d4rt_exec — device, no analyzer)
 Interpreted at runtime</code></pre>
               <p>
-                The package also provides the `astgen` CLI, which automates the conversion step across a whole Dart workspace using `buildkit.yaml`-driven configuration.
+                The package also provides the <code>astgen</code> CLI, which automates the conversion step across a whole Dart workspace using 
+                <code>buildkit.yaml</code>-driven configuration.
+              </p>
+              <h3>Where it sits — the analyzer-free family</h3>
+              <p>
+                D4rt ships in <strong>two execution families</strong>. The <strong>source-based</strong> line (<code>tom_d4rt</code>, 
+                <code>tom_d4rt_dcli</code>, <code>tom_d4rt_flutter</code>) parses Dart with the <code>analyzer</code>
+                 package and interprets it directly — it is the <strong>stable reference and usually the preferable choice</strong>. The 
+                <strong>analyzer-free</strong> line — <code>tom_ast_model</code>, <code>tom_d4rt_ast</code>, <code>tom_ast_generator</code>, 
+                <code>tom_d4rt_exec</code>, <code>tom_dcli_exec</code>, <code>tom_d4rt_flutter_ast</code> — runs from pre-compiled 
+                <code>SAstNode</code> trees with <strong>no analyzer dependency</strong>, which is what makes it viable on the 
+                <strong>web</strong> (the analyzer is too large to ship) and for <strong>on-the-fly / OTA UI updates</strong>. Because the generated AST bundles are large, reach for the analyzer-free line only when that web/OTA constraint applies.
+              </p>
+              <p>
+                <code>tom_ast_generator</code> is the <strong>build-time bridge</strong> between the two: it is the <strong>only</strong>
+                 package in the analyzer-free line that depends on <code>analyzer</code>. It runs off-device (build machine / CI), converting source into bundles that the device-side runtime (<a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_ast"><code>tom_d4rt_ast</code></a>) executes without the analyzer ever being present.
               </p>
               <h2>Installation</h2>
               <h3>As a library dependency</h3>
               <pre><code>dependencies:
-  tom_ast_generator: ^0.1.1</code></pre>
+  tom_ast_generator: ^0.1.3</code></pre>
               <pre><code>dart pub add tom_ast_generator</code></pre>
               <p>
-                The public library export is `package:tom_ast_generator/tom_ast_generator.dart` (also importable as `package:tom_ast_generator/tom_d4rt_astgen.dart` for legacy compatibility). Both re-export `AstConverter`, `AstBundler`, `AstBundlerConfig`, `ImportResolution`, `ImportAction`, and the full `tom_d4rt_ast` surface (`SCompilationUnit`, `SAstNode`, `AstBundle`, etc.).
+                The public library export is <code>package:tom_ast_generator/tom_ast_generator.dart</code> (also importable as 
+                <code>package:tom_ast_generator/tom_d4rt_astgen.dart</code> for legacy compatibility). Both re-export 
+                <code>AstConverter</code>, <code>AstBundler</code>, <code>AstBundlerConfig</code>, <code>ImportResolution</code>, 
+                <code>ImportAction</code>, and the full <code>tom_d4rt_ast</code> surface (<code>SCompilationUnit</code>, 
+                <code>SAstNode</code>, <code>AstBundle</code>, etc.).
               </p>
               <h3>As a CLI tool</h3>
-              <p>The package ships a `bin/astgen.dart` executable registered as `astgen`. To activate it globally:</p>
+              <p>
+                The package ships a <code>bin/astgen.dart</code> executable registered as <code>astgen</code>. To activate it globally:
+              </p>
               <pre><code>dart pub global activate tom_ast_generator
 astgen --help</code></pre>
               <p>Or invoke it without activation from within a project that depends on it:</p>
               <pre><code>dart run tom_ast_generator:astgen --help</code></pre>
               <h2>Features</h2>
-              <h3>1. Full-coverage AST conversion (`AstConverter`)</h3>
+              <h3>1. Full-coverage AST conversion (<code>AstConverter</code>)</h3>
               <p>
-                `AstConverter.convertCompilationUnit()` converts an `analyzer.CompilationUnit` to `SCompilationUnit` by dispatching every `analyzer.AstNode` subtype through a single `convert()` method. Coverage includes:
+                <code>AstConverter.convertCompilationUnit()</code> converts an <code>analyzer.CompilationUnit</code> to 
+                <code>SCompilationUnit</code> by dispatching every <code>analyzer.AstNode</code> subtype through a single 
+                <code>convert()</code> method. Coverage includes:
               </p>
               <ul>
                 <li>
-                  **Declarations** — classes, mixins, enums, extensions, extension types, functions, top-level variables, constructors, fields, type aliases (`typedef`), enum constants
+                  <strong>Declarations</strong> — classes, mixins, enums, extensions, extension types, functions, top-level variables, constructors, fields, type aliases (<code>typedef</code>), enum constants
                 </li>
                 <li>
-                  **Statements** — block, if/else, for/for-each, while, do-while, switch (classic and expression), try/catch, break, continue, return, yield, assert, labeled, empty
+                  <strong>Statements</strong> — block, if/else, for/for-each, while, do-while, switch (classic and expression), try/catch, break, continue, return, yield, assert, labeled, empty
                 </li>
                 <li>
-                  **Expressions** — binary, prefix, postfix, conditional (`?:`), assignment, method invocation, function expression invocation, index, property access, cascade, instance creation, `this`, `super`, `throw`, `await`, `as`, `is`, `rethrow`, named, spread, null-aware collection elements, if-element, for-element, function and constructor references
+                  <strong>Expressions</strong> — binary, prefix, postfix, conditional (<code>?:</code>), assignment, method invocation, function expression invocation, index, property access, cascade, instance creation, 
+                  <code>this</code>, <code>super</code>, <code>throw</code>, <code>await</code>, <code>as</code>, <code>is</code>, 
+                  <code>rethrow</code>, named, spread, null-aware collection elements, if-element, for-element, function and constructor references
                 </li>
                 <li>
-                  **Literals** — integer, double, boolean, simple string, string interpolation, adjacent strings, null, list, set/map, symbol, record
+                  <strong>Literals</strong> — integer, double, boolean, simple string, string interpolation, adjacent strings, null, list, set/map, symbol, record
                 </li>
                 <li>
-                  **Types** — named type, generic function type, type argument list, type parameter list, record type annotation
+                  <strong>Types</strong> — named type, generic function type, type argument list, type parameter list, record type annotation
                 </li>
-                <li>**Parameters** — simple, default, field-formal (`this.`), function-typed, super-formal</li>
-                <li>**Function bodies** — block, expression (`=&gt;`), empty, native</li>
-                <li>**Directives** — import, export, part, part-of, library</li>
                 <li>
-                  **Dart 3 patterns** — constant, wildcard, declared variable, assigned variable, object, list, map, record, pattern field, logical-or, logical-and, cast, relational, null-check, null-assert, parenthesized, rest; plus `switch` pattern cases, guarded patterns, `when` clauses
+                  <strong>Parameters</strong> — simple, default, field-formal (<code>this.</code>), function-typed, super-formal
                 </li>
-                <li>**Extension types** — `ExtensionTypeDeclaration`, `RepresentationDeclaration`</li>
+                <li><strong>Function bodies</strong> — block, expression (<code>=&gt;</code>), empty, native</li>
+                <li><strong>Directives</strong> — import, export, part, part-of, library</li>
                 <li>
-                  **Misc** — annotations, comments, argument lists, labels, extends/implements/with clauses, constructor names, super and redirecting constructor invocations, show/hide combinators
+                  <strong>Dart 3 patterns</strong> — constant, wildcard, declared variable, assigned variable, object, list, map, record, pattern field, logical-or, logical-and, cast, relational, null-check, null-assert, parenthesized, rest; plus 
+                  <code>switch</code> pattern cases, guarded patterns, <code>when</code> clauses
+                </li>
+                <li>
+                  <strong>Extension types</strong> — <code>ExtensionTypeDeclaration</code>, <code>RepresentationDeclaration</code>
+                </li>
+                <li>
+                  <strong>Misc</strong> — annotations, comments, argument lists, labels, extends/implements/with clauses, constructor names, super and redirecting constructor invocations, show/hide combinators
                 </li>
               </ul>
               <p>
-                Unknown node types produce a placeholder `_SUnknownNode` (carrying offset, length, and the original runtime type name) rather than throwing, so partial conversion is always possible.
+                Unknown node types produce a placeholder <code>_SUnknownNode</code> (carrying offset, length, and the original runtime type name) rather than throwing, so partial conversion is always possible.
               </p>
-              <h3>2. AST bundling with recursive import resolution (`AstBundler`)</h3>
+              <h3>2. AST bundling with recursive import resolution (<code>AstBundler</code>)</h3>
               <p>
-                `AstBundler` builds an `AstBundle` — a self-contained map of URI → `SCompilationUnit` — from either a source string or a file path. It recursively follows imports and parts, respecting a priority-ordered resolution strategy:
+                <code>AstBundler</code> builds an <code>AstBundle</code> — a self-contained map of URI → <code>SCompilationUnit</code>
+                 — from either a source string or a file path. It recursively follows imports and parts, respecting a priority-ordered resolution strategy:
               </p>
               <table class="mdtable">
                 <thead><tr><th>Import type</th><th>Resolution</th></tr></thead>
                 <tbody>
-                  <tr><td>`dart:*` (and custom `stdlibSchemes`)</td><td>Skip — available at runtime</td></tr>
-                  <tr><td>URI in `bridgedLibraries`</td><td>Skip — native bridge handles it</td></tr>
-                  <tr><td>URI in `explicitSources`</td><td>Include provided source string</td></tr>
-                  <tr><td>`package:same_package/…`</td><td>Auto-include from disk via `projectRoot`</td></tr>
+                  <tr>
+                    <td><code>dart:*</code> (and custom <code>stdlibSchemes</code>)</td>
+                    <td>Skip — available at runtime</td>
+                  </tr>
+                  <tr><td>URI in <code>bridgedLibraries</code></td><td>Skip — native bridge handles it</td></tr>
+                  <tr><td>URI in <code>explicitSources</code></td><td>Include provided source string</td></tr>
+                  <tr>
+                    <td><code>package:same_package/…</code></td>
+                    <td>Auto-include from disk via <code>projectRoot</code></td>
+                  </tr>
                   <tr><td>Relative/file-path import</td><td>Auto-include from disk</td></tr>
-                  <tr><td>Other `package:…`</td><td>Error — not bridged and not same-package</td></tr>
+                  <tr><td>Other <code>package:…</code></td><td>Error — not bridged and not same-package</td></tr>
                 </tbody>
               </table>
               <p>
-                Circular import chains are handled safely through a visited-URI set; an optional `maxImportDepth` (default 64) acts as a final safeguard.
+                Circular import chains are handled safely through a visited-URI set; an optional <code>maxImportDepth</code>
+                 (default 64) acts as a final safeguard.
               </p>
               <p>
-                A `fileAccessValidator` callback can gate every disk read, wiring the bundler to D4rt's `FilesystemPermission` sandbox.
+                A <code>fileAccessValidator</code> callback can gate every disk read, wiring the bundler to D4rt's <code>FilesystemPermission</code>
+                 sandbox.
               </p>
               <p>
-                The resulting `AstBundle` (from `tom_d4rt_ast`) is JSON- and binary-serializable (`toJson()`, `toBytes()`, `fromJson()`, `fromBytes()`), making it suitable for embedding as a Flutter asset or writing to disk.
+                The resulting <code>AstBundle</code> (from <code>tom_d4rt_ast</code>) is JSON- and binary-serializable (<code>toJson()</code>, 
+                <code>toBytes()</code>, <code>fromJson()</code>, <code>fromBytes()</code>), making it suitable for embedding as a Flutter asset or writing to disk.
               </p>
-              <h3>3. `astgen` CLI — workspace-wide batch conversion</h3>
+              <h3>3. <code>astgen</code> CLI — workspace-wide batch conversion</h3>
               <p>
-                The `astgen` CLI converts Dart source files to `.ast.yaml` files in bulk, driven by an `astgen:` section in `buildkit.yaml`. It integrates with the `tom_build_base` workspace navigation infrastructure (project discovery, scan, recursion, dry-run, verbose).
+                The <code>astgen</code> CLI converts Dart source files to <code>.ast.yaml</code> files in bulk, driven by an 
+                <code>astgen:</code> section in <code>buildkit.yaml</code>. It integrates with the <code>tom_build_base</code>
+                 workspace navigation infrastructure (project discovery, scan, recursion, dry-run, verbose).
               </p>
-              <p>Key CLI options (standard `tom_build_base` flags):</p>
+              <p>Key CLI options (standard <code>tom_build_base</code> flags):</p>
               <table class="mdtable">
                 <thead><tr><th>Option</th><th>Description</th></tr></thead>
                 <tbody>
-                  <tr><td>`--scan &lt;dir&gt;` / `-s`</td><td>Scan directory for projects with `astgen:` config</td></tr>
-                  <tr><td>`--project &lt;path&gt;` / `-p`</td><td>Process a single project</td></tr>
-                  <tr><td>`--recursive` / `-r`</td><td>Recurse into sub-projects during scan</td></tr>
-                  <tr><td>`--dry-run`</td><td>Show what would be converted, write nothing</td></tr>
-                  <tr><td>`--verbose` / `-v`</td><td>Show per-file detail</td></tr>
                   <tr>
-                    <td>`--list`</td>
-                    <td>List projects that have astgen config; combine with `--show` to print their config sections</td>
+                    <td><code>--scan &lt;dir&gt;</code> / <code>-s</code></td>
+                    <td>Scan directory for projects with <code>astgen:</code> config</td>
                   </tr>
-                  <tr><td>`--version` / `-V`</td><td>Print version</td></tr>
+                  <tr><td><code>--project &lt;path&gt;</code> / <code>-p</code></td><td>Process a single project</td></tr>
+                  <tr><td><code>--recursive</code> / <code>-r</code></td><td>Recurse into sub-projects during scan</td></tr>
+                  <tr><td><code>--dry-run</code></td><td>Show what would be converted, write nothing</td></tr>
+                  <tr><td><code>--verbose</code> / <code>-v</code></td><td>Show per-file detail</td></tr>
+                  <tr>
+                    <td><code>--list</code></td>
+                    <td>
+                      List projects that have astgen config; combine with 
+                      <code>--show</code>
+                       to print their config sections
+                    </td>
+                  </tr>
+                  <tr><td><code>--version</code> / <code>-V</code></td><td>Print version</td></tr>
                 </tbody>
               </table>
-              <p>Generated files use the `.ast.yaml` extension: `my_runner.dart` → `my_runner.ast.yaml`.</p>
+              <p>
+                Generated files use the <code>.ast.yaml</code> extension: <code>my_runner.dart</code> → <code>my_runner.ast.yaml</code>.
+              </p>
               <h2>Usage</h2>
               <h3>Quick start — converting a single file programmatically</h3>
               <pre><code>import 'package:analyzer/dart/analysis/utilities.dart';
@@ -1594,8 +1659,37 @@ final bundle = await bundler.createFromSource('''
 import 'package:helpers/math.dart';
 void main() { print(add(1, 2)); }
 ''');</code></pre>
-              <h3>`astgen` CLI — `buildkit.yaml` configuration</h3>
-              <p>Place an `astgen:` section in `buildkit.yaml` at your project root:</p>
+              <h3>End-to-end: source → bundle → run</h3>
+              <p>
+                The whole point of this package is to bridge the two D4rt families. Here is the full round trip — convert on the build machine, run on the device with 
+                <strong>no analyzer</strong>:
+              </p>
+              <pre><code>// ── Build machine / CI (analyzer present) ──────────────────────────────
+import 'dart:io';
+import 'package:tom_ast_generator/tom_ast_generator.dart';
+
+Future&lt;void&gt; buildBundle() async {
+  final bundler = AstBundler(packageName: 'my_app', projectRoot: '.');
+  final bundle = await bundler.createFromFile('lib/scripts/build_ui.dart');
+  // Ship these bytes as a Flutter asset / serve them over HTTP.
+  await File('assets/build_ui.ast').writeAsBytes(bundle.toBytes());
+}</code></pre>
+              <pre><code>// ── Device / runtime (analyzer ABSENT) ─────────────────────────────────
+import 'package:tom_d4rt_ast/runtime.dart';
+
+Future&lt;String&gt; runBundle(List&lt;int&gt; bytes) async {
+  final bundle = AstBundle.fromBytes(bytes);
+  final runner = D4rtRunner();
+  return runner.executeBundleAs&lt;String&gt;(bundle, name: 'buildLabel');
+}</code></pre>
+              <p>
+                The same bundle can be driven by <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_exec"><code>tom_d4rt_exec</code></a>
+                 on the CLI (it wraps <code>astgen</code>/<code>AstBundler</code> parsing and the <code>tom_d4rt_ast</code>
+                 runtime into a single drop-in <code>D4rt</code> entry point), or by <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_flutter_ast"><code>tom_d4rt_flutter_ast</code></a>
+                 to render a live widget tree — that is the OTA UI-update path this package exists to enable.
+              </p>
+              <h3><code>astgen</code> CLI — <code>buildkit.yaml</code> configuration</h3>
+              <p>Place an <code>astgen:</code> section in <code>buildkit.yaml</code> at your project root:</p>
               <pre><code>astgen:
   convert:
     - entrypoints: lib/*.runner.dart
@@ -1614,68 +1708,99 @@ astgen --dry-run --verbose
 
 # Scan a whole workspace recursively
 astgen --scan . --recursive</code></pre>
-              <p>Output path formats supported in `output`:</p>
+              <p>Output path formats supported in <code>output</code>:</p>
               <ul>
-                <li>`project:tom_runtime/assets` — workspace-relative project lookup by `pubspec.yaml` name</li>
-                <li>Absolute path: `/path/to/output`</li>
-                <li>Relative path: `../other_project/assets`</li>
+                <li>
+                  <code>project:tom_runtime/assets</code> — workspace-relative project lookup by <code>pubspec.yaml</code>
+                   name
+                </li>
+                <li>Absolute path: <code>/path/to/output</code></li>
+                <li>Relative path: <code>../other_project/assets</code></li>
               </ul>
               <p>
-                See `doc/astgen_build_yaml.md` in this package for the full configuration reference, including `preserve_structure`, `include_sourcemap`, and exclusion patterns.
+                See <code>doc/astgen_build_yaml.md</code> in this package for the full configuration reference, including 
+                <code>preserve_structure</code>, <code>include_sourcemap</code>, and exclusion patterns.
               </p>
               <h2>Architecture and key concepts</h2>
               <h3>Node-for-node copying</h3>
               <p>
-                `AstConverter` is a pure structural mapper. It does not use the `analyzer`'s visitor infrastructure; instead, `convert(AstNode?)` is a flat dispatch chain that matches every known `AstNode` subtype and calls a dedicated private converter for it. Each converter creates the corresponding `SAstNode` subclass, calling `convert()` recursively for every child. Offset and length are preserved on every node for future source-mapping.
+                <code>AstConverter</code> is a pure structural mapper. It does not use the <code>analyzer</code>'s visitor infrastructure; instead, 
+                <code>convert(AstNode?)</code> is a flat dispatch chain that matches every known <code>AstNode</code>
+                 subtype and calls a dedicated private converter for it. Each converter creates the corresponding <code>SAstNode</code>
+                 subclass, calling <code>convert()</code> recursively for every child. Offset and length are preserved on every node for future source-mapping.
               </p>
-              <h3>The bundle format (`AstBundle`)</h3>
-              <p>An `AstBundle` is a plain Dart object (from `tom_d4rt_ast`):</p>
+              <h3>The bundle format (<code>AstBundle</code>)</h3>
+              <p>An <code>AstBundle</code> is a plain Dart object (from <code>tom_d4rt_ast</code>):</p>
               <pre><code>class AstBundle {
   final String entryPointUri;             // e.g. 'lib/main.dart'
   final Map&lt;String, SCompilationUnit&gt; modules; // URI → parsed AST
 }</code></pre>
               <p>
-                `AstBundler` populates `modules` by recursively resolving imports from the entry point. The bundle is complete and self-contained: every Dart source file that is not a `dart:*` stdlib module or a bridged native library is included. The resulting bundle is serialized via `toJson()` / `toBytes()` and can be reconstructed with `fromJson()` / `fromBytes()` — with no analyzer involvement.
+                <code>AstBundler</code> populates <code>modules</code> by recursively resolving imports from the entry point. The bundle is complete and self-contained: every Dart source file that is not a 
+                <code>dart:*</code> stdlib module or a bridged native library is included. The resulting bundle is serialized via 
+                <code>toJson()</code> / <code>toBytes()</code> and can be reconstructed with <code>fromJson()</code> / 
+                <code>fromBytes()</code> — with no analyzer involvement.
               </p>
-              <h3>`buildkit.yaml` vs `tom_build.yaml`</h3>
-              <p>The `astgen` CLI uses two configuration files:</p>
+              <h3><code>buildkit.yaml</code> vs <code>tom_build.yaml</code></h3>
+              <p>The <code>astgen</code> CLI uses two configuration files:</p>
               <ul>
                 <li>
-                  **`buildkit.yaml`** (or `build.yaml`) — per-project conversion rules (`astgen: convert: [...]`). This is what drives file-to-file conversion.
+                  <strong><code>buildkit.yaml</code></strong> (or <code>build.yaml</code>) — per-project conversion rules (<code>astgen: convert: [...]</code>). This is what drives file-to-file conversion.
                 </li>
                 <li>
-                  **`tom_build.yaml`** — workspace-level project discovery marker. Projects that have this file with an `astgen:` section are discovered automatically when running `astgen --scan`.
+                  <strong><code>tom_build.yaml</code></strong> — workspace-level project discovery marker. Projects that have this file with an 
+                  <code>astgen:</code> section are discovered automatically when running <code>astgen --scan</code>.
                 </li>
               </ul>
               <h3>YAML output format</h3>
               <p>
-                The CLI emits `.ast.yaml` files. The YAML is generated directly from the mirror AST's `toJson()` map; null fields are omitted for compactness. When `include_sourcemap: true` is set, the YAML is wrapped:
+                The CLI emits <code>.ast.yaml</code> files. The YAML is generated directly from the mirror AST's <code>toJson()</code>
+                 map; null fields are omitted for compactness. When <code>include_sourcemap: true</code> is set, the YAML is wrapped:
               </p>
               <pre><code>sourcemap:
   source_file: /absolute/path/to/source.dart
   generated_at: 2026-02-06T10:30:45.123Z
 ast:
   # ... mirror AST content</code></pre>
-              <h2>Documentation</h2>
+              <h2>Examples</h2>
+              <p>
+                The package's <a href="/doc/tom_agent_container/tom_ai/d4rt/tom_ast_generator/example/README"><code>example/</code></a>
+                 tree contains <strong>generator test fixtures</strong> (converter inputs wired into the test harnesses), not user-facing samples — 
+                <code>example/README.md</code> explains this and points to the canonical sample homes. For runnable language/bridging samples, see 
+                <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_samples"><code>tom_d4rt_samples/</code></a>, e.g. 
+                <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_samples/d4rt_introduction_sample"><code>d4rt_introduction_sample</code></a>
+                 and <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_samples/d4rt_advanced_sample"><code>d4rt_advanced_sample</code></a>.
+              </p>
+              <h2>Further documentation</h2>
               <table class="mdtable">
                 <thead><tr><th>Document</th><th>Purpose</th></tr></thead>
                 <tbody>
                   <tr>
-                    <td>[doc/tom_ast_generator_user_guide.md](doc/tom_ast_generator_user_guide.md)</td>
                     <td>
-                      Differences-only guide: role in the pipeline (1:1 copy + bundling), `astgen` vs the bridge generator, when to bundle, bundle emission.
+                      <a href="/docs?module=tom_ast_generator&amp;path=doc%2Ftom_ast_generator_user_guide.md">doc/tom_ast_generator_user_guide.md</a>
+                    </td>
+                    <td>
+                      Differences-only guide: role in the pipeline (1:1 copy + bundling), 
+                      <code>astgen</code>
+                       vs the bridge generator, when to bundle, bundle emission.
                     </td>
                   </tr>
                   <tr>
-                    <td>[doc/tom_ast_generator_limitations.md](doc/tom_ast_generator_limitations.md)</td>
+                    <td>
+                      <a href="/docs?module=tom_ast_generator&amp;path=doc%2Ftom_ast_generator_limitations.md">doc/tom_ast_generator_limitations.md</a>
+                    </td>
                     <td>Conversion/bundling deltas; backlinks to the canonical interpreter limitations.</td>
                   </tr>
                   <tr>
-                    <td>[doc/astgen_build_yaml.md](doc/astgen_build_yaml.md)</td>
-                    <td>Full `astgen` `buildkit.yaml` configuration reference.</td>
+                    <td>
+                      <a href="/docs?module=tom_ast_generator&amp;path=doc%2Fastgen_build_yaml.md">doc/astgen_build_yaml.md</a>
+                    </td>
+                    <td>Full <code>astgen</code> <code>buildkit.yaml</code> configuration reference.</td>
                   </tr>
                   <tr>
-                    <td>[doc/tom_build_configuration_and_cli.md](doc/tom_build_configuration_and_cli.md)</td>
+                    <td>
+                      <a href="/docs?module=tom_ast_generator&amp;path=doc%2Ftom_build_configuration_and_cli.md">doc/tom_build_configuration_and_cli.md</a>
+                    </td>
                     <td>CLI usage, options, and execution modes.</td>
                   </tr>
                 </tbody>
@@ -1683,9 +1808,25 @@ ast:
               <p>
                 Shared interpreter semantics are documented once in the base projects — this package adds no interpreter behaviour of its own:
               </p>
-              <ul><li>[tom_d4rt User Guide](../tom_d4rt/doc/d4rt_user_guide.md) and</li></ul>
+              <ul>
+                <li><a href="/docs?module=tom_d4rt&amp;path=doc%2Fd4rt_user_guide.md">tom_d4rt User Guide</a> and</li>
+              </ul>
               <p>
-                [Limitations (canonical)](../tom_d4rt/doc/d4rt_limitations.md). - [tom_d4rt_ast User Guide](../tom_d4rt_ast/doc/tom_d4rt_ast_user_guide.md) — the analyzer-free runtime that consumes the bundles produced here.
+                <a href="/docs?module=tom_d4rt&amp;path=doc%2Fd4rt_limitations.md">Limitations (canonical)</a>. - <a href="/docs?module=tom_d4rt_ast&amp;path=doc%2Ftom_d4rt_ast_user_guide.md">tom_d4rt_ast User Guide</a>
+                 — the analyzer-free runtime that consumes the bundles produced here.
+              </p>
+              <h3>Related packages</h3>
+              <ul>
+                <li>
+                  <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_ast_model"><code>tom_ast_model</code></a>
+                   — the zero-dependency <code>SAstNode</code> data
+                </li>
+              </ul>
+              <p>
+                model this converter emits. - <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_ast"><code>tom_d4rt_ast</code></a>
+                 — the analyzer-free runtime that interprets the bundles produced here. - <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_exec"><code>tom_d4rt_exec</code></a>
+                 — the drop-in execution entry point that wraps this converter and the runtime into a single <code>D4rt</code>
+                 API.
               </p>
               <h2>Ecosystem position</h2>
               <pre><code>tom_ast_model          (zero-dependency AST node definitions)
@@ -1698,24 +1839,30 @@ tom_d4rt_exec          (execution entry point, CLI wiring)
       ▲
 tom_dcli_exec          (dcli-specific CLI layer)</code></pre>
               <p>
-                `tom_ast_generator` is the only package in the stack that depends on `analyzer`. Everything below it (`tom_d4rt_ast`, `tom_ast_model`) is analyzer-free and safe to ship in Flutter applications. Everything above it (`tom_d4rt_exec`, `tom_dcli_exec`) is the runtime and CLI layer. The JSON / bytes produced by `AstBundler` cross this boundary: they are produced by `tom_ast_generator` (with analyzer) and consumed by `tom_d4rt_ast` (without).
+                <code>tom_ast_generator</code> is the only package in the stack that depends on <code>analyzer</code>. Everything below it (<code>tom_d4rt_ast</code>, 
+                <code>tom_ast_model</code>) is analyzer-free and safe to ship in Flutter applications. Everything above it (<code>tom_d4rt_exec</code>, 
+                <code>tom_dcli_exec</code>) is the runtime and CLI layer. The JSON / bytes produced by <code>AstBundler</code>
+                 cross this boundary: they are produced by <code>tom_ast_generator</code> (with analyzer) and consumed by 
+                <code>tom_d4rt_ast</code> (without).
               </p>
               <p>
-                All packages live in the same repository: [github.com/al-the-bear/tom_d4rt](https://github.com/al-the-bear/tom_d4rt).
+                All packages live in the same repository: <a href="https://github.com/al-the-bear/tom_d4rt">github.com/al-the-bear/tom_d4rt</a>.
               </p>
               <h2>Status</h2>
-              <p>**Version 0.1.1** — current release on pub.dev (first published at 0.1.0).</p>
+              <p><strong>Version 0.1.3</strong> — current release on pub.dev (first published at 0.1.0).</p>
               <p>
-                The core conversion and bundling are production-ready. The `include_imports`, `import_depth`, and `include_relative_imports` fields in the CLI `buildkit.yaml` configuration are accepted but not yet implemented (they are placeholders for a future batch-import feature in the CLI path; the `AstBundler` API already handles recursive import resolution fully).
+                The core conversion and bundling are production-ready. The <code>include_imports</code>, <code>import_depth</code>, and 
+                <code>include_relative_imports</code> fields in the CLI <code>buildkit.yaml</code> configuration are accepted but not yet implemented (they are placeholders for a future batch-import feature in the CLI path; the 
+                <code>AstBundler</code> API already handles recursive import resolution fully).
               </p>
               <ul>
                 <li>
-                  Package repository: [github.com/al-the-bear/tom_d4rt/tree/main/tom_ast_generator](https://github.com/al-the-bear/tom_d4rt/tree/main/tom_ast_generator)
+                  Package repository: <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_ast_generator">github.com/al-the-bear/tom_d4rt/tree/main/tom_ast_generator</a>
                 </li>
                 <li>
-                  Issue tracker: [github.com/al-the-bear/tom_d4rt/issues](https://github.com/al-the-bear/tom_d4rt/issues)
+                  Issue tracker: <a href="https://github.com/al-the-bear/tom_d4rt/issues">github.com/al-the-bear/tom_d4rt/issues</a>
                 </li>
-                <li>SDK requirement: Dart `^3.10.4`</li>
+                <li>SDK requirement: Dart <code>^3.10.4</code></li>
               </ul>
             </div>
           </section>

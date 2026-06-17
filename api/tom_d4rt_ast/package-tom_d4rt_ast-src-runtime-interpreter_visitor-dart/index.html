@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1391,7 +1411,9 @@
                       <div class="api-member-head"><code class="api-signature">final Map&lt;SSetOrMapLiteral, Object&gt; _constCollectionCache</code></div>
                       <div class="api-doc">
                         <p>
-                          T3 (perf, plan_2 §6 / F4): canonicalization cache for `const` set/map literals. A const collection literal is a compile-time constant whose value is environment-independent and immutable, so re-visiting the same node must yield the identical canonical instance (matching real Dart's const canonicalization). Without this, every evaluation re-ran the full type-inference + element walk and allocated a fresh `UnmodifiableSetView` / `UnmodifiableMapView` — surfacing as the F4 `UnmodifiableSetView.UnmodifiableSetView` constructor hotspot. The cache is keyed by AST node identity and is only populated for const literals; non-const literals must still allocate fresh each time. The returned views are unmodifiable, so sharing one instance across hits is safe.
+                          T3 (perf, plan_2 §6 / F4): canonicalization cache for <code>const</code> set/map literals. A const collection literal is a compile-time constant whose value is environment-independent and immutable, so re-visiting the same node must yield the identical canonical instance (matching real Dart's const canonicalization). Without this, every evaluation re-ran the full type-inference + element walk and allocated a fresh 
+                          <code>UnmodifiableSetView</code> / <code>UnmodifiableMapView</code> — surfacing as the F4 <code>UnmodifiableSetView.UnmodifiableSetView</code>
+                           constructor hotspot. The cache is keyed by AST node identity and is only populated for const literals; non-const literals must still allocate fresh each time. The returned views are unmodifiable, so sharing one instance across hits is safe.
                         </p>
                       </div>
                     </div>
@@ -1399,7 +1421,9 @@
                       <div class="api-member-head"><code class="api-signature">final Expando&lt;bool&gt; _blockIntroducesBindings</code></div>
                       <div class="api-doc">
                         <p>
-                          S4 (perf, particle-field freeze §"Remaining work" step 1): per-`SBlock` cache of "does this block introduce any name bindings into its own scope?". A block that declares nothing (no local variables, functions, pattern declarations, or local type declarations) needs no child `Environment` of its own — its statements observe and mutate exactly the enclosing frame. Collapsing such a frame is sound under the slot runtime: a depth-0 slot read only ever targets a local from its *declaring* block's frame, and a declaring block always introduces a binding (hence is never collapsed); every cross-block read uses the depth-agnostic name walk, which tolerates a shorter scope chain. The scan runs once per block node and is cached on the node's identity.
+                          S4 (perf, particle-field freeze §"Remaining work" step 1): per-<code>SBlock</code> cache of "does this block introduce any name bindings into its own scope?". A block that declares nothing (no local variables, functions, pattern declarations, or local type declarations) needs no child 
+                          <code>Environment</code> of its own — its statements observe and mutate exactly the enclosing frame. Collapsing such a frame is sound under the slot runtime: a depth-0 slot read only ever targets a local from its 
+                          <em>declaring</em> block's frame, and a declaring block always introduces a binding (hence is never collapsed); every cross-block read uses the depth-agnostic name walk, which tolerates a shorter scope chain. The scan runs once per block node and is cached on the node's identity.
                         </p>
                       </div>
                     </div>
@@ -1421,7 +1445,8 @@
                       </div>
                       <div class="api-doc">
                         <p>
-                          Run the static lexical resolver over [declarations] (perf plan_3 §9). The resolver writes slot coordinates directly onto the mirror [SSimpleIdentifier] nodes ([SSimpleIdentifier.resolvedSlot]) and slot carriers onto blocks/declarations, so they also survive serialization for the analyzer-free Flutter precompute target. Bundles produced via `tom_ast_generator` already carry these coordinates; this execute-time pass covers hand-built / deserialized units and is idempotent (it recomputes identical coordinates). S3c consumes [SSimpleIdentifier.resolvedSlot] directly on the read path in [visitSimpleIdentifier] (current-frame [Environment.getSlot]).
+                          Run the static lexical resolver over [declarations] (perf plan_3 §9). The resolver writes slot coordinates directly onto the mirror [SSimpleIdentifier] nodes ([SSimpleIdentifier.resolvedSlot]) and slot carriers onto blocks/declarations, so they also survive serialization for the analyzer-free Flutter precompute target. Bundles produced via 
+                          <code>tom_ast_generator</code> already carry these coordinates; this execute-time pass covers hand-built / deserialized units and is idempotent (it recomputes identical coordinates). S3c consumes [SSimpleIdentifier.resolvedSlot] directly on the read path in [visitSimpleIdentifier] (current-frame [Environment.getSlot]).
                         </p>
                       </div>
                     </div>
@@ -1472,13 +1497,19 @@
                       <div class="api-member-head"><code class="api-signature">bool _chainHasNullAwareSelector(SExpression? expr)</code></div>
                       <div class="api-doc">
                         <p>
-                          Returns true if the given expression chain contains a null-aware selector (`?.`, `?[…]`) somewhere along the receiver path.
+                          Returns true if the given expression chain contains a null-aware selector (<code>?.</code>, <code>?[…]</code>) somewhere along the receiver path.
                         </p>
                         <p>
-                          Dart's null-shorting semantics terminate at the outermost selector of a chain that contains *any* `?.` or `?[…]`. Concretely, when the interpreter evaluates `a?.b.c.d`: - the inner `a?.b` short-circuits to `null` when `a` is `null`, - the outer `.c` and `.d` selectors are then *also* required to yield `null` (rather than throw on `null.c`).
+                          Dart's null-shorting semantics terminate at the outermost selector of a chain that contains <em>any</em>
+                           <code>?.</code> or <code>?[…]</code>. Concretely, when the interpreter evaluates <code>a?.b.c.d</code>: - the inner 
+                          <code>a?.b</code> short-circuits to <code>null</code> when <code>a</code> is <code>null</code>, - the outer 
+                          <code>.c</code> and <code>.d</code> selectors are then <em>also</em> required to yield <code>null</code>
+                           (rather than throw on <code>null.c</code>).
                         </p>
                         <p>
-                          Each [visitPropertyAccess]/[visitMethodInvocation]/[visitIndexExpression] only knows its own immediate operator. To honour null-shorting, we walk down the syntactic target chain looking for any `?.`/`?[…]`. The walk stops at parentheses and other expressions that terminate null-shorting (e.g. `(a?.b).c` does *not* short-circuit on the outer `.c`).
+                          Each [visitPropertyAccess]/[visitMethodInvocation]/[visitIndexExpression] only knows its own immediate operator. To honour null-shorting, we walk down the syntactic target chain looking for any 
+                          <code>?.</code>/<code>?[…]</code>. The walk stops at parentheses and other expressions that terminate null-shorting (e.g. 
+                          <code>(a?.b).c</code> does <em>not</em> short-circuit on the outer <code>.c</code>).
                         </p>
                       </div>
                     </div>
@@ -1518,10 +1549,12 @@
                       </div>
                       <div class="api-doc">
                         <p>
-                          C21: Walk an [InterpretedClass]'s **interpreted** ancestor chain and return true if any class, mixin, or interface matches [typeName].
+                          C21: Walk an [InterpretedClass]'s <strong>interpreted</strong> ancestor chain and return true if any class, mixin, or interface matches [typeName].
                         </p>
                         <p>
-                          Used by [visitAsExpression] to decide whether a `value as TypeName` cast against a [D4InterpretedProxy] should unwrap to the embedded [InterpretedInstance]. Only interpreted ancestors count — when [typeName] names a *bridged* ancestor (e.g. `RenderBox`), unwrapping would defeat the proxy's purpose of satisfying native `is`-checks and subsequent native API calls. The unwrap path exists to let scripts read user-defined fields after a downcast to a script class (`child.parentData! as _DefaultsParentData`); native casts must keep returning the proxy.
+                          Used by [visitAsExpression] to decide whether a <code>value as TypeName</code> cast against a [D4InterpretedProxy] should unwrap to the embedded [InterpretedInstance]. Only interpreted ancestors count — when [typeName] names a 
+                          <em>bridged</em> ancestor (e.g. <code>RenderBox</code>), unwrapping would defeat the proxy's purpose of satisfying native 
+                          <code>is</code>-checks and subsequent native API calls. The unwrap path exists to let scripts read user-defined fields after a downcast to a script class (<code>child.parentData! as _DefaultsParentData</code>); native casts must keep returning the proxy.
                         </p>
                       </div>
                     </div>
@@ -1544,7 +1577,10 @@
                       </div>
                     </div>
                     <div id="InterpreterVisitor.visitStringLiteral" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">Object? visitStringLiteral(SAstNode node)</code></div>
+                      <div class="api-member-head">
+                        <code class="api-signature">Object? visitStringLiteral(SAstNode node)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
                     </div>
                     <div id="InterpreterVisitor.visitNullLiteral" class="api-member">
                       <div class="api-member-head">
@@ -1599,7 +1635,8 @@
                           OPEN B.9 — propagate a bare-identifier write that landed on a static-field snapshot back to the owner class's authoritative static slot.
                         </p>
                         <p>
-                          Inside a static member, [InterpretedFunction._prepareExecutionEnvironment] snapshots the owner class's static fields into the member's top execution environment (so they read without a class prefix) and marks that scope via [Environment.staticFieldSnapshotOwner]. A bare assignment only mutates that snapshot, which is discarded when the call returns — so the write must also be mirrored to `InterpretedClass.setStaticField` to survive across calls.
+                          Inside a static member, [InterpretedFunction._prepareExecutionEnvironment] snapshots the owner class's static fields into the member's top execution environment (so they read without a class prefix) and marks that scope via [Environment.staticFieldSnapshotOwner]. A bare assignment only mutates that snapshot, which is discarded when the call returns — so the write must also be mirrored to 
+                          <code>InterpretedClass.setStaticField</code> to survive across calls.
                         </p>
                         <p>
                           Shadow-safe: a local that shadows a static field lives in a different (unmarked) environment, so [definingEnv] is not the snapshot scope and no propagation occurs.
@@ -1660,13 +1697,15 @@
                       </div>
                       <div class="api-doc">
                         <p>
-                          True when any closure may capture this classic-for's per-iteration loop binding (closure present in the body, condition, or updaters). When false, a single reused `Environment` is observably identical to a fresh per-iteration one — letting us skip two `Environment` allocations per iteration. Result is cached on the `body` node (one per for-statement).
+                          True when any closure may capture this classic-for's per-iteration loop binding (closure present in the body, condition, or updaters). When false, a single reused 
+                          <code>Environment</code> is observably identical to a fresh per-iteration one — letting us skip two <code>Environment</code>
+                           allocations per iteration. Result is cached on the <code>body</code> node (one per for-statement).
                         </p>
                       </div>
                     </div>
                     <div id="InterpreterVisitor._evalForCondition" class="api-member">
                       <div class="api-member-head"><code class="api-signature">bool _evalForCondition(SAstNode condition)</code></div>
-                      <div class="api-doc"><p>Evaluate a `for`-loop condition to a `bool`, unwrapping a bridged bool.</p></div>
+                      <div class="api-doc"><p>Evaluate a <code>for</code>-loop condition to a <code>bool</code>, unwrapping a bridged bool.</p></div>
                     </div>
                     <div id="InterpreterVisitor._executeClassicFor" class="api-member">
                       <div class="api-member-head">
@@ -1795,7 +1834,8 @@
                       </div>
                       <div class="api-doc">
                         <p>
-                          Mirror of tom_d4rt/interpreter_visitor.dart::_cascadeInterpretedTarget. If [targetValue] is an [InterpretedInstance] directly, returns it. If it is a [D4InterpretedProxy] that wraps one, returns the wrapped instance. Returns `null` otherwise — callers should fall through to the bridge path.
+                          Mirror of tom_d4rt/interpreter_visitor.dart::_cascadeInterpretedTarget. If [targetValue] is an [InterpretedInstance] directly, returns it. If it is a [D4InterpretedProxy] that wraps one, returns the wrapped instance. Returns 
+                          <code>null</code> otherwise — callers should fall through to the bridge path.
                         </p>
                       </div>
                     </div>
@@ -1925,7 +1965,10 @@
                       <div class="api-doc"><p>Check if a value matches a type annotation</p></div>
                     </div>
                     <div id="InterpreterVisitor.visitIdentifier" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">dynamic visitIdentifier(SAstNode node)</code></div>
+                      <div class="api-member-head">
+                        <code class="api-signature">dynamic visitIdentifier(SAstNode node)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
                     </div>
                     <div id="InterpreterVisitor.visitTryStatement" class="api-member">
                       <div class="api-member-head">
@@ -1998,7 +2041,8 @@
                           Wraps a native return value from a bridged call in a [BridgedInstance] if a bridge exists, otherwise returns the value as-is.
                         </p>
                         <p>
-                          This is needed when bridged static getters or methods return instances of private subclasses (e.g., `Curves.linear` returns `_Linear` which extends `Curve`). The private class instance needs to be wrapped using the public superclass bridge.
+                          This is needed when bridged static getters or methods return instances of private subclasses (e.g., <code>Curves.linear</code>
+                           returns <code>_Linear</code> which extends <code>Curve</code>). The private class instance needs to be wrapped using the public superclass bridge.
                         </p>
                       </div>
                     </div>
@@ -2115,12 +2159,16 @@
                     <div id="InterpreterVisitor._accessNativeRecordField" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Object? _accessNativeRecordField(Record record, String fieldName)</code></div>
                       <div class="api-doc">
-                        <p>E6 — Access a field of a native Dart `Record` value by name.</p>
+                        <p>E6 — Access a field of a native Dart <code>Record</code> value by name.</p>
                         <p>
-                          Native Dart records (the `(int, String)` syntax) are produced by stdlib APIs such as `Iterable.indexed` and survive across the interpreter ↔ native boundary. They expose positional fields via the synthetic getters `$1`, `$2`, … but do not implement reflection without `dart:mirrors` (forbidden in Flutter), so we dispatch positional access through `dynamic` calls and clamp the supported arity at 9 (covers all common record literals).
+                          Native Dart records (the <code>(int, String)</code> syntax) are produced by stdlib APIs such as <code>Iterable.indexed</code>
+                           and survive across the interpreter ↔ native boundary. They expose positional fields via the synthetic getters 
+                          <code>$1</code>, <code>$2</code>, … but do not implement reflection without <code>dart:mirrors</code>
+                           (forbidden in Flutter), so we dispatch positional access through <code>dynamic</code> calls and clamp the supported arity at 9 (covers all common record literals).
                         </p>
                         <p>
-                          Named-field access on native records is not supported because the field name is only known at the call site and there is no reflective lookup; callers should use `InterpretedRecord` for records authored inside d4rt source if they need named fields.
+                          Named-field access on native records is not supported because the field name is only known at the call site and there is no reflective lookup; callers should use 
+                          <code>InterpretedRecord</code> for records authored inside d4rt source if they need named fields.
                         </p>
                       </div>
                     </div>
@@ -2132,7 +2180,8 @@
                   <div class="api-doc">
                     <p>Callable wrapper for a bridged-class constructor tear-off.</p>
                     <p>
-                      Produced when a script writes `BridgedClass.new` (Dart 2.15+ unnamed constructor tear-off) or `BridgedClass.namedCtor`. Invoking the wrapper calls the underlying [BridgedConstructorCallable] adapter with the supplied arguments and returns the resulting native object.
+                      Produced when a script writes <code>BridgedClass.new</code> (Dart 2.15+ unnamed constructor tear-off) or 
+                      <code>BridgedClass.namedCtor</code>. Invoking the wrapper calls the underlying [BridgedConstructorCallable] adapter with the supplied arguments and returns the resulting native object.
                     </p>
                     <p>
                       Mirrors [_NamedConstructorTearOff] but for bridged classes — both support the same tear-off semantics on either side of the bridge.
@@ -2185,7 +2234,7 @@
                   <div class="api-doc">
                     <p>G-DOV2-2 FIX: A callable tear-off for named/factory constructors.</p>
                     <p>
-                      When a named constructor is accessed as a tear-off (e.g., `Settings.fromMap` passed to `map()`), this class wraps the constructor to make it callable with positional/named arguments as if it were a regular function.
+                      When a named constructor is accessed as a tear-off (e.g., <code>Settings.fromMap</code> passed to <code>map()</code>), this class wraps the constructor to make it callable with positional/named arguments as if it were a regular function.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -2230,7 +2279,9 @@
                   <code class="api-signature">class _SClosurePresenceVisitor extends SAstVisitor&lt;void&gt;</code>
                   <div class="api-doc">
                     <p>
-                      Detects whether any `SFunctionExpression` (closure) appears in a subtree. Used by the classic-for loop optimization (T8/F5) to decide whether a single reused `Environment` is safe. Mirrors `_ChildCollectorVisitor`'s `visitNode` + `visitChildren` recursion; short-circuits once a closure is found.
+                      Detects whether any <code>SFunctionExpression</code> (closure) appears in a subtree. Used by the classic-for loop optimization (T8/F5) to decide whether a single reused 
+                      <code>Environment</code> is safe. Mirrors <code>_ChildCollectorVisitor</code>'s <code>visitNode</code>
+                       + <code>visitChildren</code> recursion; short-circuits once a closure is found.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>

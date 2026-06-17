@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1311,6 +1331,20 @@
                 <section id="TomServerException" class="api-declaration">
                   <h3 class="api-decl-title">class TomServerException</h3>
                   <code class="api-signature">class TomServerException extends TomException</code>
+                  <div class="api-doc">
+                    <p>Base class for every exception raised by <code>tom_core_server</code>.</p>
+                    <p>[TomServerException] extends the kernel's [TomException] with two server-specific concerns:</p>
+                    <ul><li><strong>Isolate attribution</strong> — it captures [isolateName] at construction so a</li></ul>
+                    <p>
+                      logged or serialized error identifies the worker that produced it (server work is spread across an isolate pool, so the bare message alone is ambiguous). - 
+                      <strong>Request correlation</strong> — if the surrounding zone carries a [TomRequestId] (set by the endpoints pipeline for the lifetime of a request), the constructor copies its UUID into [TomException.requestUuid], linking the error to the request that triggered it without the call site having to thread the id through.
+                    </p>
+                    <p>
+                      Every server exception type (for example <code>TomEndpointHandlerException</code>, <code>TomCacheException</code>, 
+                      <code>MariadbMigrationException</code>) subtypes this class, so a <code>catch (e) on TomServerException</code>
+                       reaches all of them.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomServerException.new" class="api-member">
@@ -1319,12 +1353,40 @@
                           TomServerException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, Object? stack, Object? rootException, bool autoLog = false, bool clientThrow = true})
                         </code>
                       </div>
+                      <div class="api-doc">
+                        <p>Creates a server exception.</p>
+                        <p>
+                          [key] is the stable error code and [defaultUserMessage] the human-readable message; both are forwarded to [TomException]. Set [clientThrow] to 
+                          <code>false</code> for errors that must not leak to the client.
+                        </p>
+                        <p>
+                          If a [TomRequestId] is present in the current zone, its UUID is copied into [TomException.requestUuid] so the error is correlated with the active request.
+                        </p>
+                      </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="TomServerException.isolateName" class="api-member"><div class="api-member-head"><code class="api-signature">String isolateName</code></div></div>
-                    <div id="TomServerException.clientThrow" class="api-member"><div class="api-member-head"><code class="api-signature">bool clientThrow</code></div></div>
+                    <div id="TomServerException.isolateName" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String isolateName</code></div>
+                      <div class="api-doc">
+                        <p>The debug name of the isolate that constructed this exception.</p>
+                        <p>
+                          Resolved from <code>Isolate.current.debugName</code> at construction time, falling back to <code>"unnamed isolate"</code>
+                           when the current isolate has no debug name.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomServerException.clientThrow" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool clientThrow</code></div>
+                      <div class="api-doc">
+                        <p>Whether this exception is safe to propagate to the client.</p>
+                        <p>
+                          When <code>true</code> (the default) the endpoints pipeline may surface the exception's user message to the caller; when 
+                          <code>false</code> it should be treated as internal and masked behind a generic error response.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
@@ -1332,6 +1394,11 @@
                       <div class="api-member-head">
                         <code class="api-signature">String toString()</code>
                         <span class="api-badge api-badge--override">override</span>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Returns the base [TomException] string extended with the originating [isolateName], the [clientThrow] flag, and the correlated request UUID.
+                        </p>
                       </div>
                     </div>
                   </div>

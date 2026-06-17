@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1344,7 +1364,7 @@
                     <h2>Example</h2>
                     <pre><code>class MyHealthAnalyzer extends HealthAnalyzer {
   @override
-  Future&lt;String&gt; analyze() async {
+  Future&lt;String&gt; analyzeHealth() async {
     final dbOk = await checkDatabaseConnection();
     final cacheOk = await checkCacheService();
     if (dbOk &amp;&amp; cacheOk) {
@@ -1413,7 +1433,7 @@ TomHealthServer.globalSettingsHealthAnalyzer = MyHealthAnalyzer();</code></pre>
                   <div class="api-doc">
                     <p>Health check service interface for server health monitoring.</p>
                     <p>
-                      Provides a simple `/health` endpoint that returns "OK" when the server is running. Used by container orchestration tools (Docker, Kubernetes) to verify server availability.
+                      Provides a simple <code>/health</code> endpoint that returns "OK" when the server is running. Used by container orchestration tools (Docker, Kubernetes) to verify server availability.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1422,7 +1442,15 @@ TomHealthServer.globalSettingsHealthAnalyzer = MyHealthAnalyzer();</code></pre>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
-                    <div id="TomHealthService.health" class="api-member"><div class="api-member-head"><code class="api-signature">Future&lt;String&gt; health()</code></div></div>
+                    <div id="TomHealthService.health" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;String&gt; health()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The <code>GET /health</code> endpoint: returns a plain-text status string. Marked <code>@TomPublicAccess</code>
+                           (no authentication) and <code>logRequests: false</code> so probe traffic does not flood the logs.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </section>
               </div>

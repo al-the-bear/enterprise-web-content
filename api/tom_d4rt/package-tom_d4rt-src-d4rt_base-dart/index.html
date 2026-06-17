@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1384,10 +1404,13 @@ final result = await interpreter.execute(source: '''
                       <div class="api-doc">
                         <p>GEN-107: Bridge re-exports modelled in the runtime.</p>
                         <p>
-                          Maps a source library URI to the list of libraries it re-exports (with optional `show` / `hide` filters). The module loader merges each re-exported library's bridges into the source library's per-module environment, mirroring Dart's `export …` directives.
+                          Maps a source library URI to the list of libraries it re-exports (with optional <code>show</code> / <code>hide</code>
+                           filters). The module loader merges each re-exported library's bridges into the source library's per-module environment, mirroring Dart's 
+                          <code>export …</code> directives.
                         </p>
                         <p>
-                          Mirror of the same field on [D4rtRunner] in tom_d4rt_ast — kept in lockstep so generated bridge code calling `registerLibraryReExport` works against either interpreter.
+                          Mirror of the same field on [D4rtRunner] in tom_d4rt_ast — kept in lockstep so generated bridge code calling 
+                          <code>registerLibraryReExport</code> works against either interpreter.
                         </p>
                       </div>
                     </div>
@@ -1405,10 +1428,12 @@ final result = await interpreter.execute(source: '''
                       <div class="api-member-head"><code class="api-signature">final Map&lt;String, void Function()&gt; _extensionCallbacks</code></div>
                       <div class="api-doc">
                         <p>
-                          Step 6: extension callbacks registered by bridge packages, keyed by package name. Insertion order is preserved (Dart `Map` literals are `LinkedHashMap`) so [finalizeBridges] runs callbacks deterministically.
+                          Step 6: extension callbacks registered by bridge packages, keyed by package name. Insertion order is preserved (Dart 
+                          <code>Map</code> literals are <code>LinkedHashMap</code>) so [finalizeBridges] runs callbacks deterministically.
                         </p>
                         <p>
-                          Re-registering with the same `packageName` overwrites the previous body — the contract is one extension callback per bridge package, which makes the call idempotent if a process spins up multiple runners that each fire the same package's `register*` shape.
+                          Re-registering with the same <code>packageName</code> overwrites the previous body — the contract is one extension callback per bridge package, which makes the call idempotent if a process spins up multiple runners that each fire the same package's 
+                          <code>register*</code> shape.
                         </p>
                         <p>
                           Mirror of the same field on [D4rtRunner] in tom_d4rt_ast — kept in lockstep so embedders that switch between the analyzer-based and analyzer-free entry points see the same hook surface.
@@ -1423,7 +1448,8 @@ final result = await interpreter.execute(source: '''
                       <div class="api-member-head"><code class="api-signature">bool _usageLogFromEnv</code></div>
                       <div class="api-doc">
                         <p>
-                          P&amp;R#1: set when the `D4RT_LOG_RELAXER_USAGE` environment variable enabled [D4.usageLogEnabled] at finalize time. Gates the automatic end-of-run summary so embedders that flip the flag programmatically manage their own reporting. This env-var convenience is the VM-only twin divergence — the web-capable `tom_d4rt_ast` runner has no `dart:io` and enables the flag directly.
+                          P&amp;R#1: set when the <code>D4RT_LOG_RELAXER_USAGE</code> environment variable enabled [D4.usageLogEnabled] at finalize time. Gates the automatic end-of-run summary so embedders that flip the flag programmatically manage their own reporting. This env-var convenience is the VM-only twin divergence — the web-capable 
+                          <code>tom_d4rt_ast</code> runner has no <code>dart:io</code> and enables the flag directly.
                         </p>
                       </div>
                     </div>
@@ -1455,12 +1481,14 @@ final result = await interpreter.execute(source: '''
                       <div class="api-member-head"><code class="api-signature">Set&lt;String&gt;? _baselineValueKeys</code></div>
                       <div class="api-doc">
                         <p>
-                          §U28 / TODO #14 — snapshot of `_moduleLoader.globalEnvironment.values` keys captured at the end of [_initModule], AFTER stdlib registration but BEFORE per-library bridge imports are processed during `execute*`.
+                          §U28 / TODO #14 — snapshot of <code>_moduleLoader.globalEnvironment.values</code> keys captured at the end of [_initModule], AFTER stdlib registration but BEFORE per-library bridge imports are processed during 
+                          <code>execute*</code>.
                         </p>
                         <p>
-                          Used by [resetScriptDeclarations] to distinguish entries created by the script (and per-library bridge imports) from entries created by [Stdlib.register]. On reset, anything outside this baseline is evicted; the next `execute*` rebuilds [_moduleLoader] from scratch via [_initModule], so the eviction is observation- only and never strands a running execution.
+                          Used by [resetScriptDeclarations] to distinguish entries created by the script (and per-library bridge imports) from entries created by [Stdlib.register]. On reset, anything outside this baseline is evicted; the next 
+                          <code>execute*</code> rebuilds [_moduleLoader] from scratch via [_initModule], so the eviction is observation- only and never strands a running execution.
                         </p>
-                        <p>`null` until the first [_initModule] call.</p>
+                        <p><code>null</code> until the first [_initModule] call.</p>
                       </div>
                     </div>
                     <div id="D4rt.classAliases" class="api-member">
@@ -1515,7 +1543,7 @@ final result = await interpreter.execute(source: '''
                       <div class="api-doc">
                         <p>GEN-074: Registers a type alias for a bridged class.</p>
                         <p>
-                          Type aliases like `typedef MaterialStateProperty&lt;T&gt; = WidgetStateProperty&lt;T&gt;` allow the same bridged class to be accessed under multiple names.
+                          Type aliases like <code>typedef MaterialStateProperty&lt;T&gt; = WidgetStateProperty&lt;T&gt;</code> allow the same bridged class to be accessed under multiple names.
                         </p>
                         <p>
                           [aliasName] The alias name (e.g., 'MaterialStateProperty'). [targetName] The canonical class name (e.g., 'WidgetStateProperty'). [library] The library identifier where this alias should be available.
@@ -1528,7 +1556,9 @@ final result = await interpreter.execute(source: '''
                       <div class="api-doc">
                         <p>GEN-079: Registers a function typedef so it can be resolved as a type.</p>
                         <p>
-                          Function typedefs like `typedef VoidCallback = void Function()` are not classes, but D4rt scripts may reference them as type arguments (e.g., `ObserverList&lt;VoidCallback&gt;()`). This registers the name so the runtime can create a `BridgedClass` with `nativeType: Function` for type resolution.
+                          Function typedefs like <code>typedef VoidCallback = void Function()</code> are not classes, but D4rt scripts may reference them as type arguments (e.g., 
+                          <code>ObserverList&lt;VoidCallback&gt;()</code>). This registers the name so the runtime can create a 
+                          <code>BridgedClass</code> with <code>nativeType: Function</code> for type resolution.
                         </p>
                         <p>
                           [name] The typedef name (e.g., 'VoidCallback'). [library] The library path where this typedef is exported from.
@@ -1544,13 +1574,17 @@ final result = await interpreter.execute(source: '''
                       <div class="api-doc">
                         <p>GEN-107: Registers a re-export from one library to another.</p>
                         <p>
-                          Mirrors Dart's `export 'other/library.dart' [show/hide …]` directive: records that [sourceUri] re-exports symbols from [targetUri], with optional [show] and [hide] filters.
+                          Mirrors Dart's <code>export 'other/library.dart' [show/hide …]</code> directive: records that [sourceUri] re-exports symbols from [targetUri], with optional [show] and [hide] filters.
                         </p>
                         <p>
-                          The recorded entries are consumed by `ModuleLoader._mergeReExportsGlobal` when a bridged library is imported. That method loads bridges for every transitively re-exported target into `globalEnvironment`, so a script that imports `package:flutter/material.dart` automatically gets `Widget` (registered under `package:flutter/widgets.dart`) without importing `widgets.dart` explicitly. This mirrors what `AstModuleLoader._mergeReExports` does for the AST-based pipeline. Generated bridge code can call this on either interpreter without branching.
+                          The recorded entries are consumed by <code>ModuleLoader._mergeReExportsGlobal</code> when a bridged library is imported. That method loads bridges for every transitively re-exported target into 
+                          <code>globalEnvironment</code>, so a script that imports <code>package:flutter/material.dart</code> automatically gets 
+                          <code>Widget</code> (registered under <code>package:flutter/widgets.dart</code>) without importing <code>widgets.dart</code>
+                           explicitly. This mirrors what <code>AstModuleLoader._mergeReExports</code> does for the AST-based pipeline. Generated bridge code can call this on either interpreter without branching.
                         </p>
                         <p>
-                          [sourceUri] The library doing the re-exporting (e.g. `package:flutter/services.dart`). [targetUri] The library being re-exported (e.g. `dart:typed_data`). [show] Optional set of names to include from [targetUri]. [hide] Optional set of names to exclude from [targetUri].
+                          [sourceUri] The library doing the re-exporting (e.g. <code>package:flutter/services.dart</code>). [targetUri] The library being re-exported (e.g. 
+                          <code>dart:typed_data</code>). [show] Optional set of names to include from [targetUri]. [hide] Optional set of names to exclude from [targetUri].
                         </p>
                       </div>
                     </div>
@@ -1653,20 +1687,26 @@ interpreter.registerGlobalSetter('counter', (v) =&gt; _counter = v as int, 'pack
                       <div class="api-member-head"><code class="api-signature">void resetScriptDeclarations()</code></div>
                       <div class="api-doc">
                         <p>
-                          §U28 / TODO #14 — Evict script-declared entries from the current [_moduleLoader].`globalEnvironment` so a follower `execute*` / `executeBundle*` call starts with the same name-set the last `_initModule` produced.
+                          §U28 / TODO #14 — Evict script-declared entries from the current [_moduleLoader].<code>globalEnvironment</code>
+                           so a follower <code>execute*</code> / <code>executeBundle*</code> call starts with the same name-set the last 
+                          <code>_initModule</code> produced.
                         </p>
                         <p>
-                          Walks `_moduleLoader.globalEnvironment.values` and removes every key not present in [_baselineValueKeys] (the snapshot captured at the end of [_initModule]). Bridge registrations (`_bridgedClasses`, `_bridgedClassesLookupByType`, `_bridgedEnums`) are NOT touched.
+                          Walks <code>_moduleLoader.globalEnvironment.values</code> and removes every key not present in [_baselineValueKeys] (the snapshot captured at the end of [_initModule]). Bridge registrations (<code>_bridgedClasses</code>, 
+                          <code>_bridgedClassesLookupByType</code>, <code>_bridgedEnums</code>) are NOT touched.
                         </p>
                         <p>
-                          It additionally clears the process-global native-side accumulator via [D4.resetNativeAccumulators] — the [D4] `_nativeToInterpreted` Expando and its registration counter. That Expando is the genuine cross-build accumulator (OPEN B.12 / §U28): its entries are pinned by framework objects the embedder keeps alive across `/build` cycles, so unlike the per-call-fresh `_values` map it does NOT self-clear. Dropping it here is what makes the reset API more than a no-op for the §U28 wedge.
+                          It additionally clears the process-global native-side accumulator via [D4.resetNativeAccumulators] — the [D4] 
+                          <code>_nativeToInterpreted</code> Expando and its registration counter. That Expando is the genuine cross-build accumulator (OPEN B.12 / §U28): its entries are pinned by framework objects the embedder keeps alive across 
+                          <code>/build</code> cycles, so unlike the per-call-fresh <code>_values</code> map it does NOT self-clear. Dropping it here is what makes the reset API more than a no-op for the §U28 wedge.
                         </p>
                         <h2>Architectural note</h2>
                         <p>
-                          As of the 2026‑05‑28 audit (interpreter_unfixable.md §U28), `execute*` already calls [_initModule] on every invocation, which constructs a brand-new [ModuleLoader] backed by a brand-new [Environment]. The previous environment is dropped on the floor by the next call, so script declarations do NOT accumulate across executes in `_values`. The `_values` eviction below is therefore a forward-compatibility hook (frees GC roots earlier; survives any future change to the per-call fresh-loader invariant). The native-accumulator clear, by contrast, addresses real cross-build state — see OPEN B.12.
+                          As of the 2026‑05‑28 audit (interpreter_unfixable.md §U28), <code>execute*</code> already calls [_initModule] on every invocation, which constructs a brand-new [ModuleLoader] backed by a brand-new [Environment]. The previous environment is dropped on the floor by the next call, so script declarations do NOT accumulate across executes in 
+                          <code>_values</code>. The <code>_values</code> eviction below is therefore a forward-compatibility hook (frees GC roots earlier; survives any future change to the per-call fresh-loader invariant). The native-accumulator clear, by contrast, addresses real cross-build state — see OPEN B.12.
                         </p>
                         <p>
-                          No-op on the `_values` half if [_moduleLoader] has not been initialised yet ([_hasExecutedOnce] is false) or if no baseline was captured; the native-accumulator clear runs unconditionally.
+                          No-op on the <code>_values</code> half if [_moduleLoader] has not been initialised yet ([_hasExecutedOnce] is false) or if no baseline was captured; the native-accumulator clear runs unconditionally.
                         </p>
                       </div>
                     </div>
@@ -1685,7 +1725,7 @@ interpreter.registerGlobalSetter('counter', (v) =&gt; _counter = v as int, 'pack
                         </p>
                         <p>Returns a list of registration error messages. An empty list means all registrations are valid.</p>
                         <p>
-                          [source] The source code that imports all bridge modules (typically all the import statements plus `void main() {}`).
+                          [source] The source code that imports all bridge modules (typically all the import statements plus <code>void main() {}</code>).
                         </p>
                         <h2>Example:</h2>
                         <pre><code>final d4rt = D4rt();
@@ -1737,13 +1777,18 @@ interpreter.grant(NetworkPermission.any);</code></pre>
                       <div class="api-member-head"><code class="api-signature">void registerExtensions(String packageName, void Function() body)</code></div>
                       <div class="api-doc">
                         <p>
-                          Registers a [body] callback that wires additional bridge state (e.g. `registerRelaxers()`, `registerD4rtRuntimeExtensions()`, `registerD4rtInterfaceProxyOverrides()`) **after** the main `registerBridgedClass`/`registerBridgedEnum`/etc. registrations for [packageName] have happened.
+                          Registers a [body] callback that wires additional bridge state (e.g. <code>registerRelaxers()</code>, 
+                          <code>registerD4rtRuntimeExtensions()</code>, <code>registerD4rtInterfaceProxyOverrides()</code>) <strong>after</strong>
+                           the main <code>registerBridgedClass</code>/<code>registerBridgedEnum</code>/etc. registrations for [packageName] have happened.
                         </p>
                         <p>
-                          The body is *not* run immediately — the runner queues it and runs every queued body in registration order when [finalizeBridges] is called (or implicitly on the first `execute`/`eval` call that follows). Mirrors the behaviour of `D4rtRunner.registerExtensions` in tom_d4rt_ast.
+                          The body is <em>not</em> run immediately — the runner queues it and runs every queued body in registration order when [finalizeBridges] is called (or implicitly on the first 
+                          <code>execute</code>/<code>eval</code> call that follows). Mirrors the behaviour of <code>D4rtRunner.registerExtensions</code>
+                           in tom_d4rt_ast.
                         </p>
                         <p>
-                          **Idempotent on package name:** a second call with the same [packageName] overwrites the previous body — the contract is one extension callback per bridge package. The body itself must internally tolerate being run more than once if the embedder constructs multiple [D4rt] instances in the same process, since the D4 / BridgedClass registries it touches are static. (Step 5 made the per-key D4 registries idempotent on factory identity, so this contract is satisfied for the standard `register*` calls.)
+                          <strong>Idempotent on package name:</strong> a second call with the same [packageName] overwrites the previous body — the contract is one extension callback per bridge package. The body itself must internally tolerate being run more than once if the embedder constructs multiple [D4rt] instances in the same process, since the D4 / BridgedClass registries it touches are static. (Step 5 made the per-key D4 registries idempotent on factory identity, so this contract is satisfied for the standard 
+                          <code>register*</code> calls.)
                         </p>
                         <p>
                           Throws [StateError] if [finalizeBridges] has already run on this instance — adding extensions after finalization is a misuse.
@@ -1757,10 +1802,10 @@ interpreter.grant(NetworkPermission.any);</code></pre>
                           Runs every extension callback registered via [registerExtensions] in registration order, then marks the runner as finalized.
                         </p>
                         <p>
-                          `execute` / `eval` invoke this implicitly on first run if it has not been called already, so embedders don't have to remember to call it. Calling it explicitly first is supported and preferred when an embedder needs deterministic timing (e.g. a constructor of a Flutter helper that touches bridges before the first script runs).
+                          <code>execute</code> / <code>eval</code> invoke this implicitly on first run if it has not been called already, so embedders don't have to remember to call it. Calling it explicitly first is supported and preferred when an embedder needs deterministic timing (e.g. a constructor of a Flutter helper that touches bridges before the first script runs).
                         </p>
                         <p>
-                          **Idempotent:** repeat calls return without re-running any callback — the contract is "run once, then frozen". After this call returns, [registerExtensions] throws [StateError].
+                          <strong>Idempotent:</strong> repeat calls return without re-running any callback — the contract is "run once, then frozen". After this call returns, [registerExtensions] throws [StateError].
                         </p>
                       </div>
                     </div>
@@ -1771,10 +1816,12 @@ interpreter.grant(NetworkPermission.any);</code></pre>
                           OPEN B.11 / U25 — Pre-builds the parser + bridge infrastructure so the first real build does not cold-start mid-test under host load.
                         </p>
                         <p>
-                          The first script run after a test harness' `setUpAll` historically flaked because the analyzer front-end, the bridge/stdlib registration path ([_initModule] → `Stdlib(...).register()` + bridge-type registration), and the interpreter all cold-started during that first build. This pays the cost up front by parsing and executing a trivial throwaway script (`int main() =&gt; 0;`), which JIT-warms the analyzer parser, the module loader environment, bridge finalization, and the interpreter call path in one pass.
+                          The first script run after a test harness' <code>setUpAll</code> historically flaked because the analyzer front-end, the bridge/stdlib registration path ([_initModule] → 
+                          <code>Stdlib(...).register()</code> + bridge-type registration), and the interpreter all cold-started during that first build. This pays the cost up front by parsing and executing a trivial throwaway script (<code>int main() =&gt; 0;</code>), which JIT-warms the analyzer parser, the module loader environment, bridge finalization, and the interpreter call path in one pass.
                         </p>
                         <p>
-                          **Idempotent and script-neutral:** every real `execute*` rebuilds its module loader and environment from scratch, so the throwaway warmup state is discarded. Safe to call once after all bridge registration and before the first real build. Mirrors `D4rtRunner.warmup` / `D4rt.warmup` in `tom_d4rt_ast` / `tom_d4rt_exec`.
+                          <strong>Idempotent and script-neutral:</strong> every real <code>execute*</code> rebuilds its module loader and environment from scratch, so the throwaway warmup state is discarded. Safe to call once after all bridge registration and before the first real build. Mirrors 
+                          <code>D4rtRunner.warmup</code> / <code>D4rt.warmup</code> in <code>tom_d4rt_ast</code> / <code>tom_d4rt_exec</code>.
                         </p>
                       </div>
                     </div>
@@ -1782,7 +1829,8 @@ interpreter.grant(NetworkPermission.any);</code></pre>
                       <div class="api-member-head"><code class="api-signature">void _maybeEnableUsageLogFromEnv()</code></div>
                       <div class="api-doc">
                         <p>
-                          P&amp;R#1: enable [D4.usageLogEnabled] when `D4RT_LOG_RELAXER_USAGE` is set to a truthy value (`1`, `true`, `yes`, `on`, case-insensitive). Resets the log so each process run starts fresh, and arms the automatic end-of-run summary. No-op if the env var is unset or the flag is already on.
+                          P&amp;R#1: enable [D4.usageLogEnabled] when <code>D4RT_LOG_RELAXER_USAGE</code> is set to a truthy value (<code>1</code>, 
+                          <code>true</code>, <code>yes</code>, <code>on</code>, case-insensitive). Resets the log so each process run starts fresh, and arms the automatic end-of-run summary. No-op if the env var is unset or the flag is already on.
                         </p>
                       </div>
                     </div>
@@ -1801,7 +1849,8 @@ interpreter.grant(NetworkPermission.any);</code></pre>
                       <div class="api-doc">
                         <p>Registers a relaxer (generic-type-wrapper) factory for [baseTypeName].</p>
                         <p>
-                          A relaxer converts an interpreted/bridged value into a native instance of a parameterized (or plain) bridged type when an argument of that type is required. [baseTypeName] is the *base* type name without type arguments (e.g. `'ValueListenable'`, `'MyBox'`). Delegates to [D4.registerGenericTypeWrapper]; registration is idempotent on factory identity and chains new-first.
+                          A relaxer converts an interpreted/bridged value into a native instance of a parameterized (or plain) bridged type when an argument of that type is required. [baseTypeName] is the 
+                          <em>base</em> type name without type arguments (e.g. <code>'ValueListenable'</code>, <code>'MyBox'</code>). Delegates to [D4.registerGenericTypeWrapper]; registration is idempotent on factory identity and chains new-first.
                         </p>
                         <p>Intended for use inside a [registerExtensions] body.</p>
                       </div>
@@ -1829,7 +1878,8 @@ interpreter.grant(NetworkPermission.any);</code></pre>
                       <div class="api-doc">
                         <p>Registers a generic-constructor factory for [className].[constructorName].</p>
                         <p>
-                          Used by the interpreter's construction path to build a native instance of a generic bridged class from interpreted arguments and type arguments. Use `''` for the unnamed constructor. Delegates to [D4.registerGenericConstructor]; registration is idempotent on factory identity and chains new-first.
+                          Used by the interpreter's construction path to build a native instance of a generic bridged class from interpreted arguments and type arguments. Use 
+                          <code>''</code> for the unnamed constructor. Delegates to [D4.registerGenericConstructor]; registration is idempotent on factory identity and chains new-first.
                         </p>
                         <p>Intended for use inside a [registerExtensions] body.</p>
                       </div>
@@ -1965,7 +2015,7 @@ d4rt.execute(
                           Unlike [execute], this method does NOT reset the global environment. It reuses the existing module loader and environment from a previous [execute] call, allowing you to add more declarations and call functions while preserving all previously defined variables, functions, and classes.
                         </p>
                         <p>
-                          **Important**: You must call [execute] at least once before calling [continuedExecute] to establish the execution context.
+                          <strong>Important</strong>: You must call [execute] at least once before calling [continuedExecute] to establish the execution context.
                         </p>
                         <p>[source] The source code to execute.</p>
                         <p>[name] The name of the function to call. Defaults to 'main'.</p>
@@ -2048,10 +2098,12 @@ print(result.variables); // [VariableInfo(greeting)]</code></pre>
                       <div class="api-doc">
                         <p>Evaluates an expression or statement in the context of previously executed code.</p>
                         <p>
-                          This method allows you to execute additional code in the same environment as a previous `execute()` call, similar to a REPL experience.
+                          This method allows you to execute additional code in the same environment as a previous <code>execute()</code>
+                           call, similar to a REPL experience.
                         </p>
                         <p>
-                          **Important**: You must call `execute()` at least once before calling `eval()` to establish the execution context.
+                          <strong>Important</strong>: You must call <code>execute()</code> at least once before calling <code>eval()</code>
+                           to establish the execution context.
                         </p>
                         <p>[expression] The Dart expression or statement to evaluate.</p>
                         <h2>Example:</h2>
@@ -2321,7 +2373,8 @@ final doubled = d4rt.eval('double(counter)'); // Returns 4</code></pre>
                       <div class="api-doc">
                         <p>The canonical source URI where this variable is defined.</p>
                         <p>
-                          Used for deduplication: when the same variable is exported through multiple barrels (e.g., tom_core_kernel and tom_core_server both re-export tom_basics), we need to recognize they're the same element. Format: `package:pkg_name/path/to/source.dart`
+                          Used for deduplication: when the same variable is exported through multiple barrels (e.g., tom_core_kernel and tom_core_server both re-export tom_basics), we need to recognize they're the same element. Format: 
+                          <code>package:pkg_name/path/to/source.dart</code>
                         </p>
                       </div>
                     </div>

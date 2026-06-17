@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1314,12 +1334,15 @@
                   <div class="api-doc">
                     <p>Lookup-only module resolver for pre-parsed AST bundles.</p>
                     <p>
-                      [AstModuleLoader] implements [ModuleContext] to resolve import directives against a pre-loaded map of modules. It performs **no file I/O and no source code parsing** — all modules must already exist in the bundle.
+                      [AstModuleLoader] implements [ModuleContext] to resolve import directives against a pre-loaded map of modules. It performs 
+                      <strong>no file I/O and no source code parsing</strong> — all modules must already exist in the bundle.
                     </p>
                     <h2>Module Resolution Order</h2>
                     <p>When [loadModule] is called with a URI:</p>
                     <p>
-                      1. **Cache** — return if already loaded 2. **dart:*** — register the corresponding stdlib and return empty module 3. **Bridged libraries** — register native bridges and return empty module 4. **Bundle modules** — look up in [modules], process AST → environment 5. **Error** — throw if URI not found anywhere
+                      1. <strong>Cache</strong> — return if already loaded 2. <strong>dart:</strong><em> — register the corresponding stdlib and return empty module 3. </em>
+                      <em>Bridged libraries</em><em> — register native bridges and return empty module 4. </em><em>Bundle modules</em>
+                      <em> — look up in [modules], process AST → environment 5. </em><em>Error</em>* — throw if URI not found anywhere
                     </p>
                     <h2>Usage</h2>
                     <p>Typically created internally by [D4rtRunner.executeBundle] — not constructed directly in user code.</p>
@@ -1386,10 +1409,12 @@
                       <div class="api-doc">
                         <p>Per-stdlib isolated environments (GEN-101 design, restored in GEN-107 Phase 3).</p>
                         <p>
-                          Every stdlib with an explicit registrar gets its own environment nested under [globalEnvironment]. Stdlib symbols never leak into the global scope, so scripts that define fields named `min`, `max`, `Stream`, … never collide with stdlib functions. Transitive reach (e.g. `ByteData` through `flutter/services.dart`) is handled by the GEN-107 re-export merge in [_mergeReExports], not by global leakage.
+                          Every stdlib with an explicit registrar gets its own environment nested under [globalEnvironment]. Stdlib symbols never leak into the global scope, so scripts that define fields named 
+                          <code>min</code>, <code>max</code>, <code>Stream</code>, … never collide with stdlib functions. Transitive reach (e.g. 
+                          <code>ByteData</code> through <code>flutter/services.dart</code>) is handled by the GEN-107 re-export merge in [_mergeReExports], not by global leakage.
                         </p>
                         <p>
-                          `dart:core` and `dart:async` keep `null` registrars in [_stdlibRegistrars] — they are pre-registered into [globalEnvironment] at runner construction (because they are unconditional ambient names in Dart) and therefore stay shared.
+                          <code>dart:core</code> and <code>dart:async</code> keep <code>null</code> registrars in [_stdlibRegistrars] — they are pre-registered into [globalEnvironment] at runner construction (because they are unconditional ambient names in Dart) and therefore stay shared.
                         </p>
                       </div>
                     </div>
@@ -1419,9 +1444,9 @@
                     <div id="AstModuleLoader._loadStdlibModule" class="api-member">
                       <div class="api-member-head"><code class="api-signature">LoadedModule? _loadStdlibModule(Uri uri)</code></div>
                       <div class="api-doc">
-                        <p>Loads a `dart:*` stdlib module by registering its definitions.</p>
+                        <p>Loads a <code>dart:*</code> stdlib module by registering its definitions.</p>
                         <p>
-                          Returns `null` if the library is not a known stdlib and has no bridged content, allowing the caller to check bundle modules or throw an error.
+                          Returns <code>null</code> if the library is not a known stdlib and has no bridged content, allowing the caller to check bundle modules or throw an error.
                         </p>
                       </div>
                     </div>
@@ -1433,7 +1458,7 @@
                       </div>
                       <div class="api-doc">
                         <p>Attempts to load a bridged library by registering its definitions.</p>
-                        <p>Returns `null` if the URI has no bridged content registered in the runner.</p>
+                        <p>Returns <code>null</code> if the URI has no bridged content registered in the runner.</p>
                         <p>
                           GEN-100 FIX: Creates a module-specific environment for each bridged library instead of registering all bridges into globalEnvironment. This prevents same-named classes (e.g., dart:ui.TextStyle vs painting.TextStyle) from overwriting each other.
                         </p>
@@ -1477,7 +1502,8 @@
                       <div class="api-doc">
                         <p>GEN-107: Merge re-exported libraries' bridged content into [moduleEnv].</p>
                         <p>
-                          Looks up [sourceUri] in [D4rtRunner.libraryReExports] and, for each recorded re-export, registers the target library's bridges into the source library's per-module environment under the combined `show`/`hide` filters. Recurses to handle transitive re-exports (e.g. `flutter/material.dart → flutter/widgets.dart → flutter/foundation.dart → dart:typed_data`).
+                          Looks up [sourceUri] in [D4rtRunner.libraryReExports] and, for each recorded re-export, registers the target library's bridges into the source library's per-module environment under the combined 
+                          <code>show</code>/<code>hide</code> filters. Recurses to handle transitive re-exports (e.g. <code>flutter/material.dart → flutter/widgets.dart → flutter/foundation.dart → dart:typed_data</code>).
                         </p>
                         <p>
                           [outerShow] / [outerHide] are the filters originally applied to the import of [sourceUri]; per-re-export filters are intersected/unioned with them so a hidden symbol stays hidden through the chain.
@@ -1494,7 +1520,7 @@
                       <div class="api-doc">
                         <p>Intersect two optional show-filters.</p>
                         <p>
-                          `null` means "show everything"; the intersection of `null` and any set is that set; the intersection of two sets is the usual set intersection.
+                          <code>null</code> means "show everything"; the intersection of <code>null</code> and any set is that set; the intersection of two sets is the usual set intersection.
                         </p>
                       </div>
                     </div>
@@ -1505,7 +1531,7 @@
                       <div class="api-doc">
                         <p>Union two optional hide-filters.</p>
                         <p>
-                          `null` means "hide nothing"; the union with `null` is the other set; the union of two sets is the usual set union.
+                          <code>null</code> means "hide nothing"; the union with <code>null</code> is the other set; the union of two sets is the usual set union.
                         </p>
                       </div>
                     </div>
@@ -1559,7 +1585,7 @@
                       <div class="api-doc">
                         <p>Known stdlib modules and their registration functions.</p>
                         <p>
-                          Maps `dart:xxx` path names to their registration callbacks. `null` means the module is handled by [Stdlib.register] at init time (core, async) and requires no additional registration.
+                          Maps <code>dart:xxx</code> path names to their registration callbacks. <code>null</code> means the module is handled by [Stdlib.register] at init time (core, async) and requires no additional registration.
                         </p>
                       </div>
                     </div>

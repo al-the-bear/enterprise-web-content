@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1321,6 +1341,11 @@
                 <section id="TomClassScanResult" class="api-declaration">
                   <h3 class="api-decl-title">class TomClassScanResult</h3>
                   <code class="api-signature">class TomClassScanResult</code>
+                  <div class="api-doc">
+                    <p>
+                      The partitioned result of scanning the annotated classes: interface-based services, remote-API implementations, and component classes.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomClassScanResult.new" class="api-member">
@@ -1329,24 +1354,37 @@
                           TomClassScanResult.new({List&lt;ClassMirror&lt;dynamic&gt;&gt; serviceInterfaces = const [], List&lt;ClassMirror&lt;dynamic&gt;&gt; apiImplementations = const [], List&lt;ClassMirror&lt;dynamic&gt;&gt; componentClasses = const []})
                         </code>
                       </div>
+                      <div class="api-doc"><p>Creates a scan result from the three class lists.</p></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
                     <div id="TomClassScanResult.serviceInterfaces" class="api-member">
                       <div class="api-member-head"><code class="api-signature">List&lt;ClassMirror&lt;dynamic&gt;&gt; serviceInterfaces</code></div>
+                      <div class="api-doc"><p>Classes annotated with <code>@tomService</code> (interface-based services).</p></div>
                     </div>
                     <div id="TomClassScanResult.apiImplementations" class="api-member">
                       <div class="api-member-head"><code class="api-signature">List&lt;ClassMirror&lt;dynamic&gt;&gt; apiImplementations</code></div>
+                      <div class="api-doc"><p>Classes annotated with <code>@TomApiImplementation</code>.</p></div>
                     </div>
                     <div id="TomClassScanResult.componentClasses" class="api-member">
                       <div class="api-member-head"><code class="api-signature">List&lt;ClassMirror&lt;dynamic&gt;&gt; componentClasses</code></div>
+                      <div class="api-doc"><p>Classes annotated with <code>@TomComponent</code> (candidate implementations).</p></div>
                     </div>
                   </div>
                 </section>
                 <section id="TomEndpointHandler" class="api-declaration">
                   <h3 class="api-decl-title">class TomEndpointHandler</h3>
                   <code class="api-signature">class TomEndpointHandler</code>
+                  <div class="api-doc">
+                    <p>
+                      Serves one endpoint: binds a reflected service [method] to a route and runs the per-request pipeline.
+                    </p>
+                    <p>
+                      For each request [handleMethodCall] answers CORS preflight, enforces access ([checkAccess] / [checkAutomaticAccess]), materialises the method's parameters from the request (principal/token from the zone, the request object, path/query params, JSON body, request or execution context), optionally wraps the call in a transaction, invokes the method by reflection, and converts the result (or any error, via the endpoint's [TomErrorHandler]) into a shelf 
+                      <code>Response</code>.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomEndpointHandler.new" class="api-member">
@@ -1355,60 +1393,113 @@
                           TomEndpointHandler.new({required String name, required InstanceMirror instance, required MethodMirror method, ClassMirror&lt;dynamic&gt;? interface, required ClassMirror&lt;dynamic&gt; implementation, required String methodName, required TomMethodMetadata metadata})
                         </code>
                       </div>
+                      <div class="api-doc"><p>Creates a handler from the resolved instance, method, and metadata.</p></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="TomEndpointHandler.name" class="api-member"><div class="api-member-head"><code class="api-signature">String name</code></div></div>
-                    <div id="TomEndpointHandler.instance" class="api-member"><div class="api-member-head"><code class="api-signature">InstanceMirror instance</code></div></div>
-                    <div id="TomEndpointHandler.method" class="api-member"><div class="api-member-head"><code class="api-signature">MethodMirror method</code></div></div>
+                    <div id="TomEndpointHandler.name" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String name</code></div>
+                      <div class="api-doc"><p>A human-readable identifier for the route (used in logs).</p></div>
+                    </div>
+                    <div id="TomEndpointHandler.instance" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">InstanceMirror instance</code></div>
+                      <div class="api-doc"><p>The reflected service instance the method is invoked on.</p></div>
+                    </div>
+                    <div id="TomEndpointHandler.method" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">MethodMirror method</code></div>
+                      <div class="api-doc"><p>The reflected endpoint method.</p></div>
+                    </div>
                     <div id="TomEndpointHandler.interface" class="api-member">
                       <div class="api-member-head"><code class="api-signature">ClassMirror&lt;dynamic&gt;? interface</code></div>
+                      <div class="api-doc"><p>The service interface/annotation type, when routed via an interface.</p></div>
                     </div>
                     <div id="TomEndpointHandler.implementation" class="api-member">
                       <div class="api-member-head"><code class="api-signature">ClassMirror&lt;dynamic&gt; implementation</code></div>
+                      <div class="api-doc"><p>The concrete implementation class mirror.</p></div>
                     </div>
-                    <div id="TomEndpointHandler.methodName" class="api-member"><div class="api-member-head"><code class="api-signature">String methodName</code></div></div>
-                    <div id="TomEndpointHandler.metadata" class="api-member"><div class="api-member-head"><code class="api-signature">TomMethodMetadata metadata</code></div></div>
+                    <div id="TomEndpointHandler.methodName" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String methodName</code></div>
+                      <div class="api-doc"><p>The qualified name of the method to invoke.</p></div>
+                    </div>
+                    <div id="TomEndpointHandler.metadata" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomMethodMetadata metadata</code></div>
+                      <div class="api-doc"><p>The collected annotation metadata (endpoint, access, transaction, API).</p></div>
+                    </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
                     <div id="TomEndpointHandler.handlePreflight" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Response handlePreflight(Request req)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Answers a CORS preflight (<code>OPTIONS</code>) request with the endpoint's (or the global default) allowed origins/methods/headers.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomEndpointHandler.handleMethodCall" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Future&lt;Response&gt; handleMethodCall(Request req)</code></div>
+                      <div class="api-doc">
+                        <p>Runs the full request pipeline for this endpoint and returns the response.</p>
+                        <p>
+                          Handles preflight, access control, reflection-based parameter binding, optional transaction wrapping, method invocation, and result/error conversion (see the class doc). WebSocket transport, richer role/group/entitlement authorization, and stream/file upload binding are tracked follow-ups (see the quest completion steps).
+                        </p>
+                      </div>
                     </div>
                     <div id="TomEndpointHandler.checkAccess" class="api-member">
                       <div class="api-member-head"><code class="api-signature">bool checkAccess(TomPrincipal? principal)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Decides whether [principal] may call this endpoint from its declared [TomAccessControl], falling back to the global protection default when the endpoint declares no access rule.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomEndpointHandler.checkAutomaticAccess" class="api-member">
                       <div class="api-member-head"><code class="api-signature">bool checkAutomaticAccess(bool accessCheck)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Second-chance access check via resource-key protection: grants access when the interface/API (and not the specific method/endpoint) is unprotected, honouring per-method 
+                          <code>-Interface.method</code> exceptions. Takes the prior [accessCheck] and returns the possibly-upgraded decision.
+                        </p>
+                      </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
                     <div id="TomEndpointHandler.globalSettingLogRequestsDefault" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static bool globalSettingLogRequestsDefault</code></div>
+                      <div class="api-doc"><p>Whether requests are logged when an endpoint does not specify <code>logRequests</code>.</p></div>
                     </div>
                     <div id="TomEndpointHandler.globalSettingCorsAllowedOriginsDefault" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static String globalSettingCorsAllowedOriginsDefault</code></div>
+                      <div class="api-doc"><p>Default <code>Access-Control-Allow-Origin</code> when an endpoint does not override it.</p></div>
                     </div>
                     <div id="TomEndpointHandler.globalSettingCorsAllowedMethodsDefault" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static String globalSettingCorsAllowedMethodsDefault</code></div>
+                      <div class="api-doc"><p>Default <code>Access-Control-Allow-Methods</code> when an endpoint does not override it.</p></div>
                     </div>
                     <div id="TomEndpointHandler.globalSettingCorsAllowedHeadersDefault" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static String globalSettingCorsAllowedHeadersDefault</code></div>
+                      <div class="api-doc"><p>Default <code>Access-Control-Allow-Headers</code> when an endpoint does not override it.</p></div>
                     </div>
-                    <div id="TomEndpointHandler.debugPrintContext" class="api-member"><div class="api-member-head"><code class="api-signature">static bool debugPrintContext</code></div></div>
+                    <div id="TomEndpointHandler.debugPrintContext" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static bool debugPrintContext</code></div>
+                      <div class="api-doc"><p>When true, logs the request context for each call (debugging aid).</p></div>
+                    </div>
                     <div id="TomEndpointHandler.debugPrintAuthentication" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static bool debugPrintAuthentication</code></div>
+                      <div class="api-doc"><p>When true, logs the resolved principal/token for each call (debugging aid).</p></div>
                     </div>
                   </div>
                 </section>
                 <section id="TomEndpointHandlerException" class="api-declaration">
                   <h3 class="api-decl-title">class TomEndpointHandlerException</h3>
                   <code class="api-signature">class TomEndpointHandlerException extends TomServerException</code>
+                  <div class="api-doc">
+                    <p>
+                      Thrown while <em>serving</em> a request: access denied, parameter instantiation failure, a failing error handler, or a result that cannot be converted.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomEndpointHandlerException.new" class="api-member">
@@ -1417,12 +1508,22 @@
                           TomEndpointHandlerException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, Object? stack, Object? rootException, bool autoLog = false})
                         </code>
                       </div>
+                      <div class="api-doc">
+                        <p>
+                          Creates the exception with a message [key] and [defaultUserMessage]; the remaining parameters mirror [TomServerException].
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>
                 <section id="TomEndpointPipelineException" class="api-declaration">
                   <h3 class="api-decl-title">class TomEndpointPipelineException</h3>
                   <code class="api-signature">class TomEndpointPipelineException extends TomServerException</code>
+                  <div class="api-doc">
+                    <p>
+                      Thrown while <em>building</em> the router from reflected metadata: conflicting annotations, an invalid component reference, an unknown HTTP method, etc.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomEndpointPipelineException.new" class="api-member">
@@ -1431,12 +1532,25 @@
                           TomEndpointPipelineException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, Object? stack, Object? rootException, bool autoLog = false})
                         </code>
                       </div>
+                      <div class="api-doc">
+                        <p>
+                          Creates the exception with a message [key] and [defaultUserMessage]; the remaining parameters mirror [TomServerException].
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>
                 <section id="TomEndpointRouting" class="api-declaration">
                   <h3 class="api-decl-title">class TomEndpointRouting</h3>
                   <code class="api-signature">class TomEndpointRouting</code>
+                  <div class="api-doc">
+                    <p>
+                      Builds the shelf [Router] for the application by reflecting over annotated service/API classes and mounting one route per endpoint method.
+                    </p>
+                    <p>
+                      [scanClasses] partitions the reflected classes into service interfaces, API implementations, and components; [initializeRouter] resolves each service's instance (via [TomComponentReference], bean lookup, or a matching component class) and mounts its endpoint methods. The mounted handlers and a uri→[TomEndpointRoutingInfo] map are exposed statically for diagnostics.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomEndpointRouting.new" class="api-member"><div class="api-member-head"><code class="api-signature">TomEndpointRouting.new()</code></div></div>
@@ -1445,18 +1559,42 @@
                   <div class="api-members">
                     <div id="TomEndpointRouting.scanClasses" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomClassScanResult scanClasses()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Reflects over the annotated classes and partitions them into service interfaces, API implementations, and components. Throws if a class carries both 
+                          <code>@TomApiImplementation</code> and <code>@tomService</code>.
+                        </p>
+                      </div>
                     </div>
-                    <div id="TomEndpointRouting.initializeRouter" class="api-member"><div class="api-member-head"><code class="api-signature">Router initializeRouter()</code></div></div>
+                    <div id="TomEndpointRouting.initializeRouter" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Router initializeRouter()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Scans the annotated classes and mounts every endpoint method onto a fresh [Router], resolving each service's implementation instance, and returns the router.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomEndpointRouting.createRoutesForClassMirror" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
                           void createRoutesForClassMirror(ClassMirror&lt;dynamic&gt; serviceType, Object? serviceInstance, Router router)
                         </code>
                       </div>
+                      <div class="api-doc">
+                        <p>
+                          Mounts every endpoint method of [serviceType] (invoked on [serviceInstance]) onto [router], building a [TomEndpointHandler] per method from its collected metadata.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomEndpointRouting.getReferencedComponent" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">Object? getReferencedComponent(ClassMirror&lt;dynamic&gt; serviceType)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Resolves the implementation instance named by a [TomComponentReference] on [serviceType] (by name or by type), or 
+                          <code>null</code> when none is present. Throws if the reference is malformed (neither/both set) or duplicated.
+                        </p>
                       </div>
                     </div>
                     <div id="TomEndpointRouting.createRoutesForEndpoint" class="api-member">
@@ -1465,10 +1603,21 @@
                           void createRoutesForEndpoint(TomEndpoint&lt;Object, Object&gt; tep, Router router, TomEndpointHandler teph, TomMethodMetadata mmd, ClassMirror&lt;dynamic&gt; instanceClassMirror)
                         </code>
                       </div>
+                      <div class="api-doc">
+                        <p>
+                          Registers [teph] on [router] for each HTTP method of [tep] (plus an <code>OPTIONS</code> route for CORS preflight) and records it in [routingInfo] / [handlers]. Throws on an unsupported HTTP method.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomEndpointRouting.getClassMethodMetadata" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">List&lt;TomMethodMetadata&gt; getClassMethodMetadata(ClassMirror&lt;dynamic&gt; classMirror)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Collects, for each endpoint-annotated method of [classMirror], the merged [TomMethodMetadata] (endpoint, access control, transaction, and remote-API tags). Throws on conflicting/duplicate tags or a missing 
+                          <code>@TomApiImplementation</code> for an API-endpoint method.
+                        </p>
                       </div>
                     </div>
                     <div id="TomEndpointRouting.findServiceInstance" class="api-member">
@@ -1477,40 +1626,58 @@
                           Object? findServiceInstance(List&lt;ClassMirror&lt;dynamic&gt;&gt; componentClasses, ClassMirror&lt;dynamic&gt; serviceType, Object? serviceInstance)
                         </code>
                       </div>
+                      <div class="api-doc">
+                        <p>
+                          Fallback resolution for an interface-based service: finds a component class that extends or implements [serviceType] and returns its bean, otherwise returns the passed-in [serviceInstance].
+                        </p>
+                      </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
                     <div id="TomEndpointRouting.handlers" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static List&lt;TomEndpointHandler&gt; handlers</code></div>
+                      <div class="api-doc"><p>Every endpoint handler mounted during the last [initializeRouter] run.</p></div>
                     </div>
                     <div id="TomEndpointRouting.routingInfo" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static Map&lt;String, TomEndpointRoutingInfo&gt; routingInfo</code></div>
+                      <div class="api-doc"><p>Mounted routes keyed by URI, for diagnostics.</p></div>
                     </div>
                   </div>
                 </section>
                 <section id="TomEndpointRoutingInfo" class="api-declaration">
                   <h3 class="api-decl-title">class TomEndpointRoutingInfo</h3>
                   <code class="api-signature">class TomEndpointRoutingInfo</code>
+                  <div class="api-doc"><p>Pairs a mounted route's [handler] with the [endpoint] it was built from.</p></div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomEndpointRoutingInfo.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">TomEndpointRoutingInfo.new(TomEndpointHandler handler, TomEndpoint&lt;Object, Object&gt; endpoint)</code>
                       </div>
+                      <div class="api-doc"><p>Pairs [handler] with its [endpoint].</p></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="TomEndpointRoutingInfo.handler" class="api-member"><div class="api-member-head"><code class="api-signature">TomEndpointHandler handler</code></div></div>
+                    <div id="TomEndpointRoutingInfo.handler" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomEndpointHandler handler</code></div>
+                      <div class="api-doc"><p>The handler invoked for the route.</p></div>
+                    </div>
                     <div id="TomEndpointRoutingInfo.endpoint" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomEndpoint&lt;Object, Object&gt; endpoint</code></div>
+                      <div class="api-doc"><p>The endpoint definition the route was built from.</p></div>
                     </div>
                   </div>
                 </section>
                 <section id="TomMethodMetadata" class="api-declaration">
                   <h3 class="api-decl-title">class TomMethodMetadata</h3>
                   <code class="api-signature">class TomMethodMetadata</code>
+                  <div class="api-doc">
+                    <p>
+                      All annotation metadata collected for one endpoint method: the reflected method plus its [endpoint], optional [access] control and [transactionInfo], and (for registry-based endpoints) the resolved remote-API tags.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomMethodMetadata.new" class="api-member">
@@ -1519,29 +1686,44 @@
                           TomMethodMetadata.new({required TomEndpoint&lt;Object, Object&gt; endpoint, required MethodMirror methodMirror, TomAccessControl? access, TomTransactional? transactionInfo, TomApiEndpointImplementation&lt;Object, Object&gt;? apiEndpointImplementation, TomApiImplementation? apiImplementation, TomApi? api, TomApiEndpoint&lt;dynamic, dynamic&gt;? apiEndpoint})
                         </code>
                       </div>
+                      <div class="api-doc"><p>Bundles the metadata for one endpoint method.</p></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="TomMethodMetadata.methodMirror" class="api-member"><div class="api-member-head"><code class="api-signature">MethodMirror methodMirror</code></div></div>
+                    <div id="TomMethodMetadata.methodMirror" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">MethodMirror methodMirror</code></div>
+                      <div class="api-doc"><p>The reflected endpoint method.</p></div>
+                    </div>
                     <div id="TomMethodMetadata.endpoint" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomEndpoint&lt;Object, Object&gt; endpoint</code></div>
+                      <div class="api-doc"><p>The endpoint definition (route, mime types, error handler, …).</p></div>
                     </div>
-                    <div id="TomMethodMetadata.access" class="api-member"><div class="api-member-head"><code class="api-signature">TomAccessControl? access</code></div></div>
+                    <div id="TomMethodMetadata.access" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomAccessControl? access</code></div>
+                      <div class="api-doc"><p>The access-control rule, if the method declared one.</p></div>
+                    </div>
                     <div id="TomMethodMetadata.transactionInfo" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomTransactional? transactionInfo</code></div>
+                      <div class="api-doc"><p>The transaction directive, if the method declared one.</p></div>
                     </div>
                     <div id="TomMethodMetadata.apiEndpointImplementation" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">TomApiEndpointImplementation&lt;Object, Object&gt;? apiEndpointImplementation</code>
                       </div>
+                      <div class="api-doc"><p>The <code>@TomApiEndpointImplementation</code> tag, for registry-based endpoints.</p></div>
                     </div>
                     <div id="TomMethodMetadata.apiImplementation" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomApiImplementation? apiImplementation</code></div>
+                      <div class="api-doc"><p>The class's <code>@TomApiImplementation</code> tag, for registry-based endpoints.</p></div>
                     </div>
-                    <div id="TomMethodMetadata.api" class="api-member"><div class="api-member-head"><code class="api-signature">TomApi? api</code></div></div>
+                    <div id="TomMethodMetadata.api" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomApi? api</code></div>
+                      <div class="api-doc"><p>The resolved remote API, for registry-based endpoints.</p></div>
+                    </div>
                     <div id="TomMethodMetadata.apiEndpoint" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomApiEndpoint&lt;dynamic, dynamic&gt;? apiEndpoint</code></div>
+                      <div class="api-doc"><p>The resolved remote-API endpoint, for registry-based endpoints.</p></div>
                     </div>
                   </div>
                 </section>

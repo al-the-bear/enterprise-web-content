@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1308,95 +1328,492 @@
             </p>
             <div style="margin-top: 14px">
               <div class="mono" style="color: #B9CCDC">13 modules</div>
-              <div class="metricline" style="color: #B9CCDC">1.3M loc · 12.8k tests · 3.2M test LOC</div>
+              <div class="metricline" style="color: #B9CCDC">1.7M loc · 12.8k tests · 3.2M test LOC</div>
               <div class="dist" style="max-width: 280px; border-color: rgba(255,255,255,.16)">
                 <span style="width: 0.00%; background: #4EA72E"></span>
-                <span style="width: 69.23%; background: #0F9ED5"></span>
-                <span style="width: 30.77%; background: #E97132"></span>
+                <span style="width: 84.62%; background: #0F9ED5"></span>
+                <span style="width: 15.38%; background: #E97132"></span>
                 <span style="width: 0.00%; background: #8497A8"></span>
               </div>
               <div class="distlbl" style="color: #B9CCDC">
                 <span><b style="color: #86E0A2">0</b> released</span>
-                <span><b style="color: #56BEE6">9</b> published</span>
-                <span><b style="color: #F08A4F">4</b> in works</span>
+                <span><b style="color: #56BEE6">11</b> published</span>
+                <span><b style="color: #F08A4F">2</b> in works</span>
                 <span><b style="color: #B9CCDC">0</b> not started</span>
               </div>
             </div>
           </div>
           <div class="fambody">
-            <div class="pageprose">
-              <p>
-                D4rt is a family of Dart interpreters that execute Dart source at runtime without compilation, inside a permission-guarded sandbox. It is the layer that lets `tom_brain` and `tom_flow` run AI-generated and scripted code, and lets agentic UI render in a Flutter client.
-              </p>
-              <p>
-                Two parallel interpreter lines share one bridge API. `tom_d4rt` is the analyzer-based reference implementation. The analyzer-free line — `tom_ast_model`, `tom_d4rt_ast`, `tom_ast_generator`, `tom_d4rt_exec` — parses on a build machine and interprets on-device, so the heavyweight analyzer never ships inside an app.
-              </p>
-              <p>
-                Around the interpreters sit code generators (`tom_d4rt_generator` bridges native APIs), Flutter bridges (`tom_d4rt_flutter`, `tom_d4rt_flutter_ast`) for over-the-air UI, and DCli-equipped REPLs (`tom_d4rt_dcli`, `tom_dcli_exec`). D4rt underpins Tom's creation flow and the agentic-app line.
-              </p>
-              <h2>The d4rt family</h2>
-              <div class="mermaid">
-                flowchart TB
-                  API["Shared bridge API"]
-                  subgraph WF["Analyzer-based"]
-                    d4["tom_d4rt · released (analyzer-based)"] --> API
-                    gen["tom_d4rt_generator"] --> API
-                  end
-                  subgraph AF["Analyzer-free · parse on build, run on device"]
-                    am["tom_ast_model"] --> ag["tom_ast_generator"] --> de["tom_d4rt_exec"]
-                    am --> da["tom_d4rt_ast"] --> de["tom_d4rt_exec"]
-                  end
-                  da --> API
-                  de --> API
-                  API --> fl["tom_d4rt_flutter / _flutter_ast"]
-                  API --> repl["tom_d4rt_dcli / tom_dcli_exec"]
+            <div class="pageprose"><p>From the component readme.md file:</p></div>
+            <section class="section repodoc">
+              <div class="pageprose">
+                <h1>D4rt — a sandboxed Dart interpreter and its ecosystem</h1>
+                <p>
+                  &gt; <strong>Attribution.</strong> The <code>tom_d4rt</code> project is an extended clone of the original &gt; d4rt project by Moustapha Kodjo Amadou, initially published in 2025. The &gt; complete interpreter is based on his idea.
+                </p>
+                <p>
+                  D4rt runs <strong>Dart as a scripting language</strong>: it interprets Dart source at runtime inside a permission-gated sandbox, with a bridging system that exposes selected native Dart and Flutter APIs to the interpreted code. Scripts get the language you already know — classes, generics, pattern matching, 
+                  <code>async</code>/<code>await</code>, streams, generators, extensions — without compiling, and without uncontrolled access to the host.
+                </p>
+                <p>
+                  This repository (<a href="https://github.com/al-the-bear/tom_d4rt"><code>al-the-bear/tom_d4rt</code></a>) holds the whole ecosystem: the interpreter, the bridge generator that wires native libraries into scripts, the REPL/CLI tools, the Flutter integration, the sample corpus, and the analyzer-free runtime used for the web. This document is the 
+                  <strong>map</strong>; each component has its own README and <code>doc/</code> folder for the detail.
+                </p>
+                <p>
+                  &gt; <strong>New here?</strong> Start with <a href="/docs?module=tom_d4rt&amp;path=README.md"><code>tom_d4rt</code></a>
+                   (the interpreter) &gt; and the <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_samples/d4rt_introduction_sample"><code>d4rt_introduction_sample</code></a>
+                   &gt; (the shortest path from "installed" to "running a script").
+                </p>
+                <p>---</p>
+                <h2>What you can do with D4rt</h2>
+                <ul><li><strong>Embed a scripting engine</strong> in a Dart or Flutter application — let users (or</li></ul>
+                <p>
+                  an LLM) supply Dart that your app evaluates safely at runtime. - <strong>Bridge your own libraries</strong>
+                   so scripts can call native code through a typed, generated surface instead of reflection. - <strong>Script the shell</strong>
+                   with a Dart-flavoured REPL (<code>dcli</code>). - <strong>Render Flutter UIs from source at runtime</strong>, including on-the-fly / OTA UI updates that ship without an app-store release.
+                </p>
+                <p>---</p>
+                <h2>Two execution families</h2>
+                <p>
+                  D4rt ships in two execution families. The <strong>source-based</strong> family is the one you reach for by default; the 
+                  <strong>analyzer-free</strong> family is a complete alternative that exists to unlock the web and over-the-air updates.
+                </p>
+                <ul>
+                  <li>
+                    <strong>Source-based (analyzer)</strong> — <a href="/docs?module=tom_d4rt&amp;path=README.md"><code>tom_d4rt</code></a>,
+                  </li>
+                </ul>
+                <p>
+                  <a href="/docs?module=tom_d4rt_dcli&amp;path=README.md"><code>tom_d4rt_dcli</code></a>, <a href="/docs?module=tom_d4rt_flutter&amp;path=README.md"><code>tom_d4rt_flutter</code></a>. Parses Dart source with the 
+                  <code>analyzer</code> package and interprets it directly. <strong>This is the stable reference and is usually the preferable choice.</strong>
+                   - <strong>Analyzer-free (mirror AST)</strong> — runs from pre-compiled <code>SAstNode</code> trees with 
+                  <strong>no analyzer dependency</strong>, which is what makes it viable on the <strong>web</strong> (where the analyzer package is too large to ship) and for 
+                  <strong>on-the-fly / OTA UI updates</strong>. It is otherwise a complete alternative, but because the generated AST bundles are large, the source-based interpreter is usually preferable unless the web/OTA constraint applies. This family is covered in 
+                  <a href="#the-analyzer-free-family-web--ota">its own section below</a> and kept in the background throughout the rest of this overview.
+                </p>
+                <p>
+                  Each member of the source-based family has an analyzer-free twin; the pairings are listed in that section.
+                </p>
+                <p>---</p>
+                <h2>The components</h2>
+                <p>
+                  Every package below has a README (linked) and, where applicable, a <code>doc/</code> folder. Base path for all entries is this repository root.
+                </p>
+                <h3>Interpreter (source-based)</h3>
+                <table class="mdtable">
+                  <thead><tr><th>Package</th><th>What it is</th><th>Binary</th></tr></thead>
+                  <tbody>
+                    <tr>
+                      <td><a href="/docs?module=tom_d4rt&amp;path=README.md"><code>tom_d4rt</code></a></td>
+                      <td>
+                        The reference interpreter. Two-pass evaluation over the analyzer AST, full sandbox/permission system, and the 
+                        <code>BridgedClass</code>
+                         bridging core. Everything else builds on this.
+                      </td>
+                      <td><code>interpreter</code></td>
+                    </tr>
+                  </tbody>
+                </table>
+                <h3>Bridging (family-agnostic tooling)</h3>
+                <table class="mdtable">
+                  <thead><tr><th>Package</th><th>What it is</th><th>Binary</th></tr></thead>
+                  <tbody>
+                    <tr>
+                      <td><a href="/docs?module=tom_d4rt_generator&amp;path=README.md"><code>tom_d4rt_generator</code></a></td>
+                      <td>
+                        The bridge generator. Reads 
+                        <code>buildkit.yaml</code>
+                         / barrel files and emits 
+                        <code>*.b.dart</code>
+                         
+                        <code>BridgedClass</code>
+                         registrations — relaxers, generic-constructor factories, proxy classes — so native libraries become callable from scripts. Drives the Flutter bridge surface.
+                      </td>
+                      <td><code>d4rtgen</code></td>
+                    </tr>
+                  </tbody>
+                </table>
+                <p>
+                  The generator produces the bridges that both interpreter families consume, which is why it is family-agnostic. Its 
+                  <a href="/docs?module=tom_d4rt_generator&amp;path=doc%2Findex.md"><code>doc/index.md</code></a> is the navigation hub for the bridging mechanism docs (categories A–D).
+                </p>
+                <h3>REPL / CLI</h3>
+                <table class="mdtable">
+                  <thead><tr><th>Package</th><th>What it is</th><th>Binary</th></tr></thead>
+                  <tbody>
+                    <tr>
+                      <td><a href="/docs?module=tom_d4rt_dcli&amp;path=README.md"><code>tom_d4rt_dcli</code></a></td>
+                      <td>
+                        A Dart-flavoured shell REPL on the source-based interpreter, with DCli shell bridges, multiline input, history, replay files, and bot mode. Supports shebang launchers (
+                        <code>#!/usr/bin/env dcli</code>
+                        ) and piped scripts.
+                      </td>
+                      <td><code>dcli</code></td>
+                    </tr>
+                  </tbody>
+                </table>
+                <h3>Flutter integration (source-based)</h3>
+                <table class="mdtable">
+                  <thead><tr><th>Package</th><th>What it is</th></tr></thead>
+                  <tbody>
+                    <tr>
+                      <td><a href="/docs?module=tom_d4rt_flutter&amp;path=README.md"><code>tom_d4rt_flutter</code></a></td>
+                      <td>
+                        <code>SourceFlutterD4rt</code>
+                         plus the generated Flutter Material bridge surface. Interpret a Dart script that builds a 
+                        <code>Widget</code>
+                         tree and render it live inside a real 
+                        <code>BuildContext</code>
+                        .
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <a href="/docs?module=tom_d4rt_flutter_test&amp;path=README.md"><code>tom_d4rt_flutter_test</code></a>
+                      </td>
+                      <td>
+                        Interactive test/demo app for 
+                        <code>tom_d4rt_flutter</code>
+                         — a sample-app runner, script playback, and an AI-assisted UI generator over a 37-sample corpus.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <h3>Conformance</h3>
+                <table class="mdtable">
+                  <thead><tr><th>Package</th><th>What it is</th></tr></thead>
+                  <tbody>
+                    <tr>
+                      <td><a href="/docs?module=tom_d4rt_test&amp;path=README.md"><code>tom_d4rt_test</code></a></td>
+                      <td>
+                        Behavioural conformance suite for 
+                        <code>tom_d4rt</code>
+                         (scaffold today). The same fixtures double as the cross-engine reference the analyzer-free twin must reproduce.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <h3>Samples</h3>
+                <table class="mdtable">
+                  <thead><tr><th>Package</th><th>What it is</th></tr></thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_samples"><code>tom_d4rt_samples</code></a>
+                      </td>
+                      <td>Runnable, self-contained learning-path samples (see the <a href="#samples">Samples</a> table below).</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <p>---</p>
+                <h2>Getting started (source-based)</h2>
+                <p>Add the interpreter and run a script:</p>
+                <pre><code>import 'package:tom_d4rt/tom_d4rt.dart';
+
+void main() {
+  final d4rt = D4rt();
+  final result = d4rt.execute(source: '''
+    int fib(int n) =&gt; n &lt; 2 ? n : fib(n - 1) + fib(n - 2);
+    main() =&gt; fib(10);
+  ''');
+  print(result); // 55
+}</code></pre>
+                <p>From here:</p>
+                <ul><li><strong>Learn the language surface</strong> — clone the</li></ul>
+                <p>
+                  <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_samples/d4rt_introduction_sample"><code>d4rt_introduction_sample</code></a>
+                   and run one of its examples directly. It uses nothing but the interpreter (no bridges, no host wiring) and includes shebang launchers. - 
+                  <strong>Read the guide</strong> — <a href="/docs?module=tom_d4rt&amp;path=doc%2Fd4rt_user_guide.md"><code>tom_d4rt/doc/d4rt_user_guide.md</code></a>.
+                </p>
+                <h3>Bridging a native library</h3>
+                <p>
+                  To let scripts call your own Dart code, generate a bridge with <a href="/docs?module=tom_d4rt_generator&amp;path=README.md"><code>tom_d4rt_generator</code></a>
+                   (the <code>d4rtgen</code> CLI or a <code>build_runner</code> step), then register the generated <code>*.b.dart</code>
+                   with the interpreter. The <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_samples/d4rt_advanced_sample"><code>d4rt_advanced_sample</code></a>
+                   bridges a native library end-to-end; the <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_samples/d4rt_userbridges_sample"><code>d4rt_userbridges_sample</code></a>
+                   shows hand-written <code>D4UserBridge</code> overrides for what the generator cannot infer. The manual-registration reference is 
+                  <a href="/docs?module=tom_d4rt&amp;path=doc%2FBRIDGING_GUIDE.md"><code>tom_d4rt/doc/BRIDGING_GUIDE.md</code></a>, with the deeper patterns in 
+                  <a href="/docs?module=tom_d4rt&amp;path=doc%2Fadvanced_bridging_user_guide.md"><code>advanced_bridging_user_guide.md</code></a>.
+                </p>
+                <h3>Scripting the shell</h3>
+                <p>
+                  Install and run the <a href="/docs?module=tom_d4rt_dcli&amp;path=README.md"><code>dcli</code></a> REPL, or make a script executable:
+                </p>
+                <pre><code>#!/usr/bin/env dcli
+print('hello from a Dart shell script');</code></pre>
+                <p>
+                  The <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_samples/d4rt_dcli_sample"><code>d4rt_dcli_sample</code></a>
+                   is a self-contained scripting tour.
+                </p>
+                <h3>Rendering a Flutter UI from source</h3>
+                <p>
+                  With <a href="/docs?module=tom_d4rt_flutter&amp;path=README.md"><code>tom_d4rt_flutter</code></a>, interpret a script that returns a widget tree and render it:
+                </p>
+                <pre><code>final runner = SourceFlutterD4rt();
+final widget = runner.build&lt;Widget&gt;(uiScript, context); // top-level Widget build(BuildContext)</code></pre>
+                <p>
+                  The <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_samples/d4rt_flutter_sample"><code>d4rt_flutter_sample</code></a>
+                   is a focused Flutter-Material script; the <a href="/docs?module=tom_d4rt_flutter_test&amp;path=README.md"><code>tom_d4rt_flutter_test</code></a>
+                   app runs the full sample corpus interactively.
+                </p>
+                <p>---</p>
+                <h2>The analyzer-free family (web / OTA)</h2>
+                <p>
+                  The analyzer-free family is the same interpreter and the same bridges, but driven from a <strong>pre-compiled mirror AST</strong>
+                   instead of parsing source on the device. Because it carries <strong>no <code>analyzer</code> dependency</strong>, it runs where the analyzer cannot — most importantly the 
+                  <strong>web</strong> — and it lets a server compile a UI to a bundle that an app downloads and renders 
+                  <strong>without an app-store release</strong> (on-the-fly / OTA updates). The trade-off is bundle size, so prefer the source-based family unless you need the web or OTA.
+                </p>
+                <p>
+                  The flow is: <em>source → analyzer → <a href="/docs?module=tom_ast_generator&amp;path=README.md"><code>tom_ast_generator</code></a>
+                     → <code>SAstNode</code> JSON bundle → interpret with <a href="/docs?module=tom_d4rt_ast&amp;path=README.md"><code>tom_d4rt_ast</code></a></em>. Each source-based member has a twin here:
+                </p>
+                <table class="mdtable">
+                  <thead><tr><th>Concern</th><th>Source-based (foreground)</th><th>Analyzer-free twin</th></tr></thead>
+                  <tbody>
+                    <tr>
+                      <td>Interpreter core</td>
+                      <td><a href="/docs?module=tom_d4rt&amp;path=README.md"><code>tom_d4rt</code></a></td>
+                      <td>
+                        <a href="/docs?module=tom_d4rt_ast&amp;path=README.md"><code>tom_d4rt_ast</code></a>
+                         — pure-runtime interpreter + serializable AST (zero deps)
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Execution entry / CLI</td>
+                      <td><a href="/docs?module=tom_d4rt&amp;path=README.md"><code>tom_d4rt</code></a></td>
+                      <td>
+                        <a href="/docs?module=tom_d4rt_exec&amp;path=README.md"><code>tom_d4rt_exec</code></a>
+                         — analyzer used only at parse time
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Shell REPL</td>
+                      <td>
+                        <a href="/docs?module=tom_d4rt_dcli&amp;path=README.md"><code>tom_d4rt_dcli</code></a>
+                         (
+                        <code>dcli</code>
+                        )
+                      </td>
+                      <td>
+                        <a href="/docs?module=tom_dcli_exec&amp;path=README.md"><code>tom_dcli_exec</code></a>
+                         (
+                        <code>dclie</code>
+                        )
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Flutter bridges</td>
+                      <td><a href="/docs?module=tom_d4rt_flutter&amp;path=README.md"><code>tom_d4rt_flutter</code></a></td>
+                      <td>
+                        <a href="/docs?module=tom_d4rt_flutter_ast&amp;path=README.md"><code>tom_d4rt_flutter_ast</code></a>
+                         — 
+                        <code>FlutterD4rt</code>
+                        , web/OTA
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <p>Supporting packages in this family:</p>
+                <table class="mdtable">
+                  <thead><tr><th>Package</th><th>What it is</th></tr></thead>
+                  <tbody>
+                    <tr>
+                      <td><a href="/docs?module=tom_ast_model&amp;path=README.md"><code>tom_ast_model</code></a></td>
+                      <td>
+                        The serializable AST 
+                        <strong>data model</strong>
+                         — the 
+                        <code>SAstNode</code>
+                         mirror of the analyzer AST, with JSON round-trip and structural equality. Data only; zero deps.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><a href="/docs?module=tom_ast_generator&amp;path=README.md"><code>tom_ast_generator</code></a></td>
+                      <td>
+                        The analyzer-AST → mirror-AST 1:1 copier, the bundler, and the 
+                        <code>astgen</code>
+                         CLI that emits the JSON bundles an app ships.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <a href="/docs?module=tom_d4rt_flutter_ast_test&amp;path=README.md"><code>tom_d4rt_flutter_ast_test</code></a>
+                      </td>
+                      <td>
+                        Test/demo app for 
+                        <code>tom_d4rt_flutter_ast</code>
+                        , running 33 shared samples from pre-compiled 
+                        <code>AstBundle</code>
+                        s — the web-safe counterpart to 
+                        <code>tom_d4rt_flutter_test</code>
+                        .
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <p>---</p>
+                <h2>Samples</h2>
+                <p>
+                  Runnable, self-contained samples live in <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_samples"><code>tom_d4rt_samples/</code></a>, ordered as a learning path — each introduces one new capability on top of the last.
+                </p>
+                <table class="mdtable">
+                  <thead><tr><th>Sample</th><th>Introduces</th></tr></thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_samples/d4rt_introduction_sample"><code>d4rt_introduction_sample</code></a>
+                      </td>
+                      <td>
+                        Multi-file D4rt programs with nothing but the interpreter; shebang launchers. 
+                        <strong>Start here.</strong>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_samples/d4rt_advanced_sample"><code>d4rt_advanced_sample</code></a>
+                      </td>
+                      <td>Bridging a native Dart library into scripts via <code>tom_d4rt_generator</code>.</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_samples/d4rt_userbridges_sample"><code>d4rt_userbridges_sample</code></a>
+                      </td>
+                      <td>Hand-written <code>D4UserBridge</code> overrides for what the generator can't infer.</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_samples/d4rt_dcli_sample"><code>d4rt_dcli_sample</code></a>
+                      </td>
+                      <td>Shell scripting plus custom bridges via the <code>dcli</code> REPL.</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_samples/d4rt_flutter_sample"><code>d4rt_flutter_sample</code></a>
+                      </td>
+                      <td>Interpreting a live Flutter UI from source at runtime.</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <p>---</p>
+                <h2>Documentation index</h2>
+                <p>
+                  Each package keeps its user documentation in its own <code>doc/</code> folder; the READMEs above link the relevant files. The most common entry points:
+                </p>
+                <table class="mdtable">
+                  <thead><tr><th>Topic</th><th>Document</th></tr></thead>
+                  <tbody>
+                    <tr>
+                      <td>Interpreter usage</td>
+                      <td>
+                        <a href="/docs?module=tom_d4rt&amp;path=doc%2Fd4rt_user_guide.md"><code>tom_d4rt/doc/d4rt_user_guide.md</code></a>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Bridging (manual)</td>
+                      <td>
+                        <a href="/docs?module=tom_d4rt&amp;path=doc%2FBRIDGING_GUIDE.md"><code>tom_d4rt/doc/BRIDGING_GUIDE.md</code></a>
+                         · 
+                        <a href="/docs?module=tom_d4rt&amp;path=doc%2Fadvanced_bridging_user_guide.md"><code>advanced_bridging_user_guide.md</code></a>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Bridge generator</td>
+                      <td>
+                        <a href="/docs?module=tom_d4rt_generator&amp;path=doc%2Findex.md"><code>tom_d4rt_generator/doc/index.md</code></a>
+                         (navigation hub)
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Interpreter limits</td>
+                      <td>
+                        <a href="/docs?module=tom_d4rt&amp;path=doc%2Fd4rt_limitations.md"><code>tom_d4rt/doc/d4rt_limitations.md</code></a>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Flutter (source)</td>
+                      <td>
+                        <a href="/docs?module=tom_d4rt_flutter&amp;path=doc%2Ftom_d4rt_flutter_user_guide.md"><code>tom_d4rt_flutter/doc/tom_d4rt_flutter_user_guide.md</code></a>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Execution entry (analyzer-free)</td>
+                      <td>
+                        <a href="/docs?module=tom_d4rt_exec&amp;path=doc%2Ftom_d4rt_exec_user_guide.md"><code>tom_d4rt_exec/doc/tom_d4rt_exec_user_guide.md</code></a>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>AST runtime (analyzer-free)</td>
+                      <td>
+                        <a href="/docs?module=tom_d4rt_ast&amp;path=doc%2Ftom_d4rt_ast_user_guide.md"><code>tom_d4rt_ast/doc/tom_d4rt_ast_user_guide.md</code></a>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>AST generator / bundling</td>
+                      <td>
+                        <a href="/docs?module=tom_ast_generator&amp;path=doc%2Ftom_ast_generator_user_guide.md"><code>tom_ast_generator/doc/tom_ast_generator_user_guide.md</code></a>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Flutter (web/OTA)</td>
+                      <td>
+                        <a href="/docs?module=tom_d4rt_flutter_ast&amp;path=doc%2Ftom_d4rt_flutter_ast_user_guide.md"><code>tom_d4rt_flutter_ast/doc/tom_d4rt_flutter_ast_user_guide.md</code></a>
+                         · 
+                        <a href="/docs?module=tom_d4rt_flutter_ast&amp;path=doc%2Fcreating_fully_dynamic_applications.md"><code>creating_fully_dynamic_applications.md</code></a>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <p>---</p>
+                <h2>Repository layout</h2>
+                <pre><code>tom_d4rt/              source-based reference interpreter        (foreground)
+tom_d4rt_generator/    bridge generator (d4rtgen)               (tooling)
+tom_d4rt_dcli/         dcli REPL on the source-based engine     (foreground)
+tom_d4rt_flutter/      source-based Flutter Material bridges    (foreground)
+tom_d4rt_flutter_test/ demo/test app for tom_d4rt_flutter
+tom_d4rt_test/         conformance suite for tom_d4rt
+tom_d4rt_samples/      runnable learning-path samples
+
+tom_d4rt_ast/          analyzer-free interpreter + AST runtime  (background)
+tom_ast_model/         serializable AST data model              (background)
+tom_ast_generator/     analyzer→mirror AST copier + astgen CLI  (background)
+tom_d4rt_exec/         analyzer-free execution entry            (background)
+tom_dcli_exec/         dclie REPL on the analyzer-free engine   (background)
+tom_d4rt_flutter_ast/  analyzer-free Flutter bridges (web/OTA)  (background)
+tom_d4rt_flutter_ast_test/  demo/test app for tom_d4rt_flutter_ast</code></pre>
+                <p>
+                  Dependency direction, simplified: the source-based stack roots at <code>tom_d4rt</code>; the analyzer-free stack roots at the zero-dependency 
+                  <code>tom_ast_model</code> → <code>tom_d4rt_ast</code>, with <code>tom_ast_generator</code> / <code>tom_d4rt_exec</code>
+                   adding the analyzer-backed parse-and-copy step. <code>tom_d4rt_generator</code> produces bridges consumed by both stacks.
+                </p>
+                <h2>License</h2>
+                <p>See <a href="/doc/tom_agent_container/tom_ai/d4rt/LICENSE"><code>LICENSE.md</code></a>.</p>
               </div>
-            </div>
+            </section>
             <div class="grouplbl">Foundation — non-web platforms</div>
             <div class="grid cols-3" style="margin-top: 12px">
               <a class="tile pub" style="text-decoration: none; color: inherit; display: block" href="/modules/tom_d4rt">
                 <div class="top"></div>
                 <h4>tom_d4rt <span class="badge b-pub"><span class="d"></span>Published</span></h4>
-                <div class="mono">tom_d4rt · v1.8.21</div>
-                <div class="metricline">38.9k loc · 2.0k tests · 32.8k test LOC</div>
+                <div class="mono">tom_d4rt · v1.8.24</div>
+                <div class="metricline">39.0k loc · 2.0k tests · 32.9k test LOC</div>
                 <div class="desc">
                   Executes Dart source at runtime without compilation, with bridging and a permission sandbox. The reference implementation of the D4rt runtime that the rest of the family tracks.
                 </div>
-                <!--@quick_info data={"name":"tom_d4rt","id":"tom_d4rt","version":"1.8.21","statusBadgeClass":"b-pub","statusLabel":"Published","roleLabel":"foundation","overview":"`tom_d4rt` runs Dart source at runtime by walking the analyzer's parse tree in two\npasses — declaration, then interpretation — and calling the target entry point. It\nsupports full-script `execute()` and REPL-style `eval()`.\n\nScripts run inside an isolated scope chain. Sensitive operations — `dart:io`,\nisolates, process and network access — are blocked by default, and the host grants\nfine-grained permissions through a `grant()` API. This is what lets AI-generated\ncode execute safely.\n\nIt is the stable reference all existing projects depend on. Its bridge API is kept\nin 1:1 lockstep with the analyzer-free successor line (`tom_d4rt_ast`), so generated\nbridges run against either interpreter unchanged.","locLabel":"38.9k","testsLabel":"2.0k","testLocLabel":"32.8k","docsCount":9,"refCount":1,"detailHref":"/modules/tom_d4rt"}-->
-                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_d4rt" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-pub"><span class="d"></span>Published</span><h4 style="margin-top: 10px">tom_d4rt <span class="tagrole">role: foundation</span></h4><div class="mono">tom_d4rt · v1.8.21</div><p style="font-size: .86rem; margin: 10px 0 0">`tom_d4rt` runs Dart source at runtime by walking the analyzer's parse tree in two
-passes — declaration, then interpretation — and calling the target entry point. It
-supports full-script `execute()` and REPL-style `eval()`.
-
-Scripts run inside an isolated scope chain. Sensitive operations — `dart:io`,
-isolates, process and network access — are blocked by default, and the host grants
-fine-grained permissions through a `grant()` API. This is what lets AI-generated
-code execute safely.
-
-It is the stable reference all existing projects depend on. Its bridge API is kept
-in 1:1 lockstep with the analyzer-free successor line (`tom_d4rt_ast`), so generated
-bridges run against either interpreter unchanged.</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">38.9k</div></div><div class="qs"><div class="k">Tests</div><div class="v">2.0k</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">32.8k</div></div></div><div class="more"><span class="muted">9 docs · 1 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
+                <!--@quick_info data={"name":"tom_d4rt","id":"tom_d4rt","version":"1.8.24","statusBadgeClass":"b-pub","statusLabel":"Published","roleLabel":"foundation","overview":"From the module readme.md file:","locLabel":"39.0k","testsLabel":"2.0k","testLocLabel":"32.9k","docsCount":9,"refCount":1,"detailHref":"/modules/tom_d4rt"}-->
+                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_d4rt" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-pub"><span class="d"></span>Published</span><h4 style="margin-top: 10px">tom_d4rt <span class="tagrole">role: foundation</span></h4><div class="mono">tom_d4rt · v1.8.24</div><p style="font-size: .86rem; margin: 10px 0 0">From the module readme.md file:</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">39.0k</div></div><div class="qs"><div class="k">Tests</div><div class="v">2.0k</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">32.9k</div></div></div><div class="more"><span class="muted">9 docs · 1 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
                 <!--/@quick_info-->
               </a>
-              <a class="tile works" style="text-decoration: none; color: inherit; display: block" href="/modules/tom_d4rt_flutter">
+              <a class="tile pub" style="text-decoration: none; color: inherit; display: block" href="/modules/tom_d4rt_flutter">
                 <div class="top"></div>
-                <h4>tom_d4rt_flutter <span class="badge b-works"><span class="d"></span>In the works</span></h4>
-                <div class="mono">tom_d4rt_flutter · v1.0.0+1</div>
-                <div class="metricline">546.4k loc · 2.3k tests · 17.0k test LOC</div>
+                <h4>tom_d4rt_flutter <span class="badge b-pub"><span class="d"></span>Published</span></h4>
+                <div class="mono">tom_d4rt_flutter · v1.0.1</div>
+                <div class="metricline">754.4k loc · 2.3k tests · 17.0k test LOC</div>
                 <div class="desc">
                   Wraps `tom_d4rt` with the complete generated Flutter Material bridge surface, turning interpreted Dart source into live widgets. The source-based Flutter runner.
                 </div>
-                <!--@quick_info data={"name":"tom_d4rt_flutter","id":"tom_d4rt_flutter","version":"1.0.0+1","statusBadgeClass":"b-works","statusLabel":"In the works","roleLabel":"extension","overview":"`tom_d4rt_flutter` is the reusable library at the centre of the source-based\nFlutter-facing stack. It exposes `SourceFlutterD4rt`: a `tom_d4rt` interpreter\npre-loaded with the full generated Flutter Material bridge surface plus hand-written\nruntime registrations and override bridges.\n\nFeed it raw Dart source and it returns a live `Widget` rendered against real Flutter\nwidgets, with single-file and multi-file sample loading.\n\nIt is the analyzer-based sibling of `tom_d4rt_flutter_ast`, which runs the same\nFlutter bridge on the analyzer-free path for embeddable, over-the-air UI. This one\nkeeps the analyzer for full source fidelity in development and testing.","locLabel":"546.4k","testsLabel":"2.3k","testLocLabel":"17.0k","docsCount":9,"refCount":0,"detailHref":"/modules/tom_d4rt_flutter"}-->
-                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_d4rt_flutter" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-works"><span class="d"></span>In the works</span><h4 style="margin-top: 10px">tom_d4rt_flutter <span class="tagrole">role: extension</span></h4><div class="mono">tom_d4rt_flutter · v1.0.0+1</div><p style="font-size: .86rem; margin: 10px 0 0">`tom_d4rt_flutter` is the reusable library at the centre of the source-based
-Flutter-facing stack. It exposes `SourceFlutterD4rt`: a `tom_d4rt` interpreter
-pre-loaded with the full generated Flutter Material bridge surface plus hand-written
-runtime registrations and override bridges.
-
-Feed it raw Dart source and it returns a live `Widget` rendered against real Flutter
-widgets, with single-file and multi-file sample loading.
-
-It is the analyzer-based sibling of `tom_d4rt_flutter_ast`, which runs the same
-Flutter bridge on the analyzer-free path for embeddable, over-the-air UI. This one
-keeps the analyzer for full source fidelity in development and testing.</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">546.4k</div></div><div class="qs"><div class="k">Tests</div><div class="v">2.3k</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">17.0k</div></div></div><div class="more"><span class="muted">9 docs · 0 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
+                <!--@quick_info data={"name":"tom_d4rt_flutter","id":"tom_d4rt_flutter","version":"1.0.1","statusBadgeClass":"b-pub","statusLabel":"Published","roleLabel":"extension","overview":"From the module readme.md file:","locLabel":"754.4k","testsLabel":"2.3k","testLocLabel":"17.0k","docsCount":6,"refCount":0,"detailHref":"/modules/tom_d4rt_flutter"}-->
+                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_d4rt_flutter" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-pub"><span class="d"></span>Published</span><h4 style="margin-top: 10px">tom_d4rt_flutter <span class="tagrole">role: extension</span></h4><div class="mono">tom_d4rt_flutter · v1.0.1</div><p style="font-size: .86rem; margin: 10px 0 0">From the module readme.md file:</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">754.4k</div></div><div class="qs"><div class="k">Tests</div><div class="v">2.3k</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">17.0k</div></div></div><div class="more"><span class="muted">6 docs · 0 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
                 <!--/@quick_info-->
               </a>
               <a class="tile pub" style="text-decoration: none; color: inherit; display: block" href="/modules/tom_d4rt_test">
@@ -1404,9 +1821,11 @@ keeps the analyzer for full source fidelity in development and testing.</p><div 
                 <h4>tom_d4rt_test <span class="badge b-pub"><span class="d"></span>Published</span></h4>
                 <div class="mono">tom_d4rt_test · v1.0.0</div>
                 <div class="metricline">11 loc · 0 tests · 0 test LOC</div>
-                <div class="desc">Test suite for tom_d4rt.</div>
-                <!--@quick_info data={"name":"tom_d4rt_test","id":"tom_d4rt_test","version":"1.0.0","statusBadgeClass":"b-pub","statusLabel":"Published","roleLabel":"extension","overview":"Test suite for tom_d4rt.","locLabel":"11","testsLabel":"0","testLocLabel":"0","docsCount":1,"refCount":1,"detailHref":"/modules/tom_d4rt_test"}-->
-                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_d4rt_test" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-pub"><span class="d"></span>Published</span><h4 style="margin-top: 10px">tom_d4rt_test <span class="tagrole">role: extension</span></h4><div class="mono">tom_d4rt_test · v1.0.0</div><p style="font-size: .86rem; margin: 10px 0 0">Test suite for tom_d4rt.</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">11</div></div><div class="qs"><div class="k">Tests</div><div class="v">0</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">0</div></div></div><div class="more"><span class="muted">1 docs · 1 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
+                <div class="desc">
+                  The behavioural conformance suite for `tom_d4rt` — also the cross-engine reference its analyzer-free twin `tom_d4rt_exec` must reproduce. Scaffolded and wired into the workspace; suite content still to be written.
+                </div>
+                <!--@quick_info data={"name":"tom_d4rt_test","id":"tom_d4rt_test","version":"1.0.0","statusBadgeClass":"b-pub","statusLabel":"Published","roleLabel":"extension","overview":"From the module readme.md file:","locLabel":"11","testsLabel":"0","testLocLabel":"0","docsCount":1,"refCount":1,"detailHref":"/modules/tom_d4rt_test"}-->
+                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_d4rt_test" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-pub"><span class="d"></span>Published</span><h4 style="margin-top: 10px">tom_d4rt_test <span class="tagrole">role: extension</span></h4><div class="mono">tom_d4rt_test · v1.0.0</div><p style="font-size: .86rem; margin: 10px 0 0">From the module readme.md file:</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">11</div></div><div class="qs"><div class="k">Tests</div><div class="v">0</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">0</div></div></div><div class="more"><span class="muted">1 docs · 1 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
                 <!--/@quick_info-->
               </a>
             </div>
@@ -1415,24 +1834,13 @@ keeps the analyzer for full source fidelity in development and testing.</p><div 
               <a class="tile pub" style="text-decoration: none; color: inherit; display: block" href="/modules/tom_d4rt_generator">
                 <div class="top"></div>
                 <h4>tom_d4rt_generator <span class="badge b-pub"><span class="d"></span>Published</span></h4>
-                <div class="mono">tom_d4rt_generator · v1.9.2</div>
-                <div class="metricline">21.0k loc · 878 tests · 14.8k test LOC</div>
+                <div class="mono">tom_d4rt_generator · v1.9.6</div>
+                <div class="metricline">21.1k loc · 885 tests · 14.9k test LOC</div>
                 <div class="desc">
                   Reads `buildkit.yaml`, follows barrel exports, and emits `*.b.dart` files that register native Dart APIs with the interpreter. The bridge-writing automation for the family.
                 </div>
-                <!--@quick_info data={"name":"tom_d4rt_generator","id":"tom_d4rt_generator","version":"1.9.2","statusBadgeClass":"b-pub","statusLabel":"Published","roleLabel":"extension","overview":"To call real Dart APIs from inside a sandboxed script, the interpreter needs a\nbridge — a class mapping interpreter calls to native invocations. `tom_d4rt_generator`\nautomates writing them.\n\nFrom a `d4rtgen:` block it follows barrel-file export chains, respects `show`/`hide`,\nand uses the analyzer to extract constructors, methods, getters, operators, type\nparameters, and defaults. It emits `BridgedClass` registrations, relaxer wrappers,\nproxy classes, and an entry point — never hand-edited.\n\nThe generated files are consumed at runtime by both interpreter lines and by bridge\ncorpus packages such as `tom_d4rt_flutter_ast`. Because the bridge API is shared, one\ngenerated bridge works against `tom_d4rt` and `tom_d4rt_ast` alike.","locLabel":"21.0k","testsLabel":"878","testLocLabel":"14.8k","docsCount":29,"refCount":0,"detailHref":"/modules/tom_d4rt_generator"}-->
-                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_d4rt_generator" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-pub"><span class="d"></span>Published</span><h4 style="margin-top: 10px">tom_d4rt_generator <span class="tagrole">role: extension</span></h4><div class="mono">tom_d4rt_generator · v1.9.2</div><p style="font-size: .86rem; margin: 10px 0 0">To call real Dart APIs from inside a sandboxed script, the interpreter needs a
-bridge — a class mapping interpreter calls to native invocations. `tom_d4rt_generator`
-automates writing them.
-
-From a `d4rtgen:` block it follows barrel-file export chains, respects `show`/`hide`,
-and uses the analyzer to extract constructors, methods, getters, operators, type
-parameters, and defaults. It emits `BridgedClass` registrations, relaxer wrappers,
-proxy classes, and an entry point — never hand-edited.
-
-The generated files are consumed at runtime by both interpreter lines and by bridge
-corpus packages such as `tom_d4rt_flutter_ast`. Because the bridge API is shared, one
-generated bridge works against `tom_d4rt` and `tom_d4rt_ast` alike.</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">21.0k</div></div><div class="qs"><div class="k">Tests</div><div class="v">878</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">14.8k</div></div></div><div class="more"><span class="muted">29 docs · 0 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
+                <!--@quick_info data={"name":"tom_d4rt_generator","id":"tom_d4rt_generator","version":"1.9.6","statusBadgeClass":"b-pub","statusLabel":"Published","roleLabel":"extension","overview":"From the module readme.md file:","locLabel":"21.1k","testsLabel":"885","testLocLabel":"14.9k","docsCount":19,"refCount":0,"detailHref":"/modules/tom_d4rt_generator"}-->
+                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_d4rt_generator" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-pub"><span class="d"></span>Published</span><h4 style="margin-top: 10px">tom_d4rt_generator <span class="tagrole">role: extension</span></h4><div class="mono">tom_d4rt_generator · v1.9.6</div><p style="font-size: .86rem; margin: 10px 0 0">From the module readme.md file:</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">21.1k</div></div><div class="qs"><div class="k">Tests</div><div class="v">885</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">14.9k</div></div></div><div class="more"><span class="muted">19 docs · 0 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
                 <!--/@quick_info-->
               </a>
             </div>
@@ -1441,23 +1849,13 @@ generated bridge works against `tom_d4rt` and `tom_d4rt_ast` alike.</p><div clas
               <a class="tile pub" style="text-decoration: none; color: inherit; display: block" href="/modules/tom_d4rt_dcli">
                 <div class="top"></div>
                 <h4>tom_d4rt_dcli <span class="badge b-pub"><span class="d"></span>Published</span></h4>
-                <div class="mono">tom_d4rt_dcli · v1.1.4</div>
-                <div class="metricline">32.6k loc · 706 tests · 6.4k test LOC</div>
+                <div class="mono">tom_d4rt_dcli · v1.1.6</div>
+                <div class="metricline">33.1k loc · 706 tests · 6.4k test LOC</div>
                 <div class="desc">
                   Builds on `tom_d4rt` and adds dcli shell-scripting, VS Code, and chat bridges plus a base REPL. The extensible foundation for analyzer-based D4rt command-line tools.
                 </div>
-                <!--@quick_info data={"name":"tom_d4rt_dcli","id":"tom_d4rt_dcli","version":"1.1.4","statusBadgeClass":"b-pub","statusLabel":"Published","roleLabel":"extension","overview":"`tom_d4rt_dcli` is the analyzer-based base layer of the D4rt CLI ecosystem. It sits\non `tom_d4rt` and adds dcli shell-scripting bridges, VS Code scripting-API bridges,\nand chat integration, plus an abstract `D4rtReplBase` and a ready-to-run `dcli`\nREPL executable.\n\nIt is the shared nucleus of the workspace's stacked-REPL design: `tom_dartscript_bridges`\nand `tom_build_cli` layer further bridges on top of it.\n\nIts analyzer-free counterpart is `tom_dcli_exec`, built on `tom_d4rt_exec`. Both\nexpose the same REPL surface; this one keeps full analyzer-backed type inference and\nprecise error reporting.","locLabel":"32.6k","testsLabel":"706","testLocLabel":"6.4k","docsCount":7,"refCount":0,"detailHref":"/modules/tom_d4rt_dcli"}-->
-                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_d4rt_dcli" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-pub"><span class="d"></span>Published</span><h4 style="margin-top: 10px">tom_d4rt_dcli <span class="tagrole">role: extension</span></h4><div class="mono">tom_d4rt_dcli · v1.1.4</div><p style="font-size: .86rem; margin: 10px 0 0">`tom_d4rt_dcli` is the analyzer-based base layer of the D4rt CLI ecosystem. It sits
-on `tom_d4rt` and adds dcli shell-scripting bridges, VS Code scripting-API bridges,
-and chat integration, plus an abstract `D4rtReplBase` and a ready-to-run `dcli`
-REPL executable.
-
-It is the shared nucleus of the workspace's stacked-REPL design: `tom_dartscript_bridges`
-and `tom_build_cli` layer further bridges on top of it.
-
-Its analyzer-free counterpart is `tom_dcli_exec`, built on `tom_d4rt_exec`. Both
-expose the same REPL surface; this one keeps full analyzer-backed type inference and
-precise error reporting.</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">32.6k</div></div><div class="qs"><div class="k">Tests</div><div class="v">706</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">6.4k</div></div></div><div class="more"><span class="muted">7 docs · 0 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
+                <!--@quick_info data={"name":"tom_d4rt_dcli","id":"tom_d4rt_dcli","version":"1.1.6","statusBadgeClass":"b-pub","statusLabel":"Published","roleLabel":"extension","overview":"From the module readme.md file:","locLabel":"33.1k","testsLabel":"706","testLocLabel":"6.4k","docsCount":5,"refCount":0,"detailHref":"/modules/tom_d4rt_dcli"}-->
+                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_d4rt_dcli" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-pub"><span class="d"></span>Published</span><h4 style="margin-top: 10px">tom_d4rt_dcli <span class="tagrole">role: extension</span></h4><div class="mono">tom_d4rt_dcli · v1.1.6</div><p style="font-size: .86rem; margin: 10px 0 0">From the module readme.md file:</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">33.1k</div></div><div class="qs"><div class="k">Tests</div><div class="v">706</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">6.4k</div></div></div><div class="more"><span class="muted">5 docs · 0 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
                 <!--/@quick_info-->
               </a>
               <a class="tile works" style="text-decoration: none; color: inherit; display: block" href="/modules/tom_d4rt_flutter_test">
@@ -1465,9 +1863,11 @@ precise error reporting.</p><div class="quickstats"><div class="qs"><div class="
                 <h4>tom_d4rt_flutter_test <span class="badge b-works"><span class="d"></span>In the works</span></h4>
                 <div class="mono">tom_d4rt_flutter_test · v1.0.0+1</div>
                 <div class="metricline">4.4k loc · 328 tests · 10.9k test LOC</div>
-                <div class="desc">Test suite for tom_d4rt_flutter.</div>
-                <!--@quick_info data={"name":"tom_d4rt_flutter_test","id":"tom_d4rt_flutter_test","version":"1.0.0+1","statusBadgeClass":"b-works","statusLabel":"In the works","roleLabel":"extension","overview":"Test suite for tom_d4rt_flutter.","locLabel":"4.4k","testsLabel":"328","testLocLabel":"10.9k","docsCount":13,"refCount":0,"detailHref":"/modules/tom_d4rt_flutter_test"}-->
-                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_d4rt_flutter_test" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-works"><span class="d"></span>In the works</span><h4 style="margin-top: 10px">tom_d4rt_flutter_test <span class="tagrole">role: extension</span></h4><div class="mono">tom_d4rt_flutter_test · v1.0.0+1</div><p style="font-size: .86rem; margin: 10px 0 0">Test suite for tom_d4rt_flutter.</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">4.4k</div></div><div class="qs"><div class="k">Tests</div><div class="v">328</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">10.9k</div></div></div><div class="more"><span class="muted">13 docs · 0 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
+                <div class="desc">
+                  A Flutter test-and-demo application that exercises `tom_d4rt_flutter`'s `SourceFlutterD4rt` — the source-based interpreter with the full Material bridge — in a real, interactive runtime.
+                </div>
+                <!--@quick_info data={"name":"tom_d4rt_flutter_test","id":"tom_d4rt_flutter_test","version":"1.0.0+1","statusBadgeClass":"b-works","statusLabel":"In the works","roleLabel":"extension","overview":"From the module readme.md file:","locLabel":"4.4k","testsLabel":"328","testLocLabel":"10.9k","docsCount":3,"refCount":0,"detailHref":"/modules/tom_d4rt_flutter_test"}-->
+                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_d4rt_flutter_test" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-works"><span class="d"></span>In the works</span><h4 style="margin-top: 10px">tom_d4rt_flutter_test <span class="tagrole">role: extension</span></h4><div class="mono">tom_d4rt_flutter_test · v1.0.0+1</div><p style="font-size: .86rem; margin: 10px 0 0">From the module readme.md file:</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">4.4k</div></div><div class="qs"><div class="k">Tests</div><div class="v">328</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">10.9k</div></div></div><div class="more"><span class="muted">3 docs · 0 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
                 <!--/@quick_info-->
               </a>
             </div>
@@ -1476,137 +1876,74 @@ precise error reporting.</p><div class="quickstats"><div class="qs"><div class="
               <a class="tile pub" style="text-decoration: none; color: inherit; display: block" href="/modules/tom_ast_model">
                 <div class="top"></div>
                 <h4>tom_ast_model <span class="badge b-pub"><span class="d"></span>Published</span></h4>
-                <div class="mono">tom_ast_model · v0.1.1</div>
+                <div class="mono">tom_ast_model · v0.1.3</div>
                 <div class="metricline">8.7k loc · 0 tests · 0 test LOC</div>
                 <div class="desc">
                   A complete mirror of the Dart analyzer's node hierarchy with JSON round-tripping and no analyzer dependency. The shared data contract under the analyzer-free interpreter line.
                 </div>
-                <!--@quick_info data={"name":"tom_ast_model","id":"tom_ast_model","version":"0.1.1","statusBadgeClass":"b-pub","statusLabel":"Published","roleLabel":"foundation","overview":"`tom_ast_model` is a self-contained representation of the Dart AST that deliberately\ncarries no dependency on the `analyzer` package. Every analyzer node has a direct\n`S`-prefixed counterpart with `toJson()`/`fromJson()`, source positions, and a\ndouble-dispatch visitor.\n\nThe motivation is on-device interpretation: the analyzer is too large to ship inside\na Flutter app. Separating the pure data model from parsing lets a source file be\nparsed once on a build machine, serialized, bundled, and later evaluated at runtime\nwith no analyzer present.\n\nExtracted from `tom_d4rt_ast`, it versions the AST contract independently of any\nexecution engine, so `tom_ast_generator`, `tom_d4rt_ast`, and `tom_d4rt_exec` all\nagree on one node format.","locLabel":"8.7k","testsLabel":"0","testLocLabel":"0","docsCount":4,"refCount":1,"detailHref":"/modules/tom_ast_model"}-->
-                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_ast_model" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-pub"><span class="d"></span>Published</span><h4 style="margin-top: 10px">tom_ast_model <span class="tagrole">role: foundation</span></h4><div class="mono">tom_ast_model · v0.1.1</div><p style="font-size: .86rem; margin: 10px 0 0">`tom_ast_model` is a self-contained representation of the Dart AST that deliberately
-carries no dependency on the `analyzer` package. Every analyzer node has a direct
-`S`-prefixed counterpart with `toJson()`/`fromJson()`, source positions, and a
-double-dispatch visitor.
-
-The motivation is on-device interpretation: the analyzer is too large to ship inside
-a Flutter app. Separating the pure data model from parsing lets a source file be
-parsed once on a build machine, serialized, bundled, and later evaluated at runtime
-with no analyzer present.
-
-Extracted from `tom_d4rt_ast`, it versions the AST contract independently of any
-execution engine, so `tom_ast_generator`, `tom_d4rt_ast`, and `tom_d4rt_exec` all
-agree on one node format.</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">8.7k</div></div><div class="qs"><div class="k">Tests</div><div class="v">0</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">0</div></div></div><div class="more"><span class="muted">4 docs · 1 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
+                <!--@quick_info data={"name":"tom_ast_model","id":"tom_ast_model","version":"0.1.3","statusBadgeClass":"b-pub","statusLabel":"Published","roleLabel":"foundation","overview":"From the module readme.md file:","locLabel":"8.7k","testsLabel":"0","testLocLabel":"0","docsCount":4,"refCount":1,"detailHref":"/modules/tom_ast_model"}-->
+                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_ast_model" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-pub"><span class="d"></span>Published</span><h4 style="margin-top: 10px">tom_ast_model <span class="tagrole">role: foundation</span></h4><div class="mono">tom_ast_model · v0.1.3</div><p style="font-size: .86rem; margin: 10px 0 0">From the module readme.md file:</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">8.7k</div></div><div class="qs"><div class="k">Tests</div><div class="v">0</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">0</div></div></div><div class="more"><span class="muted">4 docs · 1 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
                 <!--/@quick_info-->
               </a>
               <a class="tile pub" style="text-decoration: none; color: inherit; display: block" href="/modules/tom_ast_generator">
                 <div class="top"></div>
                 <h4>tom_ast_generator <span class="badge b-pub"><span class="d"></span>Published</span></h4>
-                <div class="mono">tom_ast_generator · v0.1.1</div>
+                <div class="mono">tom_ast_generator · v0.1.3</div>
                 <div class="metricline">2.7k loc · 536 tests · 8.0k test LOC</div>
                 <div class="desc">
                   Walks an analyzer compilation unit and emits a structurally identical `SAstNode` tree, then bundles it for analyzer-free execution. The build-time half of the on-device interpreter line.
                 </div>
-                <!--@quick_info data={"name":"tom_ast_generator","id":"tom_ast_generator","version":"0.1.1","statusBadgeClass":"b-pub","statusLabel":"Published","roleLabel":"extension","overview":"`tom_ast_generator` sits at the boundary between the Dart `analyzer` and the\nanalyzer-free runtime. It converts each analyzer node into the matching\n`SAstNode` from `tom_ast_model`, losing no structure.\n\nOnce converted, the mirror tree carries no analyzer dependency. It serializes to\nJSON or YAML, bundles alongside app assets, and runs later on `tom_d4rt_exec` or\n`tom_d4rt_ast` with the analyzer absent — the key to shipping Dart scripting into\na Flutter app.\n\nThe `astgen` CLI automates conversion across a whole workspace from\n`buildkit.yaml` configuration. It is the parse-once step feeding the on-device\nexecution line.","locLabel":"2.7k","testsLabel":"536","testLocLabel":"8.0k","docsCount":6,"refCount":0,"detailHref":"/modules/tom_ast_generator"}-->
-                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_ast_generator" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-pub"><span class="d"></span>Published</span><h4 style="margin-top: 10px">tom_ast_generator <span class="tagrole">role: extension</span></h4><div class="mono">tom_ast_generator · v0.1.1</div><p style="font-size: .86rem; margin: 10px 0 0">`tom_ast_generator` sits at the boundary between the Dart `analyzer` and the
-analyzer-free runtime. It converts each analyzer node into the matching
-`SAstNode` from `tom_ast_model`, losing no structure.
-
-Once converted, the mirror tree carries no analyzer dependency. It serializes to
-JSON or YAML, bundles alongside app assets, and runs later on `tom_d4rt_exec` or
-`tom_d4rt_ast` with the analyzer absent — the key to shipping Dart scripting into
-a Flutter app.
-
-The `astgen` CLI automates conversion across a whole workspace from
-`buildkit.yaml` configuration. It is the parse-once step feeding the on-device
-execution line.</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">2.7k</div></div><div class="qs"><div class="k">Tests</div><div class="v">536</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">8.0k</div></div></div><div class="more"><span class="muted">6 docs · 0 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
+                <!--@quick_info data={"name":"tom_ast_generator","id":"tom_ast_generator","version":"0.1.3","statusBadgeClass":"b-pub","statusLabel":"Published","roleLabel":"extension","overview":"From the module readme.md file:","locLabel":"2.7k","testsLabel":"536","testLocLabel":"8.0k","docsCount":6,"refCount":0,"detailHref":"/modules/tom_ast_generator"}-->
+                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_ast_generator" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-pub"><span class="d"></span>Published</span><h4 style="margin-top: 10px">tom_ast_generator <span class="tagrole">role: extension</span></h4><div class="mono">tom_ast_generator · v0.1.3</div><p style="font-size: .86rem; margin: 10px 0 0">From the module readme.md file:</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">2.7k</div></div><div class="qs"><div class="k">Tests</div><div class="v">536</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">8.0k</div></div></div><div class="more"><span class="muted">6 docs · 0 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
                 <!--/@quick_info-->
               </a>
               <a class="tile pub" style="text-decoration: none; color: inherit; display: block" href="/modules/tom_d4rt_ast">
                 <div class="top"></div>
                 <h4>tom_d4rt_ast <span class="badge b-pub"><span class="d"></span>Published</span></h4>
-                <div class="mono">tom_d4rt_ast · v0.1.5</div>
+                <div class="mono">tom_d4rt_ast · v0.1.8</div>
                 <div class="metricline">39.3k loc · 162 tests · 2.6k test LOC</div>
                 <div class="desc">
                   Executes pre-parsed `SAstNode` trees with full bridging, sandboxing, and standard library, with no analyzer dependency. The analyzer-free counterpart to `tom_d4rt`.
                 </div>
                 <div class="rel-line" style="color: #A02B93">⇄ alternative implementation</div>
-                <!--@quick_info data={"name":"tom_d4rt_ast","id":"tom_d4rt_ast","version":"0.1.5","statusBadgeClass":"b-pub","statusLabel":"Published","roleLabel":"alternative","overview":"`tom_d4rt_ast` is the pure-runtime half of the interpreter ecosystem. It accepts\npre-parsed `SAstNode` trees from `tom_ast_model` and executes them directly, with\nno `analyzer` package required at runtime.\n\nBecause the analyzer cannot ship inside a Flutter app, this package breaks that\ndependency: parsing happens at build time in `tom_ast_generator`, producing a\ncompact bundle that downloads or ships as an asset and runs on-device — new script\nlogic without an app-store update.\n\nIt carries the same `InterpreterVisitor`, environment, bridging, and standard\nlibrary as `tom_d4rt`, kept in strict 1:1 sync; only the AST source differs.\nChoose it over `tom_d4rt` when analyzer weight is unacceptable.","locLabel":"39.3k","testsLabel":"162","testLocLabel":"2.6k","docsCount":10,"refCount":1,"detailHref":"/modules/tom_d4rt_ast"}-->
-                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_d4rt_ast" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-pub"><span class="d"></span>Published</span><h4 style="margin-top: 10px">tom_d4rt_ast <span class="tagrole">role: alternative</span></h4><div class="mono">tom_d4rt_ast · v0.1.5</div><p style="font-size: .86rem; margin: 10px 0 0">`tom_d4rt_ast` is the pure-runtime half of the interpreter ecosystem. It accepts
-pre-parsed `SAstNode` trees from `tom_ast_model` and executes them directly, with
-no `analyzer` package required at runtime.
-
-Because the analyzer cannot ship inside a Flutter app, this package breaks that
-dependency: parsing happens at build time in `tom_ast_generator`, producing a
-compact bundle that downloads or ships as an asset and runs on-device — new script
-logic without an app-store update.
-
-It carries the same `InterpreterVisitor`, environment, bridging, and standard
-library as `tom_d4rt`, kept in strict 1:1 sync; only the AST source differs.
-Choose it over `tom_d4rt` when analyzer weight is unacceptable.</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">39.3k</div></div><div class="qs"><div class="k">Tests</div><div class="v">162</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">2.6k</div></div></div><div class="more"><span class="muted">10 docs · 1 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
+                <!--@quick_info data={"name":"tom_d4rt_ast","id":"tom_d4rt_ast","version":"0.1.8","statusBadgeClass":"b-pub","statusLabel":"Published","roleLabel":"alternative","overview":"From the module readme.md file:","locLabel":"39.3k","testsLabel":"162","testLocLabel":"2.6k","docsCount":9,"refCount":1,"detailHref":"/modules/tom_d4rt_ast"}-->
+                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_d4rt_ast" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-pub"><span class="d"></span>Published</span><h4 style="margin-top: 10px">tom_d4rt_ast <span class="tagrole">role: alternative</span></h4><div class="mono">tom_d4rt_ast · v0.1.8</div><p style="font-size: .86rem; margin: 10px 0 0">From the module readme.md file:</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">39.3k</div></div><div class="qs"><div class="k">Tests</div><div class="v">162</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">2.6k</div></div></div><div class="more"><span class="muted">9 docs · 1 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
                 <!--/@quick_info-->
               </a>
               <a class="tile pub" style="text-decoration: none; color: inherit; display: block" href="/modules/tom_d4rt_exec">
                 <div class="top"></div>
                 <h4>tom_d4rt_exec <span class="badge b-pub"><span class="d"></span>Published</span></h4>
-                <div class="mono">tom_d4rt_exec · v1.8.3</div>
-                <div class="metricline">2.3k loc · 2.5k tests · 39.8k test LOC</div>
+                <div class="mono">tom_d4rt_exec · v1.8.6</div>
+                <div class="metricline">2.3k loc · 2.5k tests · 39.9k test LOC</div>
                 <div class="desc">
-                  Parses Dart source via the generator, then executes on `tom_d4rt_ast` with no analyzer at runtime. The migration target replacing `tom_d4rt` for Flutter and server use.
+                  Parses Dart source with the analyzer at build time, then executes the mirror AST on `tom_d4rt_ast` with no analyzer at runtime. The build/CLI entry point of the analyzer-free line — the web/OTA-capable alternative to `tom_d4rt`, not a drop-in default.
                 </div>
-                <!--@quick_info data={"name":"tom_d4rt_exec","id":"tom_d4rt_exec","version":"1.8.3","statusBadgeClass":"b-pub","statusLabel":"Published","roleLabel":"extension","overview":"`tom_d4rt_exec` is the embedding and CLI entry point of the analyzer-free line. It\nseparates parsing from execution: source is parsed by the analyzer and mirrored into\nthe `tom_d4rt_ast` tree via `tom_ast_generator`, then handed to the `tom_d4rt_ast`\ninterpreter.\n\nThe split means downstream packages — `tom_dcli_exec`, Flutter apps, servers — embed\nthe interpreter and run scripts without a compile-time or tree-shake dependency on\nthe analyzer; the analyzer step happens only here.\n\nIt offers fresh, continued, REPL, file, and pre-bundled execution modes, and is the\ndesignated migration target away from `tom_d4rt` for all Flutter and server use.","locLabel":"2.3k","testsLabel":"2.5k","testLocLabel":"39.8k","docsCount":8,"refCount":1,"detailHref":"/modules/tom_d4rt_exec"}-->
-                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_d4rt_exec" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-pub"><span class="d"></span>Published</span><h4 style="margin-top: 10px">tom_d4rt_exec <span class="tagrole">role: extension</span></h4><div class="mono">tom_d4rt_exec · v1.8.3</div><p style="font-size: .86rem; margin: 10px 0 0">`tom_d4rt_exec` is the embedding and CLI entry point of the analyzer-free line. It
-separates parsing from execution: source is parsed by the analyzer and mirrored into
-the `tom_d4rt_ast` tree via `tom_ast_generator`, then handed to the `tom_d4rt_ast`
-interpreter.
-
-The split means downstream packages — `tom_dcli_exec`, Flutter apps, servers — embed
-the interpreter and run scripts without a compile-time or tree-shake dependency on
-the analyzer; the analyzer step happens only here.
-
-It offers fresh, continued, REPL, file, and pre-bundled execution modes, and is the
-designated migration target away from `tom_d4rt` for all Flutter and server use.</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">2.3k</div></div><div class="qs"><div class="k">Tests</div><div class="v">2.5k</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">39.8k</div></div></div><div class="more"><span class="muted">8 docs · 1 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
+                <!--@quick_info data={"name":"tom_d4rt_exec","id":"tom_d4rt_exec","version":"1.8.6","statusBadgeClass":"b-pub","statusLabel":"Published","roleLabel":"extension","overview":"From the module readme.md file:","locLabel":"2.3k","testsLabel":"2.5k","testLocLabel":"39.9k","docsCount":7,"refCount":1,"detailHref":"/modules/tom_d4rt_exec"}-->
+                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_d4rt_exec" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-pub"><span class="d"></span>Published</span><h4 style="margin-top: 10px">tom_d4rt_exec <span class="tagrole">role: extension</span></h4><div class="mono">tom_d4rt_exec · v1.8.6</div><p style="font-size: .86rem; margin: 10px 0 0">From the module readme.md file:</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">2.3k</div></div><div class="qs"><div class="k">Tests</div><div class="v">2.5k</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">39.9k</div></div></div><div class="more"><span class="muted">7 docs · 1 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
                 <!--/@quick_info-->
               </a>
               <a class="tile pub" style="text-decoration: none; color: inherit; display: block" href="/modules/tom_dcli_exec">
                 <div class="top"></div>
                 <h4>tom_dcli_exec <span class="badge b-pub"><span class="d"></span>Published</span></h4>
-                <div class="mono">tom_dcli_exec · v1.1.2</div>
-                <div class="metricline">33.2k loc · 412 tests · 6.1k test LOC</div>
+                <div class="mono">tom_dcli_exec · v1.1.3</div>
+                <div class="metricline">33.4k loc · 412 tests · 6.1k test LOC</div>
                 <div class="desc">
                   Layers full DCli shell-scripting bridges and a production REPL on `tom_d4rt_exec`. The preferred analyzer-free base for fast-starting D4rt command-line tools.
                 </div>
-                <!--@quick_info data={"name":"tom_dcli_exec","id":"tom_dcli_exec","version":"1.1.2","statusBadgeClass":"b-pub","statusLabel":"Published","roleLabel":"extension","overview":"`tom_dcli_exec` is the DCli-equipped tier of the analyzer-free interpreter stack. It\nsits on `tom_d4rt_exec` and adds generated DCli shell bridges, a `cli` global for\nprogrammatic REPL access, VS Code scripting integration, and a Telegram/chat bot mode.\n\nDownstream tools subclass its `D4rtReplBase` to add their own bridge sets and commands.\n\nIt is the analyzer-free counterpart of `tom_d4rt_dcli`: same REPL surface, but it\ncarries the analyzer only to drive source-to-AST conversion, never loading it at\nruntime. This is the preferred base for new tools needing fast startup and minimal\ndependencies.","locLabel":"33.2k","testsLabel":"412","testLocLabel":"6.1k","docsCount":5,"refCount":0,"detailHref":"/modules/tom_dcli_exec"}-->
-                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_dcli_exec" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-pub"><span class="d"></span>Published</span><h4 style="margin-top: 10px">tom_dcli_exec <span class="tagrole">role: extension</span></h4><div class="mono">tom_dcli_exec · v1.1.2</div><p style="font-size: .86rem; margin: 10px 0 0">`tom_dcli_exec` is the DCli-equipped tier of the analyzer-free interpreter stack. It
-sits on `tom_d4rt_exec` and adds generated DCli shell bridges, a `cli` global for
-programmatic REPL access, VS Code scripting integration, and a Telegram/chat bot mode.
-
-Downstream tools subclass its `D4rtReplBase` to add their own bridge sets and commands.
-
-It is the analyzer-free counterpart of `tom_d4rt_dcli`: same REPL surface, but it
-carries the analyzer only to drive source-to-AST conversion, never loading it at
-runtime. This is the preferred base for new tools needing fast startup and minimal
-dependencies.</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">33.2k</div></div><div class="qs"><div class="k">Tests</div><div class="v">412</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">6.1k</div></div></div><div class="more"><span class="muted">5 docs · 0 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
+                <!--@quick_info data={"name":"tom_dcli_exec","id":"tom_dcli_exec","version":"1.1.3","statusBadgeClass":"b-pub","statusLabel":"Published","roleLabel":"extension","overview":"From the module readme.md file:","locLabel":"33.4k","testsLabel":"412","testLocLabel":"6.1k","docsCount":4,"refCount":0,"detailHref":"/modules/tom_dcli_exec"}-->
+                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_dcli_exec" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-pub"><span class="d"></span>Published</span><h4 style="margin-top: 10px">tom_dcli_exec <span class="tagrole">role: extension</span></h4><div class="mono">tom_dcli_exec · v1.1.3</div><p style="font-size: .86rem; margin: 10px 0 0">From the module readme.md file:</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">33.4k</div></div><div class="qs"><div class="k">Tests</div><div class="v">412</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">6.1k</div></div></div><div class="more"><span class="muted">4 docs · 0 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
                 <!--/@quick_info-->
               </a>
-              <a class="tile works" style="text-decoration: none; color: inherit; display: block" href="/modules/tom_d4rt_flutter_ast">
+              <a class="tile pub" style="text-decoration: none; color: inherit; display: block" href="/modules/tom_d4rt_flutter_ast">
                 <div class="top"></div>
-                <h4>tom_d4rt_flutter_ast <span class="badge b-works"><span class="d"></span>In the works</span></h4>
-                <div class="mono">tom_d4rt_flutter_ast · v0.1.0</div>
-                <div class="metricline">545.5k loc · 3.0k tests · 3.1M test LOC</div>
+                <h4>tom_d4rt_flutter_ast <span class="badge b-pub"><span class="d"></span>Published</span></h4>
+                <div class="mono">tom_d4rt_flutter_ast · v0.1.1</div>
+                <div class="metricline">753.6k loc · 3.0k tests · 3.1M test LOC</div>
                 <div class="desc">
                   Runs D4rt scripts that import `flutter/material.dart` and return real widget trees, on the analyzer-free path. The strategic building block for over-the-air UI in shipping apps.
                 </div>
-                <!--@quick_info data={"name":"tom_d4rt_flutter_ast","id":"tom_d4rt_flutter_ast","version":"0.1.0","statusBadgeClass":"b-works","statusLabel":"In the works","roleLabel":"extension","overview":"`tom_d4rt_flutter_ast` connects the sandboxed interpreter to the full Flutter-Material\nwidget library. A script can import `package:flutter/material.dart`, build any widget\ntree, and return it as a real `Widget` that Flutter renders natively.\n\nIt runs entirely on the analyzer-free path (`tom_d4rt_ast` + `tom_d4rt_exec`), so it\nembeds in a shipping Flutter app with no analyzer dependency. Ship widget code in an\n`AstBundle`, execute it at runtime, render the result — no app-store cycle.\n\nThe bridge layer spans `dart:ui` and the Flutter painting, rendering, widgets,\nmaterial, and cupertino barrels. It is the analyzer-free counterpart to\n`tom_d4rt_flutter` and the client side of Tom's agentic-app line.","locLabel":"545.5k","testsLabel":"3.0k","testLocLabel":"3.1M","docsCount":24,"refCount":0,"detailHref":"/modules/tom_d4rt_flutter_ast"}-->
-                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_d4rt_flutter_ast" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-works"><span class="d"></span>In the works</span><h4 style="margin-top: 10px">tom_d4rt_flutter_ast <span class="tagrole">role: extension</span></h4><div class="mono">tom_d4rt_flutter_ast · v0.1.0</div><p style="font-size: .86rem; margin: 10px 0 0">`tom_d4rt_flutter_ast` connects the sandboxed interpreter to the full Flutter-Material
-widget library. A script can import `package:flutter/material.dart`, build any widget
-tree, and return it as a real `Widget` that Flutter renders natively.
-
-It runs entirely on the analyzer-free path (`tom_d4rt_ast` + `tom_d4rt_exec`), so it
-embeds in a shipping Flutter app with no analyzer dependency. Ship widget code in an
-`AstBundle`, execute it at runtime, render the result — no app-store cycle.
-
-The bridge layer spans `dart:ui` and the Flutter painting, rendering, widgets,
-material, and cupertino barrels. It is the analyzer-free counterpart to
-`tom_d4rt_flutter` and the client side of Tom's agentic-app line.</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">545.5k</div></div><div class="qs"><div class="k">Tests</div><div class="v">3.0k</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">3.1M</div></div></div><div class="more"><span class="muted">24 docs · 0 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
+                <!--@quick_info data={"name":"tom_d4rt_flutter_ast","id":"tom_d4rt_flutter_ast","version":"0.1.1","statusBadgeClass":"b-pub","statusLabel":"Published","roleLabel":"extension","overview":"From the module readme.md file:","locLabel":"753.6k","testsLabel":"3.0k","testLocLabel":"3.1M","docsCount":25,"refCount":0,"detailHref":"/modules/tom_d4rt_flutter_ast"}-->
+                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_d4rt_flutter_ast" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-pub"><span class="d"></span>Published</span><h4 style="margin-top: 10px">tom_d4rt_flutter_ast <span class="tagrole">role: extension</span></h4><div class="mono">tom_d4rt_flutter_ast · v0.1.1</div><p style="font-size: .86rem; margin: 10px 0 0">From the module readme.md file:</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">753.6k</div></div><div class="qs"><div class="k">Tests</div><div class="v">3.0k</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">3.1M</div></div></div><div class="more"><span class="muted">25 docs · 0 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
                 <!--/@quick_info-->
               </a>
               <a class="tile works" style="text-decoration: none; color: inherit; display: block" href="/modules/tom_d4rt_flutter_ast_test">
@@ -1614,9 +1951,11 @@ material, and cupertino barrels. It is the analyzer-free counterpart to
                 <h4>tom_d4rt_flutter_ast_test <span class="badge b-works"><span class="d"></span>In the works</span></h4>
                 <div class="mono">tom_d4rt_flutter_ast_test · v1.0.0+1</div>
                 <div class="metricline">348 loc · 1 tests · 22 test LOC</div>
-                <div class="desc">Test suite for tom_d4rt_flutter_ast.</div>
-                <!--@quick_info data={"name":"tom_d4rt_flutter_ast_test","id":"tom_d4rt_flutter_ast_test","version":"1.0.0+1","statusBadgeClass":"b-works","statusLabel":"In the works","roleLabel":"extension","overview":"Test suite for tom_d4rt_flutter_ast.","locLabel":"348","testsLabel":"1","testLocLabel":"22","docsCount":2,"refCount":0,"detailHref":"/modules/tom_d4rt_flutter_ast_test"}-->
-                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_d4rt_flutter_ast_test" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-works"><span class="d"></span>In the works</span><h4 style="margin-top: 10px">tom_d4rt_flutter_ast_test <span class="tagrole">role: extension</span></h4><div class="mono">tom_d4rt_flutter_ast_test · v1.0.0+1</div><p style="font-size: .86rem; margin: 10px 0 0">Test suite for tom_d4rt_flutter_ast.</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">348</div></div><div class="qs"><div class="k">Tests</div><div class="v">1</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">22</div></div></div><div class="more"><span class="muted">2 docs · 0 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
+                <div class="desc">
+                  A sample browser that loads pre-compiled `AstBundle` JSON from assets and renders each one through the analyzer-free, web-safe `tom_d4rt_flutter_ast` runtime — the AST-runtime counterpart to `tom_d4rt_flutter_test`.
+                </div>
+                <!--@quick_info data={"name":"tom_d4rt_flutter_ast_test","id":"tom_d4rt_flutter_ast_test","version":"1.0.0+1","statusBadgeClass":"b-works","statusLabel":"In the works","roleLabel":"extension","overview":"From the module readme.md file:","locLabel":"348","testsLabel":"1","testLocLabel":"22","docsCount":2,"refCount":0,"detailHref":"/modules/tom_d4rt_flutter_ast_test"}-->
+                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_d4rt_flutter_ast_test" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-works"><span class="d"></span>In the works</span><h4 style="margin-top: 10px">tom_d4rt_flutter_ast_test <span class="tagrole">role: extension</span></h4><div class="mono">tom_d4rt_flutter_ast_test · v1.0.0+1</div><p style="font-size: .86rem; margin: 10px 0 0">From the module readme.md file:</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">348</div></div><div class="qs"><div class="k">Tests</div><div class="v">1</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">22</div></div></div><div class="more"><span class="muted">2 docs · 0 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
                 <!--/@quick_info-->
               </a>
             </div>

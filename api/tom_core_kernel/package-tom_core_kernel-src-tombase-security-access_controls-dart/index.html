@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1310,6 +1330,7 @@
                   <a class="leaf" href="#TomAuthenticatedAccess">TomAuthenticatedAccess</a>
                   <a class="leaf" href="#TomCustomAccess">TomCustomAccess</a>
                   <a class="leaf" href="#TomEntitlementAccess">TomEntitlementAccess</a>
+                  <a class="leaf" href="#TomGradedAccess">TomGradedAccess</a>
                   <a class="leaf" href="#TomGroupAccess">TomGroupAccess</a>
                   <a class="leaf" href="#TomGuestAccess">TomGuestAccess</a>
                   <a class="leaf" href="#TomNoAccess">TomNoAccess</a>
@@ -1331,11 +1352,11 @@
                     This library provides a comprehensive access control system that enables fine-grained authorization for resources, endpoints, and data fields. It supports multiple authorization paradigms including:
                   </p>
                   <ul>
-                    <li>**Role-based access control (RBAC)**: Grant access based on user roles</li>
-                    <li>**Group-based access control**: Grant access based on group membership</li>
-                    <li>**Entitlement-based access control**: Grant access based on entitlements</li>
-                    <li>**Resource key protection**: Protect individual data fields or resources</li>
-                    <li>**Custom access handlers**: Implement custom authorization logic</li>
+                    <li><strong>Role-based access control (RBAC)</strong>: Grant access based on user roles</li>
+                    <li><strong>Group-based access control</strong>: Grant access based on group membership</li>
+                    <li><strong>Entitlement-based access control</strong>: Grant access based on entitlements</li>
+                    <li><strong>Resource key protection</strong>: Protect individual data fields or resources</li>
+                    <li><strong>Custom access handlers</strong>: Implement custom authorization logic</li>
                   </ul>
                   <h2>Usage Example</h2>
                   <pre><code>// Check if a resource is accessible
@@ -1386,7 +1407,16 @@ Widget premiumFeature() { ... }</code></pre>
                       <div class="api-doc">
                         <p>Checks if the given [principal] has access.</p>
                         <p>
-                          Returns `true` if access is granted, `false` otherwise. A `null` principal typically represents an unauthenticated user.
+                          Returns <code>true</code> if access is granted, <code>false</code> otherwise. A <code>null</code> principal typically represents an unauthenticated user.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAccessControl.resolveAuthState" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomAuthState resolveAuthState(TomPrincipal? principal)</code></div>
+                      <div class="api-doc">
+                        <p>Resolves this access control to a four-state [TomAuthState].</p>
+                        <p>
+                          The default bridges the binary [checkAccessibility] onto two states — granted → [TomAuthState.full], denied → [TomAuthState.none] — so every existing binary access control (role/group/entitlement/etc.) keeps its meaning unchanged while gaining a four-state outcome. Controls that need to express [TomAuthState.read] (read-only) or [TomAuthState.disabled] (visible but locked) override this method; see [TomGradedAccess].
                         </p>
                       </div>
                     </div>
@@ -1475,7 +1505,7 @@ void updateDocument(Document doc) { ... }</code></pre>
                       <div class="api-doc">
                         <p>Verifies that the handler for this access control exists.</p>
                         <p>
-                          Returns `true` if the handler is registered, `false` otherwise. Use this at startup to validate configuration.
+                          Returns <code>true</code> if the handler is registered, <code>false</code> otherwise. Use this at startup to validate configuration.
                         </p>
                       </div>
                     </div>
@@ -1553,6 +1583,80 @@ void updateDocument(Document doc) { ... }</code></pre>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
                     <div id="TomEntitlementAccess.checkAccessibility" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">bool checkAccessibility(TomPrincipal? principal)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="TomGradedAccess" class="api-declaration">
+                  <h3 class="api-decl-title">class TomGradedAccess</h3>
+                  <code class="api-signature">class TomGradedAccess extends TomAccessControl</code>
+                  <div class="api-doc">
+                    <p>
+                      Access control that resolves to <strong>all four</strong> [TomAuthState] values by composing three binary controls — one each for write, read, and visibility.
+                    </p>
+                    <p>Resolution, from most to least privileged:</p>
+                    <ul>
+                      <li>[write] grants → [TomAuthState.full] (interactive/editable)</li>
+                      <li>else [read] grants → [TomAuthState.read] (value visible, not editable)</li>
+                      <li>else [visible] grants → [TomAuthState.disabled] (rendered but locked)</li>
+                      <li>else → [TomAuthState.none] (hidden)</li>
+                    </ul>
+                    <p>
+                      When [read] is omitted it defaults to [write]; when [visible] is omitted it defaults to [read]. This preserves the natural monotonicity that anyone who can write can also read and see, so the common case only needs a single control.
+                    </p>
+                    <p>
+                      For binary consumers, [checkAccessibility] collapses to "can see content" ([TomAuthState.showsContent]): a [TomAuthState.read] or [TomAuthState.full] outcome is accessible; [TomAuthState.disabled] and [TomAuthState.none] are not.
+                    </p>
+                    <pre><code>final salary = TomGradedAccess(
+  write: const TomRoleAccess(['payroll.admin']),
+  read: const TomRoleAccess(['manager']),
+  visible: const TomAuthenticatedAccess(),
+);
+final state = salary.resolveAuthState(currentPrincipal);
+// payroll.admin → full, manager → read, other staff → disabled,
+// anonymous → none.</code></pre>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomGradedAccess.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          TomGradedAccess.new({required TomAccessControl write, TomAccessControl? read, TomAccessControl? visible})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Creates a graded access control.</p>
+                        <p>Only [write] is required; [read] defaults to [write] and [visible] defaults to [read].</p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="TomGradedAccess.write" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final TomAccessControl write</code></div>
+                      <div class="api-doc"><p>Grants write access → resolves to [TomAuthState.full].</p></div>
+                    </div>
+                    <div id="TomGradedAccess.read" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final TomAccessControl read</code></div>
+                      <div class="api-doc"><p>Grants read access → resolves to [TomAuthState.read]. Defaults to [write].</p></div>
+                    </div>
+                    <div id="TomGradedAccess.visible" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final TomAccessControl visible</code></div>
+                      <div class="api-doc"><p>Grants visibility → resolves to [TomAuthState.disabled]. Defaults to [read].</p></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="TomGradedAccess.resolveAuthState" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">TomAuthState resolveAuthState(TomPrincipal? principal)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="TomGradedAccess.checkAccessibility" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">bool checkAccessibility(TomPrincipal? principal)</code>
                         <span class="api-badge api-badge--override">override</span>
@@ -1748,7 +1852,7 @@ var email = TomResourceKeyProtection.protect(
                       <div class="api-doc">
                         <p>Master switch to enable/disable resource protection globally.</p>
                         <p>
-                          When `false`, all resources are accessible. When `true`, resource access is evaluated based on the current principal's resource keys.
+                          When <code>false</code>, all resources are accessible. When <code>true</code>, resource access is evaluated based on the current principal's resource keys.
                         </p>
                       </div>
                     </div>
@@ -1793,7 +1897,7 @@ var email = TomResourceKeyProtection.protect(
                       <div class="api-doc">
                         <p>Checks if a resource is protected from the current user.</p>
                         <p>
-                          Returns `true` if the resource is protected (user lacks access), `false` if the resource is accessible.
+                          Returns <code>true</code> if the resource is protected (user lacks access), <code>false</code> if the resource is accessible.
                         </p>
                         <ul><li>[resourceKey]: The key identifying the resource to check</li></ul>
                       </div>
@@ -1852,7 +1956,7 @@ void viewReports() { ... }</code></pre>
                       <li>[principal]: The current user's principal (may be null)</li>
                       <li>[id]: A resource identifier for context-specific checks</li>
                     </ul>
-                    <p>Returns `true` if access is granted, `false` otherwise.</p>
+                    <p>Returns <code>true</code> if access is granted, <code>false</code> otherwise.</p>
                   </div>
                 </section>
                 <section id="tomProtect" class="api-declaration">

@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1328,10 +1348,12 @@
                       This is the right component when the natural editing UX is "every row is always visible and always editable", e.g. an order-items table with inline cells (H-D's items, H-C's editable rows). Each row sees the same [TForm] instance the [TomListForm] owns — there is no sibling form bound to the same [TomClass], so structural mutations and dirty state propagate cleanly through the standard child-container chain.
                     </p>
                     <p>
-                      The widget is layout-agnostic: callers supply [rowBuilder] for the row body and may optionally supply [headerBuilder] / [footerBuilder] / [toolbarBuilder] / [rowSeparatorBuilder] / [emptyBuilder] to compose the surrounding chrome. Add / remove buttons are NOT built in — wire them in [toolbarBuilder] (typically using `TomListFormToolbar`).
+                      The widget is layout-agnostic: callers supply [rowBuilder] for the row body and may optionally supply [headerBuilder] / [footerBuilder] / [toolbarBuilder] / [rowSeparatorBuilder] / [emptyBuilder] to compose the surrounding chrome. Add / remove buttons are NOT built in — wire them in [toolbarBuilder] (typically using 
+                      <code>TomListFormToolbar</code>).
                     </p>
                     <p>
-                      Drag-and-drop reordering: pass [reorderable]: true. The widget then renders rows inside a [ReorderableListView] (shrink-wrapped, no inner scrolling) and forwards `onReorder` events to [TomListForm.reorder]. To add a visible drag handle inside the row, place a [TomReorderHandle] anywhere in [rowBuilder]:
+                      Drag-and-drop reordering: pass [reorderable]: true. The widget then renders rows inside a [ReorderableListView] (shrink-wrapped, no inner scrolling) and forwards 
+                      <code>onReorder</code> events to [TomListForm.reorder]. To add a visible drag handle inside the row, place a [TomReorderHandle] anywhere in [rowBuilder]:
                     </p>
                     <pre><code>rowBuilder: (ctx, i, form) =&gt; Row(children: [
   TomReorderHandle(index: i),
@@ -1357,17 +1379,21 @@
   emptyBuilder: (ctx) =&gt; const Text('No items yet.'),
 )</code></pre>
                     <p>
-                      **Resource resolution.** When [tomId] is set, the following keys are consulted (each falls back to the constructor argument or a hard- coded default if no resource exists):
+                      <strong>Resource resolution.</strong> When [tomId] is set, the following keys are consulted (each falls back to the constructor argument or a hard- coded default if no resource exists):
                     </p>
                     <table class="mdtable">
                       <thead><tr><th>Key</th><th>Type</th><th>Default</th></tr></thead>
                       <tbody>
-                        <tr><td>`&lt;basePath&gt;.padding`</td><td>EdgeInsets</td><td>(no padding)</td></tr>
-                        <tr><td>`&lt;basePath&gt;.empty`</td><td>string</td><td>(no auto-empty widget)</td></tr>
+                        <tr><td><code>&lt;basePath&gt;.padding</code></td><td>EdgeInsets</td><td>(no padding)</td></tr>
+                        <tr><td><code>&lt;basePath&gt;.empty</code></td><td>string</td><td>(no auto-empty widget)</td></tr>
                       </tbody>
                     </table>
                     <p>
-                      **Authorization.** The whole widget passes through the standard [TomPolicyNodeBase] gate at `&lt;basePath&gt;` — `none` hides the entire list, `disabled` greys it out and absorbs pointers, `read` applies the readonly visual treatment. Per-row authorization is **not** supported by design — every row of a list shares the list's auth state. Authorize the *fields* of the row sub-form via the field widgets themselves; the same field auth applies to every row.
+                      <strong>Authorization.</strong> The whole widget passes through the standard [TomPolicyNodeBase] gate at 
+                      <code>&lt;basePath&gt;</code> — <code>none</code> hides the entire list, <code>disabled</code> greys it out and absorbs pointers, 
+                      <code>read</code> applies the readonly visual treatment. Per-row authorization is <strong>not</strong>
+                       supported by design — every row of a list shares the list's auth state. Authorize the <em>fields</em>
+                       of the row sub-form via the field widgets themselves; the same field auth applies to every row.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1390,7 +1416,8 @@
                       <div class="api-member-head"><code class="api-signature">final Widget Function(BuildContext, int, TForm) rowBuilder</code></div>
                       <div class="api-doc">
                         <p>
-                          Builds the body for row [index]. The provided [rowForm] is the list's own sub-form for that index — the same instance reachable via `listForm[index]`. Bind any per-row controls (delete buttons, drag handles, dirty chips) to this form.
+                          Builds the body for row [index]. The provided [rowForm] is the list's own sub-form for that index — the same instance reachable via 
+                          <code>listForm[index]</code>. Bind any per-row controls (delete buttons, drag handles, dirty chips) to this form.
                         </p>
                       </div>
                     </div>
@@ -1428,7 +1455,8 @@
                       <div class="api-member-head"><code class="api-signature">final Widget Function(BuildContext)?? emptyBuilder</code></div>
                       <div class="api-doc">
                         <p>
-                          Optional widget shown in place of any rows when the list is empty. Header / footer / toolbar still render around it. When omitted, the resource `&lt;basePath&gt;.empty` (if any) is shown as plain text; otherwise nothing is shown.
+                          Optional widget shown in place of any rows when the list is empty. Header / footer / toolbar still render around it. When omitted, the resource 
+                          <code>&lt;basePath&gt;.empty</code> (if any) is shown as plain text; otherwise nothing is shown.
                         </p>
                       </div>
                     </div>
@@ -1439,7 +1467,7 @@
                           Optional separator inserted between consecutive rows. The [index] is the row that PRECEDES the separator (i.e. the separator above row N has index N-1; never built before row 0 or after the last).
                         </p>
                         <p>
-                          **Ignored when [reorderable] is true** — [ReorderableListView] renders one widget per row with no slots for between-row content, so any separator must live inside the row itself.
+                          <strong>Ignored when [reorderable] is true</strong> — [ReorderableListView] renders one widget per row with no slots for between-row content, so any separator must live inside the row itself.
                         </p>
                       </div>
                     </div>
@@ -1464,7 +1492,7 @@
                       <div class="api-member-head"><code class="api-signature">final bool reorderable</code></div>
                       <div class="api-doc">
                         <p>
-                          When `true`, rows are rendered inside a [ReorderableListView] and can be reordered via long-press or by dragging a [TomReorderHandle] embedded in the row body. Reorder events are forwarded to [TomListForm.reorder] (and [onReorder] if supplied).
+                          When <code>true</code>, rows are rendered inside a [ReorderableListView] and can be reordered via long-press or by dragging a [TomReorderHandle] embedded in the row body. Reorder events are forwarded to [TomListForm.reorder] (and [onReorder] if supplied).
                         </p>
                       </div>
                     </div>
@@ -1472,7 +1500,8 @@
                       <div class="api-member-head"><code class="api-signature">final void Function(int, int)?? onReorder</code></div>
                       <div class="api-doc">
                         <p>
-                          Optional reorder hook. When set, called *after* the underlying [TomListForm.reorder] runs so callers can update selection or fire follow-up effects. The arguments are normalised to the [TomListForm] convention — `to` is the destination index AFTER the reorder, regardless of move direction (NOT [ReorderableListView]'s pre-removal convention).
+                          Optional reorder hook. When set, called <em>after</em> the underlying [TomListForm.reorder] runs so callers can update selection or fire follow-up effects. The arguments are normalised to the [TomListForm] convention — 
+                          <code>to</code> is the destination index AFTER the reorder, regardless of move direction (NOT [ReorderableListView]'s pre-removal convention).
                         </p>
                       </div>
                     </div>
@@ -1490,7 +1519,7 @@
                       <div class="api-member-head"><code class="api-signature">final bool showRowMoveButtons</code></div>
                       <div class="api-doc">
                         <p>
-                          When `true`, the inline list automatically prepends or appends a pair of [TomListRowMoveButtons] to every row built by [rowBuilder].
+                          When <code>true</code>, the inline list automatically prepends or appends a pair of [TomListRowMoveButtons] to every row built by [rowBuilder].
                         </p>
                         <p>
                           Use this when there is no master pane to host the toolbar's selection-driven move buttons — every row owns its own up/down arrows so the user can reorder without ever picking a "selected" row first.
@@ -1504,7 +1533,8 @@
                       <div class="api-member-head"><code class="api-signature">final TomRowMoveButtonsPosition rowMoveButtonsPosition</code></div>
                       <div class="api-doc">
                         <p>
-                          Whether the auto-rendered move buttons appear before or after the user's row body. Ignored when [showRowMoveButtons] is `false`. Defaults to [TomRowMoveButtonsPosition.trailing].
+                          Whether the auto-rendered move buttons appear before or after the user's row body. Ignored when [showRowMoveButtons] is 
+                          <code>false</code>. Defaults to [TomRowMoveButtonsPosition.trailing].
                         </p>
                       </div>
                     </div>
@@ -1669,7 +1699,8 @@
                   <code class="api-signature">enum TomRowMoveButtonsPosition</code>
                   <div class="api-doc">
                     <p>
-                      Where to attach the per-row Move-up / Move-down buttons that [TomInlineListForm] auto-prepends or auto-appends when [TomInlineListForm.showRowMoveButtons] is `true`.
+                      Where to attach the per-row Move-up / Move-down buttons that [TomInlineListForm] auto-prepends or auto-appends when [TomInlineListForm.showRowMoveButtons] is 
+                      <code>true</code>.
                     </p>
                   </div>
                   <h4 class="api-group-title">Values</h4>

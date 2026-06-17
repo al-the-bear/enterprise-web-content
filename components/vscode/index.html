@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1308,7 +1328,7 @@
             </p>
             <div style="margin-top: 14px">
               <div class="mono" style="color: #B9CCDC">3 modules</div>
-              <div class="metricline" style="color: #B9CCDC">96.8k loc · 1.5k tests · 19.3k test LOC</div>
+              <div class="metricline" style="color: #B9CCDC">97.5k loc · 1.5k tests · 19.5k test LOC</div>
               <div class="dist" style="max-width: 280px; border-color: rgba(255,255,255,.16)">
                 <span style="width: 0.00%; background: #4EA72E"></span>
                 <span style="width: 33.33%; background: #0F9ED5"></span>
@@ -1329,35 +1349,350 @@
                 The VS Code line is the developer-facing tooling for building the Tom framework itself. It is the DartScript system: a TypeScript VS Code extension that spawns a Dart bridge process, letting Dart code drive the editor and letting AI scripts run in-place against the workspace.
               </p>
               <p>
-                At its centre, `tom_vscode_bridge` is a Dart JSON-RPC server that the extension spawns and talks to over stdin/stdout. It wraps VS Code's Window, Workspace, Commands, Extensions, Language Model, and Chat APIs, and executes Dart through the D4rt interpreter so scripts get full editor access. `tom_vscode_scripting_api` supplies the typed, bridge-agnostic Dart surface scripts write against — namespaced accessors over the same APIs plus a socket bridge client.
+                At its centre, <code>tom_vscode_bridge</code> is a Dart JSON-RPC server that the extension spawns and talks to over stdin/stdout. It executes Dart through the D4rt interpreter and re-exports the 
+                <code>tom_vscode_scripting_api</code> surface, so scripts get full editor access. <code>tom_vscode_scripting_api</code>
+                 supplies the typed, bridge-agnostic Dart wrappers over VS Code's Window, Workspace, Commands, Extensions, Language Model, and Chat APIs that scripts write against — namespaced accessors plus a socket bridge client.
               </p>
               <p>
                 Together they let framework authors automate workspace operations, reach GitHub Copilot and other language models from Dart, and host the workflow and tracker panels used while developing Tom. The line sits alongside the DevOps CLI and cloud provisioning as Tom's framework-development tooling, not part of an end-user application.
               </p>
             </div>
+            <section class="section repodoc">
+              <div class="pageprose">
+                <h1>Tom VS Code — the AI-assisted editor extension and its scripting ecosystem</h1>
+                <p>
+                  &gt; <strong>Tom VS Code</strong> — part of the Tom Framework by Peter Nicolai Alexis Kyaw. &gt; Licensed BSD-3-Clause. See 
+                  <a href="/doc/tom_agent_container/tom_ai/vscode/LICENSE">LICENSE.md</a>.
+                </p>
+                <p>
+                  Tom VS Code turns a normal VS Code window into an <strong>AI-assisted development cockpit</strong> and then makes that cockpit 
+                  <strong>scriptable from the outside</strong>. Inside the editor, the extension adds chat panels (Anthropic, Local LLM, Copilot), a multi-transport prompt queue, a shared tool registry, and a standalone MCP server. Outside the editor, a Dart scripting API drives that same running window over a local socket — so a script, a CLI tool, or an autonomous agent can open files, run commands, query the language model, and stream an Anthropic Agent SDK session in the live editor.
+                </p>
+                <p>
+                  This repository (<a href="https://github.com/al-the-bear/tom_vscode"><code>al-the-bear/tom_vscode</code></a>) holds the whole ecosystem: the extension, the Dart bridge that exposes it to out-of-process clients, the published scripting API, the shared TypeScript libraries the extension is built from, and two decoupled YAML-graph packages. This document is the 
+                  <strong>map</strong>; each package has its own README and <code>doc/</code> folder for the detail.
+                </p>
+                <p>
+                  &gt; <strong>New here?</strong> If you want to <em>use the editor</em>, build and install &gt; <a href="/docs?module=tom_vscode_extension&amp;path=README.md"><code>tom_vscode_extension</code></a>. If you want to &gt; 
+                  <em>script the editor</em> from Dart, start with &gt; <a href="/docs?module=tom_vscode_scripting_api&amp;path=README.md"><code>tom_vscode_scripting_api</code></a>
+                   and the &gt; <a href="https://github.com/al-the-bear/tom_vscode/tree/main/tom_vscode_scripting_api/example/vscode_scripting_introduction_sample"><code>vscode_scripting_introduction_sample</code></a>
+                   &gt; — the shortest path from "installed" to "driving a live window".
+                </p>
+                <p>---</p>
+                <h2>What you can do with Tom VS Code</h2>
+                <ul><li><strong>Chat with several models in one place</strong> — Anthropic (direct SDK and Agent</li></ul>
+                <p>
+                  SDK), the VS Code language model (Copilot), and a local LLM, in dedicated bottom-panel subpanels. - <strong>Queue prompts across transports</strong>
+                   — line up work and let it run, with timed templates, follow-ups, and per-quest trails. - <strong>Expose a tool registry</strong>
+                   — the same MCP-style tools the in-editor panels use can be published to external MCP clients over HTTP. - 
+                  <strong>Drive a running window from Dart</strong> — open files, run commands, read/write the workspace, show pickers and progress, and call the language model from a plain Dart program or a 
+                  <code>*.d4rt.dart</code> script. - <strong>Run an Anthropic Agent SDK query from Dart</strong> — stream typed messages, feed the agent in-process Dart tools, and approve its actions through a 
+                  <code>canUseTool</code> permission callback. - <strong>Reach the extension's own features programmatically</strong>
+                   — todos, the prompt queue, timed requests, documents, workspace metadata, and send-to-chat.
+                </p>
+                <p>---</p>
+                <h2>Two ways in</h2>
+                <p>
+                  The packages split along one clean line: code that runs <strong>inside</strong> the editor host, and code that drives the editor 
+                  <strong>from outside</strong> over a socket. Reading the component tables with this split in mind makes the dependency arrows obvious.
+                </p>
+                <ul><li><strong>Inside the editor (TypeScript).</strong> The</li></ul>
+                <p>
+                  <a href="/docs?module=tom_vscode_extension&amp;path=README.md">extension</a> is the product; the <a href="/doc/tom_agent_container/tom_ai/vscode/tom_vscode_shared/README">shared</a>
+                   and <a href="/doc/tom_agent_container/tom_ai/vscode/tom_vscode_workflow/README">workflow</a> libraries are the TypeScript building blocks it is assembled from. - 
+                  <strong>Driving it from outside (Dart).</strong> The <a href="/docs?module=tom_vscode_scripting_api&amp;path=README.md">scripting API</a>
+                   is the typed Dart client; the <a href="/docs?module=tom_vscode_bridge&amp;path=README.md">bridge</a>
+                   is the Dart server binary that the extension launches to give CLI tools and d4rt scripts access to the live editor.
+                </p>
+                <p>
+                  The link between the two halves is a <strong>JSON-RPC server inside the extension</strong> (the "CLI Integration Server") listening on a local TCP port (<code>19900</code>–<code>19909</code>). The scripting API is the Dart client for that server.
+                </p>
+                <pre><code>        ┌──────────────────── inside the editor (TS) ────────────────────┐
+        │  tom_vscode_extension  ◄── tom_vscode_shared / tom_vscode_workflow │
+        │   · chat panels · prompt queue · tool registry · MCP server     │
+        │   · CLI Integration Server  (JSON-RPC over TCP 19900–19909)     │
+        └───────────────────────────────▲────────────────────────────────┘
+                                         │  local socket
+        ┌────────────────────── driving it (Dart) ───────────────────────┐
+        │  tom_vscode_scripting_api  ──►  (typed client: vscode / window /  │
+        │     workspace / lm / chat · Agent SDK · Tom* feature APIs)       │
+        │  tom_vscode_bridge  ──►  Dart bridge server (tom_bs) for CLI/d4rt │
+        └─────────────────────────────────────────────────────────────────┘</code></pre>
+                <p>---</p>
+                <h2>The components</h2>
+                <p>Every package below has a README (linked). Base path for all entries is this repository root.</p>
+                <h3>Inside the editor (TypeScript)</h3>
+                <table class="mdtable">
+                  <thead><tr><th>Package</th><th>What it is</th><th>Artifact</th></tr></thead>
+                  <tbody>
+                    <tr>
+                      <td><a href="/docs?module=tom_vscode_extension&amp;path=README.md"><code>tom_vscode_extension</code></a></td>
+                      <td>
+                        The 
+                        <strong><code>@Tom</code></strong>
+                         VS Code extension. AI chat panels (Anthropic / Local LLM / Copilot), the multi-transport prompt queue, the shared tool registry, the standalone MCP server, the status page, and the CLI Integration Server. This is the product.
+                      </td>
+                      <td>VSIX (<code>@Tom</code>)</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <a href="/doc/tom_agent_container/tom_ai/vscode/tom_vscode_shared/README"><code>tom_vscode_shared</code></a>
+                      </td>
+                      <td>
+                        Shared TypeScript types and helpers consumed by the extension and workflow packages — todo scanning/management, Mermaid flowchart rendering, common types.
+                      </td>
+                      <td>library</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <a href="/doc/tom_agent_container/tom_ai/vscode/tom_vscode_workflow/README"><code>tom_vscode_workflow</code></a>
+                      </td>
+                      <td>TODO-tracking and project-management panels for the Tom workspace, built on the shared library.</td>
+                      <td>library</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <h3>Driving it from Dart</h3>
+                <table class="mdtable">
+                  <thead><tr><th>Package</th><th>What it is</th><th>Artifact</th></tr></thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <a href="/docs?module=tom_vscode_scripting_api&amp;path=README.md"><code>tom_vscode_scripting_api</code></a>
+                      </td>
+                      <td>
+                        The published Dart client. A bridge-agnostic, typed API surface mirroring VS Code (commands, window, workspace, files, language model, chat), the Anthropic Agent SDK (streaming 
+                        <code>query()</code>
+                        , tools, permissions), and the extension's own features (todos, queue, timed requests, documents, tools).
+                      </td>
+                      <td>pub.dev <code>^1.1.0</code></td>
+                    </tr>
+                    <tr>
+                      <td><a href="/docs?module=tom_vscode_bridge&amp;path=README.md"><code>tom_vscode_bridge</code></a></td>
+                      <td>
+                        The Dart 
+                        <strong>bridge server</strong>
+                         the extension launches. Runs Dart (via the D4rt interpreter) with full VS Code API access and talks JSON-RPC over stdin/stdout — the local-process path for Tom CLI tools and d4rt scripts.
+                      </td>
+                      <td><code>tom_bs</code></td>
+                    </tr>
+                  </tbody>
+                </table>
+                <h3>Decoupled / standalone (TypeScript)</h3>
+                <table class="mdtable">
+                  <thead><tr><th>Package</th><th>What it is</th><th>Status</th></tr></thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <a href="/doc/tom_agent_container/tom_ai/vscode/yaml_graph_core/README"><code>yaml_graph_core</code></a>
+                      </td>
+                      <td>YAML-graph → Mermaid conversion engine with configurable mappings.</td>
+                      <td>decoupled — no longer consumed by the extension (removed in <code>3b0b63d</code>)</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <a href="/doc/tom_agent_container/tom_ai/vscode/yaml_graph_vscode/README"><code>yaml_graph_vscode</code></a>
+                      </td>
+                      <td>VS Code custom-editor integration for YAML-graph files.</td>
+                      <td>decoupled — extension glue preserved under <code>_extension_backup/</code></td>
+                    </tr>
+                  </tbody>
+                </table>
+                <p>---</p>
+                <h2>Getting started</h2>
+                <h3>Use the editor</h3>
+                <p>
+                  Build, package, and install the extension from <a href="/docs?module=tom_vscode_extension&amp;path=README.md"><code>tom_vscode_extension</code></a>:
+                </p>
+                <pre><code>cd tom_vscode_extension
+npm run compile          # tsc + copy config json to out/config/
+./install_extension.sh   # build the VSIX and install it
+# then in VS Code: Cmd+Shift+P → "Developer: Reload Window"</code></pre>
+                <h3>Script the editor from Dart</h3>
+                <p>
+                  Add the published client and drive a running window. First, in the target VS Code window, run <strong>"DS: Start Tom CLI Integration Server"</strong>
+                   (Command Palette). Then:
+                </p>
+                <pre><code>import 'package:tom_vscode_scripting_api/tom_vscode_scripting_api.dart';
+
+Future&lt;void&gt; main() async {
+  // Resolve the window by the workspace it has open, connect, and promote
+  // the adapter to the VSCode singleton.
+  await connectToWorkspace('tom_agent_container', initializeVSCode: true);
+
+  final version = await VSCode.instance.getVersion();
+  await VSCode.instance.window.showInformationMessage('Connected to VS Code $version');
+  print('VS Code version: $version'); // e.g. 1.99.0
+}</code></pre>
+                <pre><code># pubspec.yaml
+dependencies:
+  tom_vscode_scripting_api: ^1.1.0</code></pre>
+                <p>From here, follow the <a href="#samples">samples learning path</a> below.</p>
+                <p>---</p>
+                <h2>Samples</h2>
+                <p>
+                  Runnable, self-contained samples live under <a href="https://github.com/al-the-bear/tom_vscode/tree/main/tom_vscode_scripting_api/example"><code>tom_vscode_scripting_api/example/</code></a>, ordered as a learning path — each introduces one new capability on top of the last. Each sample is its own Dart subproject with a comprehensive README (the basis for a published article).
+                </p>
+                <table class="mdtable">
+                  <thead><tr><th>Sample</th><th>Introduces</th></tr></thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <a href="https://github.com/al-the-bear/tom_vscode/tree/main/tom_vscode_scripting_api/example/vscode_scripting_introduction_sample"><code>vscode_scripting_introduction_sample</code></a>
+                      </td>
+                      <td>
+                        Connecting to a live window and making your first calls — messages, commands, workspace folders, reading and opening files. 
+                        <strong>Start here.</strong>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <a href="https://github.com/al-the-bear/tom_vscode/tree/main/tom_vscode_scripting_api/example/vscode_scripting_advanced_sample"><code>vscode_scripting_advanced_sample</code></a>
+                      </td>
+                      <td>
+                        Editor edits, file batches, progress and pickers, the language model (
+                        <code>lm.selectChatModels</code>
+                         → 
+                        <code>sendRequest</code>
+                        ), and the batteries-included 
+                        <code>VsCodeHelper</code>
+                        .
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <a href="https://github.com/al-the-bear/tom_vscode/tree/main/tom_vscode_scripting_api/example/vscode_agent_tools_sample"><code>vscode_agent_tools_sample</code></a>
+                      </td>
+                      <td>
+                        The extension's own feature APIs — todos, the prompt queue, timed requests, documents, workspace metadata, the tool registry, and send-to-chat.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <a href="https://github.com/al-the-bear/tom_vscode/tree/main/tom_vscode_scripting_api/example/vscode_agent_sdk_sample"><code>vscode_agent_sdk_sample</code></a>
+                      </td>
+                      <td>
+                        Streaming an Anthropic Agent SDK 
+                        <code>query()</code>
+                         with 
+                        <code>Options</code>
+                        , typed messages, in-process Dart 
+                        <code>tool()</code>
+                        s, and the 
+                        <code>canUseTool</code>
+                         permission callback.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <p>---</p>
+                <h2>Documentation index</h2>
+                <p>
+                  Each package keeps its user documentation in its own <code>doc/</code> folder; the READMEs above link the relevant files. The most common entry points:
+                </p>
+                <table class="mdtable">
+                  <thead><tr><th>Topic</th><th>Document</th></tr></thead>
+                  <tbody>
+                    <tr>
+                      <td>Scripting API — overview &amp; connection model</td>
+                      <td>
+                        <a href="/docs?module=tom_vscode_scripting_api&amp;path=doc%2Fvscode_api_intro.md"><code>tom_vscode_scripting_api/doc/vscode_api_intro.md</code></a>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Scripting VS Code itself</td>
+                      <td>
+                        <a href="/docs?module=tom_vscode_scripting_api&amp;path=doc%2Fvscode_api_vscode_scripting_guide.md"><code>vscode_api_vscode_scripting_guide.md</code></a>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Scripting the Anthropic Agent SDK</td>
+                      <td>
+                        <a href="/docs?module=tom_vscode_scripting_api&amp;path=doc%2Fvscode_api_anthropic_agent_sdk_guide.md"><code>vscode_api_anthropic_agent_sdk_guide.md</code></a>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Scripting the extension's features</td>
+                      <td>
+                        <a href="/docs?module=tom_vscode_scripting_api&amp;path=doc%2Fvscode_api_extension_scripting_guide.md"><code>vscode_api_extension_scripting_guide.md</code></a>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Extension architecture</td>
+                      <td>
+                        <a href="/docs?module=tom_vscode_extension&amp;path=doc%2Fextension_analysis.md"><code>tom_vscode_extension/doc/extension_analysis.md</code></a>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Anthropic SDK integration</td>
+                      <td>
+                        <a href="/docs?module=tom_vscode_extension&amp;path=doc%2Fanthropic_sdk_integration.md"><code>tom_vscode_extension/doc/anthropic_sdk_integration.md</code></a>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Standalone MCP server</td>
+                      <td>
+                        <a href="/docs?module=tom_vscode_extension&amp;path=doc%2Fmcp_server.md"><code>tom_vscode_extension/doc/mcp_server.md</code></a>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Prompt queue model</td>
+                      <td>
+                        <a href="/docs?module=tom_vscode_extension&amp;path=doc%2Fmulti_transport_prompt_queue_revised.md"><code>tom_vscode_extension/doc/multi_transport_prompt_queue_revised.md</code></a>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <p>---</p>
+                <h2>Repository layout</h2>
+                <pre><code>tom_vscode_extension/      the @Tom VS Code extension (TypeScript)      (product)
+tom_vscode_shared/         shared TS types/helpers used by the extension (library)
+tom_vscode_workflow/       TODO/project-management panels (TypeScript)   (library)
+
+tom_vscode_scripting_api/  published Dart client for the extension       (pub.dev)
+  example/                 the four learning-path sample subprojects
+  doc/                     scripting-API guides (intro + 3 families)
+tom_vscode_bridge/         Dart bridge server (tom_bs) for CLI/d4rt       (binary)
+
+yaml_graph_core/           YAML-graph → Mermaid engine                   (decoupled)
+yaml_graph_vscode/         YAML-graph custom editor                      (decoupled)</code></pre>
+                <p>
+                  Dependency direction, simplified: the TypeScript stack roots at <code>tom_vscode_shared</code>, which 
+                  <code>tom_vscode_extension</code> and <code>tom_vscode_workflow</code> build on; the Dart stack roots at 
+                  <code>tom_vscode_scripting_api</code>, which <code>tom_vscode_bridge</code> and external CLI tools consume. The two stacks meet only at the extension's JSON-RPC CLI Integration Server. The 
+                  <code>yaml_graph_*</code> packages stand alone and are no longer wired into the extension.
+                </p>
+                <h2>License</h2>
+                <p>
+                  Part of the Tom Framework by Peter Nicolai Alexis Kyaw, BSD-3-Clause. See <a href="/doc/tom_agent_container/tom_ai/vscode/LICENSE"><code>LICENSE.md</code></a>
+                   (each package also carries its own <code>LICENSE</code>).
+                </p>
+              </div>
+            </section>
             <div class="grouplbl">Foundation — the basis</div>
             <div class="grid cols-2" style="margin-top: 12px">
               <a class="tile works" style="text-decoration: none; color: inherit; display: block" href="/modules/tom_vscode_bridge">
                 <div class="top"></div>
                 <h4>tom_vscode_bridge <span class="badge b-works"><span class="d"></span>In the works</span></h4>
                 <div class="mono">tom_vscode_bridge · v1.0.0</div>
-                <div class="metricline">11.8k loc · 0 tests · 0 test LOC</div>
+                <div class="metricline">12.1k loc · 0 tests · 0 test LOC</div>
                 <div class="desc">
-                  A Dart server the VS Code extension spawns and talks to over JSON-RPC. It wraps VS Code's APIs and runs Dart scripts through the D4rt interpreter, giving them full editor access.
+                  The Dart bridge server the extension spawns: it runs Dart scripts through the D4rt interpreter with full editor access, talks JSON-RPC over stdin/stdout, and hosts a TCP integration server for out-of-process clients. The VS Code API wrappers live in `tom_vscode_scripting_api`, which it re-exports.
                 </div>
-                <!--@quick_info data={"name":"tom_vscode_bridge","id":"tom_vscode_bridge","version":"1.0.0","statusBadgeClass":"b-works","statusLabel":"In the works","roleLabel":"foundation","overview":"`tom_vscode_bridge` is the Dart side of the DartScript system. The TypeScript\nextension spawns it as a child process and they communicate bidirectionally using\nJSON-RPC 2.0 over stdin/stdout, much like a Language Server.\n\nThe bridge wraps VS Code's Window, Workspace, Commands, Extensions, Language Model,\nand Chat namespaces as Dart classes, so Dart code can show messages, read and write\nfiles, run commands, and reach GitHub Copilot. It executes Dart scripts via the D4rt\ninterpreter, giving each script the full wrapped API surface.\n\nIt is the foundational runtime that makes editor-side Dart scripting possible. The\nextension drives it; `tom_vscode_scripting_api` defines the typed Dart interface that\nscripts target.","locLabel":"11.8k","testsLabel":"0","testLocLabel":"0","docsCount":8,"refCount":1,"detailHref":"/modules/tom_vscode_bridge"}-->
+                <!--@quick_info data={"name":"tom_vscode_bridge","id":"tom_vscode_bridge","version":"1.0.0","statusBadgeClass":"b-works","statusLabel":"In the works","roleLabel":"foundation","overview":"`tom_vscode_bridge` is the Dart side of the DartScript system. The TypeScript\nextension spawns it as a child process and they communicate bidirectionally using\nJSON-RPC 2.0 over stdin/stdout, much like a Language Server.\n\nThe bridge re-exports the `tom_vscode_scripting_api` surface — the Dart wrappers over\nVS Code's Window, Workspace, Commands, Extensions, Language Model, and Chat namespaces\n— so Dart code can show messages, read and write files, run commands, and reach GitHub\nCopilot. It executes Dart scripts via the D4rt interpreter, giving each script that\nfull API surface.\n\nIt is the foundational runtime that makes editor-side Dart scripting possible. The\nextension drives it; `tom_vscode_scripting_api` defines the typed Dart interface that\nscripts target.","locLabel":"12.1k","testsLabel":"0","testLocLabel":"0","docsCount":8,"refCount":1,"detailHref":"/modules/tom_vscode_bridge"}-->
                 <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_vscode_bridge" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-works"><span class="d"></span>In the works</span><h4 style="margin-top: 10px">tom_vscode_bridge <span class="tagrole">role: foundation</span></h4><div class="mono">tom_vscode_bridge · v1.0.0</div><p style="font-size: .86rem; margin: 10px 0 0">`tom_vscode_bridge` is the Dart side of the DartScript system. The TypeScript
 extension spawns it as a child process and they communicate bidirectionally using
 JSON-RPC 2.0 over stdin/stdout, much like a Language Server.
 
-The bridge wraps VS Code's Window, Workspace, Commands, Extensions, Language Model,
-and Chat namespaces as Dart classes, so Dart code can show messages, read and write
-files, run commands, and reach GitHub Copilot. It executes Dart scripts via the D4rt
-interpreter, giving each script the full wrapped API surface.
+The bridge re-exports the `tom_vscode_scripting_api` surface — the Dart wrappers over
+VS Code's Window, Workspace, Commands, Extensions, Language Model, and Chat namespaces
+— so Dart code can show messages, read and write files, run commands, and reach GitHub
+Copilot. It executes Dart scripts via the D4rt interpreter, giving each script that
+full API surface.
 
 It is the foundational runtime that makes editor-side Dart scripting possible. The
 extension drives it; `tom_vscode_scripting_api` defines the typed Dart interface that
-scripts target.</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">11.8k</div></div><div class="qs"><div class="k">Tests</div><div class="v">0</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">0</div></div></div><div class="more"><span class="muted">8 docs · 1 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
+scripts target.</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">12.1k</div></div><div class="qs"><div class="k">Tests</div><div class="v">0</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">0</div></div></div><div class="more"><span class="muted">8 docs · 1 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
                 <!--/@quick_info-->
               </a>
             </div>
@@ -1369,7 +1704,7 @@ scripts target.</p><div class="quickstats"><div class="qs"><div class="k">LOC</d
                 <div class="mono">tom_vscode_scripting_api · v1.1.0</div>
                 <div class="metricline">8.0k loc · 85 tests · 1.6k test LOC</div>
                 <div class="desc">
-                  Bridge-agnostic Dart abstractions over VS Code's extension APIs. It defines the typed interface scripts write against and a socket bridge client that connects them to the extension host.
+                  The typed, bridge-agnostic Dart client for the Tom AI extension's CLI Integration Server. Over one local socket it mirrors three API families — VS Code itself (`window`, `workspace`, `commands`, `lm`, …), the Anthropic Agent SDK, and the extension's own features — so scripts drive a running window from plain Dart.
                 </div>
                 <!--@quick_info data={"name":"tom_vscode_scripting_api","id":"tom_vscode_scripting_api","version":"1.1.0","statusBadgeClass":"b-pub","statusLabel":"Published","roleLabel":"extension","overview":"`tom_vscode_scripting_api` is the Dart API surface that editor scripts target. It\ndefines an abstract adapter contract plus typed namespaces over VS Code's Window,\nWorkspace, Commands, Extensions, Language Model, and Chat APIs, with convenient\ntop-level accessors like `window`, `workspace`, and `commands`.\n\nThe interface is bridge-agnostic: the same script code runs against any adapter. A\nbundled socket-based, JSON-RPC client connects to the extension host, and an adapter\nwires the typed namespaces onto that transport.\n\nIt is the scripting layer over the bridge runtime. Where `tom_vscode_bridge` provides\nthe executing server, this package gives framework authors the clean, typed Dart\nsurface to write VS Code automation against.","locLabel":"8.0k","testsLabel":"85","testLocLabel":"1.6k","docsCount":6,"refCount":1,"detailHref":"/modules/tom_vscode_scripting_api"}-->
                 <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_vscode_scripting_api" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-pub"><span class="d"></span>Published</span><h4 style="margin-top: 10px">tom_vscode_scripting_api <span class="tagrole">role: extension</span></h4><div class="mono">tom_vscode_scripting_api · v1.1.0</div><p style="font-size: .86rem; margin: 10px 0 0">`tom_vscode_scripting_api` is the Dart API surface that editor scripts target. It
@@ -1393,9 +1728,12 @@ surface to write VS Code automation against.</p><div class="quickstats"><div cla
                 <div class="top"></div>
                 <h4>tom_vscode_extension <span class="badge b-works"><span class="d"></span>In the works</span></h4>
                 <div class="mono">tom_vscode_extension · v0.1.0</div>
-                <div class="metricline">77.1k loc · 1.4k tests · 17.7k test LOC</div>
-                <!--@quick_info data={"name":"tom_vscode_extension","id":"tom_vscode_extension","version":"0.1.0","statusBadgeClass":"b-works","statusLabel":"In the works","roleLabel":"–","overview":"","locLabel":"77.1k","testsLabel":"1.4k","testLocLabel":"17.7k","docsCount":21,"refCount":0,"detailHref":"/modules/tom_vscode_extension"}-->
-                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_vscode_extension" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-works"><span class="d"></span>In the works</span><h4 style="margin-top: 10px">tom_vscode_extension </h4><div class="mono">tom_vscode_extension · v0.1.0</div><p style="font-size: .86rem; margin: 10px 0 0"></p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">77.1k</div></div><div class="qs"><div class="k">Tests</div><div class="v">1.4k</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">17.7k</div></div></div><div class="more"><span class="muted">21 docs · 0 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
+                <div class="metricline">77.3k loc · 1.4k tests · 17.9k test LOC</div>
+                <div class="desc">
+                  The `@Tom` extension turns a VS Code window into a unified AI workspace: multi-model chat (Anthropic, Copilot, local LLM), a multi-transport prompt queue, timed requests, a shared tool registry with a standalone MCP server, and the CLI Integration Server that lets Dart clients drive the live window.
+                </div>
+                <!--@quick_info data={"name":"tom_vscode_extension","id":"tom_vscode_extension","version":"0.1.0","statusBadgeClass":"b-works","statusLabel":"In the works","roleLabel":"–","overview":"From the module readme.md file:","locLabel":"77.3k","testsLabel":"1.4k","testLocLabel":"17.9k","docsCount":21,"refCount":0,"detailHref":"/modules/tom_vscode_extension"}-->
+                <span style="display: contents"><button class="chev" title="Quick info" aria-label="Quick info">▾</button><dialog id="qi-dlg-tom_vscode_extension" class="pop"><button class="popclose" title="Close" aria-label="Close">✕</button><span class="badge b-works"><span class="d"></span>In the works</span><h4 style="margin-top: 10px">tom_vscode_extension </h4><div class="mono">tom_vscode_extension · v0.1.0</div><p style="font-size: .86rem; margin: 10px 0 0">From the module readme.md file:</p><div class="quickstats"><div class="qs"><div class="k">LOC</div><div class="v">77.3k</div></div><div class="qs"><div class="k">Tests</div><div class="v">1.4k</div></div><div class="qs"><div class="k">Test LOC</div><div class="v">17.9k</div></div></div><div class="more"><span class="muted">21 docs · 0 API</span><button class="morelink" style="color: var(--brand-600); font-weight: 600; text-decoration: none; background: none; border: none; padding: 0; font: inherit; cursor: pointer">More details… →</button></div></dialog></span>
                 <!--/@quick_info-->
               </a>
             </div>

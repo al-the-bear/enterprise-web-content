@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1317,24 +1337,34 @@
                 <h2 class="api-library-title">package:tom_vscode_scripting_api/src/agent_sdk_query.dart</h2>
                 <code class="api-import">import 'package:tom_vscode_scripting_api/src/agent_sdk_query.dart';</code>
                 <div class="api-doc">
-                  <p>Streaming `query()` core — the Dart half of the 1:1 Agent SDK mirror (proposal §7.1, todo #3).</p>
                   <p>
-                    [AgentSdkClient.query] mirrors `sdk.query({prompt, options})`. It returns an [AgentQuery] (a `Stream&lt;SdkMessage&gt;` plus an [AgentQuery.interrupt] control method). Under the hood it asks the extension to start a query via the `agentSdk.queryVce` bridge method and correlates the `streamId`-keyed `agentSdk.chunk` notifications back into a typed message stream. Cancelling the subscription (or calling [AgentQuery.interrupt]) aborts the underlying query via `agentSdk.cancelVce`.
+                    Streaming <code>query()</code> core — the Dart half of the 1:1 Agent SDK mirror (proposal §7.1, todo #3).
                   </p>
                   <p>
-                    This is the **thin pass-through** path: the caller controls the SDK's own [Options] directly and the bridge relays raw `SDKMessage`s verbatim. It does not route through profiles, allow-lists, or the convenience sendToChat path.
+                    [AgentSdkClient.query] mirrors <code>sdk.query({prompt, options})</code>. It returns an [AgentQuery] (a 
+                    <code>Stream&lt;SdkMessage&gt;</code> plus an [AgentQuery.interrupt] control method). Under the hood it asks the extension to start a query via the 
+                    <code>agentSdk.queryVce</code> bridge method and correlates the <code>streamId</code>-keyed <code>agentSdk.chunk</code>
+                     notifications back into a typed message stream. Cancelling the subscription (or calling [AgentQuery.interrupt]) aborts the underlying query via 
+                    <code>agentSdk.cancelVce</code>.
                   </p>
                   <p>
-                    The reverse-RPC dependent features (Dart-defined `tool()` handlers, `canUseTool`) and the `AgentQuery` control methods that need streaming-input (`setPermissionMode`, `setModel`, `initializationResult`, `supportedCommands`) are layered on in later todos (#4–#6).
+                    This is the <strong>thin pass-through</strong> path: the caller controls the SDK's own [Options] directly and the bridge relays raw 
+                    <code>SDKMessage</code>s verbatim. It does not route through profiles, allow-lists, or the convenience sendToChat path.
+                  </p>
+                  <p>
+                    The reverse-RPC dependent features (Dart-defined <code>tool()</code> handlers, <code>canUseTool</code>) and the 
+                    <code>AgentQuery</code> control methods that need streaming-input (<code>setPermissionMode</code>, <code>setModel</code>, 
+                    <code>initializationResult</code>, <code>supportedCommands</code>) are layered on in later todos (#4–#6).
                   </p>
                 </div>
                 <section id="AgentQuery" class="api-declaration">
                   <h3 class="api-decl-title">class AgentQuery</h3>
                   <code class="api-signature">class AgentQuery extends StreamView&lt;SdkMessage&gt;</code>
                   <div class="api-doc">
-                    <p>A live Agent SDK query: a `Stream&lt;SdkMessage&gt;` plus control methods.</p>
+                    <p>A live Agent SDK query: a <code>Stream&lt;SdkMessage&gt;</code> plus control methods.</p>
                     <p>
-                      Mirrors the SDK's `Query` (which extends `AsyncGenerator&lt;SDKMessage&gt;`). Todo #3 wires the stream and [interrupt]; the streaming-input control methods (`setPermissionMode`, `setModel`, …) follow in later todos.
+                      Mirrors the SDK's <code>Query</code> (which extends <code>AsyncGenerator&lt;SDKMessage&gt;</code>). Todo #3 wires the stream and [interrupt]; the streaming-input control methods (<code>setPermissionMode</code>, 
+                      <code>setModel</code>, …) follow in later todos.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1356,7 +1386,7 @@
                     <div id="AgentQuery.interrupt" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Future&lt;void&gt; interrupt()</code></div>
                       <div class="api-doc">
-                        <p>Aborts the underlying query (`agentSdk.cancelVce`). Idempotent.</p>
+                        <p>Aborts the underlying query (<code>agentSdk.cancelVce</code>). Idempotent.</p>
                         <p>Cancelling the stream subscription has the same effect.</p>
                       </div>
                     </div>
@@ -1365,7 +1395,9 @@
                 <section id="AgentSdkClient" class="api-declaration">
                   <h3 class="api-decl-title">class AgentSdkClient</h3>
                   <code class="api-signature">class AgentSdkClient</code>
-                  <div class="api-doc"><p>Entry point mirroring the SDK's `query()` free function, bound to a [AgentSdkTransport].</p></div>
+                  <div class="api-doc">
+                    <p>Entry point mirroring the SDK's <code>query()</code> free function, bound to a [AgentSdkTransport].</p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="AgentSdkClient.new" class="api-member">
@@ -1385,9 +1417,9 @@
                     <div id="AgentSdkClient.query" class="api-member">
                       <div class="api-member-head"><code class="api-signature">AgentQuery query({required String prompt, Options? options})</code></div>
                       <div class="api-doc">
-                        <p>Mirrors `sdk.query({prompt, options})`.</p>
+                        <p>Mirrors <code>sdk.query({prompt, options})</code>.</p>
                         <p>
-                          Returns an [AgentQuery] that emits each `SDKMessage` the extension relays for this query. The query is started lazily when the stream is first listened to. Cancelling the subscription (or calling [AgentQuery.interrupt]) aborts it.
+                          Returns an [AgentQuery] that emits each <code>SDKMessage</code> the extension relays for this query. The query is started lazily when the stream is first listened to. Cancelling the subscription (or calling [AgentQuery.interrupt]) aborts it.
                         </p>
                       </div>
                     </div>
@@ -1397,7 +1429,7 @@
                       </div>
                       <div class="api-doc">
                         <p>
-                          One-line convenience over [query]: runs the query to completion and returns every message. Mirrors `await query(...).toList()`.
+                          One-line convenience over [query]: runs the query to completion and returns every message. Mirrors <code>await query(...).toList()</code>.
                         </p>
                       </div>
                     </div>
@@ -1409,7 +1441,8 @@
                   <code class="api-signature">class AgentSdkQueryException implements Exception</code>
                   <div class="api-doc">
                     <p>
-                      Thrown into an [AgentQuery]'s stream when the extension reports a query failure via an `error` chunk.
+                      Thrown into an [AgentQuery]'s stream when the extension reports a query failure via an <code>error</code>
+                       chunk.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1460,16 +1493,17 @@
                       <div class="api-member-head"><code class="api-signature">Future&lt;void&gt; startQuery(Map&lt;String, dynamic&gt; params)</code></div>
                       <div class="api-doc">
                         <p>
-                          Starts a query on the extension. [params] carries `streamId`, `prompt`, and (optionally) `options` (the serialized [Options] wire JSON).
+                          Starts a query on the extension. [params] carries <code>streamId</code>, <code>prompt</code>, and (optionally) 
+                          <code>options</code> (the serialized [Options] wire JSON).
                         </p>
                         <p>
-                          Returns once the query has been *started*; the resulting `SDKMessage`s arrive asynchronously on [chunks], not as the result of this call.
+                          Returns once the query has been <em>started</em>; the resulting <code>SDKMessage</code>s arrive asynchronously on [chunks], not as the result of this call.
                         </p>
                       </div>
                     </div>
                     <div id="AgentSdkTransport.cancelQuery" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Future&lt;void&gt; cancelQuery(String streamId)</code></div>
-                      <div class="api-doc"><p>Aborts the query identified by [streamId] (`agentSdk.cancelVce`).</p></div>
+                      <div class="api-doc"><p>Aborts the query identified by [streamId] (<code>agentSdk.cancelVce</code>).</p></div>
                     </div>
                     <div id="AgentSdkTransport.registerTools" class="api-member">
                       <div class="api-member-head">
@@ -1477,7 +1511,7 @@
                       </div>
                       <div class="api-doc">
                         <p>
-                          Registers [registry] so incoming `agentSdk.toolCall` requests for [streamId] are dispatched to the query's Dart [ToolHandler]s (todo #5).
+                          Registers [registry] so incoming <code>agentSdk.toolCall</code> requests for [streamId] are dispatched to the query's Dart [ToolHandler]s (todo #5).
                         </p>
                         <p>
                           Default: no-op — only the reverse-RPC-capable transport ([VSCodeBridgeAgentSdkTransport]) needs to act on it.
@@ -1496,7 +1530,7 @@
                       </div>
                       <div class="api-doc">
                         <p>
-                          Registers [callback] so incoming `agentSdk.canUseTool` requests for [streamId] are dispatched to the query's [CanUseTool] approval callback (todo #6).
+                          Registers [callback] so incoming <code>agentSdk.canUseTool</code> requests for [streamId] are dispatched to the query's [CanUseTool] approval callback (todo #6).
                         </p>
                         <p>
                           Default: no-op — only the reverse-RPC-capable transport ([VSCodeBridgeAgentSdkTransport]) needs to act on it.
@@ -1515,10 +1549,11 @@
                   <div class="api-doc">
                     <p>Production [AgentSdkTransport] backed by a [VSCodeBridgeClient].</p>
                     <p>
-                      Starts/cancels queries with the client's request channel and listens for `agentSdk.chunk` notifications on the client's [VSCodeBridgeClient.notifications] stream.
+                      Starts/cancels queries with the client's request channel and listens for <code>agentSdk.chunk</code> notifications on the client's [VSCodeBridgeClient.notifications] stream.
                     </p>
                     <p>
-                      NOTE: end-to-end delivery of `agentSdk.chunk` over the CLI socket also requires the `tom_vscode_bridge` CLI server to relay extension notifications to the connected client (today it only relays `log`). That relay is tracked as a completion step for this todo; this class is the correct client half.
+                      NOTE: end-to-end delivery of <code>agentSdk.chunk</code> over the CLI socket also requires the <code>tom_vscode_bridge</code>
+                       CLI server to relay extension notifications to the connected client (today it only relays <code>log</code>). That relay is tracked as a completion step for this todo; this class is the correct client half.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1537,13 +1572,13 @@
                       <div class="api-member-head"><code class="api-signature">final Map&lt;String, AgentSdkToolRegistry&gt; _toolRegistries</code></div>
                       <div class="api-doc">
                         <p>
-                          Per-stream tool registries, routed to by an incoming `agentSdk.toolCall`'s `streamId`. One method-keyed request handler serves every concurrent query.
+                          Per-stream tool registries, routed to by an incoming <code>agentSdk.toolCall</code>'s <code>streamId</code>. One method-keyed request handler serves every concurrent query.
                         </p>
                       </div>
                     </div>
                     <div id="VSCodeBridgeAgentSdkTransport._toolHandlerRegistered" class="api-member">
                       <div class="api-member-head"><code class="api-signature">bool _toolHandlerRegistered</code></div>
-                      <div class="api-doc"><p>Whether the single `agentSdk.toolCall` request handler is installed.</p></div>
+                      <div class="api-doc"><p>Whether the single <code>agentSdk.toolCall</code> request handler is installed.</p></div>
                     </div>
                     <div id="VSCodeBridgeAgentSdkTransport._canUseToolHandlers" class="api-member">
                       <div class="api-member-head">
@@ -1553,13 +1588,14 @@
                       </div>
                       <div class="api-doc">
                         <p>
-                          Per-stream `canUseTool` callbacks, routed to by an incoming `agentSdk.canUseTool` request's `streamId`. One method-keyed handler serves every concurrent query.
+                          Per-stream <code>canUseTool</code> callbacks, routed to by an incoming <code>agentSdk.canUseTool</code>
+                           request's <code>streamId</code>. One method-keyed handler serves every concurrent query.
                         </p>
                       </div>
                     </div>
                     <div id="VSCodeBridgeAgentSdkTransport._canUseToolHandlerRegistered" class="api-member">
                       <div class="api-member-head"><code class="api-signature">bool _canUseToolHandlerRegistered</code></div>
-                      <div class="api-doc"><p>Whether the single `agentSdk.canUseTool` request handler is installed.</p></div>
+                      <div class="api-doc"><p>Whether the single <code>agentSdk.canUseTool</code> request handler is installed.</p></div>
                     </div>
                     <div id="VSCodeBridgeAgentSdkTransport.chunks" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Stream&lt;Map&lt;String, dynamic&gt;&gt; chunks</code></div>
@@ -1595,7 +1631,9 @@
                       <div class="api-member-head">
                         <code class="api-signature">Future&lt;Object?&gt; _dispatchToolCall(Map&lt;String, dynamic&gt; params)</code>
                       </div>
-                      <div class="api-doc"><p>Routes an incoming `agentSdk.toolCall` to the registry for its `streamId`.</p></div>
+                      <div class="api-doc">
+                        <p>Routes an incoming <code>agentSdk.toolCall</code> to the registry for its <code>streamId</code>.</p>
+                      </div>
                     </div>
                     <div id="VSCodeBridgeAgentSdkTransport.registerCanUseTool" class="api-member">
                       <div class="api-member-head">
@@ -1615,7 +1653,9 @@
                       <div class="api-member-head">
                         <code class="api-signature">Future&lt;Object?&gt; _dispatchCanUseTool(Map&lt;String, dynamic&gt; params)</code>
                       </div>
-                      <div class="api-doc"><p>Routes an incoming `agentSdk.canUseTool` to the callback for its `streamId`.</p></div>
+                      <div class="api-doc">
+                        <p>Routes an incoming <code>agentSdk.canUseTool</code> to the callback for its <code>streamId</code>.</p>
+                      </div>
                     </div>
                   </div>
                 </section>

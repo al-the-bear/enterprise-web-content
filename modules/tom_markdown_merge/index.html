@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1302,7 +1322,7 @@
           <div class="dhead" style="margin-top: 24px">
             <a class="back" href="/components/basics">← Basics</a>
             <div style="margin-top: 12px">
-              <span style="display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap"><span class="badge b-ns"><span class="d"></span>Not started</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">role: extension</span></span>
+              <span style="display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap"><span class="badge b-ns"><span class="d"></span>Not started</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">role: extension</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">license: BSD-3-Clause</span></span>
             </div>
             <h2>tom_markdown_merge</h2>
             <div class="mono" style="color: #9FB6C9">tom_markdown_merge · v1.0.0</div>
@@ -1311,6 +1331,7 @@
             </p>
             <div style="margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap">
               <a class="btn btn-ghost" target="_blank" rel="noopener noreferrer" href="https://github.com/al-the-bear/tom_basics">View repository →</a>
+              <a class="btn btn-ghost" href="/modules/tom_markdown_merge#license">See License</a>
             </div>
           </div>
           <div class="statgrid">
@@ -1326,18 +1347,7 @@
             <div>
               <div class="panel">
                 <h3>Overview</h3>
-                <p>
-                  `tom_markdown_merge` solves the problem of regenerating Markdown that also
-                  contains hand-written text. A document is split into insert-marker regions
-                  delimited by HTML comments: managed regions the generator may refresh,
-                  override regions the author owns and that are never rewritten, and
-                  free text preserved verbatim in document order.
-                  
-                  It is built on `tom_doc_specs`' insert-marker engine rather than a custom
-                  parser, so parsing stays AST-based and shared with the rest of the Tom
-                  toolchain. This merge machinery underpins the framework's managed-then-
-                  curated content fields.
-                </p>
+                <p>From the module readme.md file:</p>
                 <h4 style="font-size: 1rem; margin-top: 18px">What it enables</h4>
                 <p style="margin: 0">Enables Refreshable Markdown regions, Author-owned override regions, Generator-safe content merge.</p>
               </div>
@@ -1361,6 +1371,15 @@
                     <span class="muted linkpath">README.md</span>
                   </div>
                 </div>
+                <div class="licdocrow">
+                  <div class="linkrow">
+                    <span class="ic">📜</span>
+                    <div class="linkmeta">
+                      <a class="linkname" href="/docs?module=tom_markdown_merge&amp;path=LICENSE">license.md</a>
+                      <span class="muted linkpath">LICENSE</span>
+                    </div>
+                  </div>
+                </div>
               </div>
               <div class="panel">
                 <h3 style="font-size: 1.05rem">API</h3>
@@ -1377,74 +1396,382 @@
           </div>
           <section class="section repodoc">
             <div class="pageprose">
-              <h1>tom_markdown_merge</h1>
+              <h1>Tom Markdown Merge</h1>
               <p>
-                Non-destructive **Markdown region merge**: let a generator refresh designated regions of a Markdown file on every run *without clobbering hand-authored prose*. Built on `tom_doc_specs`' insert-marker engine (`InsertMarkerParser`/`InsertMarkerProcessor`) rather than a hand-written parser, so parsing stays AST-based and is shared with the rest of the Tom toolchain.
+                &gt; Part of the <strong>Tom framework</strong> by al-the-bear. &gt; © 2024–2026 Peter Nicolai Alexis Kyaw — BSD-3-Clause, see 
+                <a href="https://github.com/al-the-bear/tom_basics/blob/main/tom_markdown_merge/LICENSE">LICENSE</a>.
               </p>
-              <h2>The model</h2>
               <p>
-                A Markdown document is tokenised into **insert-marker regions** delimited by HTML comments (invisible in any Markdown preview). Each region carries a *variable*; this package gives the variable a meaning via a prefix:
+                Non-destructive Markdown region merge (managed / override / preserved free-text) built on <code>tom_doc_specs</code>' insert-marker engine. Lets a generator refresh designated regions of a Markdown file without clobbering hand-authored prose.
               </p>
+              <p>---</p>
+              <h2>Overview</h2>
+              <p>
+                When a code generator writes Markdown — a README, a status page, an API index — it faces a recurring problem: 
+                <strong>how do you refresh the generated parts without destroying the parts a human edited?</strong> Regenerating the whole file throws away hand-written prose; never regenerating leaves the file stale.
+              </p>
+              <p>
+                <code>tom_markdown_merge</code> solves this with <strong>marked regions</strong>. The generator wraps the content it owns in an 
+                <em>insert marker</em> (an HTML comment, invisible in any Markdown preview); on the next run it refreshes only those regions and preserves everything else verbatim — in document order. A single class, 
+                <a href="#markdownmerge"><code>MarkdownMerge</code></a>, gives you:
+              </p>
+              <ul>
+                <li><strong><code>merge</code></strong> — refresh the regions a generator currently owns, leaving author</li>
+              </ul>
+              <p>
+                text, override regions, and foreign markers untouched. - <strong><code>flatten</code></strong> — strip the marker comments to produce the 
+                <em>display form</em> a reader should see. - <strong>Region inspection and block builders</strong> — discover the keys in a document and emit fresh marker blocks.
+              </p>
+              <p>The four content categories the merge distinguishes:</p>
               <table class="mdtable">
-                <thead><tr><th>Region</th><th>Marker</th><th>Behaviour on merge</th></tr></thead>
+                <thead><tr><th>Category</th><th>Marker</th><th>On <code>merge</code></th></tr></thead>
                 <tbody>
                   <tr>
-                    <td>**Managed**</td>
-                    <td>`&lt;!--$insert:tom.managed.&lt;key&gt;--&gt;` … `&lt;!--$end-insert--&gt;`</td>
-                    <td>The generator **may refresh** the content when it owns `&lt;key&gt;`.</td>
+                    <td><strong>Managed</strong></td>
+                    <td><code>&lt;!--$insert:tom.managed.&lt;key&gt;--&gt;</code></td>
+                    <td>Refreshed when the generator owns <code>&lt;key&gt;</code></td>
                   </tr>
                   <tr>
-                    <td>**Override**</td>
-                    <td>`&lt;!--$insert:tom.override.&lt;key&gt;--&gt;` … `&lt;!--$end-insert--&gt;`</td>
-                    <td>Author-owned. **Never rewritten**; also *suppresses* a managed region for the same key.</td>
+                    <td><strong>Override</strong></td>
+                    <td><code>&lt;!--$insert:tom.override.&lt;key&gt;--&gt;</code></td>
+                    <td>Never touched; <strong>wins</strong> over a managed region of the same key</td>
                   </tr>
                   <tr>
-                    <td>Free text</td>
-                    <td>(anything outside a region)</td>
-                    <td>**Preserved verbatim**, in document order — prepend or append freely.</td>
+                    <td><strong>Foreign</strong></td>
+                    <td><code>&lt;!--$insert:&lt;other&gt;--&gt;</code></td>
+                    <td>Left untouched (belongs to a different tool)</td>
                   </tr>
                   <tr>
-                    <td>Foreign</td>
-                    <td>any other `$insert:` variable</td>
-                    <td>Left untouched (not owned by this merge).</td>
+                    <td><strong>Free text</strong></td>
+                    <td><em>(no marker)</em></td>
+                    <td>Preserved verbatim, in order</td>
                   </tr>
                 </tbody>
               </table>
               <p>
-                &gt; **Marker syntax note.** These markers reuse the existing &gt; `tom_doc_specs` insert-marker grammar (`&lt;!--$insert:VAR--&gt;` / &gt; `&lt;!--$end-insert--&gt;`, variable `[a-zA-Z][a-zA-Z0-9_.]+`). The behaviour &gt; (managed-refresh / override-replace / free-text-preserve) is encoded in the &gt; `tom.managed.` / `tom.override.` variable prefix. This is the reconciled form &gt; of the `@tom:managed` / `@tom:override` concept from the website spec §6.2: &gt; the engine could not parse the `@tom:` spelling, so the variable prefix &gt; carries the same intent.
+                The merge is built on <code>tom_doc_specs</code>' <code>InsertMarkerParser</code>/<code>InsertMarkerProcessor</code>
+                 rather than a hand-written Markdown parser, so marker grammar and edge cases (nested/unclosed markers) are handled by the shared engine.
               </p>
-              <h2>Usage</h2>
+              <p>
+                &gt; <strong>Marker spelling.</strong> The behaviour (managed-refresh / override-replace / &gt; free-text-preserve) is encoded in the 
+                <code>tom.managed.</code> / <code>tom.override.</code> &gt; <em>variable prefix</em> on the existing insert-marker grammar &gt; (<code>&lt;!--$insert:VAR--&gt;</code>
+                 / <code>&lt;!--$end-insert--&gt;</code>, variable <code>[a-zA-Z0-9_.]</code>). This &gt; is the reconciled form of the 
+                <code>@tom:managed</code> / <code>@tom:override</code> concept from &gt; the website spec §6.2: the shared engine could not parse the 
+                <code>@tom:</code> spelling, &gt; so the variable prefix carries the same intent.
+              </p>
+              <p>
+                &gt; <strong>Region-aware, not headline-aware.</strong> This package merges <em>marked regions</em>. If &gt; you need to shift Markdown 
+                <em>headline levels</em> when concatenating documents, &gt; that is a separate concern — see <a href="#related-tooling">Related tooling</a>.
+              </p>
+              <p>---</p>
+              <h2>Installation</h2>
+              <p>
+                This is a <strong>workspace-internal</strong> package (<code>publish_to: none</code>); it is consumed by path, not from pub.dev:
+              </p>
+              <pre><code>dependencies:
+  tom_markdown_merge:
+    path: ../../basics/tom_markdown_merge</code></pre>
+              <p>
+                It depends (by path) on <a href="../../ai_build/tom_doc_specs/"><code>tom_doc_specs</code></a>, which provides the insert-marker engine. Requires the Dart SDK 
+                <code>^3.10.4</code>. Pure Dart — no Flutter, no I/O of its own (you read and write the files).
+              </p>
+              <p>---</p>
+              <h2>Features</h2>
+              <table class="mdtable">
+                <thead><tr><th>Capability</th><th>API</th><th>Notes</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>Refresh managed regions</td>
+                    <td><code>merge(current, generated)</code></td>
+                    <td><code>generated</code> is <code>key → fresh prose</code></td>
+                  </tr>
+                  <tr>
+                    <td>Produce display form</td>
+                    <td><code>flatten(markdown)</code></td>
+                    <td>Strips marker comments; override wins</td>
+                  </tr>
+                  <tr>
+                    <td>List managed keys</td>
+                    <td><code>managedKeys(markdown)</code></td>
+                    <td><code>Set&lt;String&gt;</code> of owned keys</td>
+                  </tr>
+                  <tr>
+                    <td>List override keys</td>
+                    <td><code>overrideKeys(markdown)</code></td>
+                    <td>Generator should suppress output for these</td>
+                  </tr>
+                  <tr>
+                    <td>Build a managed block</td>
+                    <td><code>managedBlock(key, content)</code></td>
+                    <td>Emits a fresh <code>tom.managed.&lt;key&gt;</code> region</td>
+                  </tr>
+                  <tr>
+                    <td>Build an override block</td>
+                    <td><code>overrideBlock(key, content)</code></td>
+                    <td>Emits a fresh <code>tom.override.&lt;key&gt;</code> region</td>
+                  </tr>
+                  <tr>
+                    <td>Marker prefixes</td>
+                    <td><code>managedPrefix</code>, <code>overridePrefix</code></td>
+                    <td><code>tom.managed.</code> / <code>tom.override.</code> constants</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>---</p>
+              <h2>Quick start</h2>
+              <p>Refresh a generated region while keeping the author's notes:</p>
               <pre><code>import 'package:tom_markdown_merge/tom_markdown_merge.dart';
 
-const merge = MarkdownMerge();
+void main() {
+  const merge = MarkdownMerge();
 
-// Refresh managed regions the generator currently owns:
-final updated = merge.merge(currentMarkdown, {
-  'overview': 'freshly generated overview prose',
-  'summary': 'freshly generated summary',
-});
+  const doc = '''
+# My Component
 
-// Inspect which keys a document declares:
-final managed = merge.managedKeys(currentMarkdown);   // Set&lt;String&gt;
-final overridden = merge.overrideKeys(currentMarkdown); // a generator should
-                                                        // skip these keys
+&lt;!--\$insert:tom.managed.overview--&gt;
+Old generated overview.
+&lt;!--\$end-insert--&gt;
 
-// Emit a fresh block (e.g. on first generation):
-final block = merge.managedBlock('overview', 'first draft');</code></pre>
-              <h3>Rules in detail</h3>
-              <ul><li>A **managed** region whose key is in the `generated` map **and is not</li></ul>
+Hand-written notes I never want a generator to touch.''';
+
+  // The generator owns the `overview` key and supplies fresh prose for it.
+  final result = merge.merge(doc, {'overview': 'Fresh generated overview.'});
+  print(result);
+}</code></pre>
+              <p>Output — the managed region is refreshed, everything else is byte-identical:</p>
+              <pre><code># My Component
+
+&lt;!--$insert:tom.managed.overview--&gt;
+Fresh generated overview.
+&lt;!--$end-insert--&gt;
+
+Hand-written notes I never want a generator to touch.</code></pre>
               <p>
-                overridden** has its content replaced. - An **override** region is never touched. If both an override and a managed region exist for the same key, the override wins and the managed region is left as-is (not refreshed). - A managed key **absent** from the `generated` map is left as-is (the generator no longer owns it). - All free text and foreign `$insert:` regions are preserved verbatim. - Malformed markers (nested or unclosed) raise `FormatException` (propagated from the underlying parser) — merges fail loud rather than silently corrupt.
+                The markers stay in the file so it can be re-merged next run. To render it for a reader, <a href="#flatten--display-form"><code>flatten</code></a>
+                 strips them.
               </p>
-              <h3>Constraints</h3>
+              <p>---</p>
+              <h2>Example projects</h2>
+              <table class="mdtable">
+                <thead><tr><th>Example</th><th>What it shows</th></tr></thead>
+                <tbody>
+                  <tr><td><a href="#quick-start">Quick start</a></td><td>Refresh one managed region</td></tr>
+                  <tr><td><a href="#the-merge-contract">The merge contract</a></td><td>All four region categories</td></tr>
+                  <tr>
+                    <td><a href="#flatten--display-form">flatten — display form</a></td>
+                    <td>Strip markers for rendering</td>
+                  </tr>
+                  <tr><td><a href="#override-wins">Override wins</a></td><td>Author content supersedes generated</td></tr>
+                  <tr>
+                    <td><a href="#inspecting--building-regions">Inspecting &amp; building regions</a></td>
+                    <td>Keys + block builders</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_basics/blob/main/tom_markdown_merge/test/markdown_merge_test.dart"><code>test/markdown_merge_test.dart</code></a>
+                    </td>
+                    <td>19 worked cases covering every rule</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>
+                &gt; This package has no standalone <code>example/</code> program — it is a library consumed &gt; by generators. The runnable test suite is the executable reference for every &gt; rule below.
+              </p>
+              <p>---</p>
+              <h2>Usage</h2>
+              <h3>The merge contract</h3>
+              <p>
+                <code>merge(current, generated)</code> walks the document and applies exactly these rules (spec §6.2):
+              </p>
               <ul>
-                <li>Marker keys must match the insert-marker variable grammar (`[a-zA-Z0-9_.]`).</li>
-                <li>Region content must not itself contain insert markers (nesting is rejected).</li>
+                <li>
+                  A <strong>managed region</strong> whose key is in <code>generated</code> and is <em>not</em> overridden →
+                </li>
               </ul>
-              <h2>Testing</h2>
-              <pre><code>dart test</code></pre>
+              <p>
+                content replaced with the generated prose. - A managed key <strong>absent</strong> from <code>generated</code>
+                 → left as-is (the generator no longer owns it). - An <strong>override region</strong> → never touched, and it removes its key from the set the generator may refresh. - 
+                <strong>Free text</strong> and <strong>foreign <code>$insert:</code> regions</strong> → preserved verbatim, in document order. - A document with 
+                <strong>no markers</strong> → returned unchanged. - A <strong>malformed</strong> document (nested or unclosed markers) → throws 
+                <code>FormatException</code> (from the underlying parser). Merges fail loud rather than silently corrupt.
+              </p>
+              <pre><code>// Generator no longer owns 'overview' → region preserved unchanged.
+merge.merge(doc, {'summary': 'unrelated'}); // == doc
+
+// Foreign region (different tool's namespace) → untouched.
+const foreign = '&lt;!--\$insert:chat.lastReply--&gt;\nnot ours\n&lt;!--\$end-insert--&gt;';
+merge.merge(foreign, {'lastReply': 'nope'}); // == foreign</code></pre>
+              <p>
+                Two grammar constraints, enforced by the underlying parser: marker keys must match the insert-marker variable grammar (<code>[a-zA-Z0-9_.]</code>), and region content must not itself contain insert markers (nesting is rejected).
+              </p>
+              <h3><code>flatten</code> — display form</h3>
+              <p>
+                <code>flatten(markdown)</code> is the read-side companion to <code>merge</code>: it removes the <code>&lt;!--$insert:…--&gt;</code>
+                 / <code>&lt;!--$end-insert--&gt;</code> comment lines so only live content and free text remain. <code>merge</code>
+                 keeps markers (so the file can be re-merged); <code>flatten</code> strips them (so the content can be rendered).
+              </p>
+              <pre><code>final display = merge.flatten(result);
+print(display);</code></pre>
+              <p>Output:</p>
+              <pre><code># My Component
+
+Fresh generated overview.
+
+Hand-written notes I never want a generator to touch.</code></pre>
+              <h3>Override wins</h3>
+              <p>
+                When both a managed and an override region exist for the same key, the <strong>override wins</strong>
+                 — <code>merge</code> refreshes neither, and <code>flatten</code> drops the managed body so superseded prose is never shown.
+              </p>
+              <pre><code>const current = '''
+&lt;!--\$insert:tom.managed.overview--&gt;
+generated
+&lt;!--\$end-insert--&gt;
+&lt;!--\$insert:tom.override.overview--&gt;
+author-owned
+&lt;!--\$end-insert--&gt;''';
+
+merge.merge(current, {'overview': 'new'}); // == current (neither refreshed)
+
+merge.flatten(current); // → 'author-owned' only; 'generated' is dropped</code></pre>
+              <h3>Inspecting &amp; building regions</h3>
+              <p>Discover what a document declares, and emit fresh marker blocks:</p>
+              <pre><code>merge.managedKeys(mixed);  // {a}
+merge.overrideKeys(mixed); // {b}   (foreign regions report under neither)
+
+merge.managedBlock('overview', 'first draft');</code></pre>
+              <p><code>managedBlock</code> output:</p>
+              <pre><code>&lt;!--$insert:tom.managed.overview--&gt;
+first draft
+&lt;!--$end-insert--&gt;</code></pre>
+              <p>
+                <code>overrideBlock('body', 'mine')</code> produces the same shape with the <code>tom.override.body</code>
+                 variable. Empty content yields an empty body — <code>managedBlock('overview', '')</code> is exactly:
+              </p>
+              <pre><code>&lt;!--$insert:tom.managed.overview--&gt;
+&lt;!--$end-insert--&gt;</code></pre>
+              <p>
+                A <code>managedBlock</code> round-trips through <code>merge</code>: build it once, then refresh its key on every later run.
+              </p>
+              <p>---</p>
+              <h2>Architecture</h2>
+              <pre><code>package:tom_markdown_merge/tom_markdown_merge.dart
+│
+└── MarkdownMerge                         (the entire public surface)
+    ├── merge(current, generated)         refresh owned managed regions
+    ├── flatten(markdown)                 strip markers → display form
+    ├── managedKeys / overrideKeys        region inspection
+    ├── managedBlock / overrideBlock      emit fresh marker blocks
+    └── managedPrefix / overridePrefix    'tom.managed.' / 'tom.override.'
+            │
+            └── delegates marker parsing/processing to
+                package:tom_doc_specs
+                ├── InsertMarkerParser     tokenises $insert: regions
+                ├── InsertMarkerProcessor  rewrites region bodies
+                └── InsertMarker           start/end line + variable</code></pre>
+              <table class="mdtable">
+                <thead><tr><th>Type / member</th><th>Role</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><code>MarkdownMerge</code></td>
+                    <td>The whole API — a small, stateless, <code>const</code>-constructible value</td>
+                  </tr>
+                  <tr><td><code>merge</code></td><td>Non-destructive refresh of managed regions</td></tr>
+                  <tr><td><code>flatten</code></td><td>Marker-stripping display projection</td></tr>
+                  <tr>
+                    <td><code>managedKeys</code> / <code>overrideKeys</code></td>
+                    <td>Report a document's declared region keys</td>
+                  </tr>
+                  <tr>
+                    <td><code>managedBlock</code> / <code>overrideBlock</code></td>
+                    <td>Construct fresh marker blocks</td>
+                  </tr>
+                  <tr>
+                    <td><code>managedPrefix</code> / <code>overridePrefix</code></td>
+                    <td>The <code>tom.managed.</code> / <code>tom.override.</code> variable prefixes</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>
+                <code>MarkdownMerge</code> holds no state and does no I/O: you pass strings and get strings back. Reading and writing the files is the caller's concern.
+              </p>
+              <p>---</p>
+              <h2>Related tooling</h2>
+              <ul>
+                <li>
+                  <strong><a href="../../ai_build/tom_doc_specs/"><code>tom_doc_specs</code></a></strong> — the insert-marker engine
+                </li>
+              </ul>
+              <p>
+                (<code>InsertMarkerParser</code> / <code>InsertMarkerProcessor</code>) this package builds on, plus the wider DocSpecs document-schema toolkit. Reach for it directly when you need raw marker processing without the managed/override merge semantics. - 
+                <strong><code>_bin/md_headline_indent.sh</code></strong> (workspace root) — a <em>different</em> Markdown concern: it shifts headline levels (<code>#</code>
+                 → <code>##</code>, …) when <strong>concatenating</strong> documents. Use it when you assemble several Markdown files into one and need to re-nest their headings; use 
+                <code>tom_markdown_merge</code> when you need to <strong>refresh regions in place</strong> without disturbing author text. They compose cleanly — merge the regions first, concatenate-and-indent second.
+              </p>
+              <p>---</p>
+              <h2>Ecosystem</h2>
+              <p>
+                <code>tom_markdown_merge</code> is one of the foundational packages under <a href="https://github.com/al-the-bear/tom_basics/tree/main"><code>tom_ai/basics/</code></a>. All 
+                <code>tom_ai/basics/</code> packages share a single repository, <a href="https://github.com/al-the-bear/tom_basics"><code>tom_basics</code></a>. This package is consumed by Tom's documentation generators, which own the managed regions of the READMEs and doc pages they produce.
+              </p>
+              <p>---</p>
+              <h2>Further documentation</h2>
+              <ul>
+                <li>
+                  <a href="https://github.com/al-the-bear/tom_basics/blob/main/tom_markdown_merge/LICENSE">LICENSE</a> — BSD-3-Clause licence text.
+                </li>
+                <li>
+                  <a href="https://github.com/al-the-bear/tom_basics/blob/main/tom_markdown_merge/test/markdown_merge_test.dart"><code>test/markdown_merge_test.dart</code></a>
+                   — 19 worked
+                </li>
+              </ul>
+              <p>
+                cases that double as the executable specification. - <a href="../../ai_build/tom_doc_specs/"><code>tom_doc_specs</code></a>
+                 — the insert-marker engine and DocSpecs specification. - Source library docs — <code>MarkdownMerge</code>
+                 and the prefix constants carry dartdoc with the full rule set.
+              </p>
+              <p>---</p>
+              <h2>Status</h2>
+              <p>
+                Stable (<code>1.0.0</code>). The public surface is a single stateless class; all 19 tests pass and <code>dart analyze</code>
+                 is clean. Workspace-internal (<code>publish_to: none</code>), consumed by path.
+              </p>
             </div>
           </section>
+          <details class="licbox">
+            <summary>License</summary>
+            <pre id="license" class="lictext">BSD 3-Clause License
+
+Copyright (c) 2024-2026, Peter Nicolai Alexis Kyaw
+Find me on LinkedIn under Alexis Kyaw
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its
+   contributors may be used to endorse or promote products derived from
+   this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+</pre>
+          </details>
         </div>
       </main>
       <footer class="site-footer">

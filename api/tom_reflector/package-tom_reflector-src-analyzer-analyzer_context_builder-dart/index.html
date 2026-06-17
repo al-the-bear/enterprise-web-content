@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1337,10 +1357,39 @@
                       <div class="api-member-head"><code class="api-signature">static String? _resolveSdkPath()</code></div>
                       <div class="api-doc">
                         <p>
-                          Locates the Dart SDK directory at runtime, or `null` to let the analyzer fall back to its default (executable-relative) detection.
+                          Locates the Dart SDK directory at runtime, or <code>null</code> to let the analyzer fall back to its default (executable-relative) detection.
                         </p>
                         <p>
-                          Tries, in order: the `DART_SDK` environment variable, then the `dart` executable on `PATH`. From the resolved `dart` path two SDK layouts are considered: the standalone SDK (`&lt;sdk&gt;/bin/dart`, so the SDK is the grandparent), and the Flutter-bundled SDK (`&lt;flutter&gt;/bin/dart` is a wrapper whose real SDK lives at `&lt;flutter&gt;/bin/cache/dart-sdk`). Only a directory that actually looks like an SDK is returned.
+                          This mirrors <code>resolveDartSdkPath</code> in <code>tom_analyzer_shared</code> (<code>lib/src/sdk/dart_sdk_locator.dart</code>), kept as an independent copy so 
+                          <code>tom_reflector</code> does not pull in the analyzer-summary dependency tree for a single utility. Keep the two in sync if either gains a new heuristic.
+                        </p>
+                        <p>
+                          Resolution order (first match wins): 1. <code>DART_SDK</code> environment variable. 2. <code>DART_HOME</code>
+                           environment variable. 3. [io.Platform.resolvedExecutable] — correct under <code>dart run</code> (it points at the 
+                          <code>dart</code> binary, so the SDK is its grandparent), harmlessly skipped for AOT-compiled binaries (it points at the tool itself). 4. The 
+                          <code>dart</code> executable on <code>PATH</code> (<code>which</code>/<code>where</code>), symlinks resolved — standalone 
+                          <code>&lt;sdk&gt;/bin/dart</code> or the Flutter wrapper <code>&lt;flutter&gt;/bin/dart</code> whose real SDK is 
+                          <code>&lt;flutter&gt;/bin/cache/dart-sdk</code>. 5. The <code>flutter</code> executable on <code>PATH</code>
+                           → <code>&lt;flutter&gt;/bin/cache/dart-sdk</code>.
+                        </p>
+                        <p>
+                          Every candidate is validated with [_looksLikeSdk], so a stale environment variable or an unrelated <code>dart</code>
+                           on <code>PATH</code> never yields a bogus path.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="AnalyzerContextBuilder._firstOnPath" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String? _firstOnPath(String command)</code></div>
+                      <div class="api-doc"><p>Returns the first match for [command] on <code>PATH</code>, or <code>null</code>.</p></div>
+                    </div>
+                    <div id="AnalyzerContextBuilder._sdkFromDartExecutable" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String? _sdkFromDartExecutable(String dartPath)</code></div>
+                      <div class="api-doc">
+                        <p>Derives the Dart SDK root from a path to a <code>dart</code> executable.</p>
+                        <p>
+                          Handles the standalone SDK (<code>&lt;sdk&gt;/bin/dart</code>, SDK is the grandparent) and the Flutter wrapper (<code>&lt;flutter&gt;/bin/dart</code>, real SDK at 
+                          <code>&lt;flutter&gt;/bin/cache/dart-sdk</code>). Symlinks are resolved first. Returns <code>null</code>
+                           when no SDK-shaped directory is found.
                         </p>
                       </div>
                     </div>

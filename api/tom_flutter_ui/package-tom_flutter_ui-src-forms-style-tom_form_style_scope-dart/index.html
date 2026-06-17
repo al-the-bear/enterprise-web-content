@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1326,20 +1346,27 @@
                   <code class="api-signature">class TomFormStyleScope extends StatelessWidget</code>
                   <div class="api-doc">
                     <p>
-                      Provides a [TomFormStyle] plus the current available width to descendant fields via an `InheritedWidget`, and optionally wraps its [child] in a [Theme] derived from a [ThemeData] / [TomThemeSpec] / resources.
+                      Provides a [TomFormStyle] plus the current available width to descendant fields via an <code>InheritedWidget</code>, and optionally wraps its [child] in a [Theme] derived from a [ThemeData] / [TomThemeSpec] / resources.
                     </p>
                     <h1>Style resolution (precedence low → high)</h1>
                     <p>
-                      1. Programmatic [style] 2. Programmatic [styleBpOverrides] — highest `minWidth &lt;= width` wins 3. Resource base at `{path}.*` (when [tomId] is set) 4. Resource breakpoint at `{path}.@bp.{minWidth|name}.*`
+                      1. Programmatic [style] 2. Programmatic [styleBpOverrides] — highest <code>minWidth &lt;= width</code>
+                       wins 3. Resource base at <code>{path}.*</code> (when [tomId] is set) 4. Resource breakpoint at <code>{path}.@bp.{minWidth|name}.*</code>
                     </p>
                     <h1>Theme resolution (precedence low → high)</h1>
                     <p>
-                      1. Programmatic [theme] 2. Programmatic [themeBpOverrides] 3. [themeSpec] → `toThemeData(themeSpecBase)` where `themeSpecBase` is [themeSpecTheme] (if set) or the **ambient** `Theme.of(context)` — so unset spec fields inherit the app's current component themes, theme extensions, etc. 4. [themeSpecBpOverrides] 5. Resource `{path}.theme.*` → `toThemeData(themeSpecBase)` 6. Resource `{path}.@bp.{key}.theme.*` → `toThemeData(themeSpecBase)`
+                      1. Programmatic [theme] 2. Programmatic [themeBpOverrides] 3. [themeSpec] → <code>toThemeData(themeSpecBase)</code>
+                       where <code>themeSpecBase</code> is [themeSpecTheme] (if set) or the <strong>ambient</strong> <code>Theme.of(context)</code>
+                       — so unset spec fields inherit the app's current component themes, theme extensions, etc. 4. [themeSpecBpOverrides] 5. Resource 
+                      <code>{path}.theme.*</code> → <code>toThemeData(themeSpecBase)</code> 6. Resource <code>{path}.@bp.{key}.theme.*</code>
+                       → <code>toThemeData(themeSpecBase)</code>
                     </p>
-                    <p>If nothing produces a theme, the child is returned without a `Theme` wrapper (ambient wins).</p>
+                    <p>
+                      If nothing produces a theme, the child is returned without a <code>Theme</code> wrapper (ambient wins).
+                    </p>
                     <h1>Caching</h1>
                     <p>
-                      Resource parsing happens **once per (provider, tomId+scope)** via a static cache. Rebuilds of this widget are pure apply-to-base calls with no resource I/O. Call [invalidateResourceCache] after mutating the resource map in place.
+                      Resource parsing happens <strong>once per (provider, tomId+scope)</strong> via a static cache. Rebuilds of this widget are pure apply-to-base calls with no resource I/O. Call [invalidateResourceCache] after mutating the resource map in place.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1358,7 +1385,7 @@
                       <div class="api-member-head"><code class="api-signature">final String? tomId</code></div>
                       <div class="api-doc">
                         <p>
-                          Optional Tom identifier. When non-null, the scope reads overrides from resources rooted at `TomCtr.resolvePath(tomId, scope)`.
+                          Optional Tom identifier. When non-null, the scope reads overrides from resources rooted at <code>TomCtr.resolvePath(tomId, scope)</code>.
                         </p>
                       </div>
                     </div>
@@ -1370,10 +1397,10 @@
                       <div class="api-member-head"><code class="api-signature">final TomFormStyle? style</code></div>
                       <div class="api-doc">
                         <p>
-                          Programmatic base style. When `null`, the scope still wraps the subtree so that theme / themeSpec / breakpoint overrides reach descendants — form-style defaults fall through to the nearest outer scope (or to [TomFormStyle.material3] when none exists).
+                          Programmatic base style. When <code>null</code>, the scope still wraps the subtree so that theme / themeSpec / breakpoint overrides reach descendants — form-style defaults fall through to the nearest outer scope (or to [TomFormStyle.material3] when none exists).
                         </p>
                         <p>
-                          Passing `null` is the intended way to use this widget purely as a breakpoint-aware theme/themeData injector without re-declaring a form style.
+                          Passing <code>null</code> is the intended way to use this widget purely as a breakpoint-aware theme/themeData injector without re-declaring a form style.
                         </p>
                       </div>
                     </div>
@@ -1393,7 +1420,8 @@
                       <div class="api-member-head"><code class="api-signature">final TomThemeSpec? themeSpec</code></div>
                       <div class="api-doc">
                         <p>
-                          Programmatic [TomThemeSpec]. Its `toThemeData` is called with [themeSpecTheme] (if set) or the ambient `Theme.of(context)` as the base — so unset fields inherit upstream component themes / extensions.
+                          Programmatic [TomThemeSpec]. Its <code>toThemeData</code> is called with [themeSpecTheme] (if set) or the ambient 
+                          <code>Theme.of(context)</code> as the base — so unset fields inherit upstream component themes / extensions.
                         </p>
                       </div>
                     </div>
@@ -1405,7 +1433,8 @@
                       <div class="api-member-head"><code class="api-signature">final ThemeData? themeSpecTheme</code></div>
                       <div class="api-doc">
                         <p>
-                          Base [ThemeData] handed to every `TomThemeSpec.toThemeData(base)` call (programmatic or resource-driven). When null, the ambient `Theme.of(context)` is used — so by default a spec patches the app's current theme rather than reinventing one from scratch.
+                          Base [ThemeData] handed to every <code>TomThemeSpec.toThemeData(base)</code> call (programmatic or resource-driven). When null, the ambient 
+                          <code>Theme.of(context)</code> is used — so by default a spec patches the app's current theme rather than reinventing one from scratch.
                         </p>
                       </div>
                     </div>
@@ -1487,7 +1516,7 @@
                 <section id="_OverlayBorder" class="api-declaration">
                   <h3 class="api-decl-title">class _OverlayBorder</h3>
                   <code class="api-signature">class _OverlayBorder</code>
-                  <div class="api-doc"><p>An InputBorder where the stroke color may be a `cs.*` token.</p></div>
+                  <div class="api-doc"><p>An InputBorder where the stroke color may be a <code>cs.*</code> token.</p></div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="_OverlayBorder.new" class="api-member">
@@ -1521,7 +1550,7 @@
                 <section id="_OverlayTextStyle" class="api-declaration">
                   <h3 class="api-decl-title">class _OverlayTextStyle</h3>
                   <code class="api-signature">class _OverlayTextStyle</code>
-                  <div class="api-doc"><p>A TextStyle where the color may be a `cs.*` token resolved at runtime.</p></div>
+                  <div class="api-doc"><p>A TextStyle where the color may be a <code>cs.*</code> token resolved at runtime.</p></div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="_OverlayTextStyle.new" class="api-member">
@@ -1675,7 +1704,8 @@
                       <div class="api-member-head"><code class="api-signature">TomFormStyle apply(TomFormStyle base, ColorScheme cs)</code></div>
                       <div class="api-doc">
                         <p>
-                          Applies the overlay to [base], resolving any `cs.*` color tokens against [cs]. Pass [cs] from `Theme.of(context).colorScheme`.
+                          Applies the overlay to [base], resolving any <code>cs.*</code> color tokens against [cs]. Pass [cs] from 
+                          <code>Theme.of(context).colorScheme</code>.
                         </p>
                       </div>
                     </div>
@@ -1686,7 +1716,7 @@
                       <div class="api-member-head"><code class="api-signature">static _StyleOverlay fromResources(String block)</code></div>
                       <div class="api-doc">
                         <p>
-                          Parses all style keys from [block], storing raw color strings so `cs.*` tokens can be resolved against a live [ColorScheme] at build time. Non-token colors (hex, named) are also stored as raw strings and resolved at the same time via [TomUIColors].
+                          Parses all style keys from [block], storing raw color strings so <code>cs.*</code> tokens can be resolved against a live [ColorScheme] at build time. Non-token colors (hex, named) are also stored as raw strings and resolved at the same time via [TomUIColors].
                         </p>
                       </div>
                     </div>

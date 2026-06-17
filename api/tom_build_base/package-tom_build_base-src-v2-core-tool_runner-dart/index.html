@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1324,7 +1344,7 @@
                     <div id="ItemResult.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          const ItemResult.new({required String path, required String name, String? commandName, bool success = true, String? message, String? error})
+                          const ItemResult.new({required String path, required String name, String? commandName, bool success = true, bool skipped = false, String? message, String? error})
                         </code>
                       </div>
                     </div>
@@ -1333,6 +1353,18 @@
                         <code class="api-signature">
                           const ItemResult.success({required String path, required String name, String? commandName, String? message})
                         </code>
+                      </div>
+                    </div>
+                    <div id="ItemResult.skipped" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          const ItemResult.skipped({required String path, required String name, String? commandName, String? message})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          A deliberately skipped item — a configured or conditional skip, reported as a (non-failing) success so it does not affect the exit code, but surfaced in the end-of-run summary's skipped section. [message] should explain why the item was skipped.
+                        </p>
                       </div>
                     </div>
                     <div id="ItemResult.failure" class="api-member">
@@ -1360,6 +1392,14 @@
                     <div id="ItemResult.success" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final bool success</code></div>
                       <div class="api-doc"><p>Whether processing succeeded.</p></div>
+                    </div>
+                    <div id="ItemResult.skipped" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final bool skipped</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Whether the item was deliberately skipped (a configured/conditional skip — not a failure). Skipped items are still [success] so they never affect the exit code, but the end-of-run summary lists them separately from items that did real work. See [ToolResult.renderRunSummary].
+                        </p>
+                      </div>
                     </div>
                     <div id="ItemResult.message" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final String? message</code></div>
@@ -1422,6 +1462,25 @@
                       <div class="api-doc"><p>Detailed results per item.</p></div>
                     </div>
                   </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="ToolResult.renderRunSummary" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String renderRunSummary()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Render a consolidated end-of-run summary block shared by every <code>tom_build_base</code>-based tool, so outcomes read uniformly after a long run.
+                        </p>
+                        <p>
+                          The block contains, in order: 1. a <strong>Skipped</strong> section listing items that were deliberately skipped (configured/conditional skips — see [ItemResult.skipped]); 2. either an 
+                          <strong>Errors</strong> section naming every failed item (with a <code>N error(s) in M project(s).</code>
+                           tally) or, when nothing failed, the single line <code>Done. No errors.</code>.
+                        </p>
+                        <p>
+                          Returns an empty string when no items were processed (e.g. <code>--version</code>, <code>--help</code>, or a single-shot command that does no traversal), so callers can print it unconditionally without adding a spurious footer. The returned string has no leading or trailing newline; the caller frames it.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </section>
                 <section id="ToolRunner" class="api-declaration">
                   <h3 class="api-decl-title">class ToolRunner</h3>
@@ -1467,9 +1526,9 @@
                     <div id="ToolRunner._runtimeMacros" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final Map&lt;String, String&gt; _runtimeMacros</code></div>
                       <div class="api-doc">
-                        <p>Runtime-only macros (`$macro`) for this invocation session.</p>
+                        <p>Runtime-only macros (<code>$macro</code>) for this invocation session.</p>
                         <p>
-                          These are persisted to `{workspace_root}/{tool_name}_macros.yaml` so that macros defined in one invocation are visible in subsequent ones.
+                          These are persisted to <code>{workspace_root}/{tool_name}_macros.yaml</code> so that macros defined in one invocation are visible in subsequent ones.
                         </p>
                       </div>
                     </div>
@@ -1553,7 +1612,7 @@
                       <div class="api-doc">
                         <p>Run in nested mode: skip wiring, skip traversal, execute in cwd.</p>
                         <p>
-                          Used when a host tool invokes this tool with `--nested`. The tool runs its command directly in the current working directory without any project traversal or nested tool wiring.
+                          Used when a host tool invokes this tool with <code>--nested</code>. The tool runs its command directly in the current working directory without any project traversal or nested tool wiring.
                         </p>
                       </div>
                     </div>
@@ -1568,9 +1627,9 @@
                         <code class="api-signature">Future&lt;ToolResult&gt; _executeNestedInCwd(CommandExecutor executor, CliArgs cliArgs)</code>
                       </div>
                       <div class="api-doc">
-                        <p>Execute a command executor in nested mode using CWD as context.</p>
+                        <p>Execute a command executor against the current working directory (no traversal).</p>
                         <p>
-                          Creates a [CommandContext] from the current working directory and calls [CommandExecutor.execute] so per-project logic runs correctly. Falls back to [CommandExecutor.executeWithoutTraversal] only if the executor overrides it (i.e., returns non-success when execute is not appropriate).
+                          Used for nested commands that require traversal: the host tool has already traversed to the project directory, so this runs the executor's per-folder [CommandExecutor.execute] logic once, with a [CommandContext] built from the current working directory.
                         </p>
                       </div>
                     </div>
@@ -1579,10 +1638,10 @@
                       <div class="api-doc">
                         <p>Lazy wire nested tools into the effective tool definition.</p>
                         <p>
-                          Merges code-level [ToolDefinition.defaultIncludes] with YAML `nested_tools:` entries, then queries only the needed tools. Updates [_effectiveTool] and [executors] with wired commands.
+                          Merges code-level [ToolDefinition.defaultIncludes] with YAML <code>nested_tools:</code> entries, then queries only the needed tools. Updates [_effectiveTool] and [executors] with wired commands.
                         </p>
                         <p>
-                          Returns `true` if wiring succeeded, `false` if a required binary was missing and execution should be aborted.
+                          Returns <code>true</code> if wiring succeeded, <code>false</code> if a required binary was missing and execution should be aborted.
                         </p>
                       </div>
                     </div>
@@ -1612,7 +1671,7 @@
                       <div class="api-member-head"><code class="api-signature">ToolResult? _checkMasterYamlMissing()</code></div>
                       <div class="api-doc">
                         <p>
-                          Returns an error [ToolResult] when the master yaml cannot be found, or `null` when the file exists and everything is fine.
+                          Returns an error [ToolResult] when the master yaml cannot be found, or <code>null</code> when the file exists and everything is fine.
                         </p>
                       </div>
                     </div>
@@ -1638,18 +1697,18 @@
                       <div class="api-member-head"><code class="api-signature">void _loadPersistedMacros()</code></div>
                       <div class="api-doc">
                         <p>
-                          Loads persisted macros from the `macros:` section of master.yaml into [_runtimeMacros]. A no-op if already loaded this invocation or if the section does not exist.
+                          Loads persisted macros from the <code>macros:</code> section of master.yaml into [_runtimeMacros]. A no-op if already loaded this invocation or if the section does not exist.
                         </p>
                         <p>
-                          Also performs one-time migration from legacy `{tool}_macros.yaml` file: if found, its contents are merged into master.yaml and the file is deleted.
+                          Also performs one-time migration from legacy <code>{tool}_macros.yaml</code> file: if found, its contents are merged into master.yaml and the file is deleted.
                         </p>
                       </div>
                     </div>
                     <div id="ToolRunner._savePersistedMacros" class="api-member">
                       <div class="api-member-head"><code class="api-signature">void _savePersistedMacros()</code></div>
                       <div class="api-doc">
-                        <p>Writes [_runtimeMacros] to the `macros:` section of master.yaml.</p>
-                        <p>If [_runtimeMacros] is empty the `macros:` section is removed.</p>
+                        <p>Writes [_runtimeMacros] to the <code>macros:</code> section of master.yaml.</p>
+                        <p>If [_runtimeMacros] is empty the <code>macros:</code> section is removed.</p>
                       </div>
                     </div>
                     <div id="ToolRunner._parseModeFlag" class="api-member">
@@ -1658,7 +1717,9 @@
                       </div>
                       <div class="api-doc">
                         <p>Parse mode flag from CLI args.</p>
-                        <p>Supports `-m MODE` or `--mode MODE` flags. Returns (mode, remaining args) or (null, original args).</p>
+                        <p>
+                          Supports <code>-m MODE</code> or <code>--mode MODE</code> flags. Returns (mode, remaining args) or (null, original args).
+                        </p>
                       </div>
                     </div>
                     <div id="ToolRunner._handlePersistentDefineAdd" class="api-member">
@@ -1680,7 +1741,7 @@
                       <div class="api-doc">
                         <p>Parses a name=value pair from a list of arguments.</p>
                         <p>
-                          The first argument should contain `name=value`, with subsequent arguments being concatenated as part of the value.
+                          The first argument should contain <code>name=value</code>, with subsequent arguments being concatenated as part of the value.
                         </p>
                       </div>
                     </div>
@@ -1717,7 +1778,7 @@
                       <div class="api-doc">
                         <p>Load defines from the master yaml, merging default + mode-specific.</p>
                         <p>
-                          Reads the tool section's `defines:` key, then overlays any `{MODE}-defines:` sections for the given [modes]. Returns an empty map if no master yaml or no defines exist.
+                          Reads the tool section's <code>defines:</code> key, then overlays any <code>{MODE}-defines:</code> sections for the given [modes]. Returns an empty map if no master yaml or no defines exist.
                         </p>
                       </div>
                     </div>
@@ -1730,7 +1791,8 @@
                       <div class="api-doc">
                         <p>Load defines for a specific project folder, merged with master defines.</p>
                         <p>
-                          Reads `buildkit.yaml` (or `{tool.name}.yaml`) in [projectPath], extracts `defines:` and `{tool.name}: defines:`, and overlays mode-specific sections. Project defines override [masterDefines].
+                          Reads <code>buildkit.yaml</code> (or <code>{tool.name}.yaml</code>) in [projectPath], extracts <code>defines:</code>
+                           and <code>{tool.name}: defines:</code>, and overlays mode-specific sections. Project defines override [masterDefines].
                         </p>
                       </div>
                     </div>
@@ -1745,7 +1807,7 @@
                         <code class="api-signature">String _resolveDefineString(String input, Map&lt;String, String&gt; defines)</code>
                       </div>
                       <div class="api-doc">
-                        <p>Resolve `@[name]` define placeholders in a string.</p>
+                        <p>Resolve <code>@[name]</code> define placeholders in a string.</p>
                         <p>Unresolved placeholders are left as-is.</p>
                       </div>
                     </div>
@@ -1755,7 +1817,7 @@
                       </div>
                       <div class="api-doc">
                         <p>Resolve defines that reference other defines.</p>
-                        <p>Supports chained references like `@[buildPath]/@[subdir]` with a maximum depth of 10.</p>
+                        <p>Supports chained references like <code>@[buildPath]/@[subdir]</code> with a maximum depth of 10.</p>
                       </div>
                     </div>
                     <div id="ToolRunner._deepToDart" class="api-member">
@@ -1819,14 +1881,15 @@
                     </div>
                     <div id="ToolRunner._definePlaceholderPattern" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static RegExp _definePlaceholderPattern</code></div>
-                      <div class="api-doc"><p>Regex for `@[name]` define placeholders.</p></div>
+                      <div class="api-doc"><p>Regex for <code>@[name]</code> define placeholders.</p></div>
                     </div>
                     <div id="ToolRunner._resolveOutput" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static StringSink _resolveOutput(StringSink? explicit)</code></div>
                       <div class="api-doc">
                         <p>Resolve the output sink.</p>
                         <p>
-                          When running inside a console_markdown zone and no explicit sink is provided, wraps [stdout] in a [ConsoleMarkdownSink] so that `output.writeln()` calls also render markdown.  When an explicit sink is provided (e.g. a test buffer), it is used as-is.
+                          When running inside a console_markdown zone and no explicit sink is provided, wraps [stdout] in a [ConsoleMarkdownSink] so that 
+                          <code>output.writeln()</code> calls also render markdown.  When an explicit sink is provided (e.g. a test buffer), it is used as-is.
                         </p>
                       </div>
                     </div>
@@ -1835,7 +1898,8 @@
                       <div class="api-doc">
                         <p>Normalize legacy/alternative flag forms before parsing.</p>
                         <p>
-                          Converts: - `-version` → `--version` (single-dash long form) - `-help` → `--help` (single-dash long form)
+                          Converts: - <code>-version</code> → <code>--version</code> (single-dash long form) - <code>-help</code>
+                           → <code>--help</code> (single-dash long form)
                         </p>
                       </div>
                     </div>

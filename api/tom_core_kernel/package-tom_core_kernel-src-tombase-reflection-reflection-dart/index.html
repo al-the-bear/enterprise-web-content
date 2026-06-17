@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1363,7 +1383,8 @@ final jsonString = tomReflectionInfo.convertToJsonString(person);</code></pre>
                       <div class="api-doc">
                         <p>Regular expression to extract element types from generic type strings.</p>
                         <p>
-                          Matches the type parameter(s) inside angle brackets, e.g., `List&lt;String&gt;` -&gt; `String`, `Map&lt;String, int&gt;` -&gt; `String, int`.
+                          Matches the type parameter(s) inside angle brackets, e.g., <code>List&lt;String&gt;</code> -&gt; <code>String</code>, 
+                          <code>Map&lt;String, int&gt;</code> -&gt; <code>String, int</code>.
                         </p>
                       </div>
                     </div>
@@ -1375,7 +1396,8 @@ final jsonString = tomReflectionInfo.convertToJsonString(person);</code></pre>
                       <div class="api-doc">
                         <p>Extracts the value type's [ClassMirror] from a Map type annotation.</p>
                         <p>
-                          Given a `Map&lt;K, V&gt;` collection, this method extracts the type parameter `V` and returns its corresponding [ClassMirror].
+                          Given a <code>Map&lt;K, V&gt;</code> collection, this method extracts the type parameter <code>V</code>
+                           and returns its corresponding [ClassMirror].
                         </p>
                         <p>Example:</p>
                         <pre><code>Map&lt;String, Person&gt; people = {};
@@ -1389,7 +1411,8 @@ final valueMirror = tomReflectionInfo.mapValueElementType(people);
                       <div class="api-doc">
                         <p>Extracts the element type's [ClassMirror] from a single-type-parameter collection (e.g., List, Set).</p>
                         <p>
-                          Given a `List&lt;T&gt;` or `Set&lt;T&gt;` collection, this method extracts the type parameter `T` and returns its corresponding [ClassMirror].
+                          Given a <code>List&lt;T&gt;</code> or <code>Set&lt;T&gt;</code> collection, this method extracts the type parameter 
+                          <code>T</code> and returns its corresponding [ClassMirror].
                         </p>
                         <p>Example:</p>
                         <pre><code>List&lt;Person&gt; people = [];
@@ -1405,7 +1428,7 @@ final elementMirror = tomReflectionInfo.singleElementType(people);
                       <div class="api-doc">
                         <p>Finds a [ClassMirror] by type name among annotated classes.</p>
                         <p>
-                          Searches through all classes annotated with `@tomReflector` to find one matching the given [typeName].
+                          Searches through all classes annotated with <code>@tomReflector</code> to find one matching the given [typeName].
                         </p>
                         <p>Throws [TomReflectorException] with the provided [errorKey] and [errorMessage] if not found.</p>
                       </div>
@@ -1479,7 +1502,7 @@ print(person.name); // "John"</code></pre>
                       <div class="api-doc">
                         <p>Creates a new instance of type [T] from JSON data.</p>
                         <p>
-                          This method first attempts to use a `fromJson` constructor if available. If not, it creates an instance using the default constructor and populates fields via [setValues].
+                          This method first attempts to use a <code>fromJson</code> constructor if available. If not, it creates an instance using the default constructor and populates fields via [setValues].
                         </p>
                         <p>Example:</p>
                         <pre><code>final mirror = tomReflector.reflectType(Person) as ClassMirror;
@@ -1494,7 +1517,9 @@ final person = tomReflectionInfo.createInstanceFromJson&lt;Person&gt;(
                       <div class="api-member-head"><code class="api-signature">T createInstance&lt;T extends Object&gt;([Type? type])</code></div>
                       <div class="api-doc">
                         <p>Creates a new instance of type [T] using its default constructor.</p>
-                        <p>The type must be annotated with `@tomReflector` and have a default (no-argument) constructor.</p>
+                        <p>
+                          The type must be annotated with <code>@tomReflector</code> and have a default (no-argument) constructor.
+                        </p>
                         <p>Example:</p>
                         <pre><code>final person = tomReflectionInfo.createInstance&lt;Person&gt;();
 // Or with explicit type:
@@ -1509,16 +1534,25 @@ final person = tomReflectionInfo.createInstance(Person);</code></pre>
                       <div class="api-doc">
                         <p>Sets values on an object from a map of field names to values.</p>
                         <p>This is the main entry point for deserialization. The method handles:</p>
-                        <ul><li>**TomClass objects**: Delegates to `TomClass.setValues()` for observable</li></ul>
+                        <ul>
+                          <li><strong>TomClass objects</strong>: Delegates to <code>TomClass.setValues()</code> for observable</li>
+                        </ul>
                         <p>
-                          field handling - **Objects with `jsonDecode` method**: Invokes that method directly - **Other objects**: Sets fields via reflection
+                          field handling - <strong>Objects with <code>jsonDecode</code> method</strong>: Invokes that method directly - 
+                          <strong>Other objects</strong>: Sets fields via reflection
                         </p>
                         <h2>Supported Field Types</h2>
                         <ul>
-                          <li>Primitive types: `int`, `double`, `bool`, `String`, `null`</li>
-                          <li>DateTime types: `DateTime`, `TomZonedDate`, `TomZonedTime`, `TomZonedDateTime`</li>
-                          <li>Nested objects: Any class annotated with `@tomReflector`</li>
-                          <li>Collections: `List&lt;T&gt;` and `Map&lt;String, T&gt;` where T is a supported type</li>
+                          <li>
+                            Primitive types: <code>int</code>, <code>double</code>, <code>bool</code>, <code>String</code>, <code>null</code>
+                          </li>
+                          <li>
+                            DateTime types: <code>DateTime</code>, <code>TomZonedDate</code>, <code>TomZonedTime</code>, <code>TomZonedDateTime</code>
+                          </li>
+                          <li>Nested objects: Any class annotated with <code>@tomReflector</code></li>
+                          <li>
+                            Collections: <code>List&lt;T&gt;</code> and <code>Map&lt;String, T&gt;</code> where T is a supported type
+                          </li>
                         </ul>
                         <p>Example:</p>
                         <pre><code>final person = Person();
@@ -1537,7 +1571,8 @@ tomReflectionInfo.setValues(person, {
                       </div>
                       <div class="api-doc">
                         <p>
-                          Attempts to invoke a `jsonDecode` method on the object. Attempts to invoke a `jsonDecode` method on the object.
+                          Attempts to invoke a <code>jsonDecode</code> method on the object. Attempts to invoke a <code>jsonDecode</code>
+                           method on the object.
                         </p>
                       </div>
                     </div>
@@ -1611,7 +1646,7 @@ tomReflectionInfo.setValues(person, {
                       <div class="api-doc">
                         <p>Sets a Map value on a field.</p>
                         <p>
-                          Handles multiple scenarios in order: 1. Primitive map types (`Map&lt;String, int&gt;`, etc.) 2. DateTime map types (`Map&lt;String, DateTime&gt;`, etc.) 3. Annotated object map types (`Map&lt;String, MyClass&gt;`) 4. Existing map/object filling 5. Instance creation and population
+                          Handles multiple scenarios in order: 1. Primitive map types (<code>Map&lt;String, int&gt;</code>, etc.) 2. DateTime map types (<code>Map&lt;String, DateTime&gt;</code>, etc.) 3. Annotated object map types (<code>Map&lt;String, MyClass&gt;</code>) 4. Existing map/object filling 5. Instance creation and population
                         </p>
                       </div>
                     </div>
@@ -1629,7 +1664,7 @@ tomReflectionInfo.setValues(person, {
                           bool _trySetDateTimeMapType(InstanceMirror im, Type returnType, MapEntry&lt;String, dynamic&gt; entry)
                         </code>
                       </div>
-                      <div class="api-doc"><p>Attempts to set a DateTime Map type (`Map&lt;String, DateTime&gt;`, etc.).</p></div>
+                      <div class="api-doc"><p>Attempts to set a DateTime Map type (<code>Map&lt;String, DateTime&gt;</code>, etc.).</p></div>
                     </div>
                     <div id="TomReflectionInfo._parseStringMap" class="api-member">
                       <div class="api-member-head">
@@ -1648,7 +1683,7 @@ tomReflectionInfo.setValues(person, {
                       <div class="api-doc">
                         <p>Attempts to set a Map with annotated object values.</p>
                         <p>
-                          For `Map&lt;String, MyClass&gt;` where MyClass is annotated with `@tomReflector`, this method creates instances of MyClass for each map entry.
+                          For <code>Map&lt;String, MyClass&gt;</code> where MyClass is annotated with <code>@tomReflector</code>, this method creates instances of MyClass for each map entry.
                         </p>
                       </div>
                     </div>
@@ -1681,7 +1716,7 @@ tomReflectionInfo.setValues(person, {
                       <div class="api-doc">
                         <p>Sets a List value on a field.</p>
                         <p>
-                          Handles multiple scenarios in order: 1. Primitive list types (`List&lt;int&gt;`, `List&lt;String&gt;`, etc.) 2. DateTime list types (`List&lt;DateTime&gt;`, etc.) 3. Annotated object list types (`List&lt;MyClass&gt;`) 4. Fallback: direct value setting
+                          Handles multiple scenarios in order: 1. Primitive list types (<code>List&lt;int&gt;</code>, <code>List&lt;String&gt;</code>, etc.) 2. DateTime list types (<code>List&lt;DateTime&gt;</code>, etc.) 3. Annotated object list types (<code>List&lt;MyClass&gt;</code>) 4. Fallback: direct value setting
                         </p>
                       </div>
                     </div>
@@ -1699,7 +1734,7 @@ tomReflectionInfo.setValues(person, {
                           bool _trySetDateTimeListType(InstanceMirror im, Type returnType, MapEntry&lt;String, dynamic&gt; entry)
                         </code>
                       </div>
-                      <div class="api-doc"><p>Attempts to set a DateTime List type (`List&lt;DateTime&gt;`, etc.).</p></div>
+                      <div class="api-doc"><p>Attempts to set a DateTime List type (<code>List&lt;DateTime&gt;</code>, etc.).</p></div>
                     </div>
                     <div id="TomReflectionInfo._parseStringList" class="api-member">
                       <div class="api-member-head">
@@ -1718,10 +1753,10 @@ tomReflectionInfo.setValues(person, {
                       <div class="api-doc">
                         <p>Attempts to set a List with annotated object elements.</p>
                         <p>
-                          For `List&lt;MyClass&gt;` where MyClass is annotated with `@tomReflector`, this method creates instances of MyClass for each list element.
+                          For <code>List&lt;MyClass&gt;</code> where MyClass is annotated with <code>@tomReflector</code>, this method creates instances of MyClass for each list element.
                         </p>
                         <p>
-                          **Important**: The target field must be initialized with an empty typed list. This method clears and populates the existing list rather than creating a new one.
+                          <strong>Important</strong>: The target field must be initialized with an empty typed list. This method clears and populates the existing list rather than creating a new one.
                         </p>
                       </div>
                     </div>
@@ -1744,9 +1779,9 @@ final json = tomReflectionInfo.convertToJsonString(person);
                         <p>Gets all values from an object as a JSON-compatible map.</p>
                         <p>This is the main entry point for serialization. The method handles:</p>
                         <ul>
-                          <li>**TomClass objects**: Delegates to `TomClass.toJson()`</li>
-                          <li>**Objects with `jsonEncode` getter**: Uses that getter's result</li>
-                          <li>**Other objects**: Extracts non-static, non-final, non-private fields via reflection</li>
+                          <li><strong>TomClass objects</strong>: Delegates to <code>TomClass.toJson()</code></li>
+                          <li><strong>Objects with <code>jsonEncode</code> getter</strong>: Uses that getter's result</li>
+                          <li><strong>Other objects</strong>: Extracts non-static, non-final, non-private fields via reflection</li>
                         </ul>
                         <h2>Supported Field Types</h2>
                         <ul>
@@ -1767,7 +1802,7 @@ final values = tomReflectionInfo.getValues(person);
                     </div>
                     <div id="TomReflectionInfo._tryGetJsonEncode" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Map&lt;String, Object?&gt;? _tryGetJsonEncode(InstanceMirror im)</code></div>
-                      <div class="api-doc"><p>Attempts to get a `jsonEncode` getter value from the object.</p></div>
+                      <div class="api-doc"><p>Attempts to get a <code>jsonEncode</code> getter value from the object.</p></div>
                     </div>
                     <div id="TomReflectionInfo._addFieldToResult" class="api-member">
                       <div class="api-member-head">
@@ -1824,7 +1859,8 @@ final values = tomReflectionInfo.getValues(person);
                       <div class="api-doc">
                         <p>Handlers for setting primitive Map types via reflection.</p>
                         <p>
-                          Maps type signatures to functions that set the value correctly, handling necessary type casting for typed maps like `Map&lt;String, int&gt;`.
+                          Maps type signatures to functions that set the value correctly, handling necessary type casting for typed maps like 
+                          <code>Map&lt;String, int&gt;</code>.
                         </p>
                       </div>
                     </div>
@@ -1837,7 +1873,8 @@ final values = tomReflectionInfo.getValues(person);
                       <div class="api-doc">
                         <p>Handlers for setting primitive List types via reflection.</p>
                         <p>
-                          Maps type signatures to functions that set the value correctly, handling necessary type casting for typed lists like `List&lt;int&gt;`.
+                          Maps type signatures to functions that set the value correctly, handling necessary type casting for typed lists like 
+                          <code>List&lt;int&gt;</code>.
                         </p>
                       </div>
                     </div>
@@ -1851,7 +1888,11 @@ final values = tomReflectionInfo.getValues(person);
                       A reflector configured with capabilities required for JSON serialization and deserialization of annotated classes.
                     </p>
                     <p>
-                      This reflector provides the following capabilities: - **invokingCapability**: Call methods and constructors via reflection - **typingCapability**: Access type information at runtime - **typeRelationsCapability**: Navigate class hierarchies - **reflectedTypeCapability**: Get actual Dart Type objects - **typeAnnotationDeepQuantifyCapability**: Access nested type annotations - **typeAnnotationQuantifyCapability**: Access type annotations - **metadataCapability**: Access annotations and metadata - **superclassQuantifyCapability**: Access superclass information
+                      This reflector provides the following capabilities: - <strong>invokingCapability</strong>: Call methods and constructors via reflection - 
+                      <strong>typingCapability</strong>: Access type information at runtime - <strong>typeRelationsCapability</strong>: Navigate class hierarchies - 
+                      <strong>reflectedTypeCapability</strong>: Get actual Dart Type objects - <strong>typeAnnotationDeepQuantifyCapability</strong>: Access nested type annotations - 
+                      <strong>typeAnnotationQuantifyCapability</strong>: Access type annotations - <strong>metadataCapability</strong>: Access annotations and metadata - 
+                      <strong>superclassQuantifyCapability</strong>: Access superclass information
                     </p>
                     <p>Usage:</p>
                     <pre><code>@tomReflector
@@ -1860,7 +1901,7 @@ class MyClass {
   int age = 0;
 }</code></pre>
                     <p>
-                      Classes must be annotated with `@tomReflector` to be discoverable by the reflection system at runtime.
+                      Classes must be annotated with <code>@tomReflector</code> to be discoverable by the reflection system at runtime.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>

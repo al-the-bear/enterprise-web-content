@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1330,30 +1350,37 @@
                       This is the right component when rows are individually heavy (many fields, validation panels, sub-tables) and the natural UX is "browse the list, drill into one row at a time". Each row sees the same [TForm] instance the [TomListForm] owns — there is no sibling form bound to the same [TomClass], so structural mutations and dirty state propagate cleanly through the standard child-container chain.
                     </p>
                     <p>
-                      Expansion policy: * [TomExpansionPolicy.singleOpen] (default) — opening a row collapses any other open row. * [TomExpansionPolicy.multipleOpen] — multiple rows may be open concurrently.
+                      Expansion policy: <em> [TomExpansionPolicy.singleOpen] (default) — opening a row collapses any other open row. </em>
+                       [TomExpansionPolicy.multipleOpen] — multiple rows may be open concurrently.
                     </p>
                     <p>
-                      Vetoing a state change: pass [onBeforeChange] to gate expansion toggles. Receives the row whose state would change and the desired new open state. Returning `false` cancels the toggle (the row stays in its current state). Useful for "validate before switching away" patterns.
+                      Vetoing a state change: pass [onBeforeChange] to gate expansion toggles. Receives the row whose state would change and the desired new open state. Returning 
+                      <code>false</code> cancels the toggle (the row stays in its current state). Useful for "validate before switching away" patterns.
                     </p>
                     <p>
-                      External control: pass a [TomExpandableListFormController] to drive or observe expansion from outside (e.g. `controller.collapseAll()` after a successful save).
+                      External control: pass a [TomExpandableListFormController] to drive or observe expansion from outside (e.g. 
+                      <code>controller.collapseAll()</code> after a successful save).
                     </p>
                     <p>
-                      **Resource resolution.** When [tomId] is set, the following keys are consulted (each falls back to the constructor argument or a hard- coded default if no resource exists):
+                      <strong>Resource resolution.</strong> When [tomId] is set, the following keys are consulted (each falls back to the constructor argument or a hard- coded default if no resource exists):
                     </p>
                     <table class="mdtable">
                       <thead><tr><th>Key</th><th>Type</th><th>Default</th></tr></thead>
                       <tbody>
-                        <tr><td>`&lt;basePath&gt;.padding`</td><td>EdgeInsets</td><td>(no padding)</td></tr>
-                        <tr><td>`&lt;basePath&gt;.empty`</td><td>string</td><td>(no auto-empty widget)</td></tr>
-                        <tr><td>`&lt;basePath&gt;.policy`</td><td>string</td><td>`'singleOpen'`</td></tr>
+                        <tr><td><code>&lt;basePath&gt;.padding</code></td><td>EdgeInsets</td><td>(no padding)</td></tr>
+                        <tr><td><code>&lt;basePath&gt;.empty</code></td><td>string</td><td>(no auto-empty widget)</td></tr>
+                        <tr><td><code>&lt;basePath&gt;.policy</code></td><td>string</td><td><code>'singleOpen'</code></td></tr>
                       </tbody>
                     </table>
                     <p>
-                      The resource value `singleOpen` / `multipleOpen` resolves to the matching [TomExpansionPolicy]; an explicit [policy] argument always wins over the resource.
+                      The resource value <code>singleOpen</code> / <code>multipleOpen</code> resolves to the matching [TomExpansionPolicy]; an explicit [policy] argument always wins over the resource.
                     </p>
                     <p>
-                      **Authorization.** The whole widget passes through the standard [TomPolicyNodeBase] gate at `&lt;basePath&gt;` — `none` hides the entire list, `disabled` greys it out and absorbs pointers, `read` applies the readonly visual treatment. Per-row authorization is **not** supported by design — every row of a list shares the list's auth state. Authorize the *fields* of the row sub-form via the field widgets themselves; the same field auth applies to every row.
+                      <strong>Authorization.</strong> The whole widget passes through the standard [TomPolicyNodeBase] gate at 
+                      <code>&lt;basePath&gt;</code> — <code>none</code> hides the entire list, <code>disabled</code> greys it out and absorbs pointers, 
+                      <code>read</code> applies the readonly visual treatment. Per-row authorization is <strong>not</strong>
+                       supported by design — every row of a list shares the list's auth state. Authorize the <em>fields</em>
+                       of the row sub-form via the field widgets themselves; the same field auth applies to every row.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1384,7 +1411,8 @@
                       <div class="api-member-head"><code class="api-signature">final Widget Function(BuildContext, int, TForm) bodyBuilder</code></div>
                       <div class="api-doc">
                         <p>
-                          Builds the editor body shown when the row is expanded. The provided [rowForm] is the same instance reachable via `listForm[index]`.
+                          Builds the editor body shown when the row is expanded. The provided [rowForm] is the same instance reachable via 
+                          <code>listForm[index]</code>.
                         </p>
                       </div>
                     </div>
@@ -1412,7 +1440,8 @@
                       <div class="api-member-head"><code class="api-signature">final Widget Function(BuildContext)?? emptyBuilder</code></div>
                       <div class="api-doc">
                         <p>
-                          Optional widget shown in place of any rows when the list is empty. Header / footer / toolbar still render around it. When omitted, the resource `&lt;basePath&gt;.empty` (if any) is shown as plain text; otherwise nothing is shown.
+                          Optional widget shown in place of any rows when the list is empty. Header / footer / toolbar still render around it. When omitted, the resource 
+                          <code>&lt;basePath&gt;.empty</code> (if any) is shown as plain text; otherwise nothing is shown.
                         </p>
                       </div>
                     </div>
@@ -1444,7 +1473,8 @@
                       </div>
                       <div class="api-doc">
                         <p>
-                          Optional veto for an expansion state change. Receives the row that would change, its [TForm], and the desired new open state. Return `false` to cancel the toggle.
+                          Optional veto for an expansion state change. Receives the row that would change, its [TForm], and the desired new open state. Return 
+                          <code>false</code> to cancel the toggle.
                         </p>
                         <p>Common pattern (validate-before-switch):</p>
                         <pre><code>onBeforeChange: (index, form, willOpen) async {
@@ -1483,7 +1513,7 @@
                       <div class="api-member-head"><code class="api-signature">final bool reorderable</code></div>
                       <div class="api-doc">
                         <p>
-                          When `true`, rows are wrapped in a [ReorderableListView] so the user can drag them into a new order via [TomReorderHandle] instances embedded inside [summaryBuilder]. Reorder events forward to [TomListForm.reorder] (and [onReorder] if supplied). The [rowSeparatorBuilder] is ignored in reorderable mode (place separator chrome inside the row body instead).
+                          When <code>true</code>, rows are wrapped in a [ReorderableListView] so the user can drag them into a new order via [TomReorderHandle] instances embedded inside [summaryBuilder]. Reorder events forward to [TomListForm.reorder] (and [onReorder] if supplied). The [rowSeparatorBuilder] is ignored in reorderable mode (place separator chrome inside the row body instead).
                         </p>
                       </div>
                     </div>
@@ -1491,7 +1521,8 @@
                       <div class="api-member-head"><code class="api-signature">final void Function(int, int)?? onReorder</code></div>
                       <div class="api-doc">
                         <p>
-                          Optional reorder hook fired *after* [TomListForm.reorder] runs. Arguments use [TomListForm] semantics — `to` is the destination index AFTER the reorder (NOT the pre-removal index that [ReorderableListView] reports natively).
+                          Optional reorder hook fired <em>after</em> [TomListForm.reorder] runs. Arguments use [TomListForm] semantics — 
+                          <code>to</code> is the destination index AFTER the reorder (NOT the pre-removal index that [ReorderableListView] reports natively).
                         </p>
                       </div>
                     </div>
@@ -1532,7 +1563,8 @@
                       Controls expansion state from outside the widget. The widget creates an internal controller when none is provided; pass your own when you need to react to or drive expansion (e.g. collapse all on save success, programmatically open the newly-added row).
                     </p>
                     <p>
-                      All methods are async because an attached [TomExpandableListForm] may have an `onBeforeChange` veto that runs validation or shows confirmation dialogs.
+                      All methods are async because an attached [TomExpandableListForm] may have an <code>onBeforeChange</code>
+                       veto that runs validation or shows confirmation dialogs.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1560,7 +1592,8 @@
                       </div>
                       <div class="api-doc">
                         <p>
-                          Programmatically expand [index] under [policy]. Does NOT consult the attached widget's `onBeforeChange` veto — use this for code- driven flows ("after save, open the new row") where bypassing the veto is the intended behaviour. For user-driven toggles, let the widget call its internal toggle so the veto runs.
+                          Programmatically expand [index] under [policy]. Does NOT consult the attached widget's <code>onBeforeChange</code>
+                           veto — use this for code- driven flows ("after save, open the new row") where bypassing the veto is the intended behaviour. For user-driven toggles, let the widget call its internal toggle so the veto runs.
                         </p>
                       </div>
                     </div>

@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1320,9 +1340,11 @@
                   <h3 class="api-decl-title">class StaticCoord</h3>
                   <code class="api-signature">class StaticCoord</code>
                   <div class="api-doc">
-                    <p>Statically-resolved lexical coordinate of an identifier *use*.</p>
+                    <p>Statically-resolved lexical coordinate of an identifier <em>use</em>.</p>
                     <p>
-                      Produced by [StaticResolver] (perf plan_3 §4, sub-step S1) and carried on the analyzer AST via an [Expando] side-table (the analyzer's `SimpleIdentifier` is sealed/immutable, so a field cannot be added — see plan_3 §4.3). [depth] is the number of enclosing `Environment` hops from the use's runtime scope to the declaring scope; [slot] is the declaration index within that scope (declaration order). A coordinate is emitted only for an eligible depth-0 local, so [depth] is always 0; S3c (plan_3 §9.3) indexes the current frame's slot array by [slot] directly on the read path.
+                      Produced by [StaticResolver] (perf plan_3 §4, sub-step S1) and carried on the analyzer AST via an [Expando] side-table (the analyzer's 
+                      <code>SimpleIdentifier</code> is sealed/immutable, so a field cannot be added — see plan_3 §4.3). [depth] is the number of enclosing 
+                      <code>Environment</code> hops from the use's runtime scope to the declaring scope; [slot] is the declaration index within that scope (declaration order). A coordinate is emitted only for an eligible depth-0 local, so [depth] is always 0; S3c (plan_3 §9.3) indexes the current frame's slot array by [slot] directly on the read path.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1358,10 +1380,13 @@
                   <div class="api-doc">
                     <p>Static lexical resolver (plan_3 §4.4 / §9 S1).</p>
                     <p>
-                      Walks the analyzer AST maintaining a stack of [_Frame]s that mirror the interpreter's `Environment` nesting (via [opensLexicalFrame]). For every identifier *use* whose declaration it can prove lives in the **innermost** modelled scope (depth 0), it records a [StaticCoord] into [_coords]. All other uses (cross-frame, parameters, top-level/global, bridge/prefixed/enum names, anything ambiguous) are left unresolved and continue on the existing name-keyed `Environment.get` path.
+                      Walks the analyzer AST maintaining a stack of [_Frame]s that mirror the interpreter's <code>Environment</code>
+                       nesting (via [opensLexicalFrame]). For every identifier <em>use</em> whose declaration it can prove lives in the 
+                      <strong>innermost</strong> modelled scope (depth 0), it records a [StaticCoord] into [_coords]. All other uses (cross-frame, parameters, top-level/global, bridge/prefixed/enum names, anything ambiguous) are left unresolved and continue on the existing name-keyed 
+                      <code>Environment.get</code> path.
                     </p>
                     <p>
-                      S1 deliberately emits **only depth-0** coordinates: an innermost-block local is, by construction, at live depth 0 from any use in that same block, so the runtime depth assert can never fire on a sound emission. Widening to cross-frame depths is a later increment under the same harness.
+                      S1 deliberately emits <strong>only depth-0</strong> coordinates: an innermost-block local is, by construction, at live depth 0 from any use in that same block, so the runtime depth assert can never fire on a sound emission. Widening to cross-frame depths is a later increment under the same harness.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1381,7 +1406,9 @@
                       <div class="api-member-head"><code class="api-signature">final Expando&lt;int&gt; _declSlots</code></div>
                       <div class="api-doc">
                         <p>
-                          Side-table carrying the compacted slot index of each eligible *declaration* node (the analyzer's `VariableDeclaration` is sealed, so a field cannot be added — plan_3 §4.3). Populated on block exit; read by the interpreter at `visitVariableDeclarationList` to dual-write the slot.
+                          Side-table carrying the compacted slot index of each eligible <em>declaration</em> node (the analyzer's 
+                          <code>VariableDeclaration</code> is sealed, so a field cannot be added — plan_3 §4.3). Populated on block exit; read by the interpreter at 
+                          <code>visitVariableDeclarationList</code> to dual-write the slot.
                         </p>
                       </div>
                     </div>
@@ -1392,7 +1419,10 @@
                       <div class="api-member-head"><code class="api-signature">bool _inAsyncFunction</code></div>
                       <div class="api-doc">
                         <p>
-                          True while resolving inside the body of the *nearest enclosing* function that is `async`, `async*`, or `sync*`. Slot eligibility is suppressed in such bodies (plan_3 §4.6, read-only first cut): the async/generator state machine delivers awaited values and re-entered loop variables through a back-channel (`callable.dart` resume: a direct `Environment.define` + speculative `assign` on the resumed frame) that does not flow through the declaration's `defineSlot`, so a slot would go stale. Tracks the *nearest* function (not a depth count) so a synchronous closure nested inside an async function re-enables slotting for its own body.
+                          True while resolving inside the body of the <em>nearest enclosing</em> function that is <code>async</code>, 
+                          <code>async*</code>, or <code>sync*</code>. Slot eligibility is suppressed in such bodies (plan_3 §4.6, read-only first cut): the async/generator state machine delivers awaited values and re-entered loop variables through a back-channel (<code>callable.dart</code>
+                           resume: a direct <code>Environment.define</code> + speculative <code>assign</code> on the resumed frame) that does not flow through the declaration's 
+                          <code>defineSlot</code>, so a slot would go stale. Tracks the <em>nearest</em> function (not a depth count) so a synchronous closure nested inside an async function re-enables slotting for its own body.
                         </p>
                       </div>
                     </div>
@@ -1406,7 +1436,7 @@
                       <div class="api-member-head"><code class="api-signature">void _descendFunction(AstNode node, FunctionBody body)</code></div>
                       <div class="api-doc">
                         <p>
-                          Push a function frame, setting [_inAsyncFunction] to *this* function's async/generator-ness for the duration of its body (nearest-function wins), then restore the enclosing value on exit.
+                          Push a function frame, setting [_inAsyncFunction] to <em>this</em> function's async/generator-ness for the duration of its body (nearest-function wins), then restore the enclosing value on exit.
                         </p>
                       </div>
                     </div>
@@ -1414,7 +1444,8 @@
                       <div class="api-member-head"><code class="api-signature">void _declareLocal(String name, VariableDeclaration? node)</code></div>
                       <div class="api-doc">
                         <p>
-                          Records [name] in the innermost frame **iff** that frame is slottable. A declaration whose innermost frame is opaque is intentionally dropped (left unresolved) rather than leaked into an outer frame, which would risk a false depth-0. [node] is the slot-carrier (`null` for non-slot kinds, e.g. function names, which are tracked only for shadowing).
+                          Records [name] in the innermost frame <strong>iff</strong> that frame is slottable. A declaration whose innermost frame is opaque is intentionally dropped (left unresolved) rather than leaked into an outer frame, which would risk a false depth-0. [node] is the slot-carrier (<code>null</code>
+                           for non-slot kinds, e.g. function names, which are tracked only for shadowing).
                         </p>
                       </div>
                     </div>
@@ -1425,7 +1456,8 @@
                       </div>
                       <div class="api-doc">
                         <p>
-                          Resolve a block frame, then commit compacted slots (perf plan_3 §4.6): eligible candidate decls get dense indices `0..k-1` in lexical order, the declaration node records its slot in [_declSlots], and its pending depth-0 reads receive a coordinate in [_coords].
+                          Resolve a block frame, then commit compacted slots (perf plan_3 §4.6): eligible candidate decls get dense indices 
+                          <code>0..k-1</code> in lexical order, the declaration node records its slot in [_declSlots], and its pending depth-0 reads receive a coordinate in [_coords].
                         </p>
                       </div>
                     </div>
@@ -1529,7 +1561,8 @@
                       <div class="api-member-head"><code class="api-signature">void _useRead(SimpleIdentifier node)</code></div>
                       <div class="api-doc">
                         <p>
-                          Classify a bare identifier *read* against the frame stack. A depth-0 read of a candidate is queued for commit; a depth&gt;0 read *escapes* the candidate (used from a nested frame → ineligible). Stops at the first declaring frame (shadowing); names not declared in any modelled frame (params, globals, bridged/enum/prefixed) stay unresolved → name path.
+                          Classify a bare identifier <em>read</em> against the frame stack. A depth-0 read of a candidate is queued for commit; a depth&gt;0 read 
+                          <em>escapes</em> the candidate (used from a nested frame → ineligible). Stops at the first declaring frame (shadowing); names not declared in any modelled frame (params, globals, bridged/enum/prefixed) stay unresolved → name path.
                         </p>
                       </div>
                     </div>
@@ -1537,7 +1570,11 @@
                       <div class="api-member-head"><code class="api-signature">void _useAssignTarget(String name)</code></div>
                       <div class="api-doc">
                         <p>
-                          Classify a bare identifier *assignment target* (`x = …`, `x += …`, `x++`). S3d (plan_3 §4.6/§9.3): a **depth-0** assignment target — the variable assigned within its own declaring block — stays slot-eligible; the write is kept in sync with the slot by [Environment.assign]'s `_slotIndex` path (added in S3b pt2), so later reads still resolve through `getSlot`. A **depth&gt;0** assignment target *escapes* the candidate (assigned from a nested frame → ineligible), exactly like a depth&gt;0 read; widening those to a cross-frame `setSlot` is S3e (§4.7). Stops at the first declaring frame (shadowing).
+                          Classify a bare identifier <em>assignment target</em> (<code>x = …</code>, <code>x += …</code>, <code>x++</code>). S3d (plan_3 §4.6/§9.3): a 
+                          <strong>depth-0</strong> assignment target — the variable assigned within its own declaring block — stays slot-eligible; the write is kept in sync with the slot by [Environment.assign]'s 
+                          <code>_slotIndex</code> path (added in S3b pt2), so later reads still resolve through <code>getSlot</code>. A 
+                          <strong>depth&gt;0</strong> assignment target <em>escapes</em> the candidate (assigned from a nested frame → ineligible), exactly like a depth&gt;0 read; widening those to a cross-frame 
+                          <code>setSlot</code> is S3e (§4.7). Stops at the first declaring frame (shadowing).
                         </p>
                       </div>
                     </div>
@@ -1545,7 +1582,9 @@
                       <div class="api-member-head"><code class="api-signature">bool _isVariableRead(SimpleIdentifier node)</code></div>
                       <div class="api-doc">
                         <p>
-                          True when [node] is a bare variable *read* — the only position for which the interpreter routes through `Environment.get` in `visitSimpleIdentifier`. Excludes declaration sites, member/method/label/type/constructor name positions, etc. Imperfect filtering is harmless for S1: a stray emission only ever annotates a node whose name genuinely *is* an innermost local, so the depth assert still holds.
+                          True when [node] is a bare variable <em>read</em> — the only position for which the interpreter routes through 
+                          <code>Environment.get</code> in <code>visitSimpleIdentifier</code>. Excludes declaration sites, member/method/label/type/constructor name positions, etc. Imperfect filtering is harmless for S1: a stray emission only ever annotates a node whose name genuinely 
+                          <em>is</em> an innermost local, so the depth assert still holds.
                         </p>
                       </div>
                     </div>
@@ -1557,7 +1596,9 @@
                   <div class="api-doc">
                     <p>One modelled local declaration on a resolver frame.</p>
                     <p>
-                      A declaration is a **slot candidate** iff [node] is non-null (only plain `var`/`final` locals declared directly in a slottable [Block] qualify; local function names are recorded with a null [node] so they correctly *shadow* outer same-named locals but are never themselves slotted). A candidate stays [eligible] until a depth&gt;0 use (escape) — whether a read or an assignment target (S3d). A depth-0 assignment target no longer demotes (S3d, §4.7). Only eligible candidates receive a compacted slot on block exit.
+                      A declaration is a <strong>slot candidate</strong> iff [node] is non-null (only plain <code>var</code>/<code>final</code>
+                       locals declared directly in a slottable [Block] qualify; local function names are recorded with a null [node] so they correctly 
+                      <em>shadow</em> outer same-named locals but are never themselves slotted). A candidate stays [eligible] until a depth&gt;0 use (escape) — whether a read or an assignment target (S3d). A depth-0 assignment target no longer demotes (S3d, §4.7). Only eligible candidates receive a compacted slot on block exit.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1573,7 +1614,8 @@
                       <div class="api-member-head"><code class="api-signature">final VariableDeclaration? node</code></div>
                       <div class="api-doc">
                         <p>
-                          The declaration node (carrier key for a future `declSlot` side-table), or `null` for non-slot kinds (function names) tracked only for shadowing.
+                          The declaration node (carrier key for a future <code>declSlot</code> side-table), or <code>null</code>
+                           for non-slot kinds (function names) tracked only for shadowing.
                         </p>
                       </div>
                     </div>
@@ -1603,7 +1645,9 @@
                       <div class="api-member-head"><code class="api-signature">final bool slottable</code></div>
                       <div class="api-doc">
                         <p>
-                          True only for [Block] frames — the only frames that can hold slots. Declarations are recorded **only** into the innermost slottable frame; declarations whose innermost frame is opaque (e.g. a bare `var` directly inside a `switch` case with no block) are left untracked — hence unresolved — which is conservative but always sound.
+                          True only for [Block] frames — the only frames that can hold slots. Declarations are recorded <strong>only</strong>
+                           into the innermost slottable frame; declarations whose innermost frame is opaque (e.g. a bare <code>var</code>
+                           directly inside a <code>switch</code> case with no block) are left untracked — hence unresolved — which is conservative but always sound.
                         </p>
                       </div>
                     </div>
@@ -1630,7 +1674,10 @@
                   <div class="api-doc">
                     <p>Does [node] open a new runtime [Environment] frame?</p>
                     <p>
-                      This is the **shared scope-frame predicate** (plan_3 §4.4, risk R1): the single decision the resolver and the interpreter must agree on. It is deliberately **over-approximating** — it may return `true` for a construct the interpreter happens not to wrap in its own frame. Over-approximation is safe for the S1 depth-0 resolver: modelling an *extra* frame only ever raises a computed depth (suppressing a coordinate), never lowers it, so it can never manufacture a false depth-0. Under-approximation (missing a frame the interpreter *does* push) is the unsafe direction and is what this list guards against by erring generous.
+                      This is the <strong>shared scope-frame predicate</strong> (plan_3 §4.4, risk R1): the single decision the resolver and the interpreter must agree on. It is deliberately 
+                      <strong>over-approximating</strong> — it may return <code>true</code> for a construct the interpreter happens not to wrap in its own frame. Over-approximation is safe for the S1 depth-0 resolver: modelling an 
+                      <em>extra</em> frame only ever raises a computed depth (suppressing a coordinate), never lowers it, so it can never manufacture a false depth-0. Under-approximation (missing a frame the interpreter 
+                      <em>does</em> push) is the unsafe direction and is what this list guards against by erring generous.
                     </p>
                   </div>
                 </section>

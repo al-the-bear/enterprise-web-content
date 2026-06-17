@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1315,16 +1335,41 @@
                   <code class="api-signature">
                     class ValueListenableObserver&lt;T extends TomObservable&gt; implements TomObserver&lt;T&gt;, ValueListenable&lt;T&gt;
                   </code>
+                  <div class="api-doc">
+                    <p>Adapts a kernel [TomObservable] to Flutter's [ValueListenable] contract.</p>
+                    <p>
+                      <code>ValueListenableObserver</code> lets a [TomObservable] drive any Flutter API that consumes a [ValueListenable] — e.g. a [ValueListenableBuilder] or an [AnimatedBuilder]. It registers as a [TomObserver] on [observable] and, whenever the kernel state notifies, forwards the notification to the currently registered Flutter listener.
+                    </p>
+                    <pre><code>final error = TomString('');
+final adaptor = ValueListenableObserver&lt;TomString&gt;(error);
+
+ValueListenableBuilder&lt;TomString&gt;(
+  valueListenable: adaptor,
+  builder: (context, value, _) =&gt; Text(~value),
+);
+
+error | 'Boom'; // the builder rebuilds with "Boom"</code></pre>
+                    <p>
+                      <strong>Single-listener limitation:</strong> this adaptor holds at most one listener. [addListener] replaces any previously registered callback rather than appending, which matches its sole intended consumer (a single [ValueListenableBuilder]). It is not a general-purpose multicast [ValueListenable].
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="ValueListenableObserver.new" class="api-member">
                       <div class="api-member-head"><code class="api-signature">ValueListenableObserver.new(T observable)</code></div>
+                      <div class="api-doc"><p>Registers this adaptor as an observer of [observable].</p></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="ValueListenableObserver.observable" class="api-member"><div class="api-member-head"><code class="api-signature">T observable</code></div></div>
-                    <div id="ValueListenableObserver.voidCallback" class="api-member"><div class="api-member-head"><code class="api-signature">void Function()?? voidCallback</code></div></div>
+                    <div id="ValueListenableObserver.observable" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">T observable</code></div>
+                      <div class="api-doc"><p>The kernel observable whose notifications are forwarded to Flutter.</p></div>
+                    </div>
+                    <div id="ValueListenableObserver.voidCallback" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void Function()?? voidCallback</code></div>
+                      <div class="api-doc"><p>The single Flutter listener to invoke on each notification, if any.</p></div>
+                    </div>
                     <div id="ValueListenableObserver.value" class="api-member"><div class="api-member-head"><code class="api-signature">T value</code></div></div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
@@ -1340,12 +1385,17 @@
                         <code class="api-signature">void addListener(void Function() listener)</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
+                      <div class="api-doc">
+                        <p>Registers [listener] as the callback to fire on notification.</p>
+                        <p>Replaces any previously registered listener (see the single-listener limitation in the class docs).</p>
+                      </div>
                     </div>
                     <div id="ValueListenableObserver.removeListener" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">void removeListener(void Function() listener)</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
+                      <div class="api-doc"><p>Clears the registered listener so notifications are no longer forwarded.</p></div>
                     </div>
                   </div>
                 </section>

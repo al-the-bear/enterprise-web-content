@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1327,7 +1347,9 @@
                 <div class="api-doc">
                   <p>Utilities for merging and processing nested JSON map structures.</p>
                   <p>
-                    This module provides functions for: - **Deep merging** of nested `Map&lt;String, dynamic&gt;` structures - **Tree traversal** with custom processing callbacks - **Path-based access** to nested map values - **Tree modification** with profile-based injection patterns
+                    This module provides functions for: - <strong>Deep merging</strong> of nested <code>Map&lt;String, dynamic&gt;</code>
+                     structures - <strong>Tree traversal</strong> with custom processing callbacks - <strong>Path-based access</strong>
+                     to nested map values - <strong>Tree modification</strong> with profile-based injection patterns
                   </p>
                   <p>
                     These utilities are particularly useful for configuration management, where base configurations need to be merged with environment-specific overrides while preserving nested structure.
@@ -1426,7 +1448,8 @@ mergeMapsOneSided(base, override);
                       <div class="api-doc">
                         <p>Applies this modification to the tree.</p>
                         <p>
-                          Behavior depends on [value]: - `"..."`: Spreads [insertTree] entries into [tree] (non-overwriting) - `"@"`: Replaces the value at [keyName] with the corresponding value from [insertTree] - Other: Sets [keyName] to the entire [insertTree]
+                          Behavior depends on [value]: - <code>"..."</code>: Spreads [insertTree] entries into [tree] (non-overwriting) - 
+                          <code>"@"</code>: Replaces the value at [keyName] with the corresponding value from [insertTree] - Other: Sets [keyName] to the entire [insertTree]
                         </p>
                       </div>
                     </div>
@@ -1455,7 +1478,7 @@ mergeMapsOneSided(base, override);
                   <div class="api-doc">
                     <p>Creates a tree modification from a profile-based key pattern.</p>
                     <p>
-                      Parses keys matching the pattern `keyName@path@profileName` and creates a modification that will inject data from the specified profile.
+                      Parses keys matching the pattern <code>keyName@path@profileName</code> and creates a modification that will inject data from the specified profile.
                     </p>
                   </div>
                 </section>
@@ -1528,7 +1551,7 @@ final settings = getPathFromTree(config, 'db.settings', 'result');
                     <h2>Parameters</h2>
                     <ul><li>[map]: The source map to clean (not modified)</li></ul>
                     <h2>Returns</h2>
-                    <p>A new `Map&lt;String, Object&gt;` containing only JSON-compatible entries.</p>
+                    <p>A new <code>Map&lt;String, Object&gt;</code> containing only JSON-compatible entries.</p>
                     <h2>Example</h2>
                     <pre><code>final dirty = {'name': 'App', 'created': DateTime.now(), 'port': 8080};
 final clean = makeCleanJsonMap(dirty);
@@ -1543,7 +1566,7 @@ final clean = makeCleanJsonMap(dirty);
                     <p>
                       This function performs a deep merge where: - Nested maps are merged recursively - Arrays are merged element-by-element (nested maps within arrays are also merged) - Primitive values from [override] replace values in [base] - Keys in [override] that don't exist in [base] are added
                     </p>
-                    <p>**Important**: This modifies [base] in-place.</p>
+                    <p><strong>Important</strong>: This modifies [base] in-place.</p>
                     <h2>Parameters</h2>
                     <ul>
                       <li>[base]: The target map that will be modified with merged values</li>
@@ -1572,7 +1595,7 @@ mergeMapsOneSided(base, override);
                   <div class="api-doc">
                     <p>Processes a tree by resolving profile-based references.</p>
                     <p>
-                      Scans the [tree] for keys containing "@" patterns (e.g., `database@profiles@production`) and resolves them using the [provider] function to inject configuration data.
+                      Scans the [tree] for keys containing "@" patterns (e.g., <code>database@profiles@production</code>) and resolves them using the [provider] function to inject configuration data.
                     </p>
                     <h2>Parameters</h2>
                     <ul>
@@ -1582,12 +1605,13 @@ mergeMapsOneSided(base, override);
                     <p>Takes (keyName, path, profileName) and returns the data to inject.</p>
                     <h2>Key Pattern Format</h2>
                     <p>
-                      Keys should match: `keyName@path@profileName` - `keyName`: The resulting key name after resolution - `path`: The path within the profile to extract - `profileName`: The name of the profile to use
+                      Keys should match: <code>keyName@path@profileName</code> - <code>keyName</code>: The resulting key name after resolution - 
+                      <code>path</code>: The path within the profile to extract - <code>profileName</code>: The name of the profile to use
                     </p>
                     <h2>Value Directives</h2>
                     <ul>
-                      <li>`"..."`: Spread the resolved data into the current map</li>
-                      <li>`"@"`: Replace with the value at the same key from resolved data</li>
+                      <li><code>"..."</code>: Spread the resolved data into the current map</li>
+                      <li><code>"@"</code>: Replace with the value at the same key from resolved data</li>
                       <li>Other: Replace with the entire resolved data structure</li>
                     </ul>
                   </div>
@@ -1598,7 +1622,8 @@ mergeMapsOneSided(base, override);
                   <div class="api-doc">
                     <p>Substitutes environment variable placeholders in all string values of a map tree.</p>
                     <p>
-                      Processes the entire [tree] in-place, replacing placeholders like `${VAR_NAME}` with values from the provided [environment] map. Supports default values using the syntax `${VAR_NAME:default}`.
+                      Processes the entire [tree] in-place, replacing placeholders like <code>${VAR_NAME}</code> with values from the provided [environment] map. Supports default values using the syntax 
+                      <code>${VAR_NAME:default}</code>.
                     </p>
                     <h2>Parameters</h2>
                     <ul>
@@ -1607,8 +1632,10 @@ mergeMapsOneSided(base, override);
                     </ul>
                     <h2>Placeholder Syntax</h2>
                     <ul>
-                      <li>`${VAR_NAME}` - Replaced with environment value, or left unchanged if not found</li>
-                      <li>`${VAR_NAME:default}` - Replaced with environment value, or `default` if not found</li>
+                      <li><code>${VAR_NAME}</code> - Replaced with environment value, or left unchanged if not found</li>
+                      <li>
+                        <code>${VAR_NAME:default}</code> - Replaced with environment value, or <code>default</code> if not found
+                      </li>
                     </ul>
                     <h2>Example</h2>
                     <pre><code>final config = {'host': '${DB_HOST:localhost}', 'port': '${DB_PORT}'};
@@ -1655,7 +1682,8 @@ traverseAndCreate(
                   <div class="api-doc">
                     <p>Traverses a nested map tree and processes all String values matching a condition.</p>
                     <p>
-                      Recursively walks through the [tree] structure, applying [processor] to any String value where [test] returns `true`. This modifies the tree in-place.
+                      Recursively walks through the [tree] structure, applying [processor] to any String value where [test] returns 
+                      <code>true</code>. This modifies the tree in-place.
                     </p>
                     <h2>Parameters</h2>
                     <ul>

@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1313,13 +1333,18 @@
                   <code class="api-signature">abstract interface class TomFormChildContainer</code>
                   <div class="api-doc">
                     <p>
-                      Marker interface for non-`TomForm` form children whose lifecycle a parent [TomForm] should fan out into.
+                      Marker interface for non-<code>TomForm</code> form children whose lifecycle a parent [TomForm] should fan out into.
                     </p>
                     <p>
-                      `TomForm` already discovers nested `TomForm` instances reflectively (`nestedForms`) and propagates `bind` / `validate` / `save` / `discard` / `isDirty` / `isValid` into them. List-of-sub-forms containers like [TomListForm] are not themselves `TomForm`s, so they would otherwise be invisible to that fan-out — which is why `_form.validate()` would historically miss list-level errors and `_form.isDirty` would ignore structural changes inside an embedded list.
+                      <code>TomForm</code> already discovers nested <code>TomForm</code> instances reflectively (<code>nestedForms</code>) and propagates 
+                      <code>bind</code> / <code>validate</code> / <code>save</code> / <code>discard</code> / <code>isDirty</code>
+                       / <code>isValid</code> into them. List-of-sub-forms containers like [TomListForm] are not themselves 
+                      <code>TomForm</code>s, so they would otherwise be invisible to that fan-out — which is why <code>_form.validate()</code>
+                       would historically miss list-level errors and <code>_form.isDirty</code> would ignore structural changes inside an embedded list.
                     </p>
                     <p>
-                      Anything that participates in the form lifecycle but isn't a `TomForm` (today: `TomListForm`; tomorrow: maps, sets, etc.) should implement this interface so `TomForm` can pick it up uniformly via `getMembers().values.whereType&lt;TomFormChildContainer&gt;()`.
+                      Anything that participates in the form lifecycle but isn't a <code>TomForm</code> (today: <code>TomListForm</code>; tomorrow: maps, sets, etc.) should implement this interface so 
+                      <code>TomForm</code> can pick it up uniformly via <code>getMembers().values.whereType&lt;TomFormChildContainer&gt;()</code>.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1337,7 +1362,7 @@
                       <div class="api-member-head"><code class="api-signature">Future&lt;List&lt;FormValidationError&gt;&gt; validate()</code></div>
                       <div class="api-doc">
                         <p>
-                          Aggregate validation. Implementations are expected to fire their own `FormValidatedEvent` through whatever event bus they're wired into; the returned list lets the parent merge errors into a single combined event from the parent form.
+                          Aggregate validation. Implementations are expected to fire their own <code>FormValidatedEvent</code> through whatever event bus they're wired into; the returned list lets the parent merge errors into a single combined event from the parent form.
                         </p>
                       </div>
                     </div>
@@ -1345,10 +1370,12 @@
                       <div class="api-member-head"><code class="api-signature">Future&lt;bool&gt; save({bool? commitBaselines})</code></div>
                       <div class="api-doc">
                         <p>
-                          Aggregate save. Returns `false` when validation or any nested save fails so the parent form can short-circuit its own commit.
+                          Aggregate save. Returns <code>false</code> when validation or any nested save fails so the parent form can short-circuit its own commit.
                         </p>
                         <p>
-                          [commitBaselines] mirrors [TomForm.save]'s policy parameter and is passed by `TomForm`'s internal save cascade so that a user-initiated nested `save()` (e.g. `orderForm.save()` while a customer form is the outer baseline owner) does NOT clobber list-level baselines such as `TomListForm._initialOrder`. Pass `null` to let the container auto-detect from its parent chain (the typical public-API call shape).
+                          [commitBaselines] mirrors [TomForm.save]'s policy parameter and is passed by <code>TomForm</code>'s internal save cascade so that a user-initiated nested 
+                          <code>save()</code> (e.g. <code>orderForm.save()</code> while a customer form is the outer baseline owner) does NOT clobber list-level baselines such as 
+                          <code>TomListForm._initialOrder</code>. Pass <code>null</code> to let the container auto-detect from its parent chain (the typical public-API call shape).
                         </p>
                       </div>
                     </div>

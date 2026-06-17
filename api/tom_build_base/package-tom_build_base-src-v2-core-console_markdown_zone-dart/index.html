@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1317,13 +1337,14 @@
                 <div class="api-doc">
                   <p>Zone-based console_markdown integration for CLI tools.</p>
                   <p>
-                    Wraps tool execution in a Dart zone that intercepts `print()` calls and applies console_markdown rendering.  This converts markdown syntax (e.g. `**bold**`, `&lt;cyan&gt;text&lt;/cyan&gt;`) to ANSI escape codes automatically.
+                    Wraps tool execution in a Dart zone that intercepts <code>print()</code> calls and applies console_markdown rendering.  This converts markdown syntax (e.g. 
+                    <code>**bold**</code>, <code>&lt;cyan&gt;text&lt;/cyan&gt;</code>) to ANSI escape codes automatically.
                   </p>
                   <p>
                     Tools that already run inside a console_markdown zone (e.g. tom_d4rt_dcli) are detected via the [kConsoleMarkdownZoneKey] zone value.  When nested, the inner zone is a pass-through to avoid double-rendering.
                   </p>
                   <h2>Usage</h2>
-                  <p>In a tool's `main()`:</p>
+                  <p>In a tool's <code>main()</code>:</p>
                   <pre><code>Future&lt;void&gt; main(List&lt;String&gt; args) async {
   await runWithConsoleMarkdown(() =&gt; _main(args));
 }</code></pre>
@@ -1332,7 +1353,7 @@
                   <h3 class="api-decl-title">class ConsoleMarkdownSink</h3>
                   <code class="api-signature">class ConsoleMarkdownSink implements StringSink</code>
                   <div class="api-doc">
-                    <p>A [StringSink] that applies `.toConsole()` to every line written.</p>
+                    <p>A [StringSink] that applies <code>.toConsole()</code> to every line written.</p>
                     <p>
                       Wraps an underlying sink (typically [stdout] or [stderr]) and transparently renders console_markdown syntax into ANSI escape codes.
                     </p>
@@ -1385,10 +1406,12 @@
                   </code>
                   <div class="api-doc">
                     <p>
-                      Run [body] inside a Dart zone that automatically renders console_markdown syntax in every `print()` call.
+                      Run [body] inside a Dart zone that automatically renders console_markdown syntax in every <code>print()</code>
+                       call.
                     </p>
                     <p>
-                      If the current zone already has console_markdown active (detected via [kConsoleMarkdownZoneKey]), [body] runs directly without adding another rendering layer — this prevents double-rendering when tools are invoked from contexts that already set up the zone (e.g. `tom_d4rt_dcli`).
+                      If the current zone already has console_markdown active (detected via [kConsoleMarkdownZoneKey]), [body] runs directly without adding another rendering layer — this prevents double-rendering when tools are invoked from contexts that already set up the zone (e.g. 
+                      <code>tom_d4rt_dcli</code>).
                     </p>
                     <p>
                       The optional [onError] callback handles uncaught errors.  By default, errors are printed to stderr with console_markdown formatting and the process exits with code 1.

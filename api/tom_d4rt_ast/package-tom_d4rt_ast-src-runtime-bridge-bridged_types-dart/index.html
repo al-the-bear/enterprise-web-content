@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1390,7 +1410,7 @@
                           Parameters: - [other]: The runtime type to check against for subtype relationship - [value]: Optional value that can be used for additional context during subtype checking
                         </p>
                         <p>
-                          Returns: - `true` if this type is a subtype of [other] - `false` if this type is not a subtype of [other]
+                          Returns: - <code>true</code> if this type is a subtype of [other] - <code>false</code> if this type is not a subtype of [other]
                         </p>
                         <p>
                           The function can be null if subtype checking is not supported or not needed for this particular runtime type.
@@ -1402,7 +1422,9 @@
                       <div class="api-doc">
                         <p>A function that determines if a native value can be assigned to this bridged type.</p>
                         <p>
-                          This is used when bridging native values back to the interpreter. When a native method returns an instance of a private subclass (e.g., `_Linear extends Curve`), the bridge lookup by exact type will fail. This function allows the runtime to find an appropriate supertype bridge by checking `isAssignable(nativeValue)`.
+                          This is used when bridging native values back to the interpreter. When a native method returns an instance of a private subclass (e.g., 
+                          <code>_Linear extends Curve</code>), the bridge lookup by exact type will fail. This function allows the runtime to find an appropriate supertype bridge by checking 
+                          <code>isAssignable(nativeValue)</code>.
                         </p>
                         <p>Example for Curve bridge:</p>
                         <pre><code>BridgedClass(
@@ -1411,7 +1433,10 @@
   ...
 )</code></pre>
                         <p>
-                          When `Curves.linear` returns a `_Linear` instance, the runtime will: 1. Try exact type lookup for `_Linear` - fails (not registered) 2. Iterate through registered bridges, checking `isAssignable` 3. Find the `Curve` bridge where `_Linear() is Curve` returns true 4. Wrap the `_Linear` instance using the `Curve` bridge
+                          When <code>Curves.linear</code> returns a <code>_Linear</code> instance, the runtime will: 1. Try exact type lookup for 
+                          <code>_Linear</code> - fails (not registered) 2. Iterate through registered bridges, checking <code>isAssignable</code>
+                           3. Find the <code>Curve</code> bridge where <code>_Linear() is Curve</code> returns true 4. Wrap the 
+                          <code>_Linear</code> instance using the <code>Curve</code> bridge
                         </p>
                       </div>
                     </div>
@@ -1420,9 +1445,10 @@
                     <div id="BridgedClass.isAbstract" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final bool isAbstract</code></div>
                       <div class="api-doc">
-                        <p>Whether the bridged native class is `abstract` (cannot be instantiated directly).</p>
+                        <p>Whether the bridged native class is <code>abstract</code> (cannot be instantiated directly).</p>
                         <p>
-                          Plan I: when an interpreted subclass calls `super()` against an abstract bridged base whose generator emitted no constructor adapter (because of GEN-051's abstract/sealed skip rule), the runtime treats the super-call as a no-op — the abstract type can never be constructed natively, so the subclass's own proxy/state is what carries the bridged identity. Mirrors the existing `D4.hasInterfaceProxy` fallback behaviour for the case where no proxy is registered.
+                          Plan I: when an interpreted subclass calls <code>super()</code> against an abstract bridged base whose generator emitted no constructor adapter (because of GEN-051's abstract/sealed skip rule), the runtime treats the super-call as a no-op — the abstract type can never be constructed natively, so the subclass's own proxy/state is what carries the bridged identity. Mirrors the existing 
+                          <code>D4.hasInterfaceProxy</code> fallback behaviour for the case where no proxy is registered.
                         </p>
                       </div>
                     </div>
@@ -1430,16 +1456,20 @@
                       <div class="api-member-head"><code class="api-signature">final int hierarchyDepth</code></div>
                       <div class="api-doc">
                         <p>
-                          **GEN-115 (Phase 1)** — Distance from `Object` in the native Dart inheritance hierarchy, i.e. the number of distinct supertypes (`allSupertypes.length`, excluding `Object` itself).
+                          <strong>GEN-115 (Phase 1)</strong> — Distance from <code>Object</code> in the native Dart inheritance hierarchy, i.e. the number of distinct supertypes (<code>allSupertypes.length</code>, excluding 
+                          <code>Object</code> itself).
                         </p>
                         <p>
-                          Used by [Environment._filterToMostSpecific] as the primary tiebreaker when multiple `isAssignable`-positive bridges match a native instance — the deepest bridge wins, which is exact-semantically equivalent to a Dart `is`-chain walk picking the most-specific declared type.
+                          Used by [Environment._filterToMostSpecific] as the primary tiebreaker when multiple <code>isAssignable</code>-positive bridges match a native instance — the deepest bridge wins, which is exact-semantically equivalent to a Dart 
+                          <code>is</code>-chain walk picking the most-specific declared type.
                         </p>
                         <p>
-                          `0` is the legacy default for hand-written bridges that have not yet been migrated to emit a depth. When all matches have depth `0` (or equal depth) the resolver falls back to the older name-based supertype-elimination walk via [transitiveSupertypeNames].
+                          <code>0</code> is the legacy default for hand-written bridges that have not yet been migrated to emit a depth. When all matches have depth 
+                          <code>0</code> (or equal depth) the resolver falls back to the older name-based supertype-elimination walk via [transitiveSupertypeNames].
                         </p>
                         <p>
-                          Populated by the generator from `ClassInfo.allSupertypeNames.length`. Hand-written bridges may pass their own depth if they need to participate in tie-breaking; otherwise leave it at `0` and the name-based walk continues to apply.
+                          Populated by the generator from <code>ClassInfo.allSupertypeNames.length</code>. Hand-written bridges may pass their own depth if they need to participate in tie-breaking; otherwise leave it at 
+                          <code>0</code> and the name-based walk continues to apply.
                         </p>
                       </div>
                     </div>
@@ -1575,7 +1605,9 @@
                           Register supertype relationships for bridged classes. Each key is a class name, and the value is a list of its supertype names. Example: {'StatelessWidget': ['Widget', 'DiagnosticableTree']}
                         </p>
                         <p>
-                          **Idempotent:** The per-key value is a [Set], and we use [Set.addAll] — repeated calls with the same hierarchy add nothing the second time. Safe to invoke twice when a process re-runs a generator-emitted `registerProxyFactories()` block (e.g. on a second `FlutterD4rt` instance after `_relaxersRegistered` is removed).
+                          <strong>Idempotent:</strong> The per-key value is a [Set], and we use [Set.addAll] — repeated calls with the same hierarchy add nothing the second time. Safe to invoke twice when a process re-runs a generator-emitted 
+                          <code>registerProxyFactories()</code> block (e.g. on a second <code>FlutterD4rt</code> instance after 
+                          <code>_relaxersRegistered</code> is removed).
                         </p>
                       </div>
                     </div>
@@ -1585,7 +1617,9 @@
                       </div>
                       <div class="api-doc">
                         <p>
-                          Walk the registered supertype chain (transitively) starting from [className] and return the full set of ancestor class names in breadth-first order. Used by interface-proxy resolution so an interpreted class like `PanelTheme extends InheritedTheme` can still match a proxy factory registered for `InheritedWidget` up the chain. Excludes [className] itself.
+                          Walk the registered supertype chain (transitively) starting from [className] and return the full set of ancestor class names in breadth-first order. Used by interface-proxy resolution so an interpreted class like 
+                          <code>PanelTheme extends InheritedTheme</code> can still match a proxy factory registered for <code>InheritedWidget</code>
+                           up the chain. Excludes [className] itself.
                         </p>
                       </div>
                     </div>

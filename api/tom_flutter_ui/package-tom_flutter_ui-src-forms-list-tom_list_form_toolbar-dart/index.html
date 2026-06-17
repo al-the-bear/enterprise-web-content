@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1315,13 +1335,17 @@
                   </code>
                   <div class="api-doc">
                     <p>
-                      Compact action bar with the standard list-form mutations: **Add**, **Remove**, **Move up**, **Move down**.
+                      Compact action bar with the standard list-form mutations: <strong>Add</strong>, <strong>Remove</strong>, 
+                      <strong>Move up</strong>, <strong>Move down</strong>.
                     </p>
                     <p>
-                      Drop into any list-rendering widget (master pane, inline list footer, expandable header) so each demo / app doesn't reinvent the same row of buttons. Each action is enabled only when it is meaningful for the current selection (e.g. *Move up* disabled at index 0; *Remove* disabled when nothing is selected).
+                      Drop into any list-rendering widget (master pane, inline list footer, expandable header) so each demo / app doesn't reinvent the same row of buttons. Each action is enabled only when it is meaningful for the current selection (e.g. 
+                      <em>Move up</em> disabled at index 0; <em>Remove</em> disabled when nothing is selected).
                     </p>
                     <p>
-                      **Layout.** Buttons are rendered inside a single [Wrap]. The reorder pair (Move up / Move down) is bundled into an inner [Row] so the `Wrap` treats it as one atomic child — the two arrows always stay next to each other, and they only flow onto a new line *as a pair* when the host doesn't have enough horizontal space for them to fit alongside the wide tonal-filled Add/Remove buttons. This avoids the lopsided break (one arrow next to Add/Remove, the other arrow alone on the second line) reported against narrow master panes, while still letting the toolbar lay out inline when there's room.
+                      <strong>Layout.</strong> Buttons are rendered inside a single [Wrap]. The reorder pair (Move up / Move down) is bundled into an inner [Row] so the 
+                      <code>Wrap</code> treats it as one atomic child — the two arrows always stay next to each other, and they only flow onto a new line 
+                      <em>as a pair</em> when the host doesn't have enough horizontal space for them to fit alongside the wide tonal-filled Add/Remove buttons. This avoids the lopsided break (one arrow next to Add/Remove, the other arrow alone on the second line) reported against narrow master panes, while still letting the toolbar lay out inline when there's room.
                     </p>
                     <p>Example:</p>
                     <pre><code>TomListFormToolbar(
@@ -1330,36 +1354,85 @@
   onSelectionChanged: selectIndex,
 )</code></pre>
                     <p>
-                      Selection wiring: * After **Add**, selection moves to the newly appended row. * After **Remove**, selection clears. * After **Move up / down**, selection follows the moved row.
+                      Selection wiring: <em> After </em><em>Add</em><em>, selection moves to the newly appended row. </em> After 
+                      <strong>Remove</strong>, selection clears. <em> After </em><em>Move up / down</em>*, selection follows the moved row.
                     </p>
                     <p>
                       Supplying [onSelectionChanged] is optional — if omitted, selection changes are still applied to the list but not reported back. That mode is useful when the host already observes [TomListForm] and derives selection some other way.
                     </p>
                     <p>
-                      Pass `showXxx: false` to hide individual buttons, or override [beforeActions] / [afterActions] to inject custom buttons before / after the standard set.
+                      Pass <code>showXxx: false</code> to hide individual buttons, or override [beforeActions] / [afterActions] to inject custom buttons before / after the standard set.
                     </p>
                     <p>
-                      **Resource resolution.** The toolbar follows the standard Tom resource pattern. Each button's label / tooltip / icon falls back to resources when the matching constructor argument is null:
+                      <strong>Resource resolution.</strong> The toolbar follows the standard Tom resource pattern. Each button's label / tooltip / icon falls back to resources when the matching constructor argument is null:
                     </p>
                     <table class="mdtable">
                       <thead><tr><th>Argument</th><th>Resource key</th><th>Default</th></tr></thead>
                       <tbody>
-                        <tr><td>`addLabel`</td><td>`&lt;basePath&gt;.add.label`</td><td>`'Add'`</td></tr>
-                        <tr><td>`addIcon`</td><td>`&lt;basePath&gt;.add.icon`</td><td>`Icons.add`</td></tr>
-                        <tr><td>`addTooltip`</td><td>`&lt;basePath&gt;.add.tooltip`</td><td>(none)</td></tr>
-                        <tr><td>`removeLabel`</td><td>`&lt;basePath&gt;.remove.label`</td><td>`'Remove'`</td></tr>
-                        <tr><td>`removeIcon`</td><td>`&lt;basePath&gt;.remove.icon`</td><td>`Icons.delete_outline`</td></tr>
-                        <tr><td>`removeTooltip`</td><td>`&lt;basePath&gt;.remove.tooltip`</td><td>(none)</td></tr>
-                        <tr><td>`moveUpLabel`</td><td>`&lt;basePath&gt;.moveUp.label`</td><td>(icon-only)</td></tr>
-                        <tr><td>`moveUpIcon`</td><td>`&lt;basePath&gt;.moveUp.icon`</td><td>`Icons.arrow_upward`</td></tr>
-                        <tr><td>`moveUpTooltip`</td><td>`&lt;basePath&gt;.moveUp.tooltip`</td><td>`'Move up'`</td></tr>
-                        <tr><td>`moveDownLabel`</td><td>`&lt;basePath&gt;.moveDown.label`</td><td>(icon-only)</td></tr>
-                        <tr><td>`moveDownIcon`</td><td>`&lt;basePath&gt;.moveDown.icon`</td><td>`Icons.arrow_downward`</td></tr>
-                        <tr><td>`moveDownTooltip`</td><td>`&lt;basePath&gt;.moveDown.tooltip`</td><td>`'Move down'`</td></tr>
+                        <tr>
+                          <td><code>addLabel</code></td>
+                          <td><code>&lt;basePath&gt;.add.label</code></td>
+                          <td><code>'Add'</code></td>
+                        </tr>
+                        <tr>
+                          <td><code>addIcon</code></td>
+                          <td><code>&lt;basePath&gt;.add.icon</code></td>
+                          <td><code>Icons.add</code></td>
+                        </tr>
+                        <tr><td><code>addTooltip</code></td><td><code>&lt;basePath&gt;.add.tooltip</code></td><td>(none)</td></tr>
+                        <tr>
+                          <td><code>removeLabel</code></td>
+                          <td><code>&lt;basePath&gt;.remove.label</code></td>
+                          <td><code>'Remove'</code></td>
+                        </tr>
+                        <tr>
+                          <td><code>removeIcon</code></td>
+                          <td><code>&lt;basePath&gt;.remove.icon</code></td>
+                          <td><code>Icons.delete_outline</code></td>
+                        </tr>
+                        <tr>
+                          <td><code>removeTooltip</code></td>
+                          <td><code>&lt;basePath&gt;.remove.tooltip</code></td>
+                          <td>(none)</td>
+                        </tr>
+                        <tr>
+                          <td><code>moveUpLabel</code></td>
+                          <td><code>&lt;basePath&gt;.moveUp.label</code></td>
+                          <td>(icon-only)</td>
+                        </tr>
+                        <tr>
+                          <td><code>moveUpIcon</code></td>
+                          <td><code>&lt;basePath&gt;.moveUp.icon</code></td>
+                          <td><code>Icons.arrow_upward</code></td>
+                        </tr>
+                        <tr>
+                          <td><code>moveUpTooltip</code></td>
+                          <td><code>&lt;basePath&gt;.moveUp.tooltip</code></td>
+                          <td><code>'Move up'</code></td>
+                        </tr>
+                        <tr>
+                          <td><code>moveDownLabel</code></td>
+                          <td><code>&lt;basePath&gt;.moveDown.label</code></td>
+                          <td>(icon-only)</td>
+                        </tr>
+                        <tr>
+                          <td><code>moveDownIcon</code></td>
+                          <td><code>&lt;basePath&gt;.moveDown.icon</code></td>
+                          <td><code>Icons.arrow_downward</code></td>
+                        </tr>
+                        <tr>
+                          <td><code>moveDownTooltip</code></td>
+                          <td><code>&lt;basePath&gt;.moveDown.tooltip</code></td>
+                          <td><code>'Move down'</code></td>
+                        </tr>
                       </tbody>
                     </table>
                     <p>
-                      **Authorization.** The whole toolbar respects the standard [TomPolicyNodeBase] gate at `&lt;basePath&gt;` (none → toolbar disappears, disabled → all buttons greyed out, read → readonly treatment, full → normal). In addition, each button consults its own sub-resource path (`&lt;basePath&gt;.add`, `&lt;basePath&gt;.remove`, `&lt;basePath&gt;.moveUp`, `&lt;basePath&gt;.moveDown`) — when its sub-state is `none` the button is hidden regardless of `showXxx`; when `disabled` or `read` it is rendered without an `onPressed` callback so the user cannot fire it.
+                      <strong>Authorization.</strong> The whole toolbar respects the standard [TomPolicyNodeBase] gate at <code>&lt;basePath&gt;</code>
+                       (none → toolbar disappears, disabled → all buttons greyed out, read → readonly treatment, full → normal). In addition, each button consults its own sub-resource path (<code>&lt;basePath&gt;.add</code>, 
+                      <code>&lt;basePath&gt;.remove</code>, <code>&lt;basePath&gt;.moveUp</code>, <code>&lt;basePath&gt;.moveDown</code>) — when its sub-state is 
+                      <code>none</code> the button is hidden regardless of <code>showXxx</code>; when <code>disabled</code>
+                       or <code>read</code> it is rendered without an <code>onPressed</code> callback so the user cannot fire it.
                     </p>
                     <p>
                       Per-row authorization is not supported by design — the same toolbar auth applies to every row of the list. Authorize individual fields of the row sub-form via the field widgets themselves.
@@ -1385,7 +1458,8 @@
                       <div class="api-member-head"><code class="api-signature">final int? selectedIndex</code></div>
                       <div class="api-doc">
                         <p>
-                          Currently selected row index. Drives Remove / Move-up / Move-down enable state. Pass `null` when no row is selected.
+                          Currently selected row index. Drives Remove / Move-up / Move-down enable state. Pass <code>null</code>
+                           when no row is selected.
                         </p>
                       </div>
                     </div>
@@ -1413,7 +1487,7 @@
                       <div class="api-member-head"><code class="api-signature">final bool dense</code></div>
                       <div class="api-doc">
                         <p>
-                          When `true` (default), uses small icons + tonal buttons. When `false`, the buttons are larger and use the surface's default styling.
+                          When <code>true</code> (default), uses small icons + tonal buttons. When <code>false</code>, the buttons are larger and use the surface's default styling.
                         </p>
                       </div>
                     </div>
@@ -1434,7 +1508,7 @@
                       <div class="api-member-head"><code class="api-signature">final Future&lt;bool&gt; Function()?? beforeAdd</code></div>
                       <div class="api-doc">
                         <p>
-                          Optional veto fired before an Add. Return `false` to cancel the add (e.g. the currently-open expandable row has unresolved validation errors and must be fixed before a new row is appended).
+                          Optional veto fired before an Add. Return <code>false</code> to cancel the add (e.g. the currently-open expandable row has unresolved validation errors and must be fixed before a new row is appended).
                         </p>
                       </div>
                     </div>
@@ -1442,7 +1516,8 @@
                       <div class="api-member-head"><code class="api-signature">final Future&lt;bool&gt; Function(int)?? beforeRemove</code></div>
                       <div class="api-doc">
                         <p>
-                          Optional veto fired before a Remove. Receives the index that would be removed. Return `false` to cancel.
+                          Optional veto fired before a Remove. Receives the index that would be removed. Return <code>false</code>
+                           to cancel.
                         </p>
                       </div>
                     </div>
@@ -1450,7 +1525,8 @@
                       <div class="api-member-head"><code class="api-signature">final Future&lt;bool&gt; Function(int, int)?? beforeMove</code></div>
                       <div class="api-doc">
                         <p>
-                          Optional veto fired before a Move. Receives the source and destination indices (in [TomListForm] semantics — `to` is the post-move position). Return `false` to cancel.
+                          Optional veto fired before a Move. Receives the source and destination indices (in [TomListForm] semantics — 
+                          <code>to</code> is the post-move position). Return <code>false</code> to cancel.
                         </p>
                       </div>
                     </div>
@@ -1511,7 +1587,8 @@
                       <div class="api-member-head"><code class="api-signature">bool _visible(InvalidType state, bool show)</code></div>
                       <div class="api-doc">
                         <p>
-                          Whether [state] permits the host's `showXxx` flag to actually produce a button. `none` is a hard hide (auth wins over `show`); any other state falls through to the host's flag.
+                          Whether [state] permits the host's <code>showXxx</code> flag to actually produce a button. <code>none</code>
+                           is a hard hide (auth wins over <code>show</code>); any other state falls through to the host's flag.
                         </p>
                       </div>
                     </div>
@@ -1523,7 +1600,8 @@
                       </div>
                       <div class="api-doc">
                         <p>
-                          Whether [state] permits a button to be interactive given the host's "is this action meaningful right now" flag. Read-only or disabled auth states force a null `onPressed`.
+                          Whether [state] permits a button to be interactive given the host's "is this action meaningful right now" flag. Read-only or disabled auth states force a null 
+                          <code>onPressed</code>.
                         </p>
                       </div>
                     </div>

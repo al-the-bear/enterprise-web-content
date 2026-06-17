@@ -764,6 +764,7 @@
         background: var(--surface);
         border-radius: var(--r-pill);
         padding: 4px;
+        max-width: 1452px;
       }
       .toggle button {
         flex: 1;
@@ -1009,6 +1010,25 @@
       }
       .site-main {
         flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
       }
       .site-footer {
         border-top: 1px solid var(--line);
@@ -1369,11 +1389,11 @@ print(~isActive); // true</code></pre>
                     </p>
                     <h2>Features</h2>
                     <ul>
-                      <li>**Automatic member registration**: Fields are discovered via reflection</li>
-                      <li>**Cascading observation**: Changes to any member notify the parent</li>
-                      <li>**JSON serialization**: Built-in [toJson] and [fromJson] support</li>
-                      <li>**Batch updates**: [setValues] for updating multiple fields at once</li>
-                      <li>**Muting**: Temporarily suppress notifications during bulk updates</li>
+                      <li><strong>Automatic member registration</strong>: Fields are discovered via reflection</li>
+                      <li><strong>Cascading observation</strong>: Changes to any member notify the parent</li>
+                      <li><strong>JSON serialization</strong>: Built-in [toJson] and [fromJson] support</li>
+                      <li><strong>Batch updates</strong>: [setValues] for updating multiple fields at once</li>
+                      <li><strong>Muting</strong>: Temporarily suppress notifications during bulk updates</li>
                     </ul>
                     <h2>Example</h2>
                     <pre><code>@tomReflector
@@ -1409,7 +1429,8 @@ print(person.toJson());</code></pre>
                       <div class="api-doc">
                         <p>Throws [TomObservableException] - direct value setting is not allowed.</p>
                         <p>
-                          Use [setValues] to update multiple fields, or set individual member fields directly using their `|` operator.
+                          Use [setValues] to update multiple fields, or set individual member fields directly using their <code>|</code>
+                           operator.
                         </p>
                       </div>
                     </div>
@@ -1496,10 +1517,10 @@ print(person.toJson());</code></pre>
                       <div class="api-doc">
                         <p>Updates or merges multiple member fields from a map of values.</p>
                         <p>
-                          When [merge] is `true`, [TomList] and [TomMap] members will have values added to them rather than being cleared first.
+                          When [merge] is <code>true</code>, [TomList] and [TomMap] members will have values added to them rather than being cleared first.
                         </p>
                         <p>
-                          When [merge] is `false`, collections are cleared before new values are added (same behavior as [setValues]).
+                          When [merge] is <code>false</code>, collections are cleared before new values are added (same behavior as [setValues]).
                         </p>
                       </div>
                     </div>
@@ -1692,10 +1713,10 @@ print(~count); // 42</code></pre>
                     </p>
                     <h2>Methods</h2>
                     <ul>
-                      <li>`list.append(element)` - Add an element (returns the list for chaining)</li>
-                      <li>`list[index]` - Get element at index</li>
-                      <li>`list[index] = value` - Set element at index</li>
-                      <li>`list + other` - Concatenate two TomLists</li>
+                      <li><code>list.append(element)</code> - Add an element (returns the list for chaining)</li>
+                      <li><code>list[index]</code> - Get element at index</li>
+                      <li><code>list[index] = value</code> - Set element at index</li>
+                      <li><code>list + other</code> - Concatenate two TomLists</li>
                     </ul>
                     <h2>Example</h2>
                     <pre><code>final items = TomList&lt;TomString&gt;();
@@ -1981,7 +2002,8 @@ items[0] | \"updated\"; // Triggers observer</code></pre>
                           Fires [TomListLifecycleListener.onBeforeClear] on all registered listeners before removing the current elements, installs [elements] as the new contents, then fires [TomListLifecycleListener.onAfterReset] so listeners can recreate state for the new contents.  A single [notifyObservers] call is made after all elements are installed.
                         </p>
                         <p>
-                          [TomClass._setListMember] uses this method so that observers such as `TomListForm` can teardown / recreate their sub-form instances when a parent form writes its bind-time snapshot back via `setValues()`.
+                          [TomClass._setListMember] uses this method so that observers such as <code>TomListForm</code> can teardown / recreate their sub-form instances when a parent form writes its bind-time snapshot back via 
+                          <code>setValues()</code>.
                         </p>
                       </div>
                     </div>
@@ -2092,7 +2114,8 @@ items[0] | \"updated\"; // Triggers observer</code></pre>
                       Register via [TomList.addLifecycleListener]. Implementors are notified around the [TomList.resetWith] batch-replacement operation so they can tear down state tied to the old elements before the list is cleared and re-create state for the new elements after they are installed.
                     </p>
                     <p>
-                      This is the mechanism used by `TomListForm` in `tom_flutter_ui` to keep its sub-form instances in sync when `TomClass.setValues()` replaces the contents of a list member (e.g. when an outer form discards its changes and restores the bind-time snapshot).
+                      This is the mechanism used by <code>TomListForm</code> in <code>tom_flutter_ui</code> to keep its sub-form instances in sync when 
+                      <code>TomClass.setValues()</code> replaces the contents of a list member (e.g. when an outer form discards its changes and restores the bind-time snapshot).
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -2105,7 +2128,7 @@ items[0] | \"updated\"; // Triggers observer</code></pre>
                       <div class="api-member-head"><code class="api-signature">void onBeforeClear(TomList&lt;TomObject&lt;dynamic&gt;&gt; list)</code></div>
                       <div class="api-doc">
                         <p>
-                          Called immediately **before** all elements are removed from [list]. The list is still intact when this fires — implementors may read current elements for cleanup.
+                          Called immediately <strong>before</strong> all elements are removed from [list]. The list is still intact when this fires — implementors may read current elements for cleanup.
                         </p>
                       </div>
                     </div>
@@ -2113,7 +2136,7 @@ items[0] | \"updated\"; // Triggers observer</code></pre>
                       <div class="api-member-head"><code class="api-signature">void onAfterReset(TomList&lt;TomObject&lt;dynamic&gt;&gt; list)</code></div>
                       <div class="api-doc">
                         <p>
-                          Called immediately **after** new elements have been installed in [list]. The list is fully populated when this fires — implementors may read the new contents to recreate state.
+                          Called immediately <strong>after</strong> new elements have been installed in [list]. The list is fully populated when this fires — implementors may read the new contents to recreate state.
                         </p>
                       </div>
                     </div>
@@ -2132,9 +2155,9 @@ items[0] | \"updated\"; // Triggers observer</code></pre>
                     <p>Note: Keys are not observed, only values.</p>
                     <h2>Operators</h2>
                     <ul>
-                      <li>`map[key]` - Get value for key</li>
-                      <li>`map[key] = value` - Set value for key</li>
-                      <li>`map + other` - Merge two TomMaps</li>
+                      <li><code>map[key]</code> - Get value for key</li>
+                      <li><code>map[key] = value</code> - Set value for key</li>
+                      <li><code>map + other</code> - Merge two TomMaps</li>
                     </ul>
                     <h2>Example</h2>
                     <pre><code>final users = TomMap&lt;String, Person&gt;();
@@ -2189,7 +2212,7 @@ users[\"john\"]!.name | \"John Doe\"; // Triggers observer</code></pre>
                       </div>
                       <div class="api-doc">
                         <p>Throws [TomObservableException] - direct value setting is not allowed.</p>
-                        <p>Use [add], `[]=` operator, or [addAll] to modify the map.</p>
+                        <p>Use [add], <code>[]=</code> operator, or [addAll] to modify the map.</p>
                       </div>
                     </div>
                     <div id="TomMap.get" class="api-member">
@@ -2278,7 +2301,7 @@ users[\"john\"]!.name | \"John Doe\"; // Triggers observer</code></pre>
                   <div class="api-members">
                     <div id="TomMap.[]" class="api-member">
                       <div class="api-member-head"><code class="api-signature">V? operator [](K key)</code></div>
-                      <div class="api-doc"><p>Gets the value associated with [key], or `null` if not found.</p></div>
+                      <div class="api-doc"><p>Gets the value associated with [key], or <code>null</code> if not found.</p></div>
                     </div>
                     <div id="TomMap.[]=" class="api-member">
                       <div class="api-member-head"><code class="api-signature">void operator []=(K key, V value)</code></div>
@@ -2319,7 +2342,7 @@ users[\"john\"]!.name | \"John Doe\"; // Triggers observer</code></pre>
                   <code class="api-signature">class TomNBool extends TomObject&lt;bool?&gt;</code>
                   <div class="api-doc">
                     <p>An observable wrapper for nullable [bool] values.</p>
-                    <p>Like [TomBool] but allows `null` values.</p>
+                    <p>Like [TomBool] but allows <code>null</code> values.</p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
@@ -2334,7 +2357,7 @@ users[\"john\"]!.name | \"John Doe\"; // Triggers observer</code></pre>
                   <code class="api-signature">class TomNDateTime extends TomObject&lt;DateTime?&gt;</code>
                   <div class="api-doc">
                     <p>An observable wrapper for nullable [DateTime] values.</p>
-                    <p>Like [TomDateTime] but allows `null` values.</p>
+                    <p>Like [TomDateTime] but allows <code>null</code> values.</p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
@@ -2360,7 +2383,7 @@ users[\"john\"]!.name | \"John Doe\"; // Triggers observer</code></pre>
                   <code class="api-signature">class TomNDouble extends TomObject&lt;double?&gt;</code>
                   <div class="api-doc">
                     <p>An observable wrapper for nullable [double] values.</p>
-                    <p>Like [TomDouble] but allows `null` values.</p>
+                    <p>Like [TomDouble] but allows <code>null</code> values.</p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
@@ -2375,7 +2398,7 @@ users[\"john\"]!.name | \"John Doe\"; // Triggers observer</code></pre>
                   <code class="api-signature">class TomNInt extends TomObject&lt;int?&gt;</code>
                   <div class="api-doc">
                     <p>An observable wrapper for nullable [int] values.</p>
-                    <p>Like [TomInt] but allows `null` values.</p>
+                    <p>Like [TomInt] but allows <code>null</code> values.</p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
@@ -2415,7 +2438,8 @@ users[\"john\"]!.name | \"John Doe\"; // Triggers observer</code></pre>
                   <div class="api-doc">
                     <p>An observable wrapper for nullable [TomZonedDate] values.</p>
                     <p>
-                      Like [TomOZonedDate] but allows `null` values. When serialized with an empty value after the prefix, deserializes to `null`.
+                      Like [TomOZonedDate] but allows <code>null</code> values. When serialized with an empty value after the prefix, deserializes to 
+                      <code>null</code>.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -2454,7 +2478,8 @@ users[\"john\"]!.name | \"John Doe\"; // Triggers observer</code></pre>
                   <div class="api-doc">
                     <p>An observable wrapper for nullable [TomZonedDateTime] values.</p>
                     <p>
-                      Like [TomOZonedDateTime] but allows `null` values. When serialized with an empty value after the prefix, deserializes to `null`.
+                      Like [TomOZonedDateTime] but allows <code>null</code> values. When serialized with an empty value after the prefix, deserializes to 
+                      <code>null</code>.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -2489,7 +2514,8 @@ users[\"john\"]!.name | \"John Doe\"; // Triggers observer</code></pre>
                   <div class="api-doc">
                     <p>An observable wrapper for nullable [TomZonedTime] values.</p>
                     <p>
-                      Like [TomOZonedTime] but allows `null` values. When serialized with an empty value after the prefix, deserializes to `null`.
+                      Like [TomOZonedTime] but allows <code>null</code> values. When serialized with an empty value after the prefix, deserializes to 
+                      <code>null</code>.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -2527,7 +2553,7 @@ users[\"john\"]!.name | \"John Doe\"; // Triggers observer</code></pre>
                   <code class="api-signature">class TomNString extends TomObject&lt;String?&gt;</code>
                   <div class="api-doc">
                     <p>An observable wrapper for nullable [String] values.</p>
-                    <p>Like [TomString] but allows `null` values.</p>
+                    <p>Like [TomString] but allows <code>null</code> values.</p>
                     <p>Example:</p>
                     <pre><code>final nickname = TomNString(null);
 if (nickname.isNull) print("No nickname set");
@@ -2592,7 +2618,7 @@ nickname | "Johnny"; // Set a value</code></pre>
                   <code class="api-signature">class TomOZonedDate extends TomOTimezoned&lt;TomZonedDate&gt;</code>
                   <div class="api-doc">
                     <p>An observable wrapper for [TomZonedDate] values (date with timezone).</p>
-                    <p>Supports serialization with the [TomZonedDate.serializationPrefix] (`@D@`).</p>
+                    <p>Supports serialization with the [TomZonedDate.serializationPrefix] (<code>@D@</code>).</p>
                     <p>Example:</p>
                     <pre><code>final birthDate = TomOZonedDate(TomZonedDate.now());</code></pre>
                   </div>
@@ -2631,7 +2657,7 @@ nickname | "Johnny"; // Set a value</code></pre>
                   <code class="api-signature">class TomOZonedDateTime extends TomOTimezoned&lt;TomZonedDateTime&gt;</code>
                   <div class="api-doc">
                     <p>An observable wrapper for [TomZonedDateTime] values (datetime with timezone).</p>
-                    <p>Supports serialization with the [TomZonedDateTime.serializationPrefix] (`@X@`).</p>
+                    <p>Supports serialization with the [TomZonedDateTime.serializationPrefix] (<code>@X@</code>).</p>
                     <p>Example:</p>
                     <pre><code>final eventTime = TomOZonedDateTime(TomZonedDateTime.fromDateTime(DateTime.now()));</code></pre>
                   </div>
@@ -2666,7 +2692,7 @@ nickname | "Johnny"; // Set a value</code></pre>
                   <code class="api-signature">class TomOZonedTime extends TomOTimezoned&lt;TomZonedTime&gt;</code>
                   <div class="api-doc">
                     <p>An observable wrapper for [TomZonedTime] values (time with timezone).</p>
-                    <p>Supports serialization with the [TomZonedTime.serializationPrefix] (`@T@`).</p>
+                    <p>Supports serialization with the [TomZonedTime.serializationPrefix] (<code>@T@</code>).</p>
                     <p>Example:</p>
                     <pre><code>final meetingTime = TomOZonedTime(TomZonedTime.now());</code></pre>
                   </div>
@@ -2710,10 +2736,10 @@ nickname | "Johnny"; // Set a value</code></pre>
                     </p>
                     <h2>Operators</h2>
                     <ul>
-                      <li>`~obj` - Get the value (prefix operator)</li>
-                      <li>`obj()` - Get the value (call operator)</li>
-                      <li>`obj | newValue` - Set the value and notify observers</li>
-                      <li>`obj &gt;&gt; callback` - Add an observer callback function</li>
+                      <li><code>~obj</code> - Get the value (prefix operator)</li>
+                      <li><code>obj()</code> - Get the value (call operator)</li>
+                      <li><code>obj | newValue</code> - Set the value and notify observers</li>
+                      <li><code>obj &gt;&gt; callback</code> - Add an observer callback function</li>
                     </ul>
                     <h2>Example</h2>
                     <pre><code>final name = TomString("John");
@@ -2760,12 +2786,14 @@ print(name()); // "Jane"</code></pre>
                     <div id="TomObject.getOrNull" class="api-member">
                       <div class="api-member-head"><code class="api-signature">T? getOrNull()</code></div>
                       <div class="api-doc">
-                        <p>Returns the value, or `null` if the value itself is null. Useful for nullable TomObject types.</p>
+                        <p>
+                          Returns the value, or <code>null</code> if the value itself is null. Useful for nullable TomObject types.
+                        </p>
                       </div>
                     </div>
                     <div id="TomObject.call" class="api-member">
                       <div class="api-member-head"><code class="api-signature">T call()</code></div>
-                      <div class="api-doc"><p>Call operator to get the value: `myObject()`</p></div>
+                      <div class="api-doc"><p>Call operator to get the value: <code>myObject()</code></p></div>
                     </div>
                     <div id="TomObject.toString" class="api-member">
                       <div class="api-member-head">
@@ -2778,15 +2806,15 @@ print(name()); // "Jane"</code></pre>
                   <div class="api-members">
                     <div id="TomObject.~" class="api-member">
                       <div class="api-member-head"><code class="api-signature">T operator ~()</code></div>
-                      <div class="api-doc"><p>Prefix operator to get the value: `~myObject`</p></div>
+                      <div class="api-doc"><p>Prefix operator to get the value: <code>~myObject</code></p></div>
                     </div>
                     <div id="TomObject.|" class="api-member">
                       <div class="api-member-head"><code class="api-signature">T operator |(T value)</code></div>
-                      <div class="api-doc"><p>Pipe operator to set the value: `myObject | newValue`</p></div>
+                      <div class="api-doc"><p>Pipe operator to set the value: <code>myObject | newValue</code></p></div>
                     </div>
                     <div id="TomObject.&lt;&lt;" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomObject&lt;T&gt; operator &lt;&lt;(T value)</code></div>
-                      <div class="api-doc"><p>Left shift operator to set the value: `myObject &lt;&lt; newValue`</p></div>
+                      <div class="api-doc"><p>Left shift operator to set the value: <code>myObject &lt;&lt; newValue</code></p></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Static</h4>
