@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1396,7 +1402,7 @@
                     <p>Container for a group of related actions.</p>
                     <p>
                       Each controller has a unique [controllerId] and maintains a registry of its actions. The controller provides the first segment of action canonical paths: 
-                      <code>&lt;controllerId&gt;.&lt;actionId&gt;</code>.
+                      <code>&lt;scopePath&gt;.&lt;controllerId&gt;.&lt;actionId&gt;</code>.
                     </p>
                     <pre><code>class OrderController extends TomActionController {
   OrderController() : super(controllerId: 'orderMgmt');
@@ -1410,9 +1416,7 @@
                   <div class="api-members">
                     <div id="TomActionController.new" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">
-                          TomActionController.new({required String controllerId, InvalidType scope, InvalidType authorizationGroup})
-                        </code>
+                        <code class="api-signature">TomActionController.new({required String controllerId, InvalidType scope, InvalidType tomGroup})</code>
                       </div>
                     </div>
                   </div>
@@ -1424,11 +1428,41 @@
                     </div>
                     <div id="TomActionController.scope" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final InvalidType scope</code></div>
-                      <div class="api-doc"><p>Optional scope for resource resolution.</p></div>
+                      <div class="api-doc">
+                        <p>Optional explicit scope for resource and authorization lookups.</p>
+                        <p>
+                          When provided, this scope is used instead of whatever [TomScope.current] carried at construction — see [constructionScope].
+                        </p>
+                      </div>
                     </div>
-                    <div id="TomActionController.authorizationGroup" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final InvalidType authorizationGroup</code></div>
-                      <div class="api-doc"><p>Optional authorization group for collective action control.</p></div>
+                    <div id="TomActionController.tomGroup" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final InvalidType tomGroup</code></div>
+                      <div class="api-doc">
+                        <p>The authorization group every action this controller owns joins by default.</p>
+                        <p>
+                          This is the collective half of the group machinery: declare the group once here and each action built against this controller registers with it and takes its ceiling, without the per-action wiring. An action that names its own 
+                          <code>tomGroup</code> overrides it — see [TomAction.tomGroup], which is where the fallback is resolved.
+                        </p>
+                        <p>
+                          Read when an action is <em>constructed</em>, so a controller that assigns its group rather than taking it in the constructor must do so before its actions are built.
+                        </p>
+                        <p>
+                          Named <code>tomGroup</code> like every other authorization-group parameter in this package, including the ones on 
+                          <code>TomNodeBase</code> widgets, so the concept has one spelling wherever it is reached for.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomActionController.constructionScope" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final InvalidType constructionScope</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The frame this controller and, by default, its actions resolve in: the explicit [scope] when it was given one, otherwise whatever the zone carried when the controller was constructed.
+                        </p>
+                        <p>
+                          Captured once rather than read per lookup, so a controller answers the same question the same way wherever the answer is asked for. The same rule, and the same reason, as 
+                          <code>TomNodeBase.constructionScope</code>.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomActionController._actions" class="api-member">
                       <div class="api-member-head">
@@ -1441,7 +1475,17 @@
                         <code class="api-signature">List&lt;TomAction&lt;TomActionContext, TomActionUndo&gt;&gt; actions</code>
                       </div>
                     </div>
-                    <div id="TomActionController.canonicalPrefix" class="api-member"><div class="api-member-head"><code class="api-signature">String canonicalPrefix</code></div></div>
+                    <div id="TomActionController.canonicalPrefix" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String canonicalPrefix</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The canonical path prefix for actions in this controller: <code>&lt;scopePath&gt;.&lt;controllerId&gt;</code>, or the bare id at the root.
+                        </p>
+                        <p>
+                          Resolved in [constructionScope], which is the same frame the actions build their own paths and their group ceilings from — a prefix that differed between them would address a rule belonging to someone else.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomActionController.authState" class="api-member"><div class="api-member-head"><code class="api-signature">InvalidType authState</code></div></div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
@@ -1452,19 +1496,50 @@
                       </div>
                       <div class="api-doc">
                         <p>Registers an action with this controller.</p>
-                        <p>Called automatically by [TomAction] constructor.</p>
+                        <p>
+                          Called automatically by the [TomAction] constructor. Throws [StateError] on a duplicate [TomAction.actionId] — see [addUniquely].
+                        </p>
                       </div>
                     </div>
                     <div id="TomActionController.findAction" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">TomAction&lt;TomActionContext, TomActionUndo&gt;? findAction(String actionId)</code>
                       </div>
-                      <div class="api-doc"><p>Finds an action by its [actionId].</p></div>
+                      <div class="api-doc">
+                        <p>Finds an action by its [actionId], or null when this controller has none.</p>
+                        <p>At most one can match: [registerAction] refuses a duplicate id.</p>
+                      </div>
                     </div>
                     <div id="TomActionController.toString" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">String toString()</code>
                         <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="TomActionController.addUniquely" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static void addUniquely(List&lt;TomAction&lt;TomActionContext, TomActionUndo&gt;&gt; registered, TomAction&lt;TomActionContext, TomActionUndo&gt; action)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Appends [action] to [registered], refusing an id already present.</p>
+                        <p>
+                          The single definition of the rule. Called from [registerAction] here and from <code>TomForm</code>'s, which 
+                          <em>implements</em> this interface rather than extending it and so keeps its own list; one definition is what stops the two from disagreeing about whether a duplicate is allowed.
+                        </p>
+                        <p>
+                          A duplicate id is never intentional, and it does more than shadow a lookup. [TomAction.canonicalPath] is 
+                          <code>&lt;controllerId&gt;.&lt;actionId&gt;</code>, so two actions sharing an id resolve <strong>one</strong>
+                           authorization decision and <strong>one</strong> set of label, tooltip and icon keys — two different behaviours wearing one caption and one permission, with the second unreachable through [findAction] for the controller's lifetime.
+                        </p>
+                        <p>
+                          Registration happens in the [TomAction] constructor, so the throw lands at the definition site. For the canonical 
+                          <code>late final</code> action field that is the first <em>read</em> of the field rather than the controller's construction — later than one might expect, and still the earliest point at which the duplicate exists.
+                        </p>
                       </div>
                     </div>
                   </div>

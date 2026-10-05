@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1389,6 +1395,8 @@
                 <div class="treenodes">
                   <a class="leaf" href="#LoadedModule">LoadedModule</a>
                   <a class="leaf" href="#ModuleLoader">ModuleLoader</a>
+                  <a class="leaf" href="#_InFlightModule">_InFlightModule</a>
+                  <a class="leaf" href="#_ownTopLevelNames">_ownTopLevelNames</a>
                 </div>
               </div>
               <div class="reader">
@@ -1425,7 +1433,7 @@
                     <div id="ModuleLoader.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          ModuleLoader.new(Environment globalEnvironment, Map&lt;String, String&gt; sources, List&lt;Map&lt;String, LibraryEnum&gt;&gt; bridgedEnumDefinitions, List&lt;Map&lt;String, LibraryClass&gt;&gt; bridgedClases, {D4rt? d4rt, List&lt;Map&lt;String, LibraryFunction&gt;&gt; libraryFunctions = const [], List&lt;Map&lt;String, LibraryVariable&gt;&gt; libraryVariables = const [], List&lt;Map&lt;String, LibraryGetter&gt;&gt; libraryGetters = const [], List&lt;Map&lt;String, LibrarySetter&gt;&gt; librarySetters = const [], List&lt;Map&lt;String, LibraryExtension&gt;&gt; bridgedExtensions = const [], bool collectRegistrationErrors = false})
+                          ModuleLoader.new(Environment globalEnvironment, Map&lt;String, String&gt; sources, Map&lt;String, Map&lt;String, LibraryEnum&gt;&gt; bridgedEnumDefinitions, Map&lt;String, Map&lt;String, LibraryClass&gt;&gt; bridgedClases, {D4rt? d4rt, String? basePath, bool allowFileSystemImports = false, Map&lt;String, Map&lt;String, LibraryFunction&gt;&gt; libraryFunctions = const {}, Map&lt;String, Map&lt;String, LibraryVariable&gt;&gt; libraryVariables = const {}, Map&lt;String, Map&lt;String, LibraryGetter&gt;&gt; libraryGetters = const {}, Map&lt;String, Map&lt;String, LibrarySetter&gt;&gt; librarySetters = const {}, Map&lt;String, List&lt;LibraryExtension&gt;&gt; bridgedExtensions = const {}, bool collectRegistrationErrors = false, Map&lt;String, Environment&gt;? sharedBridgedModuleEnvironments, Environment? sharedModuleEnclosing, void Function()?? onBridgedModuleEnvBuilt})
                         </code>
                       </div>
                     </div>
@@ -1441,35 +1449,78 @@
                     <div id="ModuleLoader._moduleCache" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final Map&lt;Uri, LoadedModule&gt; _moduleCache</code></div>
                     </div>
+                    <div id="ModuleLoader.callStack" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final D4rtCallStack callStack</code></div>
+                      <div class="api-doc">
+                        <p>The interpreted call stack of the run this loader serves.</p>
+                        <p>
+                          On the loader rather than on a visitor because a run has several visitors — one per loaded module — and every one of them calls into the others' functions; the loader is what they share, and a new run gets a new one.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="ModuleLoader._inFlightModules" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Map&lt;Uri, _InFlightModule&gt; _inFlightModules</code></div>
+                      <div class="api-doc">
+                        <p>
+                          DFUB10 — modules currently being loaded, keyed by the same identity URI as [_moduleCache]. A URI is present here only between the start of its directive processing and its completion.
+                        </p>
+                      </div>
+                    </div>
                     <div id="ModuleLoader.bridgedEnumDefinitions" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">final List&lt;Map&lt;String, LibraryEnum&gt;&gt; bridgedEnumDefinitions</code>
+                        <code class="api-signature">final Map&lt;String, Map&lt;String, LibraryEnum&gt;&gt; bridgedEnumDefinitions</code>
                       </div>
                     </div>
                     <div id="ModuleLoader.bridgedClases" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final List&lt;Map&lt;String, LibraryClass&gt;&gt; bridgedClases</code></div>
+                      <div class="api-member-head">
+                        <code class="api-signature">final Map&lt;String, Map&lt;String, LibraryClass&gt;&gt; bridgedClases</code>
+                      </div>
                     </div>
                     <div id="ModuleLoader.d4rt" class="api-member"><div class="api-member-head"><code class="api-signature">final D4rt? d4rt</code></div></div>
+                    <div id="ModuleLoader.basePath" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? basePath</code></div>
+                      <div class="api-doc">
+                        <p>DFUB1 — base directory for resolving relative filesystem imports.</p>
+                        <p>
+                          When [allowFileSystemImports] is enabled, a scheme-less relative import URI is resolved against <code>Directory(basePath).absolute.uri</code>
+                           before reading the module source off disk. <code>null</code> disables relative filesystem resolution (absolute 
+                          <code>file:</code> URIs still resolve on their own).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="ModuleLoader.allowFileSystemImports" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final bool allowFileSystemImports</code></div>
+                      <div class="api-doc">
+                        <p>
+                          DFUB1 — when true, [_fetchModuleSource] may read a module's source from the filesystem (via [_resolveFileSystemUri]) if the URI is not already in [sources] and the resolved file exists. Defaults to 
+                          <code>false</code> (sandboxed: only preloaded [sources] and bridged/stdlib modules are visible). The per-read FilesystemPermission gate is layered on top in DFUB2.
+                        </p>
+                      </div>
+                    </div>
                     <div id="ModuleLoader.currentlibrary" class="api-member"><div class="api-member-head"><code class="api-signature">Uri? currentlibrary</code></div></div>
                     <div id="ModuleLoader.libraryFunctions" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">final List&lt;Map&lt;String, LibraryFunction&gt;&gt; libraryFunctions</code>
+                        <code class="api-signature">final Map&lt;String, Map&lt;String, LibraryFunction&gt;&gt; libraryFunctions</code>
                       </div>
                     </div>
                     <div id="ModuleLoader.libraryVariables" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">final List&lt;Map&lt;String, LibraryVariable&gt;&gt; libraryVariables</code>
+                        <code class="api-signature">final Map&lt;String, Map&lt;String, LibraryVariable&gt;&gt; libraryVariables</code>
                       </div>
                     </div>
                     <div id="ModuleLoader.libraryGetters" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final List&lt;Map&lt;String, LibraryGetter&gt;&gt; libraryGetters</code></div>
+                      <div class="api-member-head">
+                        <code class="api-signature">final Map&lt;String, Map&lt;String, LibraryGetter&gt;&gt; libraryGetters</code>
+                      </div>
                     </div>
                     <div id="ModuleLoader.librarySetters" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final List&lt;Map&lt;String, LibrarySetter&gt;&gt; librarySetters</code></div>
+                      <div class="api-member-head">
+                        <code class="api-signature">final Map&lt;String, Map&lt;String, LibrarySetter&gt;&gt; librarySetters</code>
+                      </div>
                     </div>
                     <div id="ModuleLoader.bridgedExtensions" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">final List&lt;Map&lt;String, LibraryExtension&gt;&gt; bridgedExtensions</code>
+                        <code class="api-signature">final Map&lt;String, List&lt;LibraryExtension&gt;&gt; bridgedExtensions</code>
                       </div>
                     </div>
                     <div id="ModuleLoader._registeredFunctions" class="api-member">
@@ -1495,6 +1546,35 @@
                     </div>
                     <div id="ModuleLoader._bridgedModuleEnvironments" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final Map&lt;String, Environment&gt; _bridgedModuleEnvironments</code></div>
+                    </div>
+                    <div id="ModuleLoader.sharedBridgedModuleEnvironments" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">final Map&lt;String, Environment&gt;? sharedBridgedModuleEnvironments</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Step #2 (import-binding optimization) — when non-null, a process-global cache (owned by [D4rt], keyed per allowed-set signature) that this loader reads/writes instead of the per-loader [_bridgedModuleEnvironments]. Set for 
+                          <strong>migrated</strong> instances so a bridged module's environment is built once per allowed-set and reused across every 
+                          <code>execute*</code>, rather than rebuilt by each freshly-constructed loader. <code>null</code> for legacy instances, which keep the per-loader behavior. See [D4rt.debugBridgedModuleEnvBuildCount].
+                        </p>
+                      </div>
+                    </div>
+                    <div id="ModuleLoader.sharedModuleEnclosing" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Environment? sharedModuleEnclosing</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Step #2 — the <code>enclosing</code> environment for cached bridged module envs. The shared warm parent (immutable, per allowed-set), so a cached module env carries no per-execution state. Only consulted when [sharedBridgedModuleEnvironments] is non-null. When 
+                          <code>null</code> the per-loader path uses [globalEnvironment] as before.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="ModuleLoader.onBridgedModuleEnvBuilt" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final void Function()?? onBridgedModuleEnvBuilt</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Step #2 — invoked once each time a bridged module env is <em>built</em> (a cache miss). Lets [D4rt] count builds for the cache-reuse regression test.
+                        </p>
+                      </div>
                     </div>
                     <div id="ModuleLoader._stdlibEnvironments" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final Map&lt;String, Environment&gt; _stdlibEnvironments</code></div>
@@ -1525,9 +1605,76 @@
                         </p>
                       </div>
                     </div>
+                    <div id="ModuleLoader.loadedModuleCount" class="api-member"><div class="api-member-head"><code class="api-signature">int loadedModuleCount</code></div></div>
+                    <div id="ModuleLoader.loadedSourceModuleCount" class="api-member"><div class="api-member-head"><code class="api-signature">int loadedSourceModuleCount</code></div></div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
+                    <div id="ModuleLoader._locateStatement" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">({int column, int line, Uri? source})? _locateStatement(Object statement)</code>
+                      </div>
+                      <div class="api-doc"><p>The line, column and library of [statement], for a trace.</p></div>
+                    </div>
+                    <div id="ModuleLoader.releaseLoadedModules" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void releaseLoadedModules()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Step #3 (retention) — drops the per-loader parsed-module cache so a finished run's [CompilationUnit]s become collectable. Only the per-loader [_moduleCache] is cleared; the process-global shared bridge caches (pool, warm parent, [sharedBridgedModuleEnvironments]) are untouched — they hold no per-run state and are reused across executes. A subsequent execute re-parses and re-populates [_moduleCache] as usual.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="ModuleLoader._resolveFileSystemUri" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Uri? _resolveFileSystemUri(Uri uri)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          DFUB1 — resolves an import [uri] to a filesystem <code>file:</code> URI, or returns <code>null</code>
+                           when it is not a filesystem candidate.
+                        </p>
+                        <ul>
+                          <li><code>file:</code> URIs resolve to themselves (already absolute on disk).</li>
+                          <li>
+                            Any other explicit scheme (<code>dart:</code>, <code>package:</code>, …) returns <code>null</code> — not
+                          </li>
+                        </ul>
+                        <p>
+                          a filesystem import. - A scheme-less (relative) URI resolves against <code>Directory(basePath).absolute.uri</code>; returns 
+                          <code>null</code> when [basePath] is unset (no base to resolve against).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="ModuleLoader._canonicalizeModuleUri" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Uri _canonicalizeModuleUri(Uri uri)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          DFUB3 — canonicalizes a module [uri] to a single absolute spelling so the URI that flows through source reads, the read-permission gate and nested import resolution is always the same absolute 
+                          <code>file:</code> form.
+                        </p>
+                        <p>
+                          Ports upstream kodjodevf/d4rt 3b8b8ca. Only filesystem candidates (per [_resolveFileSystemUri]) are affected; every other URI (<code>dart:</code>, 
+                          <code>package:</code>, unresolvable relative) is returned unchanged so this is a no-op for non-filesystem imports.
+                        </p>
+                        <p>
+                          This deliberately does NOT resolve symlinks: the returned URI still uses the caller's directory spelling, so a [FilesystemPermission] granted on a (possibly symlinked) directory keeps matching the read. Symlink/real-path identity for cache deduplication is handled separately by [_moduleIdentityUri]. (Canonicalizing permission grants to real paths is tracked in dgub5.)
+                        </p>
+                      </div>
+                    </div>
+                    <div id="ModuleLoader._moduleIdentityUri" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Uri _moduleIdentityUri(Uri uri)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          DFUB3 — computes the deduplication identity for a module [uri] used as the [_moduleCache] key, so different spellings of the same underlying file — including symlinked directories/files and 
+                          <code>..</code>/<code>.</code> segments — collapse to a single cached module instance and load exactly once.
+                        </p>
+                        <p>
+                          For an existing filesystem file this is the real (symlink-resolved) path; when the file does not exist or the real-path call fails it falls back to the absolute spelling. Non-filesystem URIs (<code>dart:</code>, 
+                          <code>package:</code>) are returned unchanged.
+                        </p>
+                        <p>
+                          Kept separate from [_canonicalizeModuleUri] so that reads and the read-permission gate operate on the caller's (grant-matching) spelling while cache identity still folds symlinks together.
+                        </p>
+                      </div>
+                    </div>
                     <div id="ModuleLoader._checkModulePermissions" class="api-member">
                       <div class="api-member-head"><code class="api-signature">void _checkModulePermissions(Uri uri)</code></div>
                       <div class="api-doc"><p>Checks if the given URI requires special permissions and verifies they are granted.</p></div>
@@ -1596,9 +1743,39 @@
                       </div>
                       <div class="api-doc"><p>Union of two optional hide-filters (null = hide nothing).</p></div>
                     </div>
+                    <div id="ModuleLoader._inFlightFor" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">_InFlightModule? _inFlightFor(LoadedModule module)</code></div>
+                      <div class="api-doc">
+                        <p>DFUB10 — the in-flight entry that owns [module], or null when the module is fully loaded.</p>
+                        <p>
+                          The scan is over the current import-nesting depth (one entry per module on the load stack), not over the module cache, so it stays tiny.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="ModuleLoader._mergeFromModule" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void _mergeFromModule(LoadedModule source, void Function() merge)</code></div>
+                      <div class="api-doc">
+                        <p>DFUB10 — runs [merge] now and schedules a replay when [source] is only partially loaded.</p>
+                        <p>
+                          <code>Environment.importEnvironment</code> copies bindings at call time; a merge that runs against a module still walking its own directives therefore captures an incomplete — often empty — export set and would never self-heal. Replaying once [source] finishes fills in the rest.
+                        </p>
+                      </div>
+                    </div>
                     <div id="ModuleLoader.loadModule" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">LoadedModule loadModule(Uri uri, {Set&lt;String&gt;? showNames, Set&lt;String&gt;? hideNames})</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Loads (or returns the cached) module for [uri].</p>
+                        <p>
+                          DFUB10 — the real work lives in [_loadModule]; this wrapper only guarantees that a <em>failed</em> load drops its in-flight registration. Without it a module that threw part-way would stay registered as "in progress" forever, and a later 
+                          <code>execute()</code> on the same loader would silently be handed that abandoned partial instead of re-loading.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="ModuleLoader._loadModule" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">LoadedModule _loadModule(Uri uri, {Set&lt;String&gt;? showNames, Set&lt;String&gt;? hideNames})</code>
                       </div>
                     </div>
                     <div id="ModuleLoader._shouldRegisterName" class="api-member">
@@ -1612,6 +1789,31 @@
                         <code class="api-signature">
                           String _fetchModuleSource(Uri uri, {Set&lt;String&gt;? showNames, Set&lt;String&gt;? hideNames, Set&lt;String&gt;? reExportVisited})
                         </code>
+                      </div>
+                    </div>
+                    <div id="ModuleLoader._missingModuleSourceError" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">SourceCodeD4rtException _missingModuleSourceError(Uri uri)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          DFUB2 — builds a diagnostic for a module source that could not be resolved, distinguishing the reason:
+                        </p>
+                        <ul><li>a filesystem candidate with [allowFileSystemImports] disabled → the</li></ul>
+                        <p>
+                          import is off but the URI names a file (enable the flag or preload it); - a filesystem candidate that simply does not exist on disk → include the resolved path so the caller can see where the loader looked; - a 
+                          <code>package:</code> URI → package-specific guidance (preload or bridge it); - anything else → the generic "not preloaded / not a stdlib" message.
+                        </p>
+                        <p>
+                          The path-scope canonicalization (<code>..</code> traversal) is hardened separately in DFUB11; the platform io/web split is DFUB12.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="ModuleLoader._checkFileSystemSourceReadPermission" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void _checkFileSystemSourceReadPermission(Uri fileUri)</code></div>
+                      <div class="api-doc">
+                        <p>DFUB2 — gates a filesystem module-source read behind a [FilesystemPermission] read check.</p>
+                        <p>
+                          The resolved [fileUri] is normalized to an absolute path and matched against the granted permissions via [D4rt.checkPermission]. An ungranted read throws a [RuntimeD4rtException] before any bytes are read. No-op when there is no owning [D4rt] instance (nothing to enforce against).
+                        </p>
                       </div>
                     </div>
                     <div id="ModuleLoader._resolveTypeForExtension" class="api-member">
@@ -1659,16 +1861,83 @@
                   </div>
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
+                    <div id="ModuleLoader.stdlibModuleNames" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Iterable&lt;String&gt; stdlibModuleNames</code></div>
+                    </div>
+                    <div id="ModuleLoader._latentStdlib" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Environment _latentStdlib</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Every stdlib library's bridges in one environment, built once per process (SCF44). See [Environment.latentBridgeLookup]. One environment is sound because SCC76 holds the stdlib modules free of duplicate names.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="ModuleLoader._latentPrecise" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Map&lt;Type, BridgedClass?&gt; _latentPrecise</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Answers by native type, cached, so a type no bridge claims is looked up once rather than on every speculative wrap. Keyed by 
+                          <code>(type, structural)</code>.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="ModuleLoader._latentStructural" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Map&lt;Type, BridgedClass?&gt; _latentStructural</code></div>
+                    </div>
                     <div id="ModuleLoader._stdlibRegistrars" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">static Map&lt;String, void Function(Environment)&gt; _stdlibRegistrars</code>
                       </div>
+                    </div>
+                    <div id="ModuleLoader.latentStdlibBridgeFor" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static BridgedClass? latentStdlibBridgeFor(Type nativeType, {bool structural = false})</code>
+                      </div>
                       <div class="api-doc">
+                        <p>The stdlib bridge for [nativeType] from any stdlib library, imported or not.</p>
                         <p>
-                          Known non-ambient stdlib modules and their registration functions. dart:core and dart:async are pre-registered into globalEnvironment and are NOT listed here (they stay ambient/unconditional).
+                          Precise (the default): the exact type, else the bridge whose name or <code>nativeNames</code> equals the type's name (without type arguments, a leading underscore or an 
+                          <code>Impl</code> suffix). [structural]: SCC49's suffix rule, which the caller asks only after the imported scope's own suffix rule missed — so an imported library still wins at each tier, and widening to every library never lets a guess outrank a declared match.
                         </p>
                       </div>
                     </div>
+                  </div>
+                </section>
+                <section id="_InFlightModule" class="api-declaration">
+                  <h3 class="api-decl-title">class _InFlightModule</h3>
+                  <code class="api-signature">class _InFlightModule</code>
+                  <div class="api-doc">
+                    <p>DFUB10 — a module whose load is still in flight.</p>
+                    <p>
+                      Registered before a module's import/export directives are walked, so that a cyclic re-entry gets this partial entry back instead of recursing forever. Circular imports and exports are legal Dart and must load, so we support the cycle rather than rejecting it.
+                    </p>
+                    <p>
+                      [deferredMerges] exists because [Environment.importEnvironment] copies bindings at call time rather than aliasing the source environment. A module that merges from an in-flight module therefore copies an incomplete — often empty — set of exports. Each such merge is recorded here and replayed once the in-flight module finishes, at which point its exports are complete. The replay is idempotent: 
+                      <code>importEnvironment</code> skips names already bound to the identical value, so re-merging costs nothing and cannot raise a spurious conflict.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="_InFlightModule.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">_InFlightModule.new(LoadedModule partial)</code></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="_InFlightModule.partial" class="api-member"><div class="api-member-head"><code class="api-signature">final LoadedModule partial</code></div></div>
+                    <div id="_InFlightModule.deferredMerges" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final List&lt;void Function()&gt; deferredMerges</code></div>
+                    </div>
+                  </div>
+                </section>
+                <section id="_ownTopLevelNames" class="api-declaration">
+                  <h3 class="api-decl-title">function _ownTopLevelNames</h3>
+                  <code class="api-signature">Set&lt;String&gt; _ownTopLevelNames(CompilationUnit unit)</code>
+                  <div class="api-doc">
+                    <p>
+                      The names a module declares at its top level (DFIN6): what its exported environment carries before its 
+                      <code>export</code> directives are applied. Imported names are not among them.
+                    </p>
                   </div>
                 </section>
               </div>

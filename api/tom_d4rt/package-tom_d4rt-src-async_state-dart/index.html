@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1388,7 +1394,10 @@
               <div class="treepane">
                 <div class="treenodes">
                   <a class="leaf" href="#AsyncExecutionState">AsyncExecutionState</a>
+                  <a class="leaf" href="#AsyncGeneratorGate">AsyncGeneratorGate</a>
                   <a class="leaf" href="#AsyncSuspensionRequest">AsyncSuspensionRequest</a>
+                  <a class="leaf" href="#LoopStackDepths">LoopStackDepths</a>
+                  <a class="leaf" href="#PendingJump">PendingJump</a>
                 </div>
               </div>
               <div class="reader">
@@ -1407,7 +1416,7 @@
                     <div id="AsyncExecutionState.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          AsyncExecutionState.new({required Environment environment, required Completer&lt;Object?&gt; completer, required AstNode? nextStateIdentifier, required InterpretedFunction function, Object? lastAwaitResult, Object? lastAwaitError, StackTrace? lastAwaitStackTrace, Iterator&lt;Object?&gt;? currentForInIterator, bool forLoopInitialized = false, Environment? forLoopEnvironment, Block? pendingFinallyBlock, Object? currentError, StackTrace? currentStackTrace, TryStatement? activeTryStatement, Object? returnAfterFinally, bool isHandlingErrorForRethrow = false, InternalInterpreterD4rtException? originalErrorForRethrow, bool isHandlingContinue = false, StreamController&lt;Object?&gt;? generatorStreamController})
+                          AsyncExecutionState.new({required Environment environment, required Completer&lt;Object?&gt; completer, required AstNode? nextStateIdentifier, required InterpretedFunction function, Object? lastAwaitResult, Object? lastAwaitError, StackTrace? lastAwaitStackTrace, Iterator&lt;Object?&gt;? currentForInIterator, bool forLoopInitialized = false, Environment? forLoopEnvironment, Block? pendingFinallyBlock, Object? currentError, StackTrace? currentStackTrace, TryStatement? activeTryStatement, Object? returnAfterFinally, bool isHandlingErrorForRethrow = false, InternalInterpreterD4rtException? originalErrorForRethrow, bool isHandlingContinue = false, StreamController&lt;Object?&gt;? generatorStreamController, AsyncGeneratorGate? generatorGate})
                         </code>
                       </div>
                       <div class="api-doc">
@@ -1438,7 +1447,54 @@
                     </div>
                     <div id="AsyncExecutionState.lastAwaitResult" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Object? lastAwaitResult</code></div>
-                      <div class="api-doc"><p>The result value from the most recently completed Future (from await).</p></div>
+                      <div class="api-doc">
+                        <p>The result value from the most recently completed Future (from await).</p>
+                        <p>
+                          Note this is the <em>most recent</em> result, not "the result of the await site being resumed" — those coincide only when a statement contains a single await. For per-site replay use [resolvedAwaitResults]; this slot remains the completion value the state machine falls back to.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="AsyncExecutionState.resolvedAwaitResults" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Map&lt;AstNode, Object?&gt; resolvedAwaitResults</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Results of the await sites already resolved while resuming the statement currently in flight, keyed by the 
+                          <code>AwaitExpression</code> node itself.
+                        </p>
+                        <p>
+                          SCC40: resuming a statement means re-evaluating it from the top, so every await it contains is visited again. With only [lastAwaitResult] to consult, each of those visits returned the same value — so 
+                          <code>(await a) + (await b)</code> evaluated to <code>'AA'</code>, a silent wrong answer rather than a crash. Keying by node lets an already-resolved site replay 
+                          <em>its own</em> value while a site that has not been reached yet still suspends properly.
+                        </p>
+                        <p>
+                          Scoped to one evaluation of one statement: [resumingStatementHasMoreAwaits] says whether that evaluation is still in progress, and the state machine clears this map as soon as it is not. A loop body re-enters the identical AST node on every iteration, so a map that outlived the statement would replay the previous iteration's value.
+                        </p>
+                        <p>
+                          Keyed by IDENTITY, matching the <code>tom_d4rt_ast</code> twin, where it is load- bearing: <code>SAstNode</code>
+                           overrides <code>==</code> with <code>equals()</code>, a <code>toJson()</code> deep diff, so a plain map there would run that diff on every lookup and would fuse two await sites whose entire subtrees serialize identically. Analyzer nodes already compare by identity; spelling it the same way in both keeps the two files diffable.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="AsyncExecutionState.collectionForReplay" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Map&lt;AstNode, List&lt;Object&gt;&gt; collectionForReplay</code></div>
+                      <div class="api-doc">
+                        <p>
+                          What the completed iterations of a suspended collection-literal <code>for</code> element produced, keyed by the element node (SCF43).
+                        </p>
+                        <p>
+                          Replay re-evaluates the whole literal, so without this a loop would run its earlier iterations again, and [resolvedAwaitResults], keyed by the await NODE every iteration shares, would hand the second iteration the first one's value. An entry is written only when an iteration SUSPENDS and is deleted when the literal completes, so it lives exactly across the replay window: a 
+                          <code>for</code> element that never suspends (a sync helper called twice in one statement, a loop condition) never records anything.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="AsyncExecutionState.resumingStatementHasMoreAwaits" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool resumingStatementHasMoreAwaits</code></div>
+                      <div class="api-doc">
+                        <p>Set while resuming a statement that still has an unreached await site.</p>
+                        <p>
+                          The state machine consults it after <code>_determineNextNodeAfterAwait</code> to decide whether [resolvedAwaitResults] survives into the next step.
+                        </p>
+                      </div>
                     </div>
                     <div id="AsyncExecutionState.lastAwaitError" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Object? lastAwaitError</code></div>
@@ -1459,6 +1515,54 @@
                     <div id="AsyncExecutionState.forLoopEnvironment" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Environment? forLoopEnvironment</code></div>
                       <div class="api-doc"><p>Optional: Environment for the current standard for-loop scope.</p></div>
+                    </div>
+                    <div id="AsyncExecutionState.catchEnvironments" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Map&lt;CatchClause, Environment&gt; catchEnvironments</code></div>
+                      <div class="api-doc">
+                        <p>The child environment each catch clause's body runs in, by clause.</p>
+                        <p>
+                          SCE79. <code>_handleAsyncError</code> used to define the exception variable in the FUNCTION's environment — its own comment said "can cause collisions" — so in an async function the variable outlived its block and, worse, silently overwrote a caller's local of the same name. 
+                          <code>e</code> is one of the most common names there is, and nothing threw or logged: the value was simply wrong from that point on. 
+                          <code>visitTryStatement</code> has always created a child environment, which is what Dart requires.
+                        </p>
+                        <p>
+                          WHY A MAP AND NOT A STACK, which is the design question this posed. A stack has to be POPPED, and the state machine resumes at a node rather than executing a block — so every exit from a catch block (fallthrough, return, rethrow, break, an error) would need to pop, and one missed exit leaks the scope again in a way nothing would notice. Keyed by clause, the binding is SELECTED structurally instead: a node lexically inside the clause gets the environment, a node outside it never asks. There is no exit to instrument because there is nothing to undo.
+                        </p>
+                        <p>
+                          A re-entered clause overwrites its entry, so a try inside a loop gets a fresh environment per iteration rather than resuming a stale one.
+                        </p>
+                        <p>
+                          KEYED BY IDENTITY, and load-bearing in the <code>tom_d4rt_ast</code> twin for the same reason [doBodiesStarted] records: 
+                          <code>SAstNode</code> overrides <code>==</code> with a structural <code>toJson()</code> comparison, so a plain Map there would treat two identical-looking catch clauses as one.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="AsyncExecutionState.cascadeTargets" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Map&lt;CascadeExpression, Object?&gt; cascadeTargets</code></div>
+                      <div class="api-doc">
+                        <p>A cascade's target value, memoised for the duration of that cascade.</p>
+                        <p>
+                          SCE81, and the reason option (b) was reachable at all. Dart evaluates a cascade's target ONCE and then runs its sections in order for their side effects. The interpreter drives 
+                          <code>await</code> by REPLAY, so a section that suspends means the cascade is re-entered — and without these two maps the target would be re-evaluated and every earlier section re-run: 
+                          <code>sb..write('a')..write(await f())</code> would write <code>'a'</code> twice.
+                        </p>
+                        <p>
+                          Keyed by the cascade node, so each cascade in flight has its own entry. Removed as soon as the cascade completes, which is what lets a cascade inside a loop start fresh on the next iteration rather than skipping every section it ran last time.
+                        </p>
+                        <p>
+                          KEYED BY IDENTITY, load-bearing in the <code>tom_d4rt_ast</code> twin for the reason [doBodiesStarted] records: 
+                          <code>SAstNode</code> overrides <code>==</code> with a structural <code>toJson()</code> comparison, so a plain Map there would treat two identical-looking cascades as one.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="AsyncExecutionState.completedCascadeSections" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Set&lt;AstNode&gt; completedCascadeSections</code></div>
+                      <div class="api-doc">
+                        <p>The cascade sections that have already run to completion.</p>
+                        <p>
+                          SCE81. Replay skips these, which is what stops an earlier section's side effect happening twice. Cleared per cascade by [cascadeTargets]'s owner when that cascade finishes.
+                        </p>
+                      </div>
                     </div>
                     <div id="AsyncExecutionState.loopEnvironmentStack" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final List&lt;Environment&gt; loopEnvironmentStack</code></div>
@@ -1514,6 +1618,40 @@
                       <div class="api-member-head"><code class="api-signature">Object? returnAfterFinally</code></div>
                       <div class="api-doc"><p>Store return value if a return happens inside a try with a finally.</p></div>
                     </div>
+                    <div id="AsyncExecutionState.errorAfterFinally" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Object? errorAfterFinally</code></div>
+                      <div class="api-doc">
+                        <p>
+                          An error that is only <em>passing through</em> a <code>finally</code> block: it was raised in a protected region that has no matching catch clause, so it must be re-raised at the enclosing try once the finally has finished.
+                        </p>
+                        <p>
+                          SCC12: it cannot simply be left in [currentError] while the finally runs. The state machine clears [currentError] after every statement that completes normally, so an error parked there is erased by the first statement of the finally block — which is how an exception thrown inside 
+                          <code>try { … } finally { … }</code> inside an async function used to vanish altogether, leaving the enclosing 
+                          <code>catch</code> unrun.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="AsyncExecutionState.errorAfterFinallyStackTrace" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">StackTrace? errorAfterFinallyStackTrace</code></div>
+                      <div class="api-doc"><p>The stack trace belonging to [errorAfterFinally].</p></div>
+                    </div>
+                    <div id="AsyncExecutionState.errorAfterFinallyTry" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TryStatement? errorAfterFinallyTry</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The <code>try</code> whose finally block [errorAfterFinally] is waiting for. Non-null exactly while an error is held, and used to recognise the moment the block ends — the error must resume at the 
+                          <em>enclosing</em> try, not this one.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="AsyncExecutionState.resumeErrorAfterFinally" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool resumeErrorAfterFinally</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Set when the finally block named by [errorAfterFinallyTry] has finished, so the next state-machine step re-raises the held error instead of executing the statement that follows the try.
+                        </p>
+                      </div>
+                    </div>
                     <div id="AsyncExecutionState.isHandlingErrorForRethrow" class="api-member">
                       <div class="api-member-head"><code class="api-signature">bool isHandlingErrorForRethrow</code></div>
                       <div class="api-doc"><p>Flag to indicate if we are currently executing a catch block body.</p></div>
@@ -1550,21 +1688,39 @@
                         </p>
                       </div>
                     </div>
-                    <div id="AsyncExecutionState.awaitingStreamConversion" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">bool awaitingStreamConversion</code></div>
+                    <div id="AsyncExecutionState.awaitingStreamMoveNext" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool awaitingStreamMoveNext</code></div>
                       <div class="api-doc">
+                        <p>Whether the pending suspension is an <code>await for</code>'s <code>moveNext()</code>.</p>
                         <p>
-                          Flag indicating if the interpreter is currently waiting for stream conversion. When true, indicates that a stream is being converted to a list for await-for processing.
+                          SCE16. This used to be <code>awaitingStreamConversion</code>, and the name was accurate: the loop suspended ONCE on 
+                          <code>stream.toList()</code> and then walked the list. That made <code>await for</code> eager — every element was produced before the body ran once, a 
+                          <code>break</code> could not stop the producer, and a loop over an infinite stream never ran its body at all because 
+                          <code>toList()</code> never completes. The loop now suspends once per element on [StreamIterator.moveNext], which is what 
+                          <code>await for</code> means.
                         </p>
                       </div>
                     </div>
-                    <div id="AsyncExecutionState.awaitForListStack" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final List&lt;List&lt;Object?&gt;&gt; awaitForListStack</code></div>
-                      <div class="api-doc"><p>Stack of lists for nested await-for loops Each level of nesting has its own list</p></div>
+                    <div id="AsyncExecutionState.awaitForIteratorStack" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">final List&lt;StreamIterator&lt;Object?&gt;&gt; awaitForIteratorStack</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Stack of stream iterators for nested await-for loops.</p>
+                        <p>
+                          Parallel to [awaitForNodeStack]. Each entry owns a subscription and MUST be cancelled when its loop is left — see [truncateLoopStacks].
+                        </p>
+                      </div>
                     </div>
-                    <div id="AsyncExecutionState.awaitForIndexStack" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final List&lt;int&gt; awaitForIndexStack</code></div>
-                      <div class="api-doc"><p>Stack of indices for nested await-for loops Each level of nesting has its own index</p></div>
+                    <div id="AsyncExecutionState.awaitForHasElementStack" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final List&lt;bool&gt; awaitForHasElementStack</code></div>
+                      <div class="api-doc">
+                        <p>Whether each nested await-for loop currently holds an unconsumed element.</p>
+                        <p>
+                          Parallel to [awaitForNodeStack]. The loop's handler is re-entered both after a <code>moveNext()</code>
+                           resumption and after its body finishes, and this is what tells those apart: with an element in hand it binds and runs the body, without one it asks for the next.
+                        </p>
+                      </div>
                     </div>
                     <div id="AsyncExecutionState.awaitForNodeStack" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final List&lt;ForStatement&gt; awaitForNodeStack</code></div>
@@ -1572,11 +1728,143 @@
                         <p>Stack of ForStatement nodes for nested await-for loops Used to track which await-for loop we're in</p>
                       </div>
                     </div>
+                    <div id="AsyncExecutionState.doBodiesStarted" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Set&lt;DoStatement&gt; doBodiesStarted</code></div>
+                      <div class="api-doc">
+                        <p>The <code>do</code> loops whose body has already been entered.</p>
+                        <p>
+                          SCE19. The state machine re-enters a <code>DoStatement</code> node for two different reasons — arriving at the loop from the statement before it, and coming back from the end of its body — and it used to assume the second, evaluating the condition every time. So 
+                          <code>do { n++; } while (false);</code> never ran its body at all. Loops whose condition is true on entry gave the right answer, which is why nothing caught it.
+                        </p>
+                        <p>
+                          Membership is what tells the two arrivals apart: absent means the body has not run yet and must, present means the body has finished and the condition decides. 
+                          <code>continue</code> deliberately leaves the entry in place — it returns to the loop from INSIDE, and Dart evaluates the condition for it (F-SCD4-13 pins that).
+                        </p>
+                        <p>
+                          Keyed by IDENTITY, and load-bearing in the <code>tom_d4rt_ast</code> twin: <code>SAstNode</code> overrides 
+                          <code>==</code> with a structural <code>toJson()</code> comparison, so a plain Set there would treat two identical-looking 
+                          <code>do</code> loops as one.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="AsyncExecutionState.loopEntryDepths" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Map&lt;AstNode, LoopStackDepths&gt; loopEntryDepths</code></div>
+                      <div class="api-doc">
+                        <p>How deep each loop stack was when a <code>for</code> loop was entered.</p>
+                        <p>
+                          WHY. Leaving a loop — at its end, or by <code>break</code> / <code>continue</code> from inside it — must remove exactly what it and the loops nested in it pushed, and the stacks cannot answer that themselves: they are not parallel. A for-in over an existing variable pushes a node and no environment, a for-in that declares one pushes its environment only on the first element, and only a classic 
+                          <code>for</code> pushes an initialisation flag. Popping "the last entry" of each, which <code>break</code>
+                           used to do, left the wrong loop whenever those shapes were nested. Recording the depths on entry makes the exit exact whatever was pushed in between.
+                        </p>
+                        <p>Keyed by identity: the node is the loop, not a structurally equal one.</p>
+                      </div>
+                    </div>
                     <div id="AsyncExecutionState.generatorStreamController" class="api-member">
                       <div class="api-member-head"><code class="api-signature">StreamController&lt;Object?&gt;? generatorStreamController</code></div>
                       <div class="api-doc"><p>For async* generators: the stream controller to send yields to</p></div>
                     </div>
                     <div id="AsyncExecutionState.isGenerator" class="api-member"><div class="api-member-head"><code class="api-signature">bool isGenerator</code></div></div>
+                    <div id="AsyncExecutionState.pendingJump" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">PendingJump? pendingJump</code></div>
+                      <div class="api-doc">
+                        <p>
+                          A <code>break</code> or <code>continue</code> waiting for the <code>finally</code> blocks it crosses (SCF6). Set when the jump leaves a try with a non-empty finally on its way to [PendingJump.target]; consulted where each of those finallys ends; replaced by a 
+                          <code>return</code>, a <code>throw</code> or another jump that leaves the running finally, as Dart replaces an abrupt completion.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="AsyncExecutionState.generatorGate" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">AsyncGeneratorGate? generatorGate</code></div>
+                      <div class="api-doc"><p>For async* generators: what the listener has asked for (SCF4). Null outside a generator.</p></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="AsyncExecutionState.clearStatementReplay" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void clearStatementReplay()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Ends the replay scope of the statement in flight: both per-evaluation caches go together, because both describe that one evaluation.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="AsyncExecutionState.recordLoopEntry" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void recordLoopEntry(AstNode loop)</code></div>
+                      <div class="api-doc"><p>Records that [loop] is being entered, before it pushes anything.</p></div>
+                    </div>
+                    <div id="AsyncExecutionState.truncateLoopStacks" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void truncateLoopStacks(LoopStackDepths depths)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Restores every loop stack to [depths], forgetting the loops that are removed — so a loop entered again later starts from scratch instead of resuming a stale iterator or list.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="AsyncExecutionState._shrink" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static void _shrink(List&lt;Object?&gt; stack, int depth)</code></div>
+                    </div>
+                  </div>
+                </section>
+                <section id="AsyncGeneratorGate" class="api-declaration">
+                  <h3 class="api-decl-title">class AsyncGeneratorGate</h3>
+                  <code class="api-signature">class AsyncGeneratorGate</code>
+                  <div class="api-doc">
+                    <p>The link from an <code>async*</code> body back to its listener (SCF4).</p>
+                    <p>
+                      Without it a generator ran to completion whatever its subscriber did: a <code>yield</code> added its value and suspended on an already-completed future, so nothing could pause the body and nothing could stop it. The stream's 
+                      <code>onResume</code> / <code>onCancel</code> now reach the body through this object.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="AsyncGeneratorGate.new" class="api-member"><div class="api-member-head"><code class="api-signature">AsyncGeneratorGate.new()</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="AsyncGeneratorGate.cancelled" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool cancelled</code></div>
+                      <div class="api-doc"><p>Set by the subscription's <code>onCancel</code>; read at every <code>yield</code>.</p></div>
+                    </div>
+                    <div id="AsyncGeneratorGate._resume" class="api-member"><div class="api-member-head"><code class="api-signature">Completer&lt;void&gt;? _resume</code></div></div>
+                    <div id="AsyncGeneratorGate._done" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Completer&lt;void&gt; _done</code></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="AsyncGeneratorGate.resume" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void resume()</code></div>
+                      <div class="api-doc"><p>The subscription resumed; a <code>yield</code> waiting on a pause continues.</p></div>
+                    </div>
+                    <div id="AsyncGeneratorGate.cancel" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;void&gt; cancel()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The subscription was cancelled. A waiting <code>yield</code> wakes and unwinds; the returned future completes once the body has run its 
+                          <code>finally</code> blocks, which is when Dart completes <code>StreamSubscription.cancel()</code>.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="AsyncGeneratorGate.finished" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void finished()</code></div>
+                      <div class="api-doc"><p>The body has finished, by any route.</p></div>
+                    </div>
+                    <div id="AsyncGeneratorGate.afterYield" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Future&lt;void&gt; afterYield(StreamController&lt;Object?&gt; controller)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>What a <code>yield</code> waits on after adding its value.</p>
+                        <p>
+                          One microtask first, so the value is delivered and a consumer that pauses on receipt — a <code>StreamIterator</code>, which is what 
+                          <code>await for</code> uses — has done so before the body looks. Then it waits for as long as the subscription stays paused, which is what 
+                          <code>async*</code> backpressure is. A cancellation, before or during the wait, completes it with [GeneratorCancelledSignal].
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </section>
                 <section id="AsyncSuspensionRequest" class="api-declaration">
@@ -1592,13 +1880,14 @@
                     <div id="AsyncSuspensionRequest.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          AsyncSuspensionRequest.new(Future&lt;Object?&gt; future, AsyncExecutionState asyncState, {bool isYieldSuspension = false})
+                          AsyncSuspensionRequest.new(Future&lt;Object?&gt; future, AsyncExecutionState asyncState, {bool isYieldSuspension = false, AstNode? awaitNode})
                         </code>
                       </div>
                       <div class="api-doc">
                         <p>Creates a new async suspension request.</p>
                         <p>
-                          [future] The Future that the interpreter should wait for. [asyncState] The current execution state that will be resumed after the Future completes. [isYieldSuspension] Whether this suspension is from a yield statement.
+                          [future] The Future that the interpreter should wait for. [asyncState] The current execution state that will be resumed after the Future completes. [isYieldSuspension] Whether this suspension is from a yield statement. [awaitNode] The 
+                          <code>await</code> expression this suspension came from, if any.
                         </p>
                       </div>
                     </div>
@@ -1621,6 +1910,66 @@
                       <div class="api-member-head"><code class="api-signature">final bool isYieldSuspension</code></div>
                       <div class="api-doc"><p>Flag indicating if this suspension is from a yield statement</p></div>
                     </div>
+                    <div id="AsyncSuspensionRequest.awaitNode" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final AstNode? awaitNode</code></div>
+                      <div class="api-doc">
+                        <p>The <code>await</code> site that produced this suspension, when there is one.</p>
+                        <p>
+                          SCC40: this is what lets the resolved value be filed against its own await expression in [AsyncExecutionState.resolvedAwaitResults] instead of a single per-frame slot shared by every await in the statement. Null for suspensions the state machine raises itself (yield, await-for stream conversion), which resume by a different route and need no per-site replay.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="LoopStackDepths" class="api-declaration">
+                  <h3 class="api-decl-title">class LoopStackDepths</h3>
+                  <code class="api-signature">class LoopStackDepths</code>
+                  <div class="api-doc">
+                    <p>
+                      The depth of each loop stack at the moment a loop was entered; see [AsyncExecutionState.loopEntryDepths].
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="LoopStackDepths.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          const LoopStackDepths.new({required int nodes, required int environments, required int initialized, required int awaitFor})
+                        </code>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="LoopStackDepths.nodes" class="api-member"><div class="api-member-head"><code class="api-signature">final int nodes</code></div></div>
+                    <div id="LoopStackDepths.environments" class="api-member"><div class="api-member-head"><code class="api-signature">final int environments</code></div></div>
+                    <div id="LoopStackDepths.initialized" class="api-member"><div class="api-member-head"><code class="api-signature">final int initialized</code></div></div>
+                    <div id="LoopStackDepths.awaitFor" class="api-member"><div class="api-member-head"><code class="api-signature">final int awaitFor</code></div></div>
+                  </div>
+                </section>
+                <section id="PendingJump" class="api-declaration">
+                  <h3 class="api-decl-title">class PendingJump</h3>
+                  <code class="api-signature">class PendingJump</code>
+                  <div class="api-doc"><p>A jump deferred until the finallys between it and its target have run.</p></div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="PendingJump.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">const PendingJump.new({required AstNode from, required AstNode target, required bool isContinue})</code>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="PendingJump.from" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final AstNode from</code></div>
+                      <div class="api-doc"><p>The <code>break</code> / <code>continue</code> statement that started the jump.</p></div>
+                    </div>
+                    <div id="PendingJump.target" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final AstNode target</code></div>
+                      <div class="api-doc"><p>The loop (or <code>switch</code>) it leaves or restarts.</p></div>
+                    </div>
+                    <div id="PendingJump.isContinue" class="api-member"><div class="api-member-head"><code class="api-signature">final bool isContinue</code></div></div>
                   </div>
                 </section>
               </div>

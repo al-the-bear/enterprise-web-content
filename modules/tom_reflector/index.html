@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1386,7 +1392,7 @@
               <span style="display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap"><span class="badge b-works"><span class="d"></span>In the works</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">role: extension</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">license: BSD-3-Clause</span></span>
             </div>
             <h2>tom_reflector</h2>
-            <div class="mono" style="color: #9FB6C9">tom_reflector · v1.0.0</div>
+            <div class="mono" style="color: #9FB6C9">tom_reflector · v1.3.0</div>
             <p style="margin-top: 10px">
               Analyzer-based code reflection engine for the Tom framework. It walks Dart sources with the Dart analyzer and produces a structured snapshot of a codebase's API.
               
@@ -1398,9 +1404,9 @@
               <div class="k">Status</div>
               <div class="v" style="font-size: 1.05rem; color: #D85F23">In the works</div>
             </div>
-            <div class="stat"><div class="k">LOC</div><div class="v">15.0k</div></div>
-            <div class="stat"><div class="k">Tests</div><div class="v">191</div></div>
-            <div class="stat"><div class="k">Test LOC</div><div class="v">223.6k</div></div>
+            <div class="stat"><div class="k">LOC</div><div class="v">10.0k</div></div>
+            <div class="stat"><div class="k">Tests</div><div class="v">205</div></div>
+            <div class="stat"><div class="k">Test LOC</div><div class="v">224.3k</div></div>
           </div>
           <div class="dcols">
             <div>
@@ -1433,29 +1439,8 @@
                 <div class="linkrow">
                   <span class="ic">📄</span>
                   <div class="linkmeta">
-                    <a class="linkname" href="/docs?module=tom_reflector&amp;path=doc%2Fanalyzer_element_api.md">analyzer_element_api.md</a>
-                    <span class="muted linkpath">doc/analyzer_element_api.md</span>
-                  </div>
-                </div>
-                <div class="linkrow">
-                  <span class="ic">📄</span>
-                  <div class="linkmeta">
                     <a class="linkname" href="/docs?module=tom_reflector&amp;path=doc%2Fanalyzer_usage_guide.md">analyzer_usage_guide.md</a>
                     <span class="muted linkpath">doc/analyzer_usage_guide.md</span>
-                  </div>
-                </div>
-                <div class="linkrow">
-                  <span class="ic">📄</span>
-                  <div class="linkmeta">
-                    <a class="linkname" href="/docs?module=tom_reflector&amp;path=doc%2Fgenerated%2Fdart_overview%2Felements_report.md">elements_report.md</a>
-                    <span class="muted linkpath">doc/generated/dart_overview/elements_report.md</span>
-                  </div>
-                </div>
-                <div class="linkrow">
-                  <span class="ic">📄</span>
-                  <div class="linkmeta">
-                    <a class="linkname" href="/docs?module=tom_reflector&amp;path=doc%2Fgenerated%2Fdart_overview%2Fregeneration_report.md">regeneration_report.md</a>
-                    <span class="muted linkpath">doc/generated/dart_overview/regeneration_report.md</span>
                   </div>
                 </div>
                 <div class="linkrow">
@@ -1512,13 +1497,6 @@
                   <div class="linkmeta">
                     <a class="linkname" href="/docs?module=tom_reflector&amp;path=doc%2Ftom_analyzer_reflection.md">tom_analyzer_reflection.md</a>
                     <span class="muted linkpath">doc/tom_analyzer_reflection.md</span>
-                  </div>
-                </div>
-                <div class="linkrow">
-                  <span class="ic">📄</span>
-                  <div class="linkmeta">
-                    <a class="linkname" href="/docs?module=tom_reflector&amp;path=doc%2Fuam_analyzer.md">uam_analyzer.md</a>
-                    <span class="muted linkpath">doc/uam_analyzer.md</span>
                   </div>
                 </div>
                 <div class="linkrow">
@@ -1918,9 +1896,9 @@ bin/reflector.dart  → ToolRunner(reflectorTool)  → `reflector` / `buildkit :
 tom_reflector         THIS PACKAGE — analyzer engine + `reflector` CLI → *.r.dart
       │ builds on
       ├── tom_build_base   v2 tool framework (CLI, navigation, version flags)
-      └── tom_d4rt_ast     AST modelling (cross-repo: tom_ai/d4rt/)</code></pre>
+      └── tom_ast_model    serializable mirror AST (cross-repo: tom_ai/d4rt/)</code></pre>
               <p>
-                &gt; <code>tom_d4rt_ast</code> lives in the <strong>d4rt</strong> repo; changes there can affect this &gt; package — coordinate with the d4rt quest on breaking changes.
+                &gt; <code>tom_ast_model</code> lives in the <strong>d4rt</strong> repo; changes there can affect this &gt; package — coordinate with the d4rt quest on breaking changes. It is consumed &gt; hosted, with a version floor, so what this package was tested against is on &gt; the record rather than being whatever the sibling checkout holds.
               </p>
               <p>
                 This is the engine-2 generator. The runtime mirror engine (<a href="/docs?module=tom_reflection&amp;path=README.md"><code>tom_reflection</code></a>) is a separate technology with its own generator emitting 
@@ -1944,9 +1922,12 @@ tom_reflector         THIS PACKAGE — analyzer engine + `reflector` CLI → *.r
                   Design (pre-rename <code>tom_analyzer</code>): <a href="/docs?module=tom_reflector&amp;path=doc%2Ftom_analyzer_design.md"><code>doc/tom_analyzer_design.md</code></a>
                 </li>
                 <li>
-                  Analyzer element API: <a href="/docs?module=tom_reflector&amp;path=doc%2Fanalyzer_element_api.md"><code>doc/analyzer_element_api.md</code></a>
+                  Analyzer element API: generated on demand by <code>dart run tool/extract_analyzer_element_api.dart</code>,
                 </li>
               </ul>
+              <p>
+                which writes <code>analyzer_element_api.md</code> / <code>.json</code> under the workspace's <code>ztmp/tom_reflector/</code>
+              </p>
               <h3>Runnable samples (engine 2)</h3>
               <ul>
                 <li>

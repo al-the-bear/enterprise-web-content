@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1411,8 +1417,12 @@
                     </ul>
                     <h2>Initialization</h2>
                     <p>
-                      The timezone database is initialized automatically on first access. No manual initialization is required - the 
-                      <code>_initialize()</code> method handles calling <code>initializeTimeZones()</code> internally.
+                      On native (Flutter / VM) platforms the timezone database is loaded <strong>synchronously on first access</strong>
+                       from the embedded IANA data, so no manual initialization is required.
+                    </p>
+                    <p>
+                      On the <strong>web</strong> the database must be fetched over the network and therefore cannot be loaded synchronously: applications must call (and await) 
+                      <code>tomSetupTimezones()</code> during startup <strong>before</strong> any timezone access. If the database is still empty on first access, lookups throw a [StateError] naming the missing call rather than returning empty results. It is an [Error] and not a [TomTimezoneException] on purpose — see that class for where the line falls.
                     </p>
                     <h2>Common Usage</h2>
                     <pre><code>// Get a timezone by name
@@ -1445,6 +1455,32 @@ final tzList = TomTimezone.allWithOffset(0); // All UTC+0 timezones</code></pre>
                         <code class="api-signature">TomTimezone._({required String timezone, required Location location})</code>
                       </div>
                     </div>
+                    <div id="TomTimezone.fixedOffset" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">factory TomTimezone.fixedOffset({required String name, required int utcOffsetMinutes})</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>A zone named [name] that sits at [utcOffsetMinutes] at every instant.</p>
+                        <p>
+                          For a zone the IANA database of this runtime does not hold. A serialized value carries an offset beside its zone name, and that is what a parse falls back to when the name resolves to nothing — the value keeps the name it was stored under and is read at the offset it was stored with, rather than being refused because this host's database is older or smaller than the one that wrote it. See the module guide's "Serialization Format".
+                        </p>
+                        <p>
+                          It observes no daylight saving and has no transitions, so [getUtcOffsetOn] answers [utcOffsetMinutes] for every instant, past or future. That is the honest reading of what the string says: one offset, with nothing to say when it might have been different.
+                        </p>
+                        <p>
+                          <strong>It does not join the database.</strong> [fromName] does not resolve it, [timezones] does not hold it, and the offset lookups do not find it — a value that arrives over the wire must not be able to write to the index every other lookup in the process reads.
+                        </p>
+                        <p>
+                          [utcOffsetMinutes] outside ±840 minutes (±14:00) throws [TomFormattingException], the bound the rest of the module keeps.
+                        </p>
+                        <p>Example:</p>
+                        <pre><code>final zone = TomTimezone.fixedOffset(
+  name: 'Mars/Olympus',
+  utcOffsetMinutes: 330,
+);
+print(zone.toString()); // +05:30_Mars/Olympus</code></pre>
+                      </div>
+                    </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
@@ -1457,6 +1493,12 @@ final tzList = TomTimezone.allWithOffset(0); // All UTC+0 timezones</code></pre>
                       <div class="api-doc">
                         <p>The underlying timezone location from the <code>timezone</code> package.</p>
                         <p>Provides access to low-level timezone operations and data.</p>
+                        <p>
+                          This is the <strong>shared</strong> object the database holds, not a copy: every lookup of a zone hands out the same instance, which is what makes 
+                          <code>identical</code> comparisons between zones meaningful. It also means its contents are the database's — the package's 
+                          <code>Location</code> exposes its transition and zone lists as plain mutable lists, so emptying or sorting one rewrites what that zone's offsets are for the rest of the process. The lookups this class owns hand out unmodifiable views for that reason; this one cannot, because the type belongs to the 
+                          <code>timezone</code> package. Read it, and leave its lists alone.
+                        </p>
                       </div>
                     </div>
                     <div id="TomTimezone.timezoneOffsetMin" class="api-member"><div class="api-member-head"><code class="api-signature">int timezoneOffsetMin</code></div></div>
@@ -1471,12 +1513,16 @@ final tzList = TomTimezone.allWithOffset(0); // All UTC+0 timezones</code></pre>
                       <div class="api-doc">
                         <p>Returns a string representation of this timezone.</p>
                         <p>
-                          Format: <code>{offset}_{timezone}</code> where offset is in format <code>Z</code> for UTC or <code>+HH:MM</code>/<code>-HH:MM</code>
+                          Format: <code>{offset}_{timezone}</code>, where offset is <code>Z</code> for UTC or <code>+HH:MM</code>/<code>-HH:MM</code>
                            for other timezones.
                         </p>
+                        <p>
+                          The offset is the zone's offset <strong>now</strong>. A zoned value does not render its zone through this method but through [toStringOn] at its own instant, because the offset belongs to the value: a January Berlin value written in July still reads 
+                          <code>+01:00</code>.
+                        </p>
                         <p>Example:</p>
-                        <pre><code>print(TomTimezone.utc.toString()); // 'Z_UTC '
-print(TomTimezone.fromName('Asia/Tokyo')!.toString()); // '+09:00_Asia/Tokyo '</code></pre>
+                        <pre><code>print(TomTimezone.utc.toString()); // 'Z_UTC'
+print(TomTimezone.fromName('Asia/Tokyo')!.toString()); // '+09:00_Asia/Tokyo'</code></pre>
                       </div>
                     </div>
                     <div id="TomTimezone.toStringOn" class="api-member">
@@ -1484,17 +1530,20 @@ print(TomTimezone.fromName('Asia/Tokyo')!.toString()); // '+09:00_Asia/Tokyo '</
                       <div class="api-doc">
                         <p>Returns a string representation of this timezone at a specific date/time.</p>
                         <p>
-                          Format: <code>{offset}_{timezone}</code> where offset is calculated for the given date, accounting for DST transitions.
+                          Format: <code>{offset}_{timezone}</code>, as [toString], with the offset calculated for the given date and accounting for DST transitions.
+                        </p>
+                        <p>
+                          Every zoned value renders its zone through this method, at its own instant, so whatever this returns is the tail of every serialized string the module produces — which is why it ends where the zone name ends. A trailing character nobody asked for is carried into every stored value, every map key and every URL built from one, and is invisible in each of them.
                         </p>
                         <p>[when] The DateTime to calculate the offset for.</p>
                         <p>Example:</p>
                         <pre><code>final newYork = TomTimezone.fromName('America/New_York')!;
 
 // Winter (EST: UTC-5)
-print(newYork.toStringOn(DateTime.utc(2024, 1, 15))); // '-05:00_America/New_York '
+print(newYork.toStringOn(DateTime.utc(2024, 1, 15))); // '-05:00_America/New_York'
 
 // Summer (EDT: UTC-4)
-print(newYork.toStringOn(DateTime.utc(2024, 7, 15))); // '-04:00_America/New_York '</code></pre>
+print(newYork.toStringOn(DateTime.utc(2024, 7, 15))); // '-04:00_America/New_York'</code></pre>
                       </div>
                     </div>
                     <div id="TomTimezone.getUtcOffsetOn" class="api-member">
@@ -1568,15 +1617,19 @@ print('Tokyo time: ${tokyoNow.hour}:${tokyoNow.minute}');</code></pre>
                         <code class="api-signature">DateTime changeToThisLocation(DateTime dt, TomTimezone inTimezone)</code>
                       </div>
                       <div class="api-doc">
-                        <p>Converts a DateTime from another timezone to this timezone.</p>
-                        <p>[dt] The DateTime to convert. [inTimezone] The source timezone of the DateTime.</p>
+                        <p>Reads [dt] as a wall-clock reading in [inTimezone] and re-renders it in this timezone.</p>
+                        <p>
+                          The instance form of [changeLocation], with this timezone as the target. See there for the full semantics — in particular that only the calendar fields of [dt] are read, never the instant it denotes.
+                        </p>
+                        <p>[dt] The wall-clock reading to convert. [inTimezone] The timezone the reading is expressed in.</p>
                         <p>Example:</p>
                         <pre><code>final tokyo = TomTimezone.fromName('Asia/Tokyo')!;
 final newYork = TomTimezone.fromName('America/New_York')!;
 
-final tokyoTime = DateTime.utc(2024, 6, 15, 12, 0); // 12 PM in Tokyo
-final nyTime = newYork.changeToThisLocation(tokyoTime, tokyo);
-// nyTime is the equivalent time in New York</code></pre>
+// Noon on a Tokyo clock.
+final tokyoNoon = DateTime.utc(2024, 6, 15, 12, 0);
+final nyTime = newYork.changeToThisLocation(tokyoNoon, tokyo);
+print('${nyTime.day} ${nyTime.hour}'); // 14 23 (11 PM the previous day)</code></pre>
                       </div>
                     </div>
                   </div>
@@ -1596,7 +1649,6 @@ print(utc.timezoneOffsetMin); // 0</code></pre>
                       </div>
                     </div>
                     <div id="TomTimezone._initialized" class="api-member"><div class="api-member-head"><code class="api-signature">static bool _initialized</code></div></div>
-                    <div id="TomTimezone._initializing" class="api-member"><div class="api-member-head"><code class="api-signature">static bool _initializing</code></div></div>
                     <div id="TomTimezone._timezonesMap" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static Map&lt;String, TomTimezone&gt; _timezonesMap</code></div>
                     </div>
@@ -1606,9 +1658,35 @@ print(utc.timezoneOffsetMin); // 0</code></pre>
                     <div id="TomTimezone.timezones" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static Map&lt;String, TomTimezone&gt; timezones</code></div>
                     </div>
-                    <div id="TomTimezone._initialize" class="api-member"><div class="api-member-head"><code class="api-signature">static void _initialize()</code></div></div>
+                    <div id="TomTimezone._initialize" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static void _initialize()</code></div>
+                      <div class="api-doc">
+                        <p>Lazily initializes the timezone database synchronously on first access.</p>
+                        <p>
+                          If the database has already been loaded (e.g. the application called [tomSetupTimezones] during startup, which is mandatory on web), the existing data is used. Otherwise the embedded database is loaded synchronously via [tomSetupTimezonesSync]. On web there is no synchronous load path, so [tomSetupTimezonesSync] throws a [StateError] naming the missing startup call instead of silently returning empty results.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomTimezone._populateTimezonesMap" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static void _populateTimezonesMap()</code></div>
+                    </div>
+                    <div id="TomTimezone.populateFromLocations" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static void populateFromLocations(Map&lt;String, Location&gt; locations)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Fills the lookup caches from [locations] and registers the [utc] singleton, which the IANA database does not supply under that name.
+                        </p>
+                        <p>
+                          Takes the location map rather than reading <code>tz.timeZoneDatabase</code> directly so that a test can drive the failure branch below. On a native platform the embedded database always loads, so "it did not load" is the one state that cannot be provoked through the public entry points — and it is precisely the state whose handling must not go untested.
+                        </p>
+                        <p>
+                          <strong>Populates once per isolate.</strong> A second call is refused with <code>timezone.database.already_populated</code>
+                           rather than replacing the database or being ignored. Replacing it would detach every [TomTimezone] a caller already holds from the index those instances are compared and looked up through; ignoring it would mark the module initialized against a database nobody asked it to keep, which is the case that matters on web, where a partial database can arrive before the full one. Refusing puts the choice where it belongs: populate once, before the first lookup, and sequence a 
+                          <code>tomSetupTimezones()</code> that must win ahead of any access.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomTimezone._insertTimezone" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static void _insertTimezone(TomTimezone tomTz)</code></div>
@@ -1630,12 +1708,20 @@ final tz3 = TomTimezone.fromName('Unknown/Zone'); // Returns null</code></pre>
                     <div id="TomTimezone.firstWithOffset" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static TomTimezone? firstWithOffset(int utcOffsetMinutes)</code></div>
                       <div class="api-doc">
-                        <p>Returns the first timezone matching the given UTC offset.</p>
+                        <p>Returns the first timezone whose offset <strong>right now</strong> is [utcOffsetMinutes].</p>
+                        <p>
+                          The match is against the current offset, so the answer has a shelf life. A zone that observes daylight saving is in one bucket in winter and a different one in summer — roughly a third of the IANA database moves this way — and the index is built once at first access and never rebuilt, so a process that runs across a transition keeps answering for the season it started in. Use offset lookup for discovery ("who is at +05:30 at the moment", a zone picker) and store the [timezone] name it yields, never the offset it was found under. For the offset a zone had at a particular instant, ask the zone with [getUtcOffsetOn].
+                        </p>
+                        <p>
+                          <em>First</em> means first in the bucket, which is IANA name order rather than the best-known zone at that offset: 
+                          <code>firstWithOffset(0)</code> yields <code>Africa/Abidjan</code>, not <code>UTC</code>. Where a particular zone is wanted, name it with [fromName]. For the zones at an offset at a 
+                          <em>particular</em> instant, which does not go stale, use [firstWithOffsetOn] and [allWithOffsetOn].
+                        </p>
                         <p>[utcOffsetMinutes] The UTC offset in minutes (e.g., 540 for UTC+9).</p>
-                        <p>Returns <code>null</code> if no timezone matches the offset.</p>
+                        <p>Returns <code>null</code> if no timezone is at that offset now.</p>
                         <p>Example:</p>
                         <pre><code>final tz = TomTimezone.firstWithOffset(540); // UTC+9
-print(tz?.timezone); // Might be 'Asia/Tokyo' or another UTC+9 timezone</code></pre>
+print(tz?.timezone); // Some zone currently at +09:00</code></pre>
                       </div>
                     </div>
                     <div id="TomTimezone.allWithOffset" class="api-member">
@@ -1643,39 +1729,125 @@ print(tz?.timezone); // Might be 'Asia/Tokyo' or another UTC+9 timezone</code></
                         <code class="api-signature">static List&lt;TomTimezone&gt;? allWithOffset(int utcOffsetMinutes)</code>
                       </div>
                       <div class="api-doc">
-                        <p>Returns all timezones matching the given UTC offset.</p>
+                        <p>Returns every timezone whose offset <strong>right now</strong> is [utcOffsetMinutes].</p>
+                        <p>
+                          The same shelf life as [firstWithOffset], and for the same reason: the bucket holds the zones that were at this offset when the index was built, not the zones that are ever at it. 
+                          <code>allWithOffset(0)</code> in July does not contain <code>Europe/London</code>, which is on BST and sits at 60; in January it does. Treat the result as a snapshot, not as a membership rule, or ask [allWithOffsetOn] for the zones at an offset at a given instant.
+                        </p>
+                        <p>
+                          The list is <strong>unmodifiable</strong>, and for the same reason [timezones] is: it is a view onto the bucket [firstWithOffset] reads, so sorting or filtering it in place would not shape a local result, it would rewrite the index for the rest of the process. Neither operation reads as dangerous, which is why the refusal is at the call rather than in a comment. Take a copy to work with: 
+                          <code>[...?TomTimezone.allWithOffset(0)]</code>.
+                        </p>
                         <p>[utcOffsetMinutes] The UTC offset in minutes.</p>
-                        <p>Returns <code>null</code> if no timezones match the offset.</p>
+                        <p>Returns <code>null</code> if no timezone is at that offset now.</p>
                         <p>Example:</p>
-                        <pre><code>final tzList = TomTimezone.allWithOffset(0); // All UTC+0 timezones
-for (final tz in tzList ?? []) {
-  print(tz.timezone); // 'UTC', 'Europe/London', etc.
+                        <pre><code>final tzList = TomTimezone.allWithOffset(0); // Zones at +00:00 today
+for (final tz in tzList ?? &lt;TomTimezone&gt;[]) {
+  print(tz.timezone); // 'UTC', 'Africa/Abidjan', 'Etc/GMT', ...
 }</code></pre>
+                      </div>
+                    </div>
+                    <div id="TomTimezone.allWithOffsetOn" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static List&lt;TomTimezone&gt; allWithOffsetOn(int utcOffsetMinutes, DateTime when)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Every timezone whose offset <strong>at [when]</strong> is [utcOffsetMinutes].</p>
+                        <p>
+                          The at-instant counterpart of [allWithOffset], and the one to reach for when the question is about a moment rather than about today. It asks each zone what its offset was at [when] instead of reading the offset index, so a daylight-saving boundary is a fact about [when] and the answer does not change as the process runs: 
+                          <code>allWithOffsetOn(0, january)</code> holds <code>Europe/London</code> in any season, and <code>allWithOffsetOn(0, july)</code>
+                           does not.
+                        </p>
+                        <p>
+                          The price is the scan: O(zones) per call against a database of a few hundred, where [allWithOffset] is a map hit. That is the trade — a correct answer for an instant, or a fast answer for the season the process started in.
+                        </p>
+                        <p>
+                          Zones come in the database's own order, as they do from [allWithOffset], and the list is <strong>unmodifiable</strong>
+                           for the same reason every other lookup's is. An offset no zone was at answers with an empty list rather than 
+                          <code>null</code>: the scan always has an answer, and "none" is one.
+                        </p>
+                        <p>Example:</p>
+                        <pre><code>final winter = DateTime.utc(2024, 1, 15);
+for (final zone in TomTimezone.allWithOffsetOn(0, winter)) {
+  print(zone.timezone); // 'UTC', 'Europe/London', 'Africa/Abidjan', ...
+}</code></pre>
+                      </div>
+                    </div>
+                    <div id="TomTimezone.firstWithOffsetOn" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static TomTimezone? firstWithOffsetOn(int utcOffsetMinutes, DateTime when)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          The first timezone whose offset <strong>at [when]</strong> is [utcOffsetMinutes], or <code>null</code>
+                           when no zone was at it then.
+                        </p>
+                        <p>
+                          [firstWithOffset] with an instant, and [allWithOffsetOn]'s first element — <em>first</em> meaning first in the database's order rather than the best-known zone at that offset, so name a particular zone with [fromName] where one is wanted. The scan stops at the first match.
+                        </p>
+                        <p>Example:</p>
+                        <pre><code>final summer = DateTime.utc(2024, 7, 15);
+TomTimezone.firstWithOffsetOn(60, summer)?.timezone; // a zone at +01:00 then</code></pre>
+                      </div>
+                    </div>
+                    <div id="TomTimezone._zonesWithOffsetOn" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static Iterable&lt;TomTimezone&gt; _zonesWithOffsetOn(int utcOffsetMinutes, DateTime when)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>The zones at [utcOffsetMinutes] on [when], computed rather than indexed.</p>
+                        <p>
+                          Lazy, so [firstWithOffsetOn] pays for one match and [allWithOffsetOn] for the whole database, from one definition of what "at this offset then" means.
+                        </p>
                       </div>
                     </div>
                     <div id="TomTimezone.findTimezone" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">static TomTimezone? findTimezone(String? name, int? utcOffsetMinutes)</code>
+                        <code class="api-signature">static TomTimezone findTimezone(String? name, int? utcOffsetMinutes, {DateTime? at})</code>
                       </div>
                       <div class="api-doc">
-                        <p>Finds a timezone by name and validates its UTC offset.</p>
+                        <p>Finds a timezone by name, optionally validating its UTC offset.</p>
                         <p>
-                          This method provides a stricter lookup that verifies the timezone's current offset matches the expected value. Throws [TomTimezoneException] if the name and offset don't match.
+                          This is the strict lookup: where [fromName] answers "is this zone here?" with a zone or <code>null</code>, this one treats every lookup it cannot satisfy as an error, so it never returns 
+                          <code>null</code> and a caller writes one handler.
                         </p>
                         <p>
                           [name] The timezone name (optional). [utcOffsetMinutes] The expected UTC offset in minutes (optional).
                         </p>
                         <p>
-                          Returns: - The matching timezone if name and offset are valid - First timezone with the given offset if name is null - 
-                          <code>null</code> if both parameters are null
+                          Returns: - The named zone, when it exists and — if an offset was given — its current offset is that offset - The first zone at [utcOffsetMinutes] if [name] is null. This branch reads the same offset index as [firstWithOffset] and inherits its shelf life
                         </p>
-                        <p>Throws [TomTimezoneException] if name exists but offset doesn't match.</p>
+                        <p>
+                          Throws [TomTimezoneException] in four cases, one key each, so a caller branches on the key rather than on the message: - 
+                          <code>timezone.lookup.name_not_found</code> — [name] is not in the database. This happens whether or not an offset was supplied, so a name-only lookup throws too — unlike [fromName], which returns 
+                          <code>null</code> for the same name. Parameters: <code>name</code>, and <code>utcOffsetMinutes</code>
+                           when one was given. - <code>timezone.lookup.offset_mismatch</code> — [name] is in the database but sits elsewhere. Parameters: 
+                          <code>name</code>, <code>utcOffsetMinutes</code> as asked for, <code>actualUtcOffsetMinutes</code> as found, and 
+                          <code>at</code> when one was given. - <code>timezone.lookup.offset_not_found</code> — [name] is null and no zone is at [utcOffsetMinutes]. Parameters: 
+                          <code>utcOffsetMinutes</code>, and <code>at</code> when given. - <code>timezone.lookup.no_criteria</code>
+                           — both arguments are null, leaving nothing to look up.
+                        </p>
+                        <p>
+                          [at] decides <em>when</em> the offset is read. Left out, every offset in the call is the zone's offset now, so a zone that observes daylight saving matches a different value in summer than in winter, and the name-less branch reads the offset index with the shelf life [firstWithOffset] describes. Supplied, both are computed for that instant instead — the name branch compares against [getUtcOffsetOn], the name-less branch scans as [firstWithOffsetOn] does — so the answer is the same whenever it is asked.
+                        </p>
                         <p>Example:</p>
                         <pre><code>// Valid: UTC has offset 0
 final tz = TomTimezone.findTimezone('UTC', 0);
 
 // Throws: UTC doesn't have offset 60
-TomTimezone.findTimezone('UTC', 60); // TomTimezoneException</code></pre>
+TomTimezone.findTimezone('UTC', 60); // TomTimezoneException
+
+// Throws: no such zone, even with no offset to disagree with
+TomTimezone.findTimezone('Mars/Olympus', null); // TomTimezoneException
+
+// Throws: no zone is at +00:07
+TomTimezone.findTimezone(null, 7); // TomTimezoneException
+
+// Throws: both arguments null, nothing to look up
+TomTimezone.findTimezone(null, null); // TomTimezoneException
+
+// -05:00 is New York in winter, so this agrees in January
+TomTimezone.findTimezone('America/New_York', -300, at: winter);</code></pre>
                       </div>
                     </div>
                     <div id="TomTimezone.convertMinutesToUtcOffset" class="api-member">
@@ -1692,6 +1864,13 @@ TomTimezone.findTimezone('UTC', 60); // TomTimezoneException</code></pre>
 print(TomTimezone.convertMinutesToUtcOffset(540));  // '+09:00'
 print(TomTimezone.convertMinutesToUtcOffset(-300)); // '-05:00'
 print(TomTimezone.convertMinutesToUtcOffset(330));  // '+05:30'</code></pre>
+                        <p>
+                          Throws <code>TomFormattingException</code> when [totalMinutes] lies outside ±840 (±14:00), which no real zone does — see the top-level function. An offset obtained from this class is always inside that range, so [getUtcOffsetStringOn], [toStringOn] and [toString] cannot throw; only this static entry point, which takes an arbitrary 
+                          <code>int</code>, can.
+                        </p>
+                        <p>
+                          Delegates to the top-level [formatting.convertMinutesToUtcOffset] so the two entry points cannot drift apart; this one exists because offsets are most often formatted from a timezone.
+                        </p>
                       </div>
                     </div>
                     <div id="TomTimezone.changeLocation" class="api-member">
@@ -1699,9 +1878,25 @@ print(TomTimezone.convertMinutesToUtcOffset(330));  // '+05:30'</code></pre>
                         <code class="api-signature">static DateTime changeLocation(DateTime dt, TomTimezone inTimezone, TomTimezone toTimezone)</code>
                       </div>
                       <div class="api-doc">
-                        <p>Converts a DateTime between two timezones.</p>
+                        <p>Reads [dt] as a wall-clock reading in [inTimezone] and re-renders it in [toTimezone].</p>
                         <p>
-                          [dt] The DateTime to convert. [inTimezone] The source timezone of the DateTime. [toTimezone] The target timezone.
+                          This is a <em>reinterpretation</em>, not a rendering: only the calendar fields of [dt] are read — year, month, day, hour, minute, second and the sub-second parts. Whatever instant [dt] itself denotes, and whether it was built with 
+                          <code>DateTime()</code> or <code>DateTime.utc()</code>, is ignored. Those fields are resolved to an instant 
+                          <em>in [inTimezone]</em>, and that instant is then rendered in [toTimezone].
+                        </p>
+                        <p>Two consequences worth knowing:</p>
+                        <ul><li>The result never depends on the host machine's timezone, so the same</li></ul>
+                        <p>
+                          call answers the same everywhere. <code>DateTime(2024, 6, 15, 12)</code> and <code>DateTime.utc(2024, 6, 15, 12)</code>
+                           are the same reading and convert alike. - To re-render an instant you already hold — the other, equally common operation — use [toTZDateTime] instead, which preserves the moment.
+                        </p>
+                        <p>
+                          A reading that no clock in [inTimezone] ever showed (the spring-forward gap) or that it showed twice (the autumn fall-back) still resolves to exactly one instant. Which one is 
+                          <code>package:timezone</code>'s choice, not a policy stated here: both cases fall out of its guess-and-correct 
+                          <code>Location.translateToUtc</code>, and for Europe/Berlin in 2024 both land on standard time. It is deterministic, so it is safe to rely on — but pin it with a test if a caller depends on the exact side.
+                        </p>
+                        <p>
+                          [dt] The wall-clock reading to convert. [inTimezone] The timezone the reading is expressed in. [toTimezone] The timezone to render the resulting instant in.
                         </p>
                         <p>Example:</p>
                         <pre><code>final utc = TomTimezone.utc;
@@ -1709,7 +1904,11 @@ final tokyo = TomTimezone.fromName('Asia/Tokyo')!;
 
 final utcMidnight = DateTime.utc(2024, 6, 15, 0, 0);
 final tokyoTime = TomTimezone.changeLocation(utcMidnight, utc, tokyo);
-print(tokyoTime.hour); // 9 (9 AM in Tokyo)</code></pre>
+print(tokyoTime.hour); // 9 (9 AM in Tokyo)
+
+// The source zone is what makes the answer differ: the same reading,
+// taken as a Tokyo clock rather than a UTC one, is already 9 AM there.
+print(TomTimezone.changeLocation(utcMidnight, tokyo, tokyo).hour); // 0</code></pre>
                       </div>
                     </div>
                   </div>
@@ -1718,15 +1917,39 @@ print(tokyoTime.hour); // 9 (9 AM in Tokyo)</code></pre>
                   <h3 class="api-decl-title">class TomTimezoneException</h3>
                   <code class="api-signature">class TomTimezoneException extends TomException</code>
                   <div class="api-doc">
-                    <p>Exception thrown when a timezone operation fails.</p>
                     <p>
-                      Extends [TomException] to provide consistent error handling across the Tom framework. Common error scenarios include: - Timezone name not found in the database - Timezone name and UTC offset mismatch
+                      The module's exception, raised where a request about a zone cannot be satisfied: by the strict lookup [TomTimezone.findTimezone], and by [TomTimezone.populateFromLocations] on a second population.
+                    </p>
+                    <p>
+                      Extends [TomException], so every failure carries a key and the values involved and is caught, reported and translated like any other in the framework. One key per failure, so a caller branches on the key rather than on a message:
+                    </p>
+                    <ul>
+                      <li><code>timezone.lookup.name_not_found</code> — no zone carries the name given.</li>
+                      <li><code>timezone.lookup.offset_mismatch</code> — the named zone is at a different</li>
+                    </ul>
+                    <p>
+                      offset from the one supplied beside it. - <code>timezone.lookup.offset_not_found</code> — no zone is at the offset given. - 
+                      <code>timezone.lookup.no_criteria</code> — neither a name nor an offset was given. - <code>timezone.database.already_populated</code>
+                       — the database already holds one.
+                    </p>
+                    <h2>What raises something else, and why</h2>
+                    <p>
+                      The module refuses in four shapes, and which one a caller meets follows the entry point rather than the mistake — "a zone that is not in the database" reaches three of them.
+                    </p>
+                    <p>
+                      A parse failure is a [FormatException]: the <code>parseFromString</code> of each variant throws it for a string that does not match the serialized form. The lenient lookup [TomTimezone.fromName] raises nothing at all and returns 
+                      <code>null</code>.
+                    </p>
+                    <p>
+                      The fourth is a [StateError], and it is the one failure here deliberately left outside this class: asking for a synchronous load of the database on a platform that has none — the browser, before 
+                      <code>tomSetupTimezones()</code> has been awaited. Everything above answers a question about a value the caller passed, and a caller can catch it, report it and carry on with the rest of its work. That one says the module is not usable yet; every later access fails the same way and no handler repairs it, which is a fault in the application's startup and so an [Error]. See 
+                      <code>refuseSynchronousTimezoneLoad</code> in <code>sync_load_refusal.dart</code>.
                     </p>
                     <p>Example:</p>
                     <pre><code>try {
   TomTimezone.findTimezone('UTC', 60); // UTC should have offset 0, not 60
 } on TomTimezoneException catch (e) {
-  print('Error: ${e.key}'); // timezone.not_found.name_offset_mismatch
+  print('Error: ${e.key}'); // timezone.lookup.offset_mismatch
 }</code></pre>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1734,7 +1957,7 @@ print(tokyoTime.hour); // 9 (9 AM in Tokyo)</code></pre>
                     <div id="TomTimezoneException.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomTimezoneException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, Object? stack, Object? rootException, bool autoLog = false})
+                          TomTimezoneException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, StackTrace? stack, Object? rootException, bool autoLog = false})
                         </code>
                       </div>
                     </div>

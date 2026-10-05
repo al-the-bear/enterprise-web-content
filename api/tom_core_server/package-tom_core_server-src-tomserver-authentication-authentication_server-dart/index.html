@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1387,9 +1393,6 @@
             <div class="treewrap">
               <div class="treepane">
                 <div class="treenodes">
-                  <a class="leaf" href="#LoginException">LoginException</a>
-                  <a class="leaf" href="#Tom2FAAdaptor">Tom2FAAdaptor</a>
-                  <a class="leaf" href="#Tom2FAService">Tom2FAService</a>
                   <a class="leaf" href="#TomAuthenticationAdaptor">TomAuthenticationAdaptor</a>
                   <a class="leaf" href="#TomAuthenticationData">TomAuthenticationData</a>
                   <a class="leaf" href="#TomAuthenticationInfo">TomAuthenticationInfo</a>
@@ -1401,68 +1404,6 @@
               <div class="reader">
                 <h2 class="api-library-title">package:tom_core_server/src/tomserver/authentication/authentication_server.dart</h2>
                 <code class="api-import">import 'package:tom_core_server/src/tomserver/authentication/authentication_server.dart';</code>
-                <section id="LoginException" class="api-declaration">
-                  <h3 class="api-decl-title">class LoginException</h3>
-                  <code class="api-signature">class LoginException extends TomServerException</code>
-                  <div class="api-doc">
-                    <p>A server-side login failure.</p>
-                    <p>
-                      Thrown by a [TomAuthenticationService] (or its helpers) when a login cannot succeed — unknown client/user, invalid credentials, etc. Carries the kernel [TomServerException] payload (<code>key</code>, user message, 
-                      <code>parameters</code>, <code>stack</code>, <code>rootException</code>, <code>autoLog</code>); [TomAuthenticationServer] catches it and turns its 
-                      <code>key</code> into a failed [TomAuthenticationResult] rather than propagating.
-                    </p>
-                  </div>
-                  <h4 class="api-group-title">Constructors</h4>
-                  <div class="api-members">
-                    <div id="LoginException.new" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">
-                          LoginException.new(String key, String userMessage, {Map&lt;String, Object?&gt;? parameters, Object? stack, Object? rootException, bool autoLog = false})
-                        </code>
-                      </div>
-                      <div class="api-doc"><p>Creates a login failure with a resource [key] and a default user message.</p></div>
-                    </div>
-                  </div>
-                </section>
-                <section id="Tom2FAAdaptor" class="api-declaration">
-                  <h3 class="api-decl-title">class Tom2FAAdaptor</h3>
-                  <code class="api-signature">class Tom2FAAdaptor</code>
-                  <div class="api-doc">
-                    <p>Marks a class as a server-side two-factor (2FA) adaptor for a given [type].</p>
-                    <p>
-                      The [type] names the second-factor mechanism (e.g. <code>'totp'</code>, <code>'sms'</code>). The annotation is reflection-discoverable so a runtime can dispatch the second authentication pass to the matching adaptor. The 2FA flow itself ([TomAuthenticationServer.authenticatePass2]) is not yet implemented.
-                    </p>
-                  </div>
-                  <h4 class="api-group-title">Constructors</h4>
-                  <div class="api-members">
-                    <div id="Tom2FAAdaptor.new" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">const Tom2FAAdaptor.new(String type)</code></div>
-                      <div class="api-doc"><p>Tags the annotated class as a 2FA adaptor for [type].</p></div>
-                    </div>
-                  </div>
-                  <h4 class="api-group-title">Properties</h4>
-                  <div class="api-members">
-                    <div id="Tom2FAAdaptor.type" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final String type</code></div>
-                      <div class="api-doc"><p>The 2FA mechanism this adaptor implements (e.g. <code>'totp'</code>, <code>'sms'</code>).</p></div>
-                    </div>
-                  </div>
-                </section>
-                <section id="Tom2FAService" class="api-declaration">
-                  <h3 class="api-decl-title">class Tom2FAService</h3>
-                  <code class="api-signature">abstract class Tom2FAService</code>
-                  <div class="api-doc">
-                    <p>Contract for a second-factor (2FA) authentication step.</p>
-                    <p>
-                      Placeholder: the second authentication pass is not yet implemented (see [TomAuthenticationServer.authenticatePass2]). The full contract must cover the available mechanisms (email, SMS, authenticator app, …) and a way to drive the second-factor UI on the 
-                      <em>client</em>, kept flexible enough that the server does not hard-code the mechanism set.
-                    </p>
-                  </div>
-                  <h4 class="api-group-title">Constructors</h4>
-                  <div class="api-members">
-                    <div id="Tom2FAService.new" class="api-member"><div class="api-member-head"><code class="api-signature">Tom2FAService.new()</code></div></div>
-                  </div>
-                </section>
                 <section id="TomAuthenticationAdaptor" class="api-declaration">
                   <h3 class="api-decl-title">class TomAuthenticationAdaptor</h3>
                   <code class="api-signature">class TomAuthenticationAdaptor</code>
@@ -1622,9 +1563,45 @@
                     </div>
                     <div id="TomAuthenticationServer.authenticatePass2" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">Future&lt;TomAuthenticationResult&gt; authenticatePass2(TomAuthenticationMessage m)</code>
+                        <code class="api-signature">
+                          Future&lt;TomAuthenticationResult&gt; authenticatePass2(TomAuthenticationMessage m, {TomClientJwtToken? challengeToken})
+                        </code>
                       </div>
-                      <div class="api-doc"><p>Second authentication pass (2FA). Not yet implemented — always throws [UnsupportedError].</p></div>
+                      <div class="api-doc">
+                        <p>
+                          Second authentication pass: answers the challenge issued by [authenticatePass1] and, on success, returns the completed token pair.
+                        </p>
+                        <p>
+                          The submitted factor travels in [TomAuthenticationMessage.password] — the message's credential slot — and the challenge itself is recovered from the 
+                          <strong>interim token the client presents as its bearer</strong>, so no field had to be added to either wire type and no server-side pending-login record exists. [challengeToken] overrides that lookup; it defaults to the request zone's token, and tests pass one explicitly to run the pass without a zone.
+                        </p>
+                        <h2>Outcomes</h2>
+                        <ul><li><strong>Accepted</strong> — a result whose token pair is exactly what a 2FA-free login</li></ul>
+                        <p>
+                          would have produced for this user: same claims, <code>requires2FA</code> cleared. - <strong>Wrong answer, attempts left</strong>
+                           — a result carrying <code>login.error.2fa.invalid-code</code> <em>and a re-issued interim token</em>
+                           with the attempt counter advanced. The client retries with that token. - <strong>Wrong answer, attempts exhausted</strong>
+                           — <code>login.error.2fa.attempts-exhausted</code> and no token. That chain of tokens is burned; the client must restart at pass 1. - 
+                          <strong>Lapsed or absent challenge</strong> — <code>login.error.2fa.expired</code> / <code>login.error.2fa.no-challenge</code>, likewise with no token.
+                        </p>
+                        <h2>What the attempt counter does and does not bound</h2>
+                        <p>
+                          The counter lives in the token and advances only along the chain of re-issued tokens. A <strong>stateless</strong>
+                           server holds no record of which interim tokens it has already answered, so it cannot tell a replay of an 
+                          <em>earlier</em> token in the chain from the original presentation of it — and an earlier token is still within its validity and still carries its lower count.
+                        </p>
+                        <p>
+                          So the counter bounds a cooperative client (and gives a UI its "2 tries left"); it is <strong>not</strong>
+                           by itself a brute-force defence.
+                        </p>
+                        <p>
+                          What closes that is one recorded fact per token: <em>this one has been answered</em>. [Tom2FAAttemptStore] holds it, and this pass consults it before asking the mechanism anything, so each token in the chain is answerable exactly once and the chain admits exactly [Tom2FAChallenge.attemptsAllowed] guesses however the attacker orders it. A replay is refused with 
+                          <code>login.error.2fa.challenge-already-answered</code> — including a replay of a <em>correct</em> answer, so one interim token cannot mint two sessions.
+                        </p>
+                        <p>
+                          The store is resolved rather than required: [Tom2FAMemoryAttemptStore] is the default and is per process, so a cluster bounds per node until a shared store is installed. The challenge's own short [Tom2FAChallengeSpec.validity] still bounds the chain in time on top of that.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomAuthenticationServer.authenticateUser" class="api-member">
                       <div class="api-member-head">
@@ -1632,8 +1609,291 @@
                       </div>
                       <div class="api-doc">
                         <p>
-                          Runs a login: builds [TomAuthenticationData] from the message, delegates to the guest or user service per [guestLogin], and encodes the principal into the authentication/authorization JWTs of the returned result. A [LoginException] yields a failed result carrying its 
-                          <code>key</code>; any other error yields a <code>"login.error.unknown"</code> result.
+                          Runs a login: builds [TomAuthenticationData] from the message, delegates to the guest or user service per [guestLogin], and encodes the principal into the authentication/authorization JWTs of the returned result.
+                        </p>
+                        <p>
+                          Whether a second factor is owed is [Tom2FAPolicy]'s decision, not a field read: the resolved policy is asked once, here, and anything but [Tom2FARequirement.disabled] takes the login down the challenge path. The mechanism's adaptor issues a challenge and the returned result carries an interim token plus [TomAuthenticationResult.requires2FA], to be completed by [authenticatePass2].
+                        </p>
+                        <h2>The four shapes a deployment can be in</h2>
+                        <table class="mdtable">
+                          <thead><tr><th>Policy</th><th>User has a usable factor</th><th>Outcome</th></tr></thead>
+                          <tbody>
+                            <tr><td><code>disabled</code></td><td>—</td><td>tokens, no mention of 2FA</td></tr>
+                            <tr>
+                              <td><code>required</code> / <code>optional</code></td>
+                              <td>yes</td>
+                              <td>interim token + challenge, answered by [authenticatePass2]</td>
+                            </tr>
+                            <tr>
+                              <td><code>required</code></td>
+                              <td>no</td>
+                              <td>interim token + <strong>enrolment offer</strong>, answered by [beginTwoFactorEnrolment]</td>
+                            </tr>
+                            <tr>
+                              <td><code>optional</code> (or <code>required</code> with grace left)</td>
+                              <td>no</td>
+                              <td>the same offer, additionally declinable via [skipTwoFactorEnrolment]</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                        <p>
+                          "Has a usable factor" is [Tom2FAEnrolmentStore]'s answer, narrowed to the mechanisms the policy permits. A deployment that installed 
+                          <strong>no</strong> store keeps the pre-enrolment behaviour exactly — it is challenged for its factor, and the adaptor remains the only authority on whether the user has one — because there would be nowhere to record an enrolment, and offering one that could not be saved would be a lie.
+                        </p>
+                        <p>
+                          A [TomLoginException] yields a failed result carrying its <code>key</code>; any other error yields a 
+                          <code>"login.error.unknown"</code> result.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAuthenticationServer.authenticateExternal" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          Future&lt;TomAuthenticationResult&gt; authenticateExternal(TomAuthenticationMessage m, Object credential)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Authenticates a login whose credential was established by an <strong>external</strong> identity provider, and completes it exactly as a password login completes.
+                        </p>
+                        <p>
+                          [credential] travels in [TomAuthenticationData.key] — the slot that carries a password for a password login, typed 
+                          <code>Object?</code> for precisely this reason — and is verified by the configured [globalSettingUserAuthenticationService], which a deployment offering external identity wraps in a 
+                          <code>TomOAuthAuthenticationService</code>. This method therefore adds <strong>no</strong> second way to authenticate: it hands a differently shaped credential to the same contract.
+                        </p>
+                        <p>
+                          What it deliberately does not do is decide anything about the resulting session. The 2FA policy, the enrolment offer, the stored-timezone resolution and the claim set all come from [_completeLogin], the same continuation [authenticateUser] reaches — so an externally authenticated principal is challenged for its second factor and issued exactly the claims a password login would have produced for it. See the module readme: the day this method issues its own tokens, the two copies start to drift, and the copy that drifts is the one that stops asking for a second factor.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAuthenticationServer._completeLogin" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          Future&lt;TomAuthenticationResult&gt; _completeLogin(TomAuthenticationInfo authInfo, TomAuthenticationMessage m)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Everything that happens <em>after</em> a credential has been verified: the 2FA policy decision, the challenge-or-enrolment branch, and token issuance.
+                        </p>
+                        <p>
+                          Extracted so that there is exactly one of it. [authenticateUser] and [authenticateExternal] resolve a principal by different means and then join here; nothing below this line knows or asks which of them called it, so a third way of resolving a principal acquires the whole of this behaviour by 
+                          <em>calling</em> it rather than by agreeing with it.
+                        </p>
+                        <p>
+                          Exceptions propagate: both callers already wrap their own resolution step in the <code>try</code> that turns a [TomLoginException] into a failed result, and a second catch here would make the failure path two places as well.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAuthenticationServer.beginTwoFactorEnrolment" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          Future&lt;TomAuthenticationResult&gt; beginTwoFactorEnrolment(TomAuthenticationMessage m, {TomClientJwtToken? enrolmentToken})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Enrolment pass 1: begins setting up the mechanism the user chose.</p>
+                        <p>
+                          The chosen mechanism key travels in [TomAuthenticationMessage.password] — the message's one payload slot, used here exactly as [authenticatePass2] uses it for the submitted code. Every pass in this flow carries a single user-supplied value, and giving each its own wire field would say the passes are more different than they are.
+                        </p>
+                        <p>
+                          The offer token is recovered from the <strong>interim token the client presents</strong>, as everywhere else in this flow; [enrolmentToken] overrides that lookup for tests running without a request zone.
+                        </p>
+                        <p>
+                          Returns an interim token whose public claims carry the mechanism's [Tom2FAEnrolmentOffer.clientData] — for TOTP, the secret and the 
+                          <code>otpauth://</code> URI the user scans — and whose encrypted section carries the whole offer, so [completeTwoFactorEnrolment] can check the typed code against material the client could not have edited.
+                        </p>
+                        <p>
+                          Refuses a mechanism that was not in the offer this token was issued with: the authority for what may be enrolled is the list 
+                          <em>the server</em> named, never the key the client sends back.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAuthenticationServer.completeTwoFactorEnrolment" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          Future&lt;TomAuthenticationResult&gt; completeTwoFactorEnrolment(TomAuthenticationMessage m, {TomClientJwtToken? enrolmentToken})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Enrolment pass 2: confirms the offer and completes the login.</p>
+                        <p>The typed confirmation travels in [TomAuthenticationMessage.password].</p>
+                        <p>
+                          On success the factor is written to the [Tom2FAEnrolmentStore] and the <strong>full token pair is issued immediately</strong>, with no further challenge. A user who has just derived a code from the secret they were handed has demonstrated possession of the factor; challenging them for a second code a moment later would prove nothing that this pass has not already proved.
+                        </p>
+                        <p>
+                          A wrong code stores nothing and returns a retry — the same offer with one attempt spent, exactly as [authenticatePass2] does for a wrong challenge answer — until [Tom2FAEnrolmentOffer.attemptsAllowed] is exhausted. And as there, the count alone would bound only a cooperative client, so the offer token is spent against [Tom2FAAttemptStore] before the mechanism is asked anything: a replay is refused with 
+                          <code>login.error.2fa.enrolment-already-answered</code>.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAuthenticationServer.skipTwoFactorEnrolment" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          Future&lt;TomAuthenticationResult&gt; skipTwoFactorEnrolment(TomAuthenticationMessage m, {TomClientJwtToken? enrolmentToken})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Declines a skippable enrolment offer and completes the login with no factor.</p>
+                        <p>
+                          A pass of its own rather than a flag on [completeTwoFactorEnrolment], because "I set up a factor" and "I chose not to" are different events with different consequences — only the second spends a grace login — and a boolean that switched between them would make the audit trail depend on a parameter's default.
+                        </p>
+                        <p>
+                          Refuses unless the presented token says the offer was skippable. That flag is one this server signed, so a client that decides for itself that it may decline achieves nothing — but only because the signature is 
+                          <em>checked</em>: <code>verifyBearerToken</code> does that on the inbound path, and without it the flag would be plain base64 the caller could edit. See 
+                          <code>jwt_signing.dart</code>.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAuthenticationServer._pendingEnrolment" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">(TomClientJwtToken, Tom2FAEnrolmentState) _pendingEnrolment(TomClientJwtToken? presented)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          The interim token and the enrolment it carries, or a thrown [TomLoginException] when it carries none.
+                        </p>
+                        <p>
+                          This is what stops the enrolment passes from being an unauthenticated way to attach a factor to an account: a completed token has no pending enrolment, so presenting one is refused here before any mechanism is reached. Only a token this server minted while branching a login into enrolment gets past.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAuthenticationServer._offerEnrolment" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          Future&lt;TomAuthenticationResult&gt; _offerEnrolment(TomAuthenticationInfo authInfo, TomAuthenticationMessage m, Tom2FADecision decision, List&lt;String&gt; offerable)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Branches the login into enrolment: an interim token offering every permitted mechanism this deployment can actually set up.
+                        </p>
+                        <p>
+                          <code>async</code> so the "nothing here can be enrolled" refusal is a rejected future rather than a synchronous throw. Today the sole call site is inside an 
+                          <code>async</code> body, which captures it either way; the declared return type is the contract a second call site would rely on.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAuthenticationServer._usableEnrolments" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          Future&lt;List&lt;Tom2FAEnrolment&gt;?&gt; _usableEnrolments(Tom2FAContext context, List&lt;String&gt; offerable)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          This principal's set-up factors among [offerable], or <code>null</code> when no [Tom2FAEnrolmentStore] is installed.
+                        </p>
+                        <p>
+                          The three outcomes are deliberately distinguishable: <code>null</code> is <em>nobody tracks enrolments here</em>, an empty list is 
+                          <em>tracked, and this user has none</em>, and a non-empty list names what to challenge. Collapsing the first two would force enrolment on every deployment that never opted in.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAuthenticationServer._primaryOf" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Tom2FAEnrolment _primaryOf(List&lt;Tom2FAEnrolment&gt; enrolments)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          The enrolment to challenge: the one the user nominated, or the first if none is nominated. [enrolments] must not be empty.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAuthenticationServer._issueTokens" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          Future&lt;TomAuthenticationResult&gt; _issueTokens(TomPrincipal principal, TomAccessControlDefinition? definition, TomAuthenticationMessage m, {Tom2FAChallenge? challenge, Map&lt;String, Object?&gt;? twoFactorVerification, Tom2FAEnrolmentState? enrolment, bool twoFactorSatisfied = false})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Projects [principal] onto the token pair of a [TomAuthenticationResult].</p>
+                        <p>
+                          The single point at which this server mints tokens, so a completed pass 2 and a 2FA-free pass 1 provably produce the same claim set: the only difference between them is the [challenge] / [enrolment] / [twoFactorSatisfied] triple fed into the projection.
+                        </p>
+                        <p>
+                          [challenge] and [enrolment] are mutually exclusive by construction — a login is either answering a factor or setting one up — and each turns the pair into an 
+                          <em>interim</em> token that grants no session.
+                        </p>
+                        <p>
+                          It is also where the principal's stored preferences are applied ([_applyStoredTimezone]) and its client limits are asked of the installed [TomClientLimitsProvider] ([_applyClientLimits]), for the same reason: every token this server mints, on every pass, then carries the same resolved values.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAuthenticationServer._applyStoredTimezone" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Future&lt;void&gt; _applyStoredTimezone(TomPrincipal principal, TomAuthenticationMessage m)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Resolves [principal]'s effective timezone before it is minted into a token: the preference stored for the user, else the one the client asserted.
+                        </p>
+                        <p>
+                          The two are different claims and both survive. [TomPrincipal.clientTimezone] is what the <em>device</em>
+                           says it is in — a fact only the device knows, and one that changes when the user travels. [TomPrincipal.timezone] is what the 
+                          <em>user chose</em>, which follows them onto the next device and is therefore the server's to answer. With no stored preference there is nowhere to read the second from, so the client's assertion serves as both.
+                        </p>
+                        <p>
+                          The preference wins when it exists because it is the only one of the two the user set deliberately; the device's assertion remains the fallback, so a user who has never set the preference keeps the device's answer.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAuthenticationServer._applyClientLimits" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;void&gt; _applyClientLimits(TomPrincipal principal)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Replaces [principal]'s client limits with the installed [TomClientLimitsProvider]'s answer, when there is a provider and it has one.
+                        </p>
+                        <p>
+                          The provider is the seam a subscription service fills; with none installed, the limits stay what the authentication service put on the principal. A provider that fails costs no one their login, for the same reason as a stored-preference failure: an unreachable subscription service would otherwise stop every sign-in. The failure is logged and the authentication service's answer is minted — exactly what a deployment without a provider issues.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAuthenticationServer._storedTimezone" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;String?&gt; _storedTimezone(TomPrincipal principal)</code></div>
+                      <div class="api-doc">
+                        <p>[principal]'s stored timezone preference, or <code>null</code> when there is none to be had.</p>
+                        <p>
+                          Read through [TomUserPreferences.getFor] because there is no request zone carrying this principal yet — it has only just been authenticated — and that method installs one, so the read is scoped like every other.
+                        </p>
+                        <p>
+                          Why: a failure here must not cost the user their login. A deployment that has not run the preferences migration, or a preference someone stored as the wrong type, would otherwise turn an unrelated data problem into "no one can sign in". The failure is logged and the client's assertion is used, which is exactly the behaviour of a deployment that stores no preferences at all.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAuthenticationServer._descriptorsFor" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">List&lt;Tom2FAMethodDescriptor&gt; _descriptorsFor(List&lt;String&gt; types)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>How the offered mechanisms describe themselves, in the order they were offered.</p>
+                        <p>
+                          Asks the registry rather than carrying descriptors in the token: the catalog is a property of the running deployment, and a token minted before a mechanism's resource keys were corrected would otherwise keep handing out the old ones.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAuthenticationServer._contextFor" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Tom2FAContext _contextFor(TomPrincipal principal, TomAuthenticationMessage m)</code>
+                      </div>
+                      <div class="api-doc"><p>Builds the adaptor-facing context from the principal and the request.</p></div>
+                    </div>
+                    <div id="TomAuthenticationServer._verificationDataOf" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Map&lt;String, Object?&gt; _verificationDataOf(TomClientJwtToken token)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          The adaptor's server-only payload from the interim token's encrypted section, or empty when the mechanism stored none (or the token was not decrypted).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAuthenticationServer._failedResult" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomAuthenticationResult _failedResult(Object ex, StackTrace s)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Maps a thrown error onto a failed result: a [TomLoginException] surfaces its stable <code>key</code>, anything else is masked behind 
+                          <code>"login.error.unknown"</code> so an internal fault never describes itself to the caller.
                         </p>
                       </div>
                     </div>
@@ -1664,7 +1924,19 @@
                   <div class="api-doc">
                     <p>The contract an application implements to authenticate a login.</p>
                     <p>
-                      Implementations resolve the [TomAuthenticationData] against their user store (database, directory, etc.) and return a [TomAuthenticationInfo] carrying the authenticated principal and its access-control definition. On failure they throw a [LoginException]. The default implementation, [TomDummyAuthenticationService], accepts everything and is for scaffolding only.
+                      Implementations resolve the [TomAuthenticationData] against their user store (database, directory, etc.) and return a [TomAuthenticationInfo] carrying the authenticated principal and its access-control definition. On failure they throw a [TomLoginException]. The default implementation, [TomDummyAuthenticationService], accepts everything and is for scaffolding only.
+                    </p>
+                    <h2>The implementation is the source of what the principal asserts</h2>
+                    <p>
+                      Everything the returned [TomPrincipal] carries is the implementation's answer: the identity and its numeric ids, the locale, the access-control information, and the client limits — [TomPrincipal.cli], the enabled modules and quotas the client's subscription grants. [TomAuthenticationServer] reads no subscription store and consults no environment; it encodes what it was handed into the tokens.
+                    </p>
+                    <p>
+                      Two values are resolved after the credential is accepted, each because the implementation is not their authority:
+                    </p>
+                    <ul><li>[TomPrincipal.timezone], from the user's stored preference — a</li></ul>
+                    <p>
+                      server-held <em>preference</em> rather than a fact about the identity being asserted; see <code>_applyStoredTimezone</code>. - [TomPrincipal.cli], from the installed [TomClientLimitsProvider], when one is installed — the seam a subscription service fills, so that what a client bought is answered by the service that sells it. With no provider, the implementation's answer stands; see 
+                      <code>_applyClientLimits</code>.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1679,7 +1951,7 @@
                       </div>
                       <div class="api-doc">
                         <p>
-                          Authenticates [authData], returning the principal and its access rights, or throwing a [LoginException] when the login is rejected.
+                          Authenticates [authData], returning the principal and its access rights, or throwing a [TomLoginException] when the login is rejected.
                         </p>
                       </div>
                     </div>

@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1534,12 +1540,11 @@
                       <div class="api-doc">
                         <p>Resolve a [FormValidationError] to user-facing text.</p>
                         <p>
-                          Round-6 (d) bug fix: - Previously prefixed <code>'error.'</code> to <code>error.errorKey</code> when looking up the field-scoped variant, but 
-                          <code>errorKey</code> already includes the <code>error.</code> prefix produced by stock validators (e.g. 
-                          <code>error.required</code>). The double-prefix lookup never matched. - Previously the global lookup used 
-                          <code>TomCtr.textOrNull('', key)</code>, which builds the resource path as <code>'.&lt;key&gt;'</code>
-                           (leading dot) and breaks <code>getObjectFromTree</code>. We now pass the key as <code>basePath</code>
-                           directly with an empty suffix, matching the same pattern used by <code>resolveFieldValidationMessage</code>.
+                          Two lookup rules, both easy to get subtly wrong: - [FormValidationError.errorKey] is used <strong>unprefixed</strong>. Stock validators already emit it with the 
+                          <code>error.</code> prefix attached (<code>error.required</code>), so adding another one yields <code>error.error.required</code>
+                           and never matches. - The global lookup passes the key as <code>basePath</code> with an empty suffix, not as 
+                          <code>TomCtr.textOrNull('', key)</code>. The latter builds the path as <code>'.&lt;key&gt;'</code> — a leading dot that breaks 
+                          <code>getObjectFromTree</code>. This mirrors <code>resolveFieldValidationMessage</code>.
                         </p>
                       </div>
                     </div>

@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1409,10 +1415,20 @@
                     <div id="TomAnnotationAnalyzerException.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomAnnotationAnalyzerException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, Object? stack, Object? rootException, bool autoLog = false})
+                          TomAnnotationAnalyzerException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, StackTrace? stack, Object? rootException, bool autoLog = false})
                         </code>
                       </div>
-                      <div class="api-doc"><p>Creates an annotation-analyzer exception.</p></div>
+                      <div class="api-doc">
+                        <p>Creates an annotation-analyzer exception.</p>
+                        <p>
+                          Never client-visible. Every failure this type reports is a wiring fault in the deployment — a type absent from the reflector, an entity without 
+                          <code>@TomDbTable</code>, columns that could not be resolved — and its message quotes the entity type and the annotation it wanted. A caller can act on none of it, and a sentence compiled inside a served request would otherwise carry the deployment's shape back to whoever made that request.
+                        </p>
+                        <p>
+                          <code>clientThrow</code> is not a parameter, so that is an invariant of the type rather than the value it is born with — the same construction, and the same argument, as 
+                          <code>TomResourceLocaleException</code>. As a re-defaulted parameter it would hide today's raise sites and stop nothing from asking to be shown tomorrow.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>
@@ -1430,10 +1446,18 @@
                     <div id="TomAnnotationAnalyzerSyntaxException.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomAnnotationAnalyzerSyntaxException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, Object? stack, Object? rootException, bool autoLog = false})
+                          TomAnnotationAnalyzerSyntaxException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, StackTrace? stack, Object? rootException, bool autoLog = false})
                         </code>
                       </div>
-                      <div class="api-doc"><p>Creates an annotation-analyzer syntax exception.</p></div>
+                      <div class="api-doc">
+                        <p>Creates an annotation-analyzer syntax exception.</p>
+                        <p>
+                          Never client-visible, for the reason given on [TomAnnotationAnalyzerException] and with more force: this is the type that answers "No column match field [x] found. Must be a variable and must have @TomDbColumn annotation", which names a field of the entity and the annotation the deployment was expected to carry.
+                        </p>
+                        <p>
+                          A malformed <em>sentence</em> is a different matter and stays visible — see <code>TomQuerySyntaxException</code>. When the sentence came from a request it is the caller's own input, and naming the token that broke it tells them what to fix without describing the deployment.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>
@@ -1446,31 +1470,135 @@
                       <code>@TomDbColumn</code>, <code>@TomEntityId</code>, <code>@TomReference</code>).
                     </p>
                     <p>
-                      Mixed into the typed-persistence base, its static methods read the <code>tomReflector</code> [ClassMirror] of an entity and translate its annotations into a [TomTypePersistenceInfo] / [TomColumnInformation]. Results are memoised in the per-type [mirrorCache], [tableCache], and [columnInfoCache].
+                      Mixed into the typed-persistence base, its static methods read the <code>tomReflector</code> [ClassMirror] of an entity and translate its annotations into a [TomTypePersistenceInfo] / [TomColumnInformation]. Every result is memoised per entity type and shared: a second call for the same type hands back the very objects the first call returned.
+                    </p>
+                    <p>
+                      That sharing is what makes the memos private and their column lists unmodifiable. A resolved [TomColumnInformation] is immutable, so no holder can edit one; the lists are handed out as unmodifiable views, so no holder can add to or reorder one; and the memo maps are reachable from nowhere else, so no caller can substitute a different answer for a type. Two resolutions of the same entity therefore cannot be made to disagree, which is the property the whole compile path assumes when it looks a column up once and trusts it everywhere.
+                    </p>
+                    <h2><code>null</code> is an answer here, not a failure</h2>
+                    <p>
+                      [findMirror], [findTable], [findDataScope] and [getPersistentColumns] each return <code>null</code> for an ordinary reason — the type is not registered, carries no 
+                      <code>@TomDbTable</code>, declares no row scope, has no columns — and each memoises that <code>null</code>
+                       alongside the answers. <code>containsKey</code> true with a <code>null</code> value is therefore a <em>designed</em>
+                       state of every one of those maps, so a cache-hit path must read the entry back as nullable.
+                    </p>
+                    <p>
+                      Callers must not null-assert the result. <code>findTable(type)!</code> is a null check written as an expression: where the caller has in fact established that the type is mapped, it says so in a form that stops being true the moment the branch above it moves, and where it has not, it reports 
+                      <code>Null check operator used on a null value</code> out of a static memo, naming neither the type nor the annotation that was missing. A caller that knows the type is an entity should ask [analysePersistentType], which returns a non-nullable [TomTypePersistenceInfo] or names what is absent; one that is asking 
+                      <em>whether</em> it is should read the lookup into a local and test it. <code>test/annotation_analyzer_null_memo_test.dart</code>
+                       pins both halves — the memoised <code>null</code> reading back as <code>null</code>, and the absence of an assertion anywhere in 
+                      <code>lib/</code>.
                     </p>
                   </div>
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
-                    <div id="TomAnnotationAnalyzer.mirrorCache" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static Map&lt;Type, ClassMirror&lt;dynamic&gt;?&gt; mirrorCache</code></div>
+                    <div id="TomAnnotationAnalyzer._mirrorCache" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Map&lt;Type, ClassMirror&lt;dynamic&gt;?&gt; _mirrorCache</code></div>
                       <div class="api-doc"><p>Cache of resolved class mirrors per entity type (<code>null</code> = not reflectable).</p></div>
                     </div>
-                    <div id="TomAnnotationAnalyzer.tableCache" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static Map&lt;Type, TomDbTable?&gt; tableCache</code></div>
+                    <div id="TomAnnotationAnalyzer._tableCache" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Map&lt;Type, TomDbTable?&gt; _tableCache</code></div>
                       <div class="api-doc"><p>Cache of resolved <code>@TomDbTable</code> annotations per entity type.</p></div>
                     </div>
-                    <div id="TomAnnotationAnalyzer.columnInfoCache" class="api-member">
+                    <div id="TomAnnotationAnalyzer._columnInfoCache" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">static Map&lt;Type, List&lt;TomColumnInformation&gt;?&gt; columnInfoCache</code>
+                        <code class="api-signature">static Map&lt;Type, List&lt;TomColumnInformation&gt;?&gt; _columnInfoCache</code>
                       </div>
                       <div class="api-doc"><p>Cache of resolved column metadata lists per entity type.</p></div>
+                    </div>
+                    <div id="TomAnnotationAnalyzer._dataScopeCache" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Map&lt;Type, TomDbScope?&gt; _dataScopeCache</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Cache of resolved <code>@TomDbScope</code> annotations per entity type (<code>null</code> = the entity declares no row scope).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAnnotationAnalyzer._authColumnCache" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static Map&lt;Type, List&lt;TomColumnInformation&gt;&gt; _authColumnCache</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Cache of the column-authorized (<code>@TomDbColumn(authKey: …)</code>) columns per entity type (an empty list = the entity declares no column access rights).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAnnotationAnalyzer._fileColumnCache" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static Map&lt;Type, List&lt;TomColumnInformation&gt;&gt; _fileColumnCache</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Cache of the file-reference (<code>@TomFileReference</code>) columns per entity type (an empty list = the entity references no stored files).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAnnotationAnalyzer.resourceKeyColumn" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String resourceKeyColumn</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The column name (and its camelCase field spelling) that marks an entity as carrying a resource key, and so as automatically grant-scoped.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAnnotationAnalyzer.resourceKeyField" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String resourceKeyField</code></div>
+                      <div class="api-doc"><p>The camelCase entity-field spelling of [resourceKeyColumn].</p></div>
+                    </div>
+                    <div id="TomAnnotationAnalyzer.resourceScopeInputTables" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Set&lt;String&gt; resourceScopeInputTables</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The framework's own authorization tables — the ones the resource scope reads in order to <em>compute</em>
+                           itself — which are therefore never auto-scoped.
+                        </p>
+                        <p>
+                          They all carry a [resourceKeyColumn], so without this guard each would match [autoScopeFor] and filter itself: a principal could reach its own grant rows only by already holding a grant on them, which no row can satisfy, and the authorization layer would resolve to nothing at all.
+                        </p>
+                        <p>
+                          The entities also declare <code>@TomDbScope.unscoped()</code>, which is the readable statement of the same fact. This set is the one that survives a *<em>stale generated `</em>.reflection.dart`**, whose class metadata predates the annotation — a safety invariant of the framework must not depend on a deployment having re-run code generation before it upgrades.
+                        </p>
+                        <p>
+                          The names are duplicated from the entities' <code>@TomDbTable</code> annotations rather than imported, because 
+                          <code>authorization</code> depends on <code>object_persistence</code> and not the other way round; <code>test/resource_data_scope_test.dart</code>
+                           asserts the two agree.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAnnotationAnalyzer._boxFamilies" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Map&lt;Type, TomSqlTypeFamily&gt; _boxFamilies</code></div>
+                      <div class="api-doc"><p>The [TomDbType] boxes an entity may declare, mapped to their type family.</p></div>
+                    </div>
+                    <div id="TomAnnotationAnalyzer._dartFamilies" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Map&lt;Type, TomSqlTypeFamily&gt; _dartFamilies</code></div>
+                      <div class="api-doc"><p>The Dart types a mapped field may have when no [TomDbType] box is declared.</p></div>
+                    </div>
+                    <div id="TomAnnotationAnalyzer.reset" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static void reset()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Discards every memoised answer, so the next resolution of any entity re-reads its reflection metadata. Intended for tests and for a re-boot.
+                        </p>
+                        <p>
+                          A server never needs this: an entity's annotations are fixed for the run. A test is the case that does — one that re-registers a fixture type it has already analysed, under a different mapping, otherwise reads the first answer back and fails as though the mapping were wrong. That failure is expensive to diagnose, because nothing about it points at a cache.
+                        </p>
+                        <p>
+                          Clearing all six together is the whole point: they are derived from one another — the columns come from the mirror, the row scope and the two column subsets come from the columns — so a caller emptying the ones it happens to know about would leave the rest describing an entity that no longer exists. 
+                          <code>test/persistence_metadata_sharing_test.dart</code> asserts this method reaches every cache the mixin declares, including any added later.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomAnnotationAnalyzer.analysePersistentType" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static TomTypePersistenceInfo analysePersistentType(Type T)</code></div>
                       <div class="api-doc">
                         <p>Resolves the full persistence metadata (table + columns) for entity [T].</p>
                         <p>
-                          Throws [TomAnnotationAnalyzerException] if the type is not reflectable, has no table annotation, or its columns cannot be resolved.
+                          Throws [TomAnnotationAnalyzerException] if the type is not reflectable or has no table annotation, and [TomAnnotationAnalyzerSyntaxException] if its annotations are present but malformed — the two are separate because the first is a registration mistake and the second a declaration mistake, and they are fixed in different files.
+                        </p>
+                        <p>
+                          Each step names the missing thing rather than reporting the mechanism that noticed it. The three lookups answer 
+                          <code>null</code> for their own ordinary reason, so a <code>null</code> here is a diagnosis, not an anomaly to be caught.
                         </p>
                       </div>
                     </div>
@@ -1481,11 +1609,102 @@
                           Returns the cached/looked-up [ClassMirror] for [dbType], or <code>null</code> when it is not registered with 
                           <code>tomReflector</code>.
                         </p>
+                        <p>
+                          <code>null</code> means one thing only: the reflector holds no mirror for [dbType]. That is a normal answer — [findTable] and [getPersistentColumns] ask about types that may carry no persistence annotations at all — and it is the single failure this method absorbs, recognised by the [NoSuchCapabilityError] the reflector raises to say exactly that.
+                        </p>
+                        <p>
+                          Every other failure is reported as [TomAnnotationAnalyzerException] with the original as <code>rootException</code>. Absorbing them too would be cheap and actively harmful: this is the gate every entity's mapping passes through, so a swallowed error reappears one frame up as "it is not in tomReflector" — a diagnosis that is plausible, wrong, and sends the reader to the entity's annotations and its generated file, neither of which is at fault. The two it hides are the two worth hearing about. Reflection that was never initialized makes 
+                          <em>every</em> type look unregistered, and the reflector raises a <code>StateError</code> naming the missing 
+                          <code>initializeReflection()</code> call — the one sentence that would have ended the search. A name that resolves to something other than a class (<code>dynamic</code>
+                           and <code>void</code> are registered with every reflector that can reflect types, and a generic parameter that erased reaches here as 
+                          <code>dynamic</code>) is likewise a caller-side mistake, not a gap in the reflection setup.
+                        </p>
                       </div>
                     </div>
                     <div id="TomAnnotationAnalyzer.findTable" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static TomDbTable? findTable(Type dbType)</code></div>
                       <div class="api-doc"><p>Returns the <code>@TomDbTable</code> annotation on [dbType], or <code>null</code> if absent.</p></div>
+                    </div>
+                    <div id="TomAnnotationAnalyzer.findDataScope" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static TomDbScope? findDataScope(Type dbType)</code></div>
+                      <div class="api-doc">
+                        <p>Returns the row-level data scope of [dbType], or <code>null</code> when the entity is unscoped.</p>
+                        <p>Resolution order:</p>
+                        <p>
+                          1. an explicit <code>@TomDbScope</code> on the class wins — including <code>@TomDbScope.unscoped()</code>, the deliberate opt-out, for which this returns 
+                          <code>null</code>; 2. otherwise, an entity carrying a resource-key column is scoped automatically under [TomDbScope.resourceScope] — see [autoScopeFor]; 3. otherwise the entity is unscoped.
+                        </p>
+                        <p>
+                          Step 2 is why grant-driven scoping is the <em>default</em>: an entity that models a grantable resource is filtered by the principal's grants without anyone remembering to annotate it, and forgetting the annotation can no longer silently publish every row.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAnnotationAnalyzer.autoScopeFor" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static TomDbScope? autoScopeFor(List&lt;TomColumnInformation&gt; columns)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          The scope an entity with these [columns] carries implicitly, or <code>null</code> if it carries none.
+                        </p>
+                        <p>
+                          An entity is implicitly grant-scoped when one of its persistent columns is a resource key — the column named [resourceKeyColumn] (or declared as [resourceKeyField]). That column holds exactly the value the C-5 grant and C-6 delegation rows key on, so the rows it identifies are precisely the ones a grant admits; the synthesized annotation is identical to the one a developer would have written by hand, which keeps 
+                          <code>@TomDbScope</code> the single declaration mechanism rather than adding a parallel one.
+                        </p>
+                        <p>
+                          The framework's own [resourceScopeInputTables] are excluded: they carry a resource key but <em>are</em>
+                           the scope's input, so scoping them would close the authorization layer against itself.
+                        </p>
+                        <p>
+                          The exclusion is settled once, before any column is examined, because it is a fact about the entity and not about a column: every element of a resolved column list carries the one 
+                          <code>@TomDbTable</code> of the type it was resolved from — see <code>test/persistence_metadata_sharing_test.dart</code>. Asking per column would give the same answer while reading as though it might not, which for this guard is the expensive kind of ambiguity: whether a grant table gets scoped would appear to depend on where its resource key sits in the list.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAnnotationAnalyzer.findAuthColumns" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static List&lt;TomColumnInformation&gt; findAuthColumns(Type dbType)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Returns the columns of [dbType] that opt into column-level access rights (C-4) — those with a [TomColumnInformation.authKey], from a 
+                          <code>@TomDbColumn(authKey:)</code> or a <code>@TomProtectedField</code> — or an empty list when the entity declares none.
+                        </p>
+                        <p>
+                          Cached per type. An empty result lets a repository skip all C-4 work for entities that declare no column access rights (zero overhead by default).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAnnotationAnalyzer.findFileColumns" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static List&lt;TomColumnInformation&gt; findFileColumns(Type dbType)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Returns the columns of [dbType] that hold a blob storage key — those annotated <code>@TomFileReference</code>
+                           — or an empty list when the entity references no stored files.
+                        </p>
+                        <p>
+                          Cached per type, and consulted before <em>any</em> file work is done, so an entity that stores no files never pays for the feature: no extra read on update, no select-before-delete, no store resolution.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAnnotationAnalyzer.familyOf" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static TomSqlTypeFamily familyOf(TomColumnInformation column)</code></div>
+                      <div class="api-doc">
+                        <p>The type family [column] is stored in.</p>
+                        <p>
+                          A JSON column is text whatever its Dart type — the value is encoded before it reaches the database. Otherwise the declared [TomDbType] box decides, and only when there is none does the Dart type stand in. An unrecognised type (an enum behind a converter, say) yields [TomSqlTypeFamily.unknown], which is compatible with everything: a gap in the caller's knowledge must not be reported as a defect in the schema.
+                        </p>
+                        <p>
+                          Homed here rather than with either consumer because both the schema-convergence check and the reflected export projection ask the same question of the same annotations, and a second answer would be a second thing to keep in step. Note what it describes: how a value is 
+                          <em>stored</em>. The Dart value a getter returns can differ — a JSON column is a <code>Map</code> in Dart and text in the database — so a consumer that cares about the Dart value must check [TomColumnInformation.declaredType] as well.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAnnotationAnalyzer.describeDeclaredType" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String describeDeclaredType(TomColumnInformation column)</code></div>
+                      <div class="api-doc"><p>How [column]'s type is spelled on the entity side, for reporting only.</p></div>
                     </div>
                     <div id="TomAnnotationAnalyzer.getPersistentColumns" class="api-member">
                       <div class="api-member-head">
@@ -1495,6 +1714,9 @@
                         <p>
                           Returns the persistence metadata for every annotated field of [dbType] (each <code>@TomDbColumn</code>
                            / <code>@TomReference</code>), or <code>null</code> if [dbType] is not reflectable. Throws [TomAnnotationAnalyzerSyntaxException] for an annotation on a non-variable declaration.
+                        </p>
+                        <p>
+                          Resolved once per type and then shared: every caller for the same entity receives the same unmodifiable list of the same immutable [TomColumnInformation] objects. Callers that need a list of their own — to filter, sort or extend — must copy it.
                         </p>
                       </div>
                     </div>
@@ -1515,6 +1737,45 @@
                         <p>
                           Finds the [TomColumnInformation] matching [name] across [persistenceInfo], trying in order: fully-qualified 
                           <code>table.column</code>, <code>type.field</code>, the query field name, then a case-insensitive field-name match. Throws [TomAnnotationAnalyzerSyntaxException] when nothing matches.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAnnotationAnalyzer.referenceQuery" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static ({Map&lt;String, Object?&gt; parameters, String sentence}) referenceQuery(TomReference&lt;Object, dynamic, TomRepository&lt;Object, dynamic&gt;&gt; reference, Type owningType, Object? Function(String) readOwningField)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          The <code>FIND BY</code> sentence that resolves [reference] for one already-mapped row of [owningType], together with the parameters it binds.
+                        </p>
+                        <p>
+                          A <code>@TomReference</code> is not a column: it is read by a <em>second</em> query over the join entity, issued once the owning row exists, and this builds that query's text. Its three column lists are three different kinds of term, which is why they cannot be written as one list:
+                        </p>
+                        <ul><li>[TomReference.leftSideColumns] tie the join row to <em>this</em> row, so the</li></ul>
+                        <p>
+                          owner side is a value known only at read time. Written <code>Join.field=Owner.field</code>, they are emitted as a bound parameter named after the owner field — the value never reaches the statement text. 
+                          <em> [TomReference.rightSideColumns] tie the join row to the target row. Both sides are columns, so the term is emitted verbatim. 
+                          </em> [TomReference.contextColumns] tie the join row to an ambient value — the tenant, the application. Written 
+                          <code>Join.field=:name</code>, they bind <code>:name</code> from the [TomExecutionContext] installed in the current zone.
+                        </p>
+                        <p>
+                          [readOwningField] reads a field of the mapped row by its <em>declared</em> name. The caller holds the instance, so the read is passed in rather than the object; that is also what lets this be exercised without a database.
+                        </p>
+                        <p>
+                          Throws [TomAnnotationAnalyzerSyntaxException] when an expression is malformed — an authoring error in the annotation, and always reported ahead of any context lookup — and [TomAnnotationAnalyzerException] when a well-formed expression names a context value the running zone cannot supply.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAnnotationAnalyzer._referenceExpressionSides" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static (String, String) _referenceExpressionSides(String expression, String kind, String expected)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Splits a <code>left=right</code> reference expression of [kind] into its two sides.</p>
+                        <p>
+                          [expected] is the shape the expression should have had, quoted back in the message: the lists are strings in an annotation, so a typo is caught here rather than by the compiler, and the error has to say what was wanted.
                         </p>
                       </div>
                     </div>

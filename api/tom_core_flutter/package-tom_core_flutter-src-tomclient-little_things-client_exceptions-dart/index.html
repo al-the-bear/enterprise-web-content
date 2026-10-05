@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1400,10 +1406,41 @@
                   <div class="api-doc">
                     <p>An exception originating on the client side of a Tom application.</p>
                     <p>
-                      <code>TomClientException</code> is a thin semantic subtype of the kernel [TomException]: it carries the same 
-                      <code>key</code> / <code>defaultUserMessage</code> / <code>parameters</code> / <code>stack</code> / <code>rootException</code>
-                       / <code>autoLog</code> payload but lets client code distinguish failures raised in the Flutter client from those surfaced by lower layers (server, kernel) via a simple 
+                      <code>TomClientException</code> is a thin semantic subtype of the kernel [TomException]: it carries the kernel's payload unchanged but lets client code distinguish failures raised in the Flutter client from those surfaced by lower layers (server, kernel) via a simple 
                       <code>is TomClientException</code> check.
+                    </p>
+                    <p>
+                      <strong>The kernel's whole parameter list is forwarded</strong>, including the three that identify a failure rather than describe it — [TomException.uuid], [TomBaseException.requestUuid] and [TomException.serverCallError]. Every client-side exception type chains through here, so a parameter missing from this list is missing from all of them; the three were, and each had a case the client could not express:
+                    </p>
+                    <ul><li><code>uuid</code> is generated when omitted, which is right for a failure raised</li></ul>
+                    <p>
+                      here and wrong for one <em>reconstructed</em> from a server's error envelope — a fresh identity cannot be matched to the log line written on the far side, which is the one place the failure was actually recorded. 
+                      <em> <code>requestUuid</code> is the correlation id, and the client is the side that </em>issues<em> requests. The one exception type whose purpose is to say "this came from the client" could not say which request it came from. 
+                      </em> <code>serverCallError</code> is the kernel's slot for "this came from an HTTP call", and a client is where HTTP calls originate. 
+                      <code>TomUserPreferencesClientException</code> is the first to fill it.
+                    </p>
+                    <p>
+                      The three are deliberately constructor arguments rather than fields assigned afterwards. Two of them — 
+                      <code>uuid</code> and <code>requestUuid</code> — are writable on a kernel exception, so that much of the payload was always 
+                      <em>reachable</em>; but a report edited between the throw and the catch describes a failure the code in between decided on, and everything these three carry is known where the exception is raised. [TomException.serverCallError] is 
+                      <code>final</code>, so for it the constructor is the only route there has ever been.
+                    </p>
+                    <h2>The message is not resolved here</h2>
+                    <p>
+                      <code>key</code> is what a UI resolves against the text resources; <code>defaultUserMessage</code> is the fallback for when no resource exists. 
+                      <strong>Neither is performed by this class</strong>, and that is the design rather than an omission: an exception is raised in places a resource tree may not exist yet — early start-up, a worker isolate, a unit test — and 
+                      <code>TomTextResourceProvider.getAppResources</code> <em>throws</em> where none is installed. A type that resolved on construction would carry that failure into precisely the situations where reporting a failure matters most.
+                    </p>
+                    <p>
+                      So the lookup belongs to the one layer that already knows a resource tree is installed — the code that displays the error:
+                    </p>
+                    <pre><code>String messageFor(TomException failure) =&gt;
+    TomTextResourceProvider.getAppResources().getTextOrNull(failure.key) ??
+    failure.defaultUserMessage;</code></pre>
+                    <p>
+                      <code>getTextOrNull</code>, never <code>getText</code>: the latter echoes the key when the bundle has no entry, which would put 
+                      <code>login.failed</code> in front of a user and discard the fallback this message exists to be. Both branches, and that trap, are executed by 
+                      <code>example/little_things/little_things_example.dart</code>.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1411,7 +1448,7 @@
                     <div id="TomClientException.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomClientException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, Object? stack, Object? rootException, bool autoLog = false})
+                          TomClientException.new(String key, String defaultUserMessage, {String? uuid, String? requestUuid, Map&lt;String, Object?&gt;? parameters, StackTrace? stack, Object? rootException, bool autoLog = false, TomServerCallError? serverCallError})
                         </code>
                       </div>
                       <div class="api-doc"><p>Creates a client-side exception. See [TomException] for the meaning of each argument.</p></div>
@@ -1428,13 +1465,16 @@
                        is safe and intended for display. Consumers commonly branch on its type — e.g. <code>if (e is TomClientUIException) rethrow;</code>
                        to let a presentable error bubble up to the UI while wrapping non-presentable ones — so the distinct type, not just the message, is the contract.
                     </p>
+                    <p>
+                      It forwards the same list as [TomClientException], for the same reason: a presentable failure is no less in need of the request it belongs to.
+                    </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomClientUIException.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomClientUIException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, Object? stack, Object? rootException, bool autoLog = false})
+                          TomClientUIException.new(String key, String defaultUserMessage, {String? uuid, String? requestUuid, Map&lt;String, Object?&gt;? parameters, StackTrace? stack, Object? rootException, bool autoLog = false, TomServerCallError? serverCallError})
                         </code>
                       </div>
                       <div class="api-doc"><p>Creates a user-facing client exception. See [TomException] for the meaning of each argument.</p></div>

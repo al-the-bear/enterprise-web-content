@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1409,7 +1415,7 @@
                   <p>
                     The SDK's in-process server (<code>createSdkMcpServer</code>) holds a live, non- serializable <code>McpServer</code>. Over the bridge it crosses as a 
                     <strong>descriptor</strong> (proposal §7.0.4): server name/version plus each tool's name/description/ JSON-Schema. The extension rebuilds the real instance and routes tool calls back into Dart over the reverse RPC (todo #5). Wire field names match 
-                    <code>sdk.d.ts</code> ^0.2.110.
+                    <code>sdk.d.ts</code>, audited against 0.3.282 (see <code>doc/agent_sdk_scripting_mirror.md</code> in the extension for what is and is not mirrored).
                   </p>
                 </div>
                 <section id="CallToolResult" class="api-declaration">
@@ -1565,7 +1571,7 @@
                     <div id="McpSdkServerConfig.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          McpSdkServerConfig.new({required String name, String version = '1.0.0', List&lt;SdkMcpTool&gt; tools = const []})
+                          McpSdkServerConfig.new({required String name, String version = '1.0.0', List&lt;SdkMcpTool&gt; tools = const [], bool? alwaysLoad})
                         </code>
                       </div>
                     </div>
@@ -1589,6 +1595,15 @@
                     <div id="McpSdkServerConfig.tools" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final List&lt;SdkMcpTool&gt; tools</code></div>
                       <div class="api-doc"><p>The tool descriptors this server exposes.</p></div>
+                    </div>
+                    <div id="McpSdkServerConfig.alwaysLoad" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final bool? alwaysLoad</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Keep every tool of this server in the prompt and block startup until the server is connected. Since SDK 0.3.142 MCP servers connect in the background and their tools are deferred behind tool search, so without this a turn-1 prompt can be built before the tools exist. Forwarded by the extension to 
+                          <code>createSdkMcpServer({alwaysLoad})</code>; omitted from the wire when null.
+                        </p>
+                      </div>
                     </div>
                     <div id="McpSdkServerConfig.type" class="api-member"><div class="api-member-head"><code class="api-signature">String type</code></div></div>
                   </div>

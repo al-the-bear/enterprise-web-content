@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1384,19 +1390,20 @@
             <h1>Tom Core — the foundation layer of the Tom Framework</h1>
             <div class="pageprose">
               <p>
-                &gt; <strong>Attribution.</strong> The Tom Framework is developed by Peter Nicolai Alexis Kyaw. &gt; These packages are proprietary and internal (<code>publish_to: none</code>).
+                &gt; <strong>Attribution.</strong> The Tom Framework is developed by Peter Nicolai Alexis Kyaw. &gt; These packages are BSD-3-Clause licensed and internal (<code>publish_to: none</code>).
               </p>
               <p>
-                Tom Core is the set of packages every Tom application is built on: a platform-neutral kernel (dependency injection, observable state, security, resources, logging) and the runtimes layered on top of it — a server stack, two Flutter layers, a DartScript bridge tool, a VS Code bridge server, and a set of agentic building blocks.
+                Tom Core is the set of packages every Tom application is built on: a platform-neutral kernel (dependency injection, observable state, security, resources, logging) and the runtimes layered on top of it — a server stack, two Flutter layers, and a set of agentic building blocks.
               </p>
               <p>
                 This repository (<a href="https://github.com/al-the-bear/tom_core"><code>al-the-bear/tom_core</code></a>) holds the whole layer. This document is the 
                 <strong>map</strong>; each package has its own <code>README.md</code> and <code>doc/</code> folder for the detail. Nothing about a package's API is re-documented here — one phrase of "what it is" plus the link is the contract.
               </p>
               <p>
-                &gt; <strong>New here?</strong> The richest on-ramp is the upcoming <code>tom_core_samples/</code> learning &gt; path (see 
-                <a href="#sample-learning-path">Sample learning path</a>). Until it lands, read &gt; <a href="/docs?module=tom_core_kernel&amp;path=README.md"><code>tom_core_kernel</code></a>
-                 (the foundation) and run one of &gt; the two live demo apps — <a href="/docs?module=tom_flutter_form_test&amp;path=README.md"><code>tom_flutter_form_test</code></a>
+                &gt; <strong>New here?</strong> The richest on-ramp is the &gt; <a href="/doc/tom_agent_container/tom_ai/core/tom_core_samples/README"><code>tom_core_samples/</code></a>
+                 learning path (see &gt; <a href="#sample-learning-path">Sample learning path</a>) — a shared todo app built up &gt; from a server, a Flutter client and four UI showcases. For the foundation, &gt; read 
+                <a href="/docs?module=tom_core_kernel&amp;path=README.md"><code>tom_core_kernel</code></a>; for the broadest live UI &gt; reference, run 
+                <a href="/docs?module=tom_flutter_form_test&amp;path=README.md"><code>tom_flutter_form_test</code></a>
                  &gt; (the form stack) or <a href="/docs?module=tom_flutter_ui_test&amp;path=README.md"><code>tom_flutter_ui_test</code></a>
                  &gt; (the full widget set).
               </p>
@@ -1408,24 +1415,19 @@
                 <strong>Build a Flutter app</strong> from authorization-aware, observable, resource-bound widgets — a Material/Cupertino widget set, a declarative form system, and a fluent layout engine (<a href="/docs?module=tom_flutter_ui&amp;path=README.md"><code>tom_flutter_ui</code></a>). - 
                 <strong>Share one model of state, security, and resources</strong> across server and client — the platform-neutral 
                 <a href="/docs?module=tom_core_kernel&amp;path=README.md"><code>tom_core_kernel</code></a> is the single source of those cross-cutting concerns. - 
-                <strong>Script the framework</strong> — expose the kernel, server, build, and document toolkits to sandboxed DartScript through 
-                <a href="/docs?module=tom_core_d4rt&amp;path=README.md"><code>tom_core_d4rt</code></a>. - <strong>Assemble agent runtimes</strong>
-                 from generic, domain-free, <code>dart:io</code>-free building blocks (<a href="/docs?module=tom_core_agentic&amp;path=README.md"><code>tom_core_agentic</code></a>).
+                <strong>Assemble agent runtimes</strong> from generic, domain-free, <code>dart:io</code>-free building blocks (<a href="/docs?module=tom_core_agentic&amp;path=README.md"><code>tom_core_agentic</code></a>).
               </p>
               <p>---</p>
               <h2>How the layer fits together</h2>
               <p>
                 Everything roots at the <strong>kernel</strong>. The two runtimes (<strong>server</strong> and <strong>Flutter</strong>) re-export it, so an app depends on one of them and gets the kernel API for free. The 
                 <strong>UI library</strong> is the rich widget set that the Flutter runtime's thin integration layer complements. The 
-                <strong>scripting</strong> and <strong>bridge</strong> tools wrap the runtimes for DartScript and the VS Code extension. The 
                 <strong>agentic</strong> blocks sit beside the kernel, depending only on <code>tom_basics</code>.
               </p>
               <pre><code>                    tom_core_kernel            (platform-neutral foundation)
                    /       |        \
        tom_core_server  tom_core_flutter  tom_flutter_ui
          (backend)      (Flutter glue)    (widget library)
-              |
-       tom_core_d4rt  ── tom_core_bridge        (DartScript / VS Code bridge)
 
        tom_core_agentic  (agent building blocks; depends only on tom_basics)</code></pre>
               <p>---</p>
@@ -1481,30 +1483,6 @@
                   </tr>
                 </tbody>
               </table>
-              <h3>Scripting &amp; bridges</h3>
-              <table class="mdtable">
-                <thead><tr><th>Package</th><th>What it is</th><th>Binary</th></tr></thead>
-                <tbody>
-                  <tr>
-                    <td><a href="/docs?module=tom_core_d4rt&amp;path=README.md"><code>tom_core_d4rt</code></a></td>
-                    <td>
-                      The D4rt scripting tool with the full Tom Framework bridge set — an interactive REPL and headless script runner that exposes the kernel, server, build, distributed, and document toolkits to sandboxed DartScript.
-                    </td>
-                    <td><code>d4rt</code></td>
-                  </tr>
-                  <tr>
-                    <td><a href="/docs?module=tom_core_bridge&amp;path=README.md"><code>tom_core_bridge</code></a></td>
-                    <td>
-                      The VS Code bridge server extended with the complete Tom D4rt bridge set — 
-                      <code>tom_bs</code>
-                       (DCli + VS Code API bridges) plus everything 
-                      <code>tom_core_d4rt</code>
-                       registers.
-                    </td>
-                    <td><code>core_bs</code></td>
-                  </tr>
-                </tbody>
-              </table>
               <h3>Agentic</h3>
               <table class="mdtable">
                 <thead><tr><th>Package</th><th>What it is</th></tr></thead>
@@ -1557,47 +1535,78 @@
               <p>---</p>
               <h2>Sample learning path</h2>
               <p>
-                A dedicated <code>tom_core_samples/</code> folder is <strong>forthcoming</strong> (Tom Core quest, README &amp; samples plan, Phase B). It will build one todo-management application across six subprojects, ordered as a learning path from a backend up through responsive UI. Until those land, the two demo apps above are the live, runnable reference.
+                The <a href="/doc/tom_agent_container/tom_ai/core/tom_core_samples/README"><code>tom_core_samples/</code></a>
+                 folder builds one todo-management application across a shared domain plus six subprojects, ordered as a learning path from a backend up through responsive UI. Start with the 
+                <a href="/doc/tom_agent_container/tom_ai/core/tom_core_samples/README">samples map</a>; the two demo apps above remain the broadest live UI reference.
               </p>
               <table class="mdtable">
-                <thead><tr><th>Order</th><th>Sample (planned, <code>tom_core_samples/…</code>)</th><th>Introduces</th></tr></thead>
+                <thead><tr><th>Order</th><th>Sample</th><th>Introduces</th></tr></thead>
                 <tbody>
                   <tr>
+                    <td>0</td>
+                    <td>
+                      <a href="/doc/tom_agent_container/tom_ai/core/tom_core_samples/todo_domain/README"><code>todo_domain</code></a>
+                    </td>
+                    <td>
+                      The shared reflected entities (
+                      <code>User</code>
+                      , 
+                      <code>Project</code>
+                      , 
+                      <code>TodoList</code>
+                      , 
+                      <code>TodoItem</code>
+                      ) every other sample reuses.
+                    </td>
+                  </tr>
+                  <tr>
                     <td>1</td>
-                    <td><code>core_server_sample</code></td>
+                    <td>
+                      <a href="/doc/tom_agent_container/tom_ai/core/tom_core_samples/core_server_sample/README"><code>core_server_sample</code></a>
+                    </td>
                     <td>The server stack against MySQL-in-Docker — endpoints, persistence, auth, healthcheck.</td>
                   </tr>
                   <tr>
                     <td>2</td>
-                    <td><code>core_client_sample</code></td>
+                    <td>
+                      <a href="/doc/tom_agent_container/tom_ai/core/tom_core_samples/core_client_sample/README"><code>core_client_sample</code></a>
+                    </td>
                     <td>
                       A Flutter todo app on 
                       <code>tom_core_flutter</code>
                        + 
                       <code>tom_flutter_ui</code>
-                      , talking to the server, with ACL-driven field states.
+                       with four-state field authorization — in-memory backend, live read path to the server.
                     </td>
                   </tr>
                   <tr>
                     <td>3</td>
-                    <td><code>core_flutter_ui_showcase</code></td>
+                    <td>
+                      <a href="/doc/tom_agent_container/tom_ai/core/tom_core_samples/core_flutter_ui_showcase/README"><code>core_flutter_ui_showcase</code></a>
+                    </td>
                     <td>Every <code>tom_flutter_ui</code> widget group, each shown with its instantiation code.</td>
                   </tr>
                   <tr>
                     <td>4</td>
-                    <td><code>core_flutter_form_showcase</code></td>
+                    <td>
+                      <a href="/doc/tom_agent_container/tom_ai/core/tom_core_samples/core_flutter_form_showcase/README"><code>core_flutter_form_showcase</code></a>
+                    </td>
                     <td>The forms framework in depth — field types, validation, layout, theming, master-detail, lists.</td>
                   </tr>
                   <tr>
                     <td>5</td>
-                    <td><code>core_flutter_acl_sample</code></td>
+                    <td>
+                      <a href="/doc/tom_agent_container/tom_ai/core/tom_core_samples/core_flutter_acl_sample/README"><code>core_flutter_acl_sample</code></a>
+                    </td>
                     <td>
                       The Advanced Container Layout engine — sizing, growth, alignment, nesting, borders, variants, and the four authorization states.
                     </td>
                   </tr>
                   <tr>
                     <td>6</td>
-                    <td><code>core_flutter_acl_responsive</code></td>
+                    <td>
+                      <a href="/doc/tom_agent_container/tom_ai/core/tom_core_samples/core_flutter_acl_responsive/README"><code>core_flutter_acl_responsive</code></a>
+                    </td>
                     <td>
                       Responsive UIs on the ACL engine — breakpoints, family-swap, adaptive layouts across phone/tablet/desktop.
                     </td>
@@ -1614,15 +1623,22 @@
                 <tbody>
                   <tr>
                     <td>Kernel module reference</td>
-                    <td><a href="tom_core_kernel/doc/"><code>tom_core_kernel/doc/</code></a> (per-module folders)</td>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/tree/main/tom_core_kernel/doc"><code>tom_core_kernel/doc/</code></a>
+                       (per-module folders)
+                    </td>
                   </tr>
                   <tr>
                     <td>Server modules (persistence, endpoints, auth, …)</td>
-                    <td><a href="tom_core_server/doc/"><code>tom_core_server/doc/</code></a></td>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/tree/main/tom_core_server/doc"><code>tom_core_server/doc/</code></a>
+                    </td>
                   </tr>
                   <tr>
                     <td>Flutter integration modules</td>
-                    <td><a href="tom_core_flutter/doc/"><code>tom_core_flutter/doc/</code></a></td>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/tree/main/tom_core_flutter/doc"><code>tom_core_flutter/doc/</code></a>
+                    </td>
                   </tr>
                   <tr>
                     <td>Widget library — ACL engine</td>
@@ -1639,23 +1655,10 @@
                     </td>
                   </tr>
                   <tr>
-                    <td>DartScript bridge groups</td>
-                    <td>
-                      <a href="tom_core_d4rt/doc/"><code>tom_core_d4rt/doc/</code></a>
-                       (one 
-                      <code>.md</code>
-                       per bridged package)
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>VS Code bridge operations</td>
-                    <td>
-                      <a href="/docs?module=tom_core_bridge&amp;path=doc%2Foperations.md"><code>tom_core_bridge/doc/operations.md</code></a>
-                    </td>
-                  </tr>
-                  <tr>
                     <td>Agentic building blocks</td>
-                    <td><a href="tom_core_agentic/doc/"><code>tom_core_agentic/doc/</code></a></td>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/tree/main/tom_core_agentic/doc"><code>tom_core_agentic/doc/</code></a>
+                    </td>
                   </tr>
                   <tr>
                     <td>Form demo catalogue</td>
@@ -1677,20 +1680,1417 @@
 tom_core_server/       backend runtime: HTTP, persistence, auth               (runtime)
 tom_core_flutter/      Flutter integration layer (re-exports the kernel)      (runtime)
 tom_flutter_ui/        Flutter widget library: widgets, forms, ACL engine     (UI)
-tom_core_d4rt/         DartScript REPL + runner with full Tom bridges (d4rt)   (scripting)
-tom_core_bridge/       VS Code bridge server with the Tom bridge set (core_bs) (bridge)
 tom_core_agentic/      domain-free agentic building blocks (dart:io-free)      (agentic)
 tom_flutter_form_test/ runnable demo: the form framework                      (demo app)
-tom_flutter_ui_test/   runnable demo/smoke-test: the whole widget library     (demo app)</code></pre>
+tom_flutter_ui_test/   runnable demo/smoke-test: the whole widget library     (demo app)
+tool/                  repo-wide developer tooling (see below)                (tooling)</code></pre>
               <p>
                 Dependency direction, simplified: everything roots at <code>tom_core_kernel</code>; <code>tom_core_server</code>
                  and <code>tom_core_flutter</code> build on and re-export it; <code>tom_flutter_ui</code> builds on the kernel and is exercised by the two demo apps; 
-                <code>tom_core_d4rt</code> bridges the runtimes into DartScript and <code>tom_core_bridge</code> serves those bridges to the VS Code extension; 
                 <code>tom_core_agentic</code> depends only on <code>tom_basics</code>.
+              </p>
+              <h2>Repository tooling</h2>
+              <p>
+                Tools that span the whole repository live in <code>tool/</code>; anything scoped to one package lives in that package's own 
+                <code>tool/</code>.
+              </p>
+              <p>
+                Every <code>check_*.py</code> below is a <strong>gate</strong>: it counts documentation faults and exits non-zero when it finds any. They are run together by 
+                <code>tool/check_gates.py</code>, which <code>tom_flutter_ui/test/repo_doc_gates_test.dart</code> invokes — so a gate that starts failing surfaces in 
+                <code>flutter test</code> / <code>testkit :test</code> rather than waiting for somebody to run it by hand.
+              </p>
+              <pre><code>python3 tool/check_gates.py            # run them all, report, gate
+python3 tool/check_gates.py --update   # re-record the baselines to today
+python3 tool/check_gates.py --timings  # ... and list what each gate took
+python3 tool/check_gates.py --self-test  # check the runner's own verdicts</code></pre>
+              <p>
+                Each gate is pinned to a fault count in <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/gate_baselines.json"><code>tool/gate_baselines.json</code></a>, not to zero. Demanding zero on the day the runner landed would have meant repairing several hundred documentation faults before anything at all was enforced, and until they were, every 
+                <em>new</em> fault would land unnoticed among them. So the backlog is frozen where it is and the next fault is a failure. Clearing a backlog is separate work, and lowering its baseline is part of that work.
+              </p>
+              <p>
+                The ratchet turns both ways: a count <em>below</em> its baseline fails too, asking for the baseline to be lowered, because otherwise repaired ground reopens silently. Gates are discovered by glob, so a checker added tomorrow is enforced tomorrow — it fails as unbaselined until it is recorded. To be run, a gate must be named 
+                <code>check_*.py</code> in <code>tool/</code> and end its <code>main()</code> with <code>report_faults(n)</code>
+                 from <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/gate_report.py"><code>tool/gate_report.py</code></a>; 
+                <code>report_*.py</code> names a tool that reports and never gates.
+              </p>
+              <p>
+                Each gate gets <code>GATE_TIMEOUT_SECONDS</code> (fifteen minutes), set from a measured run with room for a loaded machine. A gate stopped at the budget is reported as 
+                <code>timed-out</code>, naming the limit and the last line the gate printed — its content not judged — rather than as a gate that forgot its count, which is the opposite remedy. Each gate runs as its own process group and the whole group is killed: a gate shells out to 
+                <code>dart analyze</code>, and an analyzer left running would compete with every gate after it, and hold the runner's pipes open past the limit it had just enforced. 
+                <code>--self-test</code> runs throwaway gates that stall (with a child process), stay silent and refuse, and checks the verdict on each and that nothing is left running. The analyzer-backed gates keep their clean verdicts in 
+                <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/gate_cache.py"><code>tool/gate_cache.py</code></a>, keyed on every input the verdict depends on — the package, its path dependencies' sources, its resolved package config, the SDK and the gate itself — so a run after an unrelated edit re-analyzes only what moved. A faulty verdict is never cached; 
+                <code>--no-cache</code> forces a full run.
+              </p>
+              <p>
+                Several gates shell out to <code>dart</code>, and each refuses to run without one rather than guess. The runner does not leave that to the shell: when 
+                <code>dart</code> is not on PATH it looks for an SDK (<a href="https://github.com/al-the-bear/tom_core/blob/main/tool/dart_sdk.py"><code>tool/dart_sdk.py</code></a>) and puts it on every gate's PATH, saying so above the results. A gate that still cannot run exits 2 with its reason, and is reported 
+                <code>cannot-run</code> with that reason — not as a gate that forgot to print its count, which is a different failure with a different remedy.
+              </p>
+              <p>
+                <strong>The gates are not the package suites.</strong> A green gate run says the documentation still describes the code; it says nothing about whether the packages' own tests pass, and a change that reaches several packages is exactly the change most likely to leave a 
+                <em>sibling's</em> suite red while the package it was about, and the gates, are green. <code>tool/run_suites.py</code>
+                 runs what "green" means for this repository — every package suite and the gate suite — with one verdict:
+              </p>
+              <pre><code>python3 tool/run_suites.py                   # all eight package suites, then the gates
+python3 tool/run_suites.py kernel server     # a subset, by name or unique part of one
+python3 tool/run_suites.py --no-gates flutter_ui
+python3 tool/run_suites.py --list            # what would run, and with which runner</code></pre>
+              <p>
+                It runs Flutter packages under <code>flutter test</code> and the rest under <code>dart test</code>, each with its own configuration — a package's 
+                <code>dart_test.yaml</code> decides its concurrency; nothing is forced. It reports progress every 30 seconds (the longest suites take a quarter of an hour), prints a table of per-suite verdicts and durations, keeps each run's output under 
+                <code>tool/ztmp/suites/</code>, and exits non-zero if any suite failed. Run it before calling a cross-package change finished. It is deliberately not a 
+                <code>check_*.py</code>: the gate runner would discover it and start eight test suites.
+              </p>
+              <table class="mdtable">
+                <thead><tr><th>Tool</th><th>What it does</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_gates.py"><code>tool/check_gates.py</code></a>
+                    </td>
+                    <td>Runs every gate below and holds each to its recorded fault count</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/run_suites.py"><code>tool/run_suites.py</code></a>
+                    </td>
+                    <td>Runs every package suite and the gate suite, with a per-suite verdict and one exit status</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/gate_report.py"><code>tool/gate_report.py</code></a>
+                    </td>
+                    <td>
+                      The contract a gate implements: prints the machine-readable fault total and derives the exit status from it
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/dart_sdk.py"><code>tool/dart_sdk.py</code></a>
+                    </td>
+                    <td>
+                      Finds the 
+                      <code>dart</code>
+                       the gates need when the shell's PATH has none — PATH, the SDKs' own environment variables, 
+                      <code>flutter</code>
+                       on PATH, then conventional install locations — so the gate runner can put it on every gate's PATH
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/gate_cache.py"><code>tool/gate_cache.py</code></a>
+                    </td>
+                    <td>
+                      Remembers a clean analyzer verdict per package until one of its inputs changes; used by 
+                      <code>check_reflection_artifacts.py</code>
+                       and 
+                      <code>check_doc_dart_blocks.py</code>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_tooling_table.py"><code>tool/check_tooling_table.py</code></a>
+                    </td>
+                    <td>Pins this table, and the prose sections below it, to the contents of <code>tool/</code></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_doc_tocs.py"><code>tool/check_doc_tocs.py</code></a>
+                    </td>
+                    <td>
+                      Audits a document's own navigation: its 
+                      <code>## Table of Contents</code>
+                       and every anchor it links to itself
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_doc_inventories.py"><code>tool/check_doc_inventories.py</code></a>
+                    </td>
+                    <td>Audits the file inventories in the completion documents against the tree</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_doc_dependencies.py"><code>tool/check_doc_dependencies.py</code></a>
+                    </td>
+                    <td>
+                      Audits each package document's Dependencies section against the names its 
+                      <code>pubspec.yaml</code>
+                       declares
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_module_dependencies.py"><code>tool/check_module_dependencies.py</code></a>
+                    </td>
+                    <td>
+                      Audits each 
+                      <em>module</em>
+                       document's Dependencies table against the imports its module actually has
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_dart_format.py"><code>tool/check_dart_format.py</code></a>
+                    </td>
+                    <td>Holds every Dart file in the repository to <code>dart format</code>, across all 23 packages</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_doc_error_keys.py"><code>tool/check_doc_error_keys.py</code></a>
+                    </td>
+                    <td>
+                      Audits the error vocabulary a document states — the completion documents' "Error keys" sections, and the hand-written module guides — against the keys the code raises
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_dartdoc_refs.py"><code>tool/check_dartdoc_refs.py</code></a>
+                    </td>
+                    <td>Finds dartdoc references to private names that no longer exist</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_dartdoc_build.py"><code>tool/check_dartdoc_build.py</code></a>
+                    </td>
+                    <td>Builds each gated package's API documentation and requires <code>dart doc</code> to report nothing</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_consumer_claims.py"><code>tool/check_consumer_claims.py</code></a>
+                    </td>
+                    <td>Finds dartdoc that names a consumer which does not consume</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_doc_attributions.py"><code>tool/check_doc_attributions.py</code></a>
+                    </td>
+                    <td>Finds prose that names a source file and then names a type that file has not got</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_member_attributions.py"><code>tool/check_member_attributions.py</code></a>
+                    </td>
+                    <td>
+                      Finds documentation — the package docs and the completion corpus — that names a member its type does not declare, written 
+                      <code>Type.member</code>
+                       or listed in a member table
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_doc_samples.py"><code>tool/check_doc_samples.py</code></a>
+                    </td>
+                    <td>
+                      Finds Dart samples in the docs that call a constructor the wrong way, quote its signature with the wrong parameter kind, or 
+                      <code>const</code>
+                       one that is not
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_downstream_consumers.py"><code>tool/check_downstream_consumers.py</code></a>
+                    </td>
+                    <td>
+                      Holds 
+                      <code>tom_uam</code>
+                      , the application-sized consumer kept on tom_core's current level, to the framework as it stands: each package is resolved with 
+                      <code>pub get</code>
+                      , analyzed, and has its generated 
+                      <code>*.reflection.dart</code>
+                       analyzed by name for errors, since its own options exclude them
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_doc_dart_blocks.py"><code>tool/check_doc_dart_blocks.py</code></a>
+                    </td>
+                    <td>
+                      Runs every 
+                      <code> </code>
+                      `
+                      <code>dart </code>
+                       block in a package's documents through the analyzer: it must parse, every framework name in it must resolve, and a fence marked 
+                      <code> </code>
+                      `
+                      <code>dart complete </code>
+                       must analyze clean outright
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_section_refs.py"><code>tool/check_section_refs.py</code></a>
+                    </td>
+                    <td>Finds <code>§</code> references in shipped code and prose that name no resolvable document</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_section_numbers.py"><code>tool/check_section_numbers.py</code></a>
+                    </td>
+                    <td>Finds <code>§</code> references that resolve to a document but cite a section it does not have</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_comments_read_as_is.py"><code>tool/check_comments_read_as_is.py</code></a>
+                    </td>
+                    <td>Finds work-item ids and history narration in shipped text</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_shared_chrome.py"><code>tool/check_shared_chrome.py</code></a>
+                    </td>
+                    <td>Finds files copied between packages that do not name their siblings, or whose pointers disagree</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_test_inventories.py"><code>tool/check_test_inventories.py</code></a>
+                    </td>
+                    <td>
+                      Audits a document that claims to inventory a package's test files against the files the runner discovers
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_source_citations.py"><code>tool/check_source_citations.py</code></a>
+                    </td>
+                    <td>
+                      Finds Dart comments, SVG figures and navigating documentation that cite a line number instead of naming the thing
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_doc_kinds.py"><code>tool/check_doc_kinds.py</code></a>
+                    </td>
+                    <td>Finds <code>Kind</code> columns whose cell names something Dart does not declare</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_unimplemented_claims.py"><code>tool/check_unimplemented_claims.py</code></a>
+                    </td>
+                    <td>Finds documentation that calls a shipped <code>Tom*</code> type unimplemented</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_module_readme_shape.py"><code>tool/check_module_readme_shape.py</code></a>
+                    </td>
+                    <td>Holds every <code>lib/src/**/readme.md</code> to the four structural elements they all share</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_doc_overview_types.py"><code>tool/check_doc_overview_types.py</code></a>
+                    </td>
+                    <td>Holds a module document's Overview table to every public type its module's barrel exports</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_open_ends.py"><code>tool/check_open_ends.py</code></a>
+                    </td>
+                    <td>Finds completion documents with no <code>### What is still open</code> section, or an empty one</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_open_ends_ledger.py"><code>tool/check_open_ends_ledger.py</code></a>
+                    </td>
+                    <td>Holds each open-ends section to the quest todos still open on its unit</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_readme_status.py"><code>tool/check_readme_status.py</code></a>
+                    </td>
+                    <td>
+                      Holds a package README's 
+                      <code>## Status</code>
+                       version to its 
+                      <code>pubspec.yaml</code>
+                      , and forbids a test count
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_doc_class_inventories.py"><code>tool/check_doc_class_inventories.py</code></a>
+                    </td>
+                    <td>Holds a document's marked class inventory to the directory it inventories, in both directions</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_field_grade_matrix.py"><code>tool/check_field_grade_matrix.py</code></a>
+                    </td>
+                    <td>
+                      Pins every documented copy of the advanced field-grade matrix — tables and prose remainders — to the map in code
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_resource_key_namespace.py"><code>tool/check_resource_key_namespace.py</code></a>
+                    </td>
+                    <td>Finds resource keys written with the field-grade scope glued to the front of the type</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_figure_wellformed.py"><code>tool/check_figure_wellformed.py</code></a>
+                    </td>
+                    <td>Finds SVG figures that are not well-formed XML, and so render as nothing</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_flutter_platform_step.py"><code>tool/check_flutter_platform_step.py</code></a>
+                    </td>
+                    <td>
+                      Holds every runnable Flutter sample's README to naming the platform step its first 
+                      <code>flutter run</code>
+                       needs
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_suite_figures.py"><code>tool/check_suite_figures.py</code></a>
+                    </td>
+                    <td>
+                      Holds the sample suite's figures, their embed sites and the 
+                      <code>assets/README.md</code>
+                       inventory to one another and to the figure convention
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_barrel_exports.py"><code>tool/check_barrel_exports.py</code></a>
+                    </td>
+                    <td>Finds a Dart file beside a barrel that no barrel reaches and no marker declares</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_kernel_bridge.py"><code>tool/check_kernel_bridge.py</code></a>
+                    </td>
+                    <td>Audits the kernel bridge registrations against the types the bridge declares</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_demo_counts.py"><code>tool/check_demo_counts.py</code></a>
+                    </td>
+                    <td>Pins the demo screen/tile counts printed in <code>tom_flutter_ui_test/README.md</code> to the source</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_pubspec_boilerplate.py"><code>tool/check_pubspec_boilerplate.py</code></a>
+                    </td>
+                    <td>
+                      Finds pubspecs still carrying a 
+                      <code>flutter create</code>
+                       / 
+                      <code>dart create</code>
+                       placeholder description or its tutorial commentary
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_doc_source_paths.py"><code>tool/check_doc_source_paths.py</code></a>
+                    </td>
+                    <td>Checks that every <code>**Source:**</code> pointer in documentation names a path that exists</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_doc_links.py"><code>tool/check_doc_links.py</code></a>
+                    </td>
+                    <td>
+                      Finds markdown links that open nothing, references that point at nothing, and links from a package's documentation into 
+                      <code>_copilot_guidelines/</code>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_doc_artifacts.py"><code>tool/check_doc_artifacts.py</code></a>
+                    </td>
+                    <td>Finds machine-generated artifacts tracked under a package's <code>doc/</code></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_doc_ai_citations.py"><code>tool/check_doc_ai_citations.py</code></a>
+                    </td>
+                    <td>
+                      Finds shipped files citing a document under 
+                      <code>_ai/</code>
+                       — by path or by bare name — which no reader of the package can open
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/check_reflection_artifacts.py"><code>tool/check_reflection_artifacts.py</code></a>
+                    </td>
+                    <td>
+                      Analyzes the checked-in reflection artifacts, which the analysis options exclude, and fails on a name that no longer resolves
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_core/blob/main/tool/report_crosslib_refs.py"><code>tool/report_crosslib_refs.py</code></a>
+                    </td>
+                    <td>
+                      <strong>Reports</strong>
+                       (never gates) dartdoc links naming a repo type the writing library cannot see
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <pre><code>python3 tool/check_tooling_table.py    # the whole repository</code></pre>
+              <p>
+                The table above and the prose below it are an inventory of <code>tool/</code>, and both are kept by hand — adding a script touches neither. So a gate can land, be picked up by 
+                <code>check_gates.py</code>'s glob, run on every build, and be documented nowhere; the reader who came to the README to learn what the repository checks gets a confident, incomplete answer, and the undocumented gate is the first candidate for deletion because nothing points at it.
+              </p>
+              <p>
+                This has already re-opened once, which is why it is a gate rather than a promise. <code>check_kernel_bridge.py</code>
+                 and <code>check_section_numbers.py</code> each ran undocumented long enough to be noticed and written up — and by the time they were, 
+                <code>check_unimplemented_claims.py</code> had silently taken their place. Clearing the backlog was never the difficulty. Nobody who reviewed the commit that added a script made a mistake either: the omission is in a file that commit did not touch, so there is no diff in which to see it.
+              </p>
+              <p>
+                Three counts are kept apart: a script with no row, a row naming no script (the reverse drift, left behind by a rename), and a 
+                <code>check_*.py</code> with no invocation block. <code>gate_report.py</code>, <code>gate_cache.py</code>
+                 and <code>dart_sdk.py</code> legitimately have no block — they are helpers a gate or the runner imports rather than gates to run, and their rows say so. Accuracy is not checked, only presence: whether a summary is 
+                <em>true</em> needs judgement, whether a row exists does not. That is the same line <code>check_doc_inventories.py</code>
+                 and <code>check_test_inventories.py</code> draw.
+              </p>
+              <pre><code>python3 tool/check_doc_tocs.py                # the whole repository
+python3 tool/check_doc_tocs.py tom_core_kernel   # one subtree</code></pre>
+              <p>
+                It reports four faults and exits non-zero if it finds any: sections the contents omit, entries whose link resolves to no heading, entries listed in an order the document does not follow, and links 
+                <em>in the body</em> pointing at an anchor of their own document that no heading provides. The third is the one a reader cannot easily catch, and a presence check passes it silently.
+              </p>
+              <p>
+                The body-link check is why the gate scans every document rather than only the 117 that carry contents. 
+                <code>check_doc_links</code> accepts any <code>#fragment</code> and names this gate as the one that decides whether the heading exists, so an anchor nobody indexed was an anchor neither gate looked at: a 
+                <code>[§10](#…)</code> in running prose whose heading had since been reworded resolved to nothing, and so did two appendix cross-references that had picked up a doubled dash. 
+                <code>STALE</code> is this same fault confined to the contents block.
+              </p>
+              <p>
+                Documents drift from their contents whenever a section is added without the list being touched, so the check is worth running after editing any document that has one.
+              </p>
+              <pre><code>python3 tool/check_doc_inventories.py         # every completion document
+python3 tool/check_doc_inventories.py --fix   # re-measure and write back</code></pre>
+              <p>
+                The completion documents in the <code>_ai</code> layer open by naming a module's directory and how much is in it, then tabulate it a file at a time. Those numbers are measurements taken by hand, so every commit to a module can falsify them, and nothing about editing a module brings its completion document into view. The check re-measures: it reports line counts that have moved, tabulated files that no longer exist, files on disk the table omits, and opening claims that disagree with the directory. 
+                <code>--fix</code> writes the measurements back; the two faults it leaves alone are adding and retiring rows, because each needs a sentence saying what the file carries.
+              </p>
+              <pre><code>python3 tool/check_doc_dependencies.py                  # every package document
+python3 tool/check_doc_dependencies.py tom_core_samples # one prefix</code></pre>
+              <p>
+                A package document's Dependencies section tells a reader what the package is wired to, and it is written once and never revisited. Measured against the pubspecs, eleven of these sections existed and seven were incomplete, with 28 declared entries missing between them and four further package documents carrying no section at all. The omissions all fell the same way: every one was a 
+                <em>build-time</em> entry (<code>build</code>, <code>build_runner</code>, <code>tom_reflection_generator</code>, 
+                <code>lints</code>, <code>test</code>, <code>flutter_test</code>, <code>flutter_lints</code>) and the runtime half was in every case complete. That is the worst half to drop, because it is exactly what a reader needs in order to reproduce a generated file — a section listing what a package links and omitting what built it reads as finished and answers the wrong question.
+              </p>
+              <p>
+                The check requires each declared name to appear as a whole inline code span, so <code>build.yaml</code>
+                 is not evidence for <code>build</code> and <code>tom_reflection</code> is not evidence for <code>tom_reflection_generator</code>. It is one-directional on purpose: a name in the section that the pubspec does not declare is not a fault, because these sections earn much of their value from naming what is 
+                <em>absent</em> — no Flutter, no <code>tom_core_server</code>, <code>tom_reflection</code> arriving transitively through the kernel. A document is audited when its opening inventory resolves to a directory with a 
+                <code>pubspec.yaml</code>, the same rule <code>check_doc_inventories.py</code> uses, so module documents are skipped rather than faulted.
+              </p>
+              <pre><code>python3 tool/check_module_dependencies.py                # every module document
+python3 tool/check_module_dependencies.py tom_core_kernel # one package
+python3 tool/check_module_dependencies.py --self-test     # perturb and require detection</code></pre>
+              <p>
+                Module documents get the same audit one level down, against imports rather than against a pubspec. A dependency table is the one part of a prose document that is wholly derivable from the source, and the part that goes stale most quietly: an import added to a file changes nothing a reader can see, so the table keeps listing what the module used to need and the omission looks exactly like a dependency that was never there. It is checked in both directions, and the 
+                <code>Imported by</code> column per dependency — a table can name the right four dependencies and still attribute them to the wrong files.
+              </p>
+              <p>
+                That is only possible because there is one shape to parse. These 57 sections came in four table layouts plus 51 written as prose, which is why exactly one of them had ever been checked: a checker tolerant of five formats can verify only what each format happens to state, and 
+                <code>| Dependency | Used for |</code> names no importing file at all. The <code>For</code> column is prose and is held only to being non-empty; requiring every name in it to resolve was tried and rejected, because those cells routinely name a type the dependency does not declare, which is the sentence worth writing.
+              </p>
+              <pre><code>python3 tool/check_dart_format.py           # every package
+python3 tool/check_dart_format.py --fix     # format them instead
+python3 tool/check_dart_format.py --self-test</code></pre>
+              <p>
+                Formatting drift is invisible to the check everybody runs: <code>dart analyze</code> says nothing about line wrapping, so a file can be analyzer-clean, test-green, reviewed and merged while being unformatted. The cost is not the whitespace — it is that every later change drags an arbitrary slice of the pending reformat into its diff, so a 173-line change arrives as a 6,000-line one and stops being reviewable. This repository has paid that bill four times, and on the day this gate landed a fifth package had four drifted files that nothing could see.
+              </p>
+              <p>
+                The scope is every <code>.dart</code> file under <code>tom_ai/core</code>, found by walking it rather than from a list of directories to keep up to date. Left out: dot-directories, 
+                <code>tool/ztmp</code> (the scratch tree <code>check_doc_dart_blocks.py</code> writes documentation snippets into — their wrapping is not a package's defect), and generated output. 
+                <code>tom_core_kernel</code> and <code>tom_core_server</code> keep their own in-suite <code>formatting_test.dart</code>, which is where a developer working in those packages gets the signal; this covers the other 21, which had nothing.
+              </p>
+              <pre><code>python3 tool/check_doc_error_keys.py                 # every section and guide
+python3 tool/check_doc_error_keys.py tom_core_server # one project's documents
+python3 tool/check_doc_error_keys.py --list          # print each census</code></pre>
+              <p>
+                A module's error keys are its public vocabulary of failure, and the section is written as a reference a client author branches on. So a key that is raised and not listed is a branch nobody knows to write, and a key that is listed and not raised is a branch that can never be taken. Both are silent — neither the compiler nor any test notices, because the section lives in another repository from the code it describes. The check reports them as 
+                <code>ABSENT</code> and <code>UNKNOWN</code>.
+              </p>
+              <p>
+                Deciding what counts as an error key cannot be done from the shape of a string literal, because plenty of dotted lowercase literals are configuration keys, claim names or table names. So it works in two passes: the first argument of every 
+                <code>SomethingException(</code> establishes a key, those keys establish their <em>families</em>, and any other dotted literal of an established family counts too. The second pass is what catches the keys that reach a client without being thrown — handed to a result object, assigned to an 
+                <code>error</code> field, returned by a local <code>_error</code> helper. Deriving the families from the raises rather than listing them keeps the rule general while still excluding 
+                <code>oauth.providers</code>, a configuration key whose family no exception establishes.
+              </p>
+              <p>
+                This table has proved as prone to decay as the inventories: one hand census found six glosses describing the wrong condition, and a later one found thirteen keys missing outright — including an entire family, every failure an external login can report. A hand census also invents keys, which is why 
+                <code>UNKNOWN</code> is worth reporting at all.
+              </p>
+              <p>
+                <strong>Three genres, two assertions.</strong> A completion document's <code>Error keys</code> section promises to be the whole vocabulary in one place, so both faults are reported against it. A sample's package document and a package's hand-written 
+                <strong>module guide</strong> (<code>tom_core_*/doc/</code>) are read whole instead, and only <code>ABSENT</code>
+                 is.
+              </p>
+              <p>
+                The weaker assertion is not a shortcut in either case. A guide distributes its keys by topic on purpose — 
+                <code>authentication.md</code> houses seventeen <code>login.error.2fa.*</code> in an <code>### Outcomes</code>
+                 table and the rest across two <code>Failure keys</code> tables — so reading only the first matching section would report the other twenty-odd as missing. And prose about an API is full of dotted tokens that are not keys: 
+                <code>preferences.getOr</code> is a method reference, and no shape tells it from a key of the <code>preferences</code>
+                 family. Over the whole corpus <code>UNKNOWN</code> produced six findings on the guides and four were exactly that.
+              </p>
+              <p>
+                Adding the guides is what the 330 in this gate's baseline are. The gate had audited only sections headed exactly 
+                <code>Error keys</code>, in one repository; the guides spell theirs <code>Failure keys</code> and live in this one, so they were reported clean by never being opened — which is how six keys went missing from 
+                <code>authentication.md</code> while the run before it read <em>0 defective across 2 sections</em>. 33 guides carry a vocabulary, 24 are short of it, and four documents hold most of the debt. It is frozen rather than repaired for the reason the ratchet exists: writing 330 reference entries is separate work, and until it is done every 
+                <em>new</em> unnamed key would land unnoticed among them.
+              </p>
+              <p>
+                A guide is matched to its module by position — <code>PROSE_PACKAGES</code>, the same map <code>check_module_dependencies.py</code>
+                 walks — because unlike a completion document a guide does not open with its source path. Both genres are required to resolve, and separately: one is found by a glob and the other by that map, so either can stop resolving while the other still does, and a single combined count would hide it. Breaking the map makes the run exit 2, not report clean.
+              </p>
+              <pre><code>python3 tool/check_dartdoc_refs.py                 # the whole repository
+python3 tool/check_dartdoc_refs.py tom_core_server # one subtree</code></pre>
+              <p>
+                A <code>[name]</code> in a <code>///</code> comment renders as a link when it resolves and as plain text when it does not, so renaming a member turns every reference to it into prose without anything failing. The obvious detector, the 
+                <code>comment_references</code> lint, is the wrong tool here: it flags hundreds of <em>correct</em> references to real classes in sibling files (353 of 5556, measured — see 
+                <code>report_crosslib_refs.py</code> below), and satisfying it would mean adding imports that exist only for prose, several of them cycles. This check takes the part of the problem that has no such ambiguity — a private name can only ever resolve inside its own library, so whether it exists is answerable from that library alone. That is also exactly the shape a rename leaves behind.
+              </p>
+              <pre><code>python3 tool/check_dartdoc_build.py                  # the gated packages
+python3 tool/check_dartdoc_build.py tom_core_server  # one package, ad hoc</code></pre>
+              <p>
+                The other half of the same question, and the only thing in the toolchain that answers it: <code>dart doc</code>
+                 itself. The gate above asks whether a referenced name <em>exists</em>; this one builds the documentation and requires the build to say nothing at all.
+              </p>
+              <p>
+                The two are complements rather than rivals, and the difference is the population. <code>comment_references</code>
+                 judges every reference in the tree, which is why it cannot be turned on here. <code>dart doc</code> judges only what is reachable from the package barrel — the surface that ships, where a reference either resolves for the reader or does not and there is no import graph to trade away. Eleven references in 
+                <code>tom_core_kernel</code>, against the 353 the lint would have raised.
+              </p>
+              <p>
+                Left alone the class does not stay still: eight unresolved references were recorded in this package on 2026-08-19, and three weeks later the same command reported eleven — two of the original eight repaired in passing, five new ones arrived, across four unrelated modules. Each is one bracketed word inside a comment that reads perfectly, which is why review does not catch them and a build does.
+              </p>
+              <p>
+                Every warning counts, not only unresolved references: a documentation build that is allowed to say one thing is a build nobody reads. The rendered HTML is thrown away — 18 MB for 
+                <code>tom_core_kernel</code> alone, and what the gate wants is the log, which names every fault by file and line. The log is kept under 
+                <code>tool/ztmp/dartdoc/</code>. Packages are gated only once they are silent, the same rule <code>check_doc_dart_blocks.py</code>
+                 states.
+              </p>
+              <pre><code>python3 tool/check_consumer_claims.py                 # the whole repository
+python3 tool/check_consumer_claims.py tom_flutter_ui  # one subtree</code></pre>
+              <p>
+                "Used by <code>[TomFoo]</code>" is the most load-bearing sentence an opening paragraph can carry, because it is the one a reader uses to decide what the thing is 
+                <em>for</em> — and nothing about deleting a class visits the prose in the files that recommended it, so the sentence survives fluently and wrong. 
+                <code>TomEmptyState</code> opened with "Used by <code>TomListForm</code> when its bound list is empty" and 
+                <code>TomListForm</code> is a pure model with no Flutter import and no <code>build</code>; the unsaved-changes guard pointed at 
+                <code>TomMasterDetailScaffold</code>, deleted on purpose and documented as deleted two files away. This is not the previous check's question: 
+                <code>[TomListForm]</code> <em>resolves</em> perfectly. Link checking and fact checking are different questions, and only the first was being asked.
+              </p>
+              <p>
+                A claim counts as backed when the named consumer's own code — its doc comments excluded, since a mention in prose is not a use — references anything the claiming library declares. A 
+                <code>Tom</code>-prefixed name declared nowhere in the repository is reported separately as deleted, which is why the index is always built repo-wide even when one subtree is checked: 
+                <code>[TomForm]</code> is not missing just because <code>tom_flutter_ui</code> does not declare it.
+              </p>
+              <pre><code>python3 tool/check_doc_attributions.py                 # the whole repository
+python3 tool/check_doc_attributions.py tom_flutter_ui  # one subtree</code></pre>
+              <p>
+                The previous two checks ask whether a name <em>resolves</em>. This one asks whether it resolves <strong>where the prose says it does</strong>
+                 — a different question, and the one two READMEs got wrong. <code>advanced_authadmin_client</code> called 
+                <code>lib/screens/grants_screen.dart</code> a <code>DataTable</code>; the screen builds a <code>TomDataTable</code>. Its neighbour said 
+                <code>lib/screens/board_screen.dart</code> re-runs when the <code>DropdownButtonFormField</code> changes; that screen has a 
+                <code>TomDropdownButton</code>. Both wrong names are real Flutter classes, in scope in every package here, so resolution finds nothing to object to. Misattribution is a two-place relation, and nothing about a name on its own says which file it was claimed for.
+              </p>
+              <p>
+                The unit of judgement is therefore neither the document nor the name but the <strong>claim</strong>: one cited 
+                <code>.dart</code> path, and the span of prose still speaking about it — the citation's own sentence, plus the next one only when it opens anaphorically (<code>It</code>, 
+                <code>This</code>, <code>The file</code>). That last rule is what a character-count window cannot express, and it is load-bearing: without it the same corpus yields six false positives, every one a sentence that had moved on to a new subject. Names under a negation are skipped, because "carries no 
+                <code>TomForm</code> of its own" is prose whose whole point is that the file does not contain it; a claim is judged against everything it cites rather than the first path only; and containment follows 
+                <code>export</code> and <code>part</code> transitively, since a barrel declares nothing itself. Changelogs and 
+                <code>_copilot_guidelines/</code> are out of scope — one describes a past tree and the other an intended one, and neither can be repaired.
+              </p>
+              <p>
+                Measured before being switched on: 441 claims, 105 type names judged, one true fault — <code>tom_flutter_ui_test</code>
+                 calling <code>lib/locale_settings.dart</code> an "<code>AppBar</code> language selector" where the file declares 
+                <code>LanguageSelectorButton</code>. The naive rule this replaces — is the name absent from the package's own 
+                <code>lib/</code>? — scored two true faults in 24 candidates across the sample READMEs, where four of the rest were not types at all and eighteen were deliberate contrast mentions that have to stay. A rule that never cries wolf is one people leave switched on.
+              </p>
+              <pre><code>python3 tool/check_doc_samples.py                  # the whole repository
+python3 tool/check_doc_samples.py tom_core_server  # one subtree</code></pre>
+              <p>
+                It reports the two halves of one mistake: a constructor taking named parameters only, called positionally, and a constructor whose first parameter is a required positional, called with a named argument first. Either way the sample does not compile, and nothing about editing a signature brings the samples into view.
+              </p>
+              <p>
+                A third fault is about a keyword rather than a bracket: a const instance — <code>const Foo(...)</code>
+                 or <code>const x = Foo(...)</code> — of a class with no const constructor. This one rots in place. A sample written while the constructor was const stays on the page after someone drops the modifier, and the build stays quiet. That is not hypothetical: 
+                <code>TomEmptyState</code> gave up its <code>const</code> so a missing title would fail at the call site rather than becoming an error card inside some enclosing 
+                <code>TomErrorBoundary</code>, and <code>custom/readme.md</code> went on showing a const one until this check was written.
+              </p>
+              <p>
+                A fourth reads a line as a <em>claim</em> rather than a call: a document quoting a constructor with the wrong parameter kind, 
+                <code>SelectableItem(T value, String label)</code> where the real declaration is named-only. Of the two this is the worse defect, because a reader cannot detect it from the page — a miscalled sample fails when it is pasted, a misquoted signature is simply believed. Only the kind is compared: a quoted list is routinely elided or cut down to the parameters under discussion, and none of that is wrong, but 
+                <code>{</code> against a positional declaration is wrong however much of the list is shown.
+              </p>
+              <p>
+                This check reads text and never invokes a compiler, which is what lets it run over all 3758 fences in both git roots rather than the packages a heavier gate has been triaged for. It is a narrow slice of "does the sample compile", but it is the slice that catches the copy-paste failure: a reader pastes the shortest snippet in the document, and the shortest snippet is the one nobody re-checked after the signature grew a named parameter. Running the fences through the analyzer is the sibling gate below, and the two answer different questions — that one cannot see a call whose 
+                <em>arguments</em> are the wrong shape for a constructor that does exist.
+              </p>
+              <p>
+                Names resolve within the document's own package only. Without an import graph there is no telling a real cross-package reference from a collision, and collisions dominate — the 
+                <code>User</code> a document sketches inside its own fence is not some other package's <code>User</code>.
+              </p>
+              <p>
+                <strong>The quest's completion documents are in scope too</strong>, though they live outside this repository and inside no package. They describe the same constructors the package documents do, in the same fences, for the same reader; while a document's package was read from its 
+                <em>path</em> they were not merely unchecked but unreachable. A document no path places is placed by its 
+                <strong>name</strong> — the corpus is named for what it documents, so <code>tom_core_server_&lt;module&gt;_new.md</code>
+                 resolves against <code>tom_core_server</code>, by longest package prefix so that a <code>tom_flutter_ui_test_&lt;unit&gt;.md</code>
+                 stays with <code>tom_flutter_ui_test</code>. That makes a naming convention load-bearing, so the run prints how many documents it could not place and names them, every time including a clean run: a rename that drops a document out of coverage appears in that list rather than as silence.
+              </p>
+              <p>
+                A document about <strong>several</strong> packages — the <code>tom_core_samples/README_advanced_*</code>
+                 narratives, the repository map, the corpus contract — names them in a marker under its title, <code>&lt;!-- doc-samples: packages tom_core_server, tom_core_samples/advanced_app_server --&gt;</code>, and its names resolve against the union of those packages. A name two of them declare differently is skipped, so the union costs coverage on a collision rather than inventing a fault, and a marker entry that is not a package is itself a fault. With every such document marked, the unplaced list reads 0.
+              </p>
+              <pre><code>python3 tool/check_doc_dart_blocks.py                  # the gated packages
+python3 tool/check_doc_dart_blocks.py tom_core_server  # one package, ad hoc
+python3 tool/check_doc_dart_blocks.py --self-test      # check the checker</code></pre>
+              <p>
+                The sibling that does invoke the compiler. Every <code> </code>`<code>dart </code> block in a package's documents is written into a scratch package with a path dependency on that package and handed to 
+                <code>dart analyze</code>, under two rules. Three trees are walked rather than listed: <code>doc/</code>, the package 
+                <code>README.md</code>, and the per-module <code>readme.md</code> files under <code>lib/</code> — the documentation closest to the code, and the one a developer reads while already in the source.
+              </p>
+              <p>
+                <strong>It must parse.</strong> A block is wrapped in each context a sample can occupy — at top level, inside an async function, as class members, as a single expression, or a declaration followed by statements using it — and one success is enough. Trying every context beats classifying first: classification is the harder problem, and a wrong answer reports a fault that is really a mis-wrap.
+              </p>
+              <p>
+                <strong>Every framework name in it must resolve.</strong> A sample is free to invent <code>Person</code>, 
+                <code>OrderService</code>, <code>settings</code> — that is its own illustrative fiction, and resolving it would mean writing the fiction out as stubs, which is a great deal of invention 
+                <em>and self-fulfilling</em>, since a stub written to match a sample can never contradict it. Auto-stubbing is worse: it would define away the exact failure the gate exists to find, because a mistyped 
+                <code>TomBeen</code> would be stubbed into existence and pass. A name beginning <code>Tom</code>/<code>tom</code>
+                 is not fiction — that prefix is the framework's, so a sample using one is <em>claiming</em> the framework has it.
+              </p>
+              <p>
+                <strong>A fence that says it is whole must analyze clean.</strong> The second rule's concession is also its blind spot: a snippet using an undeclared 
+                <code>preference</code> and reading back a <code>stored</code> it never named passed both rules, because neither name begins 
+                <code>Tom</code> and that fiction is what the rule allows. A fence can opt in by naming itself in its own info string — 
+                <code> </code>`<code>dart complete </code> — and is then judged by <em>every</em> diagnostic. Opt-in and not opt-out, because most fences here are deliberately fragments; a snippet that wants checking is written whole rather than given a preamble the reader cannot see.
+              </p>
+              <p>
+                The marker is a claim the gate holds the page to. Of 29 fences carrying both an import and a <code>main</code>
+                 — and so <em>looking</em> whole — 22 were: three import a file <code>build_runner</code> generates and four stand in an application they invent, and those stay unmarked. One was neither, and is the reason the rule exists: 
+                <code>logging.md</code>'s multi-isolate sample passed <code>args</code> to <code>startIsolatedLogging</code>
+                 from a <code>main()</code> that declared none, so a reader copying it got an undefined name.
+              </p>
+              <p>
+                The documents' elision conventions are honoured rather than edited away: <code>{ ... }</code> for a body and 
+                <code>// ...</code> for elided statements are how a sample says "the rest is not the point". Three positions for 
+                <code>{ ... }</code> have to be told apart, because Dart accepts different things in each — a type body becomes empty, a collection literal becomes empty, and a function body throws, since a non-void function that completes normally is an error.
+              </p>
+              <p>
+                This is the defect class that is invisible to review by construction. Four non-compiling samples were found in 
+                <code>beanlocator.md</code>; two were spotted by reading, and two — an elided <code>[...]</code> in argument position, and a class declared twice in one block — were not, having already survived a careful pass. A failing block is left behind as the source the analyzer actually saw — under 
+                <code>tool/ztmp/doc_dart_blocks/&lt;package&gt;/lib/samples/</code> — which reads far more easily than a line number; a clean run leaves nothing. The scratch directory is per package, because the pubspec inside it names exactly one path dependency.
+              </p>
+              <p>
+                The generated API summaries are excluded — <code>doc/api_reference/</code> in some packages, <code>doc/api/</code>
+                 in others, one category under two names. Those fences quote <em>signatures</em>, and a signature is a declaration rather than a use: making them parse would take a mechanical 
+                <code>;</code> per block and buy nothing, because a declaration never consults the real API and so the second rule could never fire. A green light there would be coverage in appearance only.
+              </p>
+              <p>
+                <code>tom_core_kernel</code>, <code>tom_core_agentic</code>, <code>tom_core_codespecs</code> and <code>tom_core_flutter</code>
+                 are triaged to zero and gated; <code>tom_core_server</code>, <code>tom_flutter_ui</code> and <code>tom_flutter_ui_test</code>
+                 still answer with faults, and adding one to <code>PACKAGES</code> before repairing it would pin that backlog in place rather than fix it — run them with the argument in the meantime. Gating 
+                <code>tom_core_flutter</code> means the scratch package resolves against the Flutter SDK, so this gate needs one on PATH.
+              </p>
+              <p>
+                A sample is analyzed with its own package's barrel imported and, when the package depends on <code>tom_core_kernel</code>, the kernel barrel too — the context the package's own code is written in. 
+                <code>tom_flutter_ui</code> re-exports only part of the kernel, so without the second import every <code>@tomReflector</code>
+                 in its pages read as missing. <code>--self-test</code> holds this against real probes in that package.
+              </p>
+              <pre><code>python3 tool/check_downstream_consumers.py   # every package under tom_uam/</code></pre>
+              <p>
+                <code>tom_uam</code> is kept on the current level of tom_core on purpose: it is the one application-sized consumer of the whole framework, and so the place a change that looks local turns out not to be. No other gate looks past 
+                <code>tom_ai/core</code>, which is how <code>TomLoginException</code> gaining a required <code>reason</code>
+                 left <code>tom_uam_server</code> uncompiled for weeks, with its generated reflection stale against a removed annotation.
+              </p>
+              <p>
+                Each consumer package is resolved first — its package config is gitignored, per-machine state, and analyzing a stale one reports a damaged cache as a framework defect — then analyzed. Its generated 
+                <code>*.reflection.dart</code> files are analyzed separately and by name, counting errors only: the package's own options exclude them, so the directory run cannot see a generated file that names a member the framework no longer has. A consumer tree that is not checked out is a fault, not a skip.
+              </p>
+              <pre><code>python3 tool/check_section_refs.py                  # the whole repository
+python3 tool/check_section_refs.py tom_core_server  # one subtree
+python3 tool/check_section_refs.py --self-test      # check the checker</code></pre>
+              <p>
+                A <code>§</code> reference is fine when the sentence says what it indexes — `<code>per </code>codespecs_mapping.md
+                <code> §5.16</code><code>, </code>RFC 7636 §1<code> — and a fault when it stands bare: </code>(bug §75)<code>, </code>
+                Before §22 the unanchored regex accepted this<code>. The bare numbers index sections of the quest plans, working documents that ship with neither a package nor its tests, so a reader of the shipped artefact cannot resolve them and a reader who could would find a build log rather than a rule. A test name is the sharpest case: it is read as a specification, and 
+                </code>bug §75` specifies nothing, so a failure reports an index entry instead of the contract that broke.
+              </p>
+              <p>
+                The check covers everything that leaves the workspace: the Dart under <code>lib/</code>, <code>test/</code>, 
+                <code>example/</code>, <code>bin/</code> and <code>tool/</code>, and the prose in each package's <code>doc/</code>
+                 and <code>README.md</code>. Quest plans are not scanned, because cross-referencing its own sections is what a plan is for.
+              </p>
+              <p>
+                Shipped prose was once excluded on the same reasoning, and the exclusion cost the gate its whole markdown population — the sample packages' documentation carried references the Dart-only scan could never see. Almost all of them are correct: a 
+                <code>§N</code> that indexes a numbered heading of the <em>citing</em> document, which a reader resolves by scrolling, so the gate resolves it the same way. What the widened scope catches is the one reference that looks identical and is not — a bare 
+                <code>§23</code> in a document that has no §23, which in this tree matched a numbered heading in two different specifications. That is worse than an unresolvable reference: a reader who follows it lands somewhere plausible and wrong.
+              </p>
+              <p>
+                The question it asks is the one that matters to the reader: <em>can I see, from here, which document this indexes?</em>
+                 A document name is a markdown-quoted or bare <code>.md</code> filename, an <code>RFC &lt;n&gt;</code>, or one of the specification names used in this tree, and it counts when it sits 
+                <strong>in view</strong> of the reference — on the same line, or on a line immediately above or below within the same comment block. In view rather than immediately-to-the-left, because a wrapped sentence is one sentence and the writer did not choose where it broke; the narrower rule reported `<code>(§11.2 / §11.4 of </code>
+                tom_specs_editor_specification.md<code>)</code><code> and its kind as faults, and a gate that fails correct work is a gate that gets switched off. A bare 
+                </code>bug §75<code> still cannot be resolved from anywhere and is still a fault. A **quoted** reference is skipped, because a rule has to be able to exhibit the shape it rejects. What tells the exhibit from the citation is where the sign falls relative to an inline code span: the house style writes the *document* in code and the section beside it — 
+                </code><code> </code>codespecs_mapping.md<code> §5.16</code>` — so a real citation's sign lands outside the span, and only a text shown as text puts the whole of itself inside one. Measured before it was written: across the shipped corpus exactly three references sit inside a span, all three in a guard file, and every one of the four hundred-odd real citations sits outside.
+              </p>
+              <p>
+                That replaced skipping <code>comments_read_as_is_test.dart</code> by name. The filename exemption cost that file every 
+                <em>other</em> reference it might carry — a bare <code>§45</code> added to it would never have been reported — and covered only the one guard anybody had noticed; 
+                <code>acl_shipped_text_test.dart</code> quotes the same shapes and was never listed, passing by the accident that a document name sat in view of each.
+              </p>
+              <p>
+                The whole repository is clean and held there, prose included — every package, in one pass, which is what makes it a gate rather than a thing somebody remembers to run per package. The two 
+                <code>*_test</code> harnesses are held to the same rule as shipped code: they never leave the workspace, but a test name is read as a specification wherever it lives, and a red 
+                <code>createPlaceholderBytes (§69)</code> names nothing.
+              </p>
+              <p>
+                Zero is also the count this checker would report if it had stopped reading, and that risk is sharper here than elsewhere: five of its six rules 
+                <em>resolve</em> a reference rather than fault it, so a regex that quietly stopped matching would look like a repository that got cleaner. 
+                <code>--self-test</code> writes one reference of each shape to a scratch directory and requires the stated verdict on it — faulting probes and resolving probes both, since a suite of one kind alone would pass a checker that answered everything the same way.
+              </p>
+              <pre><code>python3 tool/check_section_numbers.py                  # the whole repository
+python3 tool/check_section_numbers.py tom_core_server  # one subtree</code></pre>
+              <p>
+                The sibling of the check above, one step further in. <code>check_section_refs.py</code> asks whether a 
+                <code>§</code> reference names a document a reader can reach; <code>check_section_numbers.py</code> takes the ones that do and asks whether the document actually has that section. Both failures read identically in the source — a plausible number beside a plausible filename — and only the second survives the first check, so it needs its own pass.
+              </p>
+              <p>
+                The two scan <strong>the same files</strong>, and that is a property to preserve rather than a coincidence. They ask consecutive questions about one reference, so a file only one of them sees is half-checked in the shape hardest to notice: a green pair of gates. Widening the first to shipped prose therefore widened this one too, which brought 41 previously invisible markdown citations under it; widening again to the markdown that ships outside 
+                <code>doc/</code> — every module <code>readme.md</code> under <code>lib/src/</code>, and the samples package's 
+                <code>README_advanced_*</code> chapters — brought 72 more documents under both, and both stayed at zero.
+              </p>
+              <p>
+                They scan <strong>exactly</strong> the same files, with no exception. There was one: <code>check_section_refs.py</code>
+                 skipped <code>comments_read_as_is_test.dart</code> by name, so the pair differed by two files. Recognising a quoted reference by its code span retired that exemption, and the populations closed.
+              </p>
+              <pre><code>python3 tool/check_comments_read_as_is.py                  # the whole repository
+python3 tool/check_comments_read_as_is.py tom_core_server  # one subtree</code></pre>
+              <p>
+                The third member of that family, and the one that does not involve a <code>§</code> at all. Shipped text is read 
+                <strong>as is</strong>, by someone holding the package and nothing else, and two constructions break that. 
+                <strong>Work-item ids</strong> — <code>tcincb154_ahzj</code>, <code>RCK13</code>, <code>RCC5</code>, 
+                <code>Todo 9</code> — name rows in quest documents that ship with neither the package nor its tests. 
+                <strong>History narration</strong> — "used to return", "before the fix it threw" — describes the sequence of states that produced the code, which is the commit log's job; the repair is almost always to turn the past indicative into a conditional, so 
+                <em>before the fix it threw</em> becomes <em>doing X instead would throw</em>, which says the same thing to the reader and stays true.
+              </p>
+              <p>
+                Traceability is not lost, it is reversed: a todo may name the file it changed, so the pointer lives in the document that can hold it. Todo → code, never code → todo.
+              </p>
+              <p>
+                Three things are deliberately not faults. A testkit id in the leading <code>ID: description</code> position of a test or group name is the join key of 
+                <code>testlog/baseline_*.csv</code>, so renaming one discards that test's result history — exempt there, and only there. 
+                <code>G-API-3</code>, <code>TC-14</code> and a bare <code>C-5</code> index the framework's published guideline, testkit and concept vocabularies rather than a work item. And 
+                <code>step 4</code> in an example refers to something the reader is holding; only <code>Todo &lt;n&gt;</code>
+                 and <code>plan step &lt;n&gt;</code> point outside the artefact.
+              </p>
+              <p>
+                This is a Python gate rather than a copy of <code>tom_core_kernel/test/comments_read_as_is_test.dart</code>
+                 per package because the rule is one rule: hand-synchronised copies in two dialects — <code>tom_core_flutter</code>
+                 runs on <code>flutter_test</code>, and <code>tom_core_samples</code> is not a package at all — would drift, and Dart cannot share 
+                <code>test/</code> code across packages without publishing it.
+              </p>
+              <p>
+                That drift is not a prediction. Two copies existed and did not implement the same rule: the kernel's matched a list of known quest prefixes, while 
+                <code>advanced_ops_server</code>'s matched ids by <em>shape</em>, because the prefix list had let <code>csexd4</code>
+                 and <code>csexd6</code> open that package's authorization suite while reporting it clean. The fix was made in the copy and never travelled back — so the kernel's guard still had the blind spot, and so did this gate, by which time the same 
+                <code>cs</code> family had reached shipped <code>lib/</code> dartdoc in three further packages. Sixteen copies would not be sixteen guards, only sixteen places for the next fix to fail to leave. Coverage lives here, where there is one implementation to fix; the two in-suite guards stay as the fastest signal for the packages they guard.
+              </p>
+              <p>
+                All three now match the shape, and the reason is the shape of the two lists rather than a preference. A list of quest prefixes is 
+                <strong>open</strong>: it grows every time anyone mints one, so a guard built on it fails open and in silence — the 
+                <code>cs</code> leak is exactly that failure, and so is the plan-id half, which knew <code>RCB</code>, 
+                <code>RCC</code> and <code>RCK</code> and not <code>RCA</code>, <code>RCD</code>, <code>RCF</code>, <code>RCI</code>, 
+                <code>RCJ</code> or <code>RCL</code>, six families that were between them shipping 29 pointers past a green gate. A list of English and published technical words is 
+                <strong>closed</strong>: minting <code>zzq7</code> does not make <code>zzq</code> a word, so the guard fails loudly, on the new id, in the commit that adds it.
+              </p>
+              <p>
+                What had kept the shape rule from travelling repo-wide was a measurement taken wrong. The claim was that it matches "397 further tokens" of mostly-real vocabulary, so the exemption list would grow without bound — but that counted 
+                <em>whole lines, code included</em>, and a numeric suffix is how Dart names things. The number that decides whether a list is writable is the count of distinct 
+                <strong>stems</strong>, and it depends entirely on where prose is held to end: 177 over whole lines, 120 if every string literal counts, 
+                <strong>59</strong> over the prose the rule is actually about — comment bodies and <code>test</code>/<code>group</code>
+                 descriptions. Fifty-nine is readable, and every one of them is a word (<code>sha256</code>, <code>utf8</code>, 
+                <code>material3</code>, <code>black54</code>). That gap is also the boundary's justification: a fixture string like 
+                <code>user1</code> is data the test feeds to the code, not prose a reader reads.
+              </p>
+              <p>
+                Ids are matched in both cases. Lowercase (<code>tcincb154_ahzj</code>) and ALL-CAPS (<code>RCK13</code>, 
+                <code>CSEXF1</code>) are separate patterns with separate vocabularies, kept apart so neither list has to carry the other's words. Capitals are matched only as a whole run, never camelCase, which is what keeps that list to twenty entries: a Dart identifier with a numeric suffix is written 
+                <code>addressLine1</code>, <code>promptSha256</code>, <code>mBlue100</code>, and a work-item id never is.
+              </p>
+              <p>
+                Generated Dart is skipped. <code>*.reflection.dart</code> carries whatever its sources carried and is repaired by regenerating, never by editing; both in-suite guards had always skipped it and this gate had not. The omission was invisible only because no generated name happened to collide with a quest prefix, and it nearly stopped being invisible — the reflection seed emits 
+                <code>prefix167</code>-style names, and one file alone carries 46,929 of them, so the first collision would have buried the report rather than sharpened it.
+              </p>
+              <pre><code>python3 tool/check_shared_chrome.py                  # the whole repository
+python3 tool/check_shared_chrome.py tom_core_samples # one subtree</code></pre>
+              <p>
+                Some files exist several times over on purpose. Four showcase samples each carry their own <code>lib/common/showcase_section.dart</code>, because a sample a reader can run has to be self-contained — factor the chrome into a package and the interesting file becomes the one 
+                <em>outside</em> the sample. The cost is that a fix applied to one copy reaches none of the others, and nothing in the file says the others are there. The convention that answers this is a sentence in the file's header comment naming its siblings: `<code>Shared in shape with </code>
+                core_flutter_acl_sample<code> / </code>core_flutter_acl_responsive<code>.</code>`
+              </p>
+              <p>
+                It works only while it is true, and it is the kind of claim that stops being true in silence. <code>demo_box.dart</code>
+                 in <code>core_flutter_ui_showcase</code> named both its siblings and neither named it back, so a developer editing either of those two was told about one other copy out of two — an asymmetry that outlived the commit declaring the pointers "complete and symmetric" by a single day.
+              </p>
+              <p>
+                Two independent questions are asked, because one rule cannot answer both. <em>Is a copy declared?</em>
+                 — settled by content, since a file with no pointer is invisible to any check that starts from the pointers. Two files sharing a basename in different packages whose code is identical once comments and whitespace are stripped are copies, and must be declared together. Comments are stripped because copies drift in their prose long before they drift in their behaviour, and behaviour is what a fix lands in. There is no similarity threshold: a threshold drops a pair out of the gate exactly as it starts to diverge, which is this gate's own failure mode arriving quietly. 
+                <em>Do the declarations agree?</em> — settled by the pointers alone. "Shared in shape with" is an equivalence relation, so each file's declared siblings must be its whole connected component. Checking symmetry alone would pass A↔B and B↔C with A never hearing about C.
+              </p>
+              <p>
+                Neither question subsumes the other, and the repository shows both. <code>showcase_cell.dart</code> is declared across four packages but identical in only three — the form showcase's copy has drifted, so content discovery sees three and the declaration carries the fourth. 
+                <code>dto_reflection.dart</code> was identical in <code>todo_domain</code> and <code>advanced_todo_contracts</code>
+                 and declared in neither, so the declaration had nothing to say and content discovery found it; the same was true of 
+                <code>login_credentials.dart</code> across the two client samples.
+              </p>
+              <p>
+                The pointer must sit in the file's header comment — the first run of <code>///</code> lines, which dartdoc renders as the file's description and an editor shows on open. That is the one place a reader is certain to have passed before making the edit that needs to reach the siblings, so a pointer further down is reported as misplaced rather than accepted. Whether the copies 
+                <em>should</em> be copies is left alone: extracting shared chrome is a decision about what a sample is for, and this gate only insists that whatever is duplicated is duplicated in the open.
+              </p>
+              <pre><code>python3 tool/check_test_inventories.py</code></pre>
+              <p>
+                Audits a document that claims to inventory a package's test files. The claim has two halves and both rot: every file on disk should appear in the document, and every file in the document should exist on disk. The second is the one that bites — a document naming a file the runner never discovers vouches for a suite that cannot run, and is the 
+                <em>reason</em> nobody looks. <code>tom_flutter_form_test</code>'s completion document listed <code>screenshot_tests.dart</code>, plural; 
+                <code>flutter test</code> matches <code>**_test.dart</code> and found nothing, so five committed golden baselines had no comparer at all while the document said they were guarded.
+              </p>
+              <p>
+                The check requires <strong>literal filenames</strong> and so rejects a table that describes its rows with patterns. That is the point rather than a limitation: the same table once used 
+                <code>demo_*_test.dart</code> and <code>phase*_test.dart</code>, and a pattern cannot be wrong — twelve files matched no row, including every regression guard in the package, and the gap was invisible from inside the document. A row that names its files can be falsified; a row that describes a shape cannot.
+              </p>
+              <p>
+                Registration is explicit, one entry in the script's <code>INVENTORIES</code> map, because a document earns an entry by claiming to be exhaustive and most documents that mention a test file in passing do not. The inventory itself is delimited by 
+                <code>&lt;!-- test-inventory:begin --&gt;</code> / <code>&lt;!-- test-inventory:end --&gt;</code>, and only the files column of the table inside is read — so the description column stays free to name a file when it has something specific to say about it.
+              </p>
+              <pre><code>python3 tool/report_crosslib_refs.py                  # the whole repository
+python3 tool/report_crosslib_refs.py tom_flutter_ui   # one subtree</code></pre>
+              <p>
+                The odd one out: it <strong>reports and never gates</strong>, and always exits 0. Everything above fails a build when it finds something; this cannot, because what it finds is not by itself a defect. It counts the population 
+                <code>check_dartdoc_refs.py</code> declines to police — <code>[Name]</code> references naming a type this repository declares but the writing library cannot see — which is 353 of 5556 repo-wide, and 68 of 744 in 
+                <code>tom_flutter_ui</code> alone.
+              </p>
+              <p>
+                It exists so that number stays checkable instead of becoming folklore. The decision to leave public references alone rests on the population being large and untriageable, and a claim like that decays in silence — exactly what the checks above are for. Untriageable is the operative half: whether a given reference wants an import or a demotion to backticks turns on whether the two libraries 
+                <em>ought</em> to depend on each other, which is an architectural judgement and not a property of the reference. 
+                <code>custom/tom_loading_overlay.dart</code> linking <code>[SlowValidator]</code> over in <code>forms/validation</code>
+                 wanted backticks — that dependency would have been new and wrong; <code>[TomForm]</code> from <code>tom_form_child_container.dart</code>
+                 plausibly wants the link. No single rule separates them, so a gate here would spend most of its output being wrong. Re-run the report before revisiting any of this.
+              </p>
+              <pre><code>python3 tool/check_source_citations.py                 # the whole repository
+python3 tool/check_source_citations.py tom_flutter_ui  # one subtree</code></pre>
+              <p>
+                It reports Dart comments — and every line of an SVG figure or of documentation written to be read beside the code — that cite a line number rather than naming what they point at: 
+                <code>SELF</code> when no file is named, so the citation lands in its own file, and <code>CROSS</code>
+                 when one is. <code>// Per the class contract (lines 13-17)</code> was the case that prompted it. That citation was accurate the day it was written, and any insertion above it would have left it describing whatever slid into those lines — with nothing dangling, nothing failing to compile, and nothing for a reader to notice.
+              </p>
+              <p>
+                <strong>Figures are the worst host of all</strong>, which is why they are scanned end to end rather than only in their XML comment. A figure is an asset: nothing compiles it, no test opens it, and the citation a reader actually sees is the one drawn in a 
+                <code>&lt;text&gt;</code> element. <code>advanced_09_grade_data_path.svg</code> carried five such citations — three distinct ones, each written twice, because a figure states its claims in both the comment and the drawing — and all three had rotted: one pointed a whole layer away from the layer it named, one named a path that no longer existed, one had a stale end line. Nothing reported any of it.
+              </p>
+              <p>
+                <strong>Markdown is scanned where it navigates</strong>, which is a property of the document rather than a list of paths: 
+                <code>doc/</code> pages, package <code>README.md</code> files and the sample guides are written to be read beside the code, so there a 
+                <code>file.dart:12</code> is an instruction to go and look. The scope was originally drawn around <code>tom_core_samples/</code>
+                 alone — around where the fault had <em>accumulated</em> rather than where it could <em>do harm</em> — and twelve citations outside it went on rotting unwatched, nine of them in 
+                <code>doc/</code> pages shipped to consumers. One had failed in the worst available way: <code>form_authorizers.md</code>
+                 opened its section on the real <code>TomAuthorizer</code> API by citing <code>tom_authorization.dart:352</code>, a doc comment belonging to a different class eighty lines above the one it named. It resolved, it read fluently, and it was wrong. Three others named their target 
+                <em>and</em> cited a line, and one cited <code>(line 151)</code> for a declaration whose file had since been deleted — which is the argument against the tempting alternative of 
+                <em>validating</em> the numbers instead: where the annotation exists it has already made the number redundant, and where it doesn't the citation is unverifiable.
+              </p>
+              <p>
+                CHANGELOGs, <code>_copilot_guidelines/</code> and this README are out, each for a reason that can be stated rather than listed. A CHANGELOG is a dated record, so its citations describe a tree that no longer exists and repairing one would falsify the entry. 
+                <code>_copilot_guidelines/</code> is workspace tooling that ships with neither the package nor its pub.dev page — the same seam 
+                <code>check_doc_links.py</code> draws. And this README is where the suite explains its rules, which it cannot do without quoting the shapes it forbids; excluding it is what lets the gate keep its documentation instead of acquiring a per-site suppression list.
+              </p>
+              <p>
+                <strong>A citation may name any kind of file, and for a long time only Dart targets were seen.</strong>
+                 Two dimensions live in this rule and only one of them was widened: which files are <em>scanned</em>, and which files a citation is allowed to 
+                <em>name</em>. The target side stayed <code>.dart:&lt;n&gt;</code>, so <code>audit.md:496</code> in a guide was read and passed over — though nothing in the argument above mentions Dart, and a markdown target is worse if anything, since no compiler or test ever resolves it. It had already cost the sample: 
+                <code>advanced_ops_server</code> carried nine pins into <code>.md</code> pages, all nine had gone stale — some by 150+ lines, within nineteen days of being written — and this gate reported the package green throughout, until they were found and repaired by hand. The set of extensions is now read off the tree on every run rather than listed, because a hand-kept list is permanently one commit behind and goes quiet rather than loud on the day it falls behind. It does have to be constrained to 
+                <em>something</em>: an unconstrained extension reads <code>server.port: 8080</code> in a YAML example as a citation of a file called 
+                <code>server.port</code>, and <code>127.0.0.1:3307</code> as one of a file called <code>127.0.0.1</code>. Suppressing those needs a list of the things that are 
+                <em>not</em> files, which is an open set; the things that <em>are</em> files are a closed one the tree can be asked for.
+              </p>
+              <p>
+                The rule now fires <strong>zero</strong> times across 1510 Dart files, 9 figures and 177 documents, over the 46 file extensions this repository contains, and that is the argument for it rather than against. A gate earns its place by whether the fault would be caught if it came back, not by how much it currently finds; this fault is invisible by construction, and a convention met once a year is one no reviewer can be asked to hold. Because the rule is silent on the existing tree it adds no triage burden — the opposite of the two rules declined nearby, at 353 and 519 violations of judgement. Naming the target is always possible, which is what keeps the rule fair: every line range sits inside a class, a member or a headed list that has a name, and the named form survives the edit that breaks the numbered one.
+              </p>
+              <p>
+                <strong>The guides were the largest host, and are now scanned too.</strong> Markdown was originally excluded on arithmetic — 173 occurrences across 18 files would have meant 173 judgement calls on day one. Those calls have since been made for 
+                <code>tom_core_samples/</code>: every anchor was resolved by hand and replaced with the name of the declaration it pointed at. Checking them first settled whether the fault was theoretical. It was not: 
+                <em>essentially every</em> anchor had drifted, and almost all of them still resolved — to real code that was simply not the code the sentence described. An anchor for the login JWT pair landed inside two-factor submission; one for the closed-safe grade default landed on a different method; several landed on blank lines and closing braces. Only two pointed past end of file, which is the sole variant a reader can detect unaided. Making those calls is what let the boundary move from that subtree to every document that navigates.
+              </p>
+              <p>
+                A citation must show it is one — a plural range, a parenthesis, or a pointing word — so <code>a line 2 pixels wide</code>
+                 is left alone, and URLs are skipped whole, since a permalink pinned at a commit is the stable form this check is asking for.
+              </p>
+              <pre><code>python3 tool/check_doc_kinds.py                  # the whole repository
+python3 tool/check_doc_kinds.py tom_core_agentic # one subtree</code></pre>
+              <p>
+                Most module documents open with an Overview table whose second column is <code>Kind</code>, and a reader uses that column to decide what they may 
+                <em>do</em> with the symbol before reading another line. <code>abstract interface class</code> means implement me, do not extend me; 
+                <code>final class</code> means you may not subclass this at all; <code>class</code> means both are open. Those are not synonyms, and the difference is the entire reason the column exists — the neighbouring 
+                <code>Purpose</code> cell already says what the thing is <em>for</em>.
+              </p>
+              <p>
+                The column decays in one direction. Nobody writes <code>exception</code>, <code>widget</code>, <code>entity</code>
+                 or <code>annotation</code> by misreading the source; they write it because it is the more <em>informative</em>
+                 word and Dart has no keyword for it. So the cell reads fluently, describes the symbol's role correctly, and answers the question the column is actually asked — may I subclass this? — with a word that cannot answer it. 
+                <code>BearerAuthFailure</code> was listed as <code>exception</code>: true as a description, and it happens to be a plain 
+                <code>class</code>, so a reader wanting to extend it was left to guess.
+              </p>
+              <p>
+                This is a checker rather than a careful read because the fault was found three times by hand, one document at a time, and each fix took two minutes. Three identical findings in three consecutive scans is not bad luck — the documents were written by one pass, and a pass writes its habits into everything it touches. It is invisible to the neighbouring gates by construction: 
+                <code>check_doc_inventories</code> audits <em>measurements</em>, and a kind is not a measurement; <code>check_dartdoc_refs</code>
+                 and <code>check_consumer_claims</code> both ask whether a name resolves, and every symbol in these tables resolves perfectly while the sentence about it is still wrong.
+              </p>
+              <p>
+                Only tables whose header has <code>Kind</code> as its second column are read, and that restriction is what keeps it honest — module documents carry other two-column tables of the same shape, and reading those as kind claims produced four false positives per real one when first measured. A symbol the repo does not declare is skipped rather than reported, since these documents name Flutter and Dart core types freely.
+              </p>
+              <pre><code>python3 tool/check_unimplemented_claims.py                 # the whole repository
+python3 tool/check_unimplemented_claims.py tom_flutter_ui  # one subtree</code></pre>
+              <p>
+                A planning table is written before the work, listing what is to be built with an <code>Implemented</code>
+                 column reading <code>No</code>. The work then happens, and nothing brings the writer back to the column. In 
+                <code>tom_flutter_ui</code> such a table sat for months denying eleven widgets, nine of which ship and seven of which have their own section in 
+                <code>doc/custom.md</code> — and one row denied a widget the same document had already recorded as wrapped, three hundred lines higher up.
+              </p>
+              <p>
+                That decay is why this is mechanical rather than a review item. Most documentation faults are a sentence that was always wrong; this one was 
+                <em>right when written</em>, so nobody who reviewed it erred, and the moment it turned false left no trace in either file's diff. Building 
+                <code>TomEmptyState</code> does not touch the document that says <code>TomEmptyState</code> does not exist. There is no edit to review, so only re-checking finds it.
+              </p>
+              <p>
+                The neighbouring gates ask different questions. <code>check_dartdoc_refs</code> and <code>check_consumer_claims</code>
+                 ask whether a name <em>resolves</em> — every name in these tables resolves, and the row about it is still false. 
+                <code>check_doc_kinds</code> reads the cell beside a symbol, but only where the second column is <code>Kind</code>, and it asks what the symbol 
+                <em>is</em> rather than whether it is. The two share one <code>DECLARATION</code> index rather than a copy of it, so they cannot come to disagree about what Dart declares.
+              </p>
+              <p>
+                Three restrictions stop it inventing claims. The table needs a header naming existence (<code>Implemented</code>, 
+                <code>Ships</code>, <code>Wrapped</code>, …) — <code>Status</code> is deliberately excluded, because a "No" there is a workflow state, not a denial. The cell must open with a denial once emphasis and backticks are stripped, so an emphasised "No — superseded" still reads as one, and the qualification after the dash survives into the report. And the row's first cell must name a `
+                <code> </code>Tom*<code> </code><code> symbol in backticks: reading prose mentions as row claims was the source of its false positives. Only type declarations count, never a same-named function. 
+                </code>CHANGELOG.md` is out of scope — an entry records what was true when it was written, and editing it would falsify a record rather than repair a claim.
+              </p>
+              <pre><code>python3 tool/check_member_attributions.py                 # the whole repository
+python3 tool/check_member_attributions.py tom_flutter_ui  # one subtree
+python3 tool/check_member_attributions.py --self-test     # check the checker</code></pre>
+              <p>
+                A document that writes `<code> </code>TomCtr.doubleVal<code> </code><code> is making two claims at once, and the neighbouring gates check only the first. </code>
+                check_dartdoc_refs<code> and </code>check_doc_attributions<code> ask whether the *type* resolves — </code>
+                TomCtr<code> does, so both pass — while the assertion a reader actually acts on is that </code>doubleVal
+                <code> is a thing they can call on it. That second half went unchecked, and </code>tom_flutter_ui_test/doc/widget_resource_parameters.md` showed what accumulates in the gap: a nineteen-row table of resolver methods, seven of which existed nowhere, attributed to a type that declares no resolvers at all, and citing the wrong exception for four more. Every individual row looked vetted.
+              </p>
+              <p>
+                The interesting property of that document is that it was not invented. Each fictional name mapped one-to-one onto a real member — 
+                <code>resolveDoubleOrNull</code> onto <code>TomCtr.doubleVal</code>, <code>resolveColorOrFail</code> onto 
+                <code>TomCtr.colorOrFail</code> — and the per-method citation counts tracked the real call-site counts, one of them exactly. It was a systematic rename away from the truth rather than fiction, which is harder to see by reading and trivial to see by checking.
+              </p>
+              <p>
+                <strong>It reads two shapes, and two roots.</strong> A qualified `<code> </code>Type.member<code> </code>
+                <code> anywhere, and a **member table** — a table whose first header is </code>Member<code>, </code>Method<code>, </code>
+                Field<code>, </code>Property<code> or </code>Constructor<code> — whose bare first-column names are judged against the types its lead-in paragraph and its nearest type heading name. A row passes if *any* of those types declares the name, takes it as a constructor parameter, or its package declares it at top level: picking one type would be a guess, and a lead-in routinely names a related type the table is not about. The member tables are what a rename survives in — 
+                </code>convertToTimezone<code> became </code>convertToTzSameInstant<code>, and three method tables in the timezoned completion document kept the old name while every gate was green. The second root is that corpus — the quest's completion documents, kept beside this repository rather than in it — whose part 3 (</code>What changed
+                <code> / </code>What this adds<code>) is history by contract and is not read, except its </code>What is still open<code>. A document that opens with </code>
+                &lt;!-- record: &lt;why&gt; --&gt;<code> — a design record, an executed migration plan — is skipped the way </code>
+                CHANGELOG.md` is.
+              </p>
+              <p>
+                Four restrictions keep it from inventing faults. The reference must be backticked; the owner must be declared in this repository (a qualified reference must also start 
+                <code>Tom</code>); the member must start lowercase, so <code>Type.NestedType</code> is not read as a member; and — the load-bearing one — 
+                <strong>it abstains when the inheritance closure leaves what it can see</strong>. It can see this repository and the Dart SDK's public libraries, indexed from the 
+                <code>dart</code> on <code>PATH</code>, so a type extending <code>DateTime</code> is judged and <code>toUtc</code>
+                 resolves on <code>DateTime</code>; a class extending <code>StatelessWidget</code> still has a member list it cannot see, and reporting half a list as complete would accuse documents of naming members that genuinely exist. Without the SDK every closure through a 
+                <code>dart:</code> type abstains, and the summary line says so. Members Dart supplies without declaring them are added back: 
+                <code>Object</code>'s four, and <code>index</code> / <code>name</code> / <code>values</code> on an enum, which implements 
+                <code>Enum</code> implicitly and so offers <code>closure</code> no supertype to abstain on.
+              </p>
+              <pre><code>python3 tool/check_doc_class_inventories.py                # every document
+python3 tool/check_doc_class_inventories.py tom_flutter_ui # one subtree
+python3 tool/check_doc_class_inventories.py --self-test    # check the checker</code></pre>
+              <p>
+                An <em>inventory</em> is a region of a document that undertakes to list a family of classes completely. It is not the same thing as a document that mentions classes: a reader consults an inventory to answer "what is there?", and takes its silence as an answer. That is what makes it decay differently from ordinary prose. Prose that has fallen behind is merely incomplete, and reads as such; an inventory that has fallen behind is 
+                <strong>confidently wrong in two directions at once</strong>, and reads as authoritative in both.
+              </p>
+              <p>
+                Both directions were live in <code>tom_ui_widgets_forms.md</code>, in one 300-line appendix: 81 rows carried a 
+                <code>**(TBD)** = class needs to be created</code> marker against classes that had shipped — <code>TomFormStringInput</code>, 
+                <code>TomFormBoolSwitch</code>, <code>TomFormDatePicker</code> among them — while 42 of the names in the same appendix named nothing at all, because the catalogue was built under different names (<code>TomCupertinoFormDatePicker</code>, not 
+                <code>TomFormCupertinoDatePicker</code>) or was never built. The three concretes that shipped later — 
+                <code>TomFormFileDropzone</code>, <code>TomFormFileThumbnail</code>, <code>TomFormDateTextInput</code>
+                 — appeared nowhere.
+              </p>
+              <p>
+                The second and third findings are why clearing the markers would have been the wrong repair. It converts "wrongly says this does not exist" into "wrongly says this does", which is strictly worse: a reader can check the first claim by opening the file and finding the class, and cannot check the second by any means short of the exercise this gate performs.
+              </p>
+              <p>
+                Nothing in a table's shape says whether it is an inventory or an illustration, and guessing wrong is expensive in both directions — a missed inventory is a gate that checks nothing, and a table read as an inventory by mistake demands that a five-row example list ninety classes. So the region declares itself:
+              </p>
+              <pre><code>&lt;!-- class-inventory: tom_flutter_ui/lib/src/forms/fields extends TomField --&gt;
+... tables ...
+&lt;!-- /class-inventory --&gt;</code></pre>
+              <p>
+                The declaration is also the only durable place to record <em>what the region is for</em>. A section heading says "Form Class Hierarchy Inventory"; the marker says which directory that sentence is about, which is the fact that makes the sentence checkable.
+              </p>
+              <p>
+                <code>MISSING</code> reports a class the directory declares and the region never names — the <code>TomFormFileDropzone</code>
+                 case. Only classes whose <code>extends</code> chain reaches the base named in the marker are demanded, so the private widget and 
+                <code>State</code> classes that make up most of a Flutter field file are not inventory entries and are not asked for. 
+                <code>PHANTOM</code> reports a <code>Tom*</code> name the region lists that no <code>lib/</code> in the repository declares — the 
+                <code>TomFormEmailStringInput</code> case, a planned name the build reached by another route. The phantom index spans every package rather than the marked directory, because an inventory legitimately mentions its neighbours (<code>TomList</code>, 
+                <code>TomSelectableSource</code>, <code>TomAuthState</code>) and a gate that called those phantoms would be unusable. There is deliberately no third fault for a name that exists elsewhere in the repository but not under the marked directory: 
+                <code>TomListForm</code> belongs to the list module and is named in the forms inventory for contrast, and demanding that every mentioned class live in the inventoried folder would forbid the sentence that tells a reader where the boundary runs.
+              </p>
+              <p>
+                A gate baselined at zero passes just as well when it has stopped reading anything, so this one refuses to run rather than report success: it exits 2 when the declaration index is empty, when no marked region is found at all, and when a marked region resolves to a directory that declares nothing of the named family. 
+                <code>--self-test</code> asks the opposite question directly — it perturbs a real inventory by one name in each direction and requires the checker to object.
+              </p>
+              <pre><code>python3 tool/check_field_grade_matrix.py                  # the whole repository
+python3 tool/check_field_grade_matrix.py tom_core_samples # one subtree</code></pre>
+              <p>
+                The advanced sample's per-field grade matrix is its worked example of the four-state authorization model, so it is quoted far more often than a normal constant: three documents reproduce the whole 7×4 table and a dozen sentences paraphrase one of its columns. 
+                <code>grant_matrix_key_consistency_test.dart</code> already pins the <em>seed SQL</em> against the map, cell for cell — but nothing pinned the 
+                <strong>documentation</strong> copies, and that is exactly where the drift landed.
+              </p>
+              <p>
+                The two questions it asks are different because the fault was asymmetric. All 84 documented cells were correct; four separate sentences beneath them were not. Each said a 
+                <code>viewer</code> sees <code>status</code> disabled "while the rest are read-only", when the viewer's 
+                <code>estimate</code> is <code>none</code> — masked, not read-only. A reader who trusted the prose expected a greyed estimate on the item screen and would find nothing there, which is why this outranks a wording slip: 
+                <code>none</code> and <code>read</code> differ in what the user <em>sees</em>, not merely in what they may change.
+              </p>
+              <p>
+                So tables are compared cell for cell, and remainder claims are checked separately. "The rest are read-only" is sound only when the named role has exactly one non-<code>read</code>
+                 cell; the advanced <code>viewer</code> has two, so the sentence is false however fluently it reads. The repaired form — "the remaining five are read-only" — is checked numerically against the column, which makes it self-checking: adding a field to the matrix breaks the count rather than silently widening the word "rest".
+              </p>
+              <p>
+                Two restrictions keep it from crying wolf. A sentence must name exactly one role, because a summary walking all four in one breath gives no mechanical way to say which column "the rest" belongs to. And the whole check is scoped to files mentioning 
+                <code>commenter</code> — a role only the advanced matrix has, which cleanly separates it from <code>core_client_sample</code>, whose own three-role matrix makes the identical sentence true.
+              </p>
+              <pre><code>python3 tool/check_resource_key_namespace.py                  # the whole repository
+python3 tool/check_resource_key_namespace.py tom_core_samples # one subtree</code></pre>
+              <p>
+                The advanced sample addresses things in two key spaces that meet at exactly one point: <code>item:&lt;id&gt;</code>
+                 names a <strong>resource</strong> and picks the principal's role, while <code>todo.item.&lt;field&gt;</code>
+                 is a <code>TomField</code> basePath and picks the grade within that role's row. Gluing the dotted scope to the front of the type merges them, and the merged form was printed in roughly fifteen places across the guides and in both representations of figure 09 — with doc 07 stating the rule those examples violate six lines above them.
+              </p>
+              <p>
+                Nothing reported any of it, and nothing would: no compiler sees a string in prose, and the merged key is invisible even when 
+                <em>executed</em> — the adapter gates any key containing <code>:</code>, so it resolves as a resource key, matches no grant, and collapses the field to 
+                <code>none</code>. Closed-safe, so it fails as silence.
+              </p>
+              <p>
+                The rule keys on the type segment rather than on "a dotted path before a colon", which would match every source citation in the tree (<code>tom_form.dart:823</code>). The four type names are read from 
+                <code>resource_keys.dart</code>, so a fifth resource type is covered by construction. Two narrowings separate the fault from a Dart 
+                <code>switch</code> label (<code>case AppResourceTypes.item:</code>, ten of them here): the scope segment must start lowercase, and the colon must be followed by something on the same line.
+              </p>
+              <pre><code>python3 tool/check_figure_wellformed.py                  # the whole repository
+python3 tool/check_figure_wellformed.py tom_core_samples # one subtree</code></pre>
+              <p>
+                SVG is an XML dialect, so a figure that is not well-formed does not render partially — it does not render at all. 
+                <code>advanced_09_grade_data_path.svg</code> spent four commits in that state: its description contained 
+                <code>--</code> inside an XML comment, which the specification forbids. Nothing compiled it, no test opened it, and no other checker parsed it; the two later commits that edited the very same comment left it there.
+              </p>
+              <p>
+                It hides at the reading end too. A missing image looks like a bad path or a stale checkout, not like a file that is present, visually correct, and rejected over two characters in a comment nobody reads. Well-formedness is decidable, so the check is total for the fault it names — and it fires zero times on the nine figures today.
+              </p>
+              <pre><code>python3 tool/check_flutter_platform_step.py</code></pre>
+              <p>
+                Holds every runnable Flutter sample to the step its first run needs. None of the seven Flutter samples tracks a platform folder — a sample carries its own source, not generated scaffolding — and every README said 
+                <code>flutter run</code>, which Flutter refuses on a platform the project has no folder for. So the documented command failed before the first frame, for every sample. The repair is 
+                <code>flutter create --empty --platforms=&lt;p&gt; .</code>, once per machine, and <code>--empty</code>
+                 is part of it: without it the command also writes a counter-app <code>test/widget_test.dart</code> pumping a 
+                <code>MyApp</code> none of these packages has, and the package's own suite stops compiling.
+              </p>
+              <p>
+                A package is in scope when its pubspec depends on Flutter, it has a <code>lib/main.dart</code>, its README says 
+                <code>flutter run</code>, and git tracks nothing under its platform folders. That last condition leaves out the two harnesses, which commit theirs. Three faults: 
+                <code>STEP</code> (the README never names the step, or names it without <code>--empty</code>), <code>ORDER</code>
+                 (a fenced <code>flutter run</code> comes before the step, so a reader going top to bottom meets the failing command first), and 
+                <code>IGNORE</code> (the package's <code>.gitignore</code> misses one of the six platform folders or 
+                <code>.metadata</code>, which the step writes).
+              </p>
+              <pre><code>python3 tool/check_barrel_exports.py                 # the whole repository
+python3 tool/check_barrel_exports.py tom_flutter_ui  # one package</code></pre>
+              <p>
+                Holds every barrel to the directory it claims to inventory. <code>advanced_app_client/lib/app/app.dart</code>
+                 declared three exports beside four exportable files, and the missing one was a real public type — imported by a screen, documented in its own section, and unreachable by name to anyone importing the barrel. 
+                <code>check_doc_inventories.py</code> caught that one only by accident: its <code>barrel — N exports</code>
+                 label happened to say 4 while the barrel said 3, so the number was right about what the barrel was <em>for</em>. Had the label agreed, the type would still have been unreachable. That gate compares a claim against the code; this one compares the code against itself.
+              </p>
+              <p>
+                A barrel is a file that declares nothing of its own and carries at least one unconditional <code>export</code>. Both halves matter: the first separates a barrel from a library that happens to re-export a neighbour, and the second excludes the platform shims — 
+                <code>export 'file_opener_stub.dart' if (dart.library.io) 'file_opener_io.dart';</code> names a <em>variant</em>, not an inventory, and reading it as one would demand it export the other six files in its directory.
+              </p>
+              <p>
+                The claim is the barrel, not the directory. A directory with no barrel is reported on by nothing, which is what keeps the six Flutter sample applications out: their 
+                <code>screens/</code> and <code>groups/</code> directories correctly re-export nothing, and demanding coverage there would produce some ninety faults, every one wrong. Coverage is then reachability across 
+                <em>all</em> the package's barrels rather than the one beside the file, so a sub-barrel works: <code>dtos.dart</code>
+                 should not export the two neighbours that are not DTOs, and the package barrel already offers them.
+              </p>
+              <p>
+                Correct omissions are declared in the barrel itself, where they survive a file move and are visible to whoever is editing the exports:
+              </p>
+              <pre><code>// not-exported: reflection_seed.dart — the apps install their own
+// initializeReflection; exporting this one would collide with theirs.</code></pre>
+              <p>
+                The reason is required, and the marker is held to being real: one naming a file that is not there, or one the barrels reach after all, is a fault. Generated output (<code>*.reflection.dart</code>, 
+                <code>*.versioner.dart</code>, <code>*.g.dart</code>, <code>*.freezed.dart</code>) is skipped by shape instead, since a marker about a file the next build rewrites gives a reader nothing to weigh. Four markers exist today and the gate is at zero.
+              </p>
+              <pre><code>python3 tool/check_kernel_bridge.py    # the whole repository</code></pre>
+              <p>
+                Audits the kernel bridge: every type the bridge registers should appear in a declaration position, and the companions that legitimately do not are named explicitly rather than passed silently.
+              </p>
+              <pre><code>python3 tool/check_demo_counts.py      # the whole repository</code></pre>
+              <p>
+                Pins the demo counts in <code>tom_flutter_ui_test/README.md</code> to <code>lib/</code>. A demo can be counted two ways that are both correct — screens declared in 
+                <code>lib/</code>, tiles offered by <code>lib/main.dart</code> — and three separate filings had each restated an unchecked number. The counts live between 
+                <code>&lt;!-- demo-counts:begin --&gt;</code> markers so the check compares a table, not prose.
+              </p>
+              <pre><code>python3 tool/check_pubspec_boilerplate.py                  # the whole repository
+python3 tool/check_pubspec_boilerplate.py tom_core_samples # one subtree</code></pre>
+              <p>
+                Finds pubspecs still carrying generator boilerplate: a placeholder <code>description:</code> ("A new Flutter project."), or the tutorial commentary explaining versioning, 
+                <code>pub upgrade</code>, <code>flutter_lints</code>, and how one <em>would</em> declare assets and fonts.
+              </p>
+              <p>
+                The description is the one place a tool reads the package's own summary, so a placeholder there is the package failing to say what it is however well its README reads. The commentary is worse than merely useless: in 
+                <code>tom_flutter_ui_test</code> it was 62 of 100 lines, and its commented-out asset block described an asset bundle the package does not have.
+              </p>
+              <p>
+                Unlike a prose slip this defect is machine-generated, reproducibly, by the standard way packages are created — so every future 
+                <code>flutter create</code> reintroduces it in full. The match is exact rather than heuristic: every sentinel was verified verbatim against freshly generated 
+                <code>flutter create</code> (app and package) and <code>dart create</code> (package and console) output, so a hand-written description is never a false positive.
+              </p>
+              <pre><code>python3 tool/check_module_readme_shape.py                 # every package
+python3 tool/check_module_readme_shape.py tom_core_server # one package
+python3 tool/check_module_readme_shape.py --self-test     # check the checker</code></pre>
+              <p>
+                Holds every module readme under <code>lib/src/</code> to four elements: the attribution blockquote, a 
+                <code>## Key types</code> heading, a <code>## Quick start</code>, and the <code>Part of</code> footer back to the package README. 53 readmes across four packages.
+              </p>
+              <p>
+                <code>tom_core_server</code>'s <code>scheduling</code> readme was the longest and most substantive of its twenty and carried none of the first three. It was not thin — it was complete, written to a different shape, most likely before the convention settled. A convention that settles without being written is one a document can miss entirely while reading as finished work, which is how the omission survived every review the module had.
+              </p>
+              <p>
+                Each element earns its place. The <code>## Key types</code> heading is the clearest case: <code>scheduling</code>
+                 <em>had</em> its type table and it was unheaded, so it appeared in no document outline and a reader scanning headings did not find it. The heading is what makes the table reachable by the only navigation a long readme has. The heading is matched on its opening words, because two kernel modules ship functions beside their types and head the table 
+                <code>## Key types &amp; functions</code> — the same undertaking, more accurately titled.
+              </p>
+              <pre><code>python3 tool/check_doc_overview_types.py                 # every document
+python3 tool/check_doc_overview_types.py tom_core_server # one package
+python3 tool/check_doc_overview_types.py --self-test     # check the checker</code></pre>
+              <p>
+                Holds a module document's Overview table to the types its module exports. The table lists <strong>every</strong>
+                 public type the package barrel reaches from the module, not a selection: a curated table cannot be checked, and 
+                <code>doc/preferences.md</code> named five of six public types with the missing one the subject of the document's own longest section. Nobody noticed, because with no rule about what belongs there was nothing for the omission to contradict.
+              </p>
+              <p>
+                Exhaustive costs something and the cost is accepted. <code>object_persistence</code> exports eighty-five types and its table has eighty-five rows. A table that long is closer to an index than an overview — but an index that is complete beats an overview that is silently partial, because a reader takes the silence of a list for an answer. Rows may still group what is used as a set (`
+                <code> </code>TomSelect<code> / </code>TomCount<code> / </code>TomDelete<code> </code>` on one row); what the gate asks is that the name appear somewhere in the table.
+              </p>
+              <p>
+                A document declares itself in scope by the shape it already has: an Overview holding a table with a <code>Type</code>
+                 (or <code>Symbol</code>) column beside a <code>Kind</code> column. All twenty <code>tom_core_server</code>
+                 module documents write that, and eleven others across <code>tom_flutter_ui</code> and <code>tom_core_agentic</code>; 
+                <code>tom_core_kernel</code>'s Overviews are prose and are out of scope until they are not.
+              </p>
+              <pre><code>python3 tool/check_readme_status.py                  # every package
+python3 tool/check_readme_status.py tom_core_server  # one package
+python3 tool/check_readme_status.py --self-test      # check the checker</code></pre>
+              <p>
+                Reads the <code>## Status</code> block of each package README — five carry one — and holds its two claims to opposite rules. The version must be the one 
+                <code>pubspec.yaml</code> declares. A test count must not appear at all.
+              </p>
+              <p>
+                The asymmetry is the whole check. A version is what tells a reader which release the document describes, so a wrong one misleads rather than merely disappointing, and holding it true costs one file read. 
+                <code>tom_core_kernel</code> claimed 1.1.1 against a pubspec at 1.1.16 — fifteen releases — and <code>tom_flutter_ui</code>
+                 1.0.0 against 1.1.0.
+              </p>
+              <p>
+                A count is a claim nothing connects to the suite, so it can only rot. <code>tom_core_server</code>'s block reached less than half the truth, 1726 stated against 3491 actual; the correction stood for days before the same block was wrong again at 95 suites against 103 and 20 
+                <code>db</code>-tagged against 24. The mechanism is structural rather than careless: every added test is a README edit nothing asks for.
+              </p>
+              <p>
+                Enforcing the count instead is mechanically possible — run the suite, compare — and is the wrong trade. It makes every added test a required README edit, and a document test that fails on an unrelated commit gets deleted rather than obeyed. The count also decides nothing: nobody picks a dependency on 3491 tests over 1726. What a reader can act on is how the suite runs and what gates part of it, such as 
+                <code>tom_core_server</code>'s <code>db</code> tag, which skips without a live MySQL. That is operational, and it cannot go stale.
+              </p>
+              <p>
+                <code>tom_core_server</code>'s own suite pins its own block as well, in <code>test/api_reference_coverage_test.dart</code>
+                 — the gate covers the corpus, but a package's suite is what runs when that package changes, which is when its README rots. The convention itself is written in 
+                <code>_copilot_guidelines/component_module_readme_example.md</code> §2, which is where a README that mandates a rotting count would otherwise come from.
+              </p>
+              <pre><code>python3 tool/check_reflection_artifacts.py             # the whole repository
+python3 tool/check_reflection_artifacts.py --self-test # prove it can report</code></pre>
+              <p>
+                Analyzes every checked-in <code>*.reflection.dart</code> and fails on an <code>error</code>-severity finding — a name the mirror writes that no longer resolves.
+              </p>
+              <p>
+                <code>analysis_options.yaml</code> excludes these files, for a good reason: a mirror reflects whatever its source declares, including deprecated and 
+                <code>@visibleForTesting</code> members, and a generated file that trips several lints per package teaches everyone to ignore the analyzer. The cost is that the artifact becomes the one file in the repository nothing reads — not analyzed, not formatted, not reviewed — so a reference in it rots silently. 
+                <code>advanced_ops_server</code> carried one: <code>MariadbMigrationAdaptor</code> lost <code>splitSqlStatements</code>
+                 to the SQL-lexer extraction, the checked-in mirror went on naming it, and <code>dart analyze lib test</code>
+                 reported "No issues found!" while every test file in the package failed to load with <code>Member not found</code>.
+              </p>
+              <p>
+                An explicitly named file is analyzed whether or not the options exclude it, which is what makes the check possible without changing them. Only 
+                <code>error</code> severity counts: a warning or an info in generated code is the generator's style, and faulting on it would recreate the noise the exclusion suppresses.
+              </p>
+              <p>
+                This is the cheap half of the question. <code>reflection_generation.sh --check</code> answers the stronger one — is this file what the generator would emit today — in about ninety seconds per package against four here, so it belongs before a release rather than in a gate pass. An artifact can pass this gate and still be stale, because a mirror merely 
+                <em>missing</em> a class the source has added references nothing that does not exist. What it cannot do is pass and fail to compile, which is the failure that takes a suite down.
+              </p>
+              <pre><code>python3 tool/check_doc_source_paths.py                  # the whole repository
+python3 tool/check_doc_source_paths.py tom_flutter_ui   # one subtree</code></pre>
+              <p>
+                Checks that every <code>**Source:**</code> pointer in the documentation names something that is actually on disk. A pointer resolves against the workspace root (for cross-repo targets), the repo root (the usual package-prefixed form), or — when an adjacent 
+                <code>**Package:**</code> line supplies the prefix — that package's root. That third root is what makes the rule fair rather than merely strict: a bare 
+                <code>lib/src/...</code> under a <code>**Package:**</code> header is correct, and the same path without one has no package to be relative to.
+              </p>
+              <p>
+                Nothing else reads these paths, so a pointer at a deleted directory breaks silently and stays broken. The instance that prompted the check had a part header naming a 
+                <code>tomclient/forms/</code> directory removed refactors earlier, while a subsection of that same part correctly named the directory it had moved to.
+              </p>
+              <p>
+                There is no exemption for history documents. Naming a removed type in prose is fine and often necessary; 
+                <code>**Source:**</code> is different, because it is an instruction to go and read something, and that instruction is false once the target is gone.
+              </p>
+              <pre><code>python3 tool/check_doc_artifacts.py                  # the whole repository
+python3 tool/check_doc_artifacts.py tom_core_kernel  # one subtree</code></pre>
+              <p>
+                Finds machine-generated files that version control carries under a package's <code>doc/</code>. That folder holds the documentation a person wrote, which three places already state — the repository 
+                <code>.gitignore</code>, testkit's <code>trackingDirName</code>, and the documentation-placement guideline. None of the three could notice being broken, and all three were: six generated files sat in 
+                <code>doc/</code> across three packages, the youngest months stale.
+              </p>
+              <p>
+                Staleness is the defect, not weight. A tracked artifact photographs one machine's build and nothing updates it, so it cannot be told apart from a current one without finding the live path and comparing dates — a reader who trusts it is misled, and a reader who does not gains nothing. The kernel's captured test run being 934 KB was the smaller problem; its being eleven weeks out of date was the real one.
+              </p>
+              <p>
+                The rule keys on what a person authors rather than on a list of known generated filenames, which only ever catches the artifact someone already found. Documentation is markdown, with diagrams and the occasional released PDF beside it; anything else under 
+                <code>doc/</code> was put there by a tool. And the question is what version control carries, so the inventory comes from 
+                <code>git ls-files</code> — a tool writing under <code>doc/</code> on one machine costs nobody anything until it is committed.
+              </p>
+              <pre><code>python3 tool/check_doc_links.py                  # the whole repository
+python3 tool/check_doc_links.py tom_core_kernel  # one subtree</code></pre>
+              <p>
+                Follows every markdown link in the tree. A link is the one part of a document that promises to take you somewhere, and it was the part nothing verified: the sweep that prompted this gate found 89 broken links under this repo and 371 of a single shape across the workspace — every project's 
+                <code>_copilot_guidelines/index.md</code> opened with a table of links to the shared guidelines, and not one of them worked anywhere.
+              </p>
+              <p>
+                Three faults. <code>ABSOLUTE</code> is a target beginning with <code>/</code>, which reads like "from the workspace root" and means the 
+                <em>filesystem</em> root, so it opens neither in VS Code nor on GitHub; that is the shape that reached 371, copied from a template that carried the defect, growing by one table per new project. 
+                <code>DEAD</code> is a relative target not on disk — the kernel's API index offered a "Result" row pointing at a summary nobody wrote, for a module the kernel does not have, in a table whose own header says seventeen and which listed eighteen. 
+                <code>GUIDELINE</code> is a link from outside <code>_copilot_guidelines/</code> into it: not broken, but a layering fault, because 
+                <code>doc/</code> and <code>README.md</code> are what a consumer reads and <code>_copilot_guidelines/</code>
+                 ships with neither the package nor its pub.dev page.
+              </p>
+              <p>
+                Anchors are deliberately not checked here — whether a heading exists is <code>check_doc_tocs</code>'s question, and answering it twice in two dialects of heading-slug is how two gates come to disagree. 
+                <code>check_doc_tocs</code> answers it for every link <em>within</em> a document, body links included, but not for a fragment into another document (<code>other.md#heading</code>), which neither gate checks today. Fenced blocks are skipped and inline code spans blanked, which is correctness rather than tidiness in both directions: a naive scan reads 
+                <code>operator [](Object? key)</code> in every <code>api_summary_*.md</code> as a link, and <em>rewrites</em>
+                 the template inside a <code> </code>`<code>markdown </code> fence into something true only of the file containing it. Both happened while this gate was being written.
+              </p>
+              <p>
+                A fourth rule, <code>REFERENCE</code>, catches the shape this gate was blind to by construction — a bracketed inline code span with no target and no definition, in a file carrying no 
+                <code>[label]: target</code> line:
+              </p>
+              <pre><code>An edge binds one [`BearerTokenAuthenticator&lt;P&gt;`], parameterised on its
+principal type.</code></pre>
+              <p>
+                That is dartdoc's square-bracket syntax carried into a markdown file, where markdown renders it as literal brackets around a code span, so the reader meets punctuation where the author meant a pointer. (The example sits in a fence because fences are skipped — otherwise this paragraph would be a live instance of what it describes, which is the same reason 
+                <code>check_source_citations.py</code> keeps this README out of its own scope.)
+              </p>
+              <p>
+                The blindness is worth stating because it is the argument for putting the rule here rather than in a gate of its own. The three rules above scan for 
+                <code>](</code>, and they run <em>after</em> inline code has been blanked — but the label of one of these 
+                <strong>is</strong> the code span, so after blanking the line reads <code>[      ]</code> with nothing left to match. A reference with no definition also has no target, so nothing in a link-resolving checker can ever see one. Thirty-four sat across four packages while this gate reported zero, eighteen of them in a single 
+                <code>tom_flutter_ui</code> page and nine in a <code>tom_core_agentic</code> page that no scan had read.
+              </p>
+              <p>
+                Only bracketed <strong>code spans</strong> are matched. A bare <code>[Some Name]</code> in prose is ordinary English punctuation far more often than a broken link, and a rule that could not tell them apart would be the gate crying wolf. The repair is almost always to drop the brackets: of the thirty-four, not one had an anchor it could have pointed at, so making them links would have meant inventing thirty-four targets — and a cross-document 
+                <code>#fragment</code> is accepted here and validated by nothing, which is a worse answer than a plain code span.
+              </p>
+              <pre><code>python3 tool/check_doc_ai_citations.py                 # the whole repository
+python3 tool/check_doc_ai_citations.py tom_flutter_ui  # one subtree</code></pre>
+              <p>
+                Finds shipped files that cite a document in the AI-state layer. That layer is a separate repository (<code>tom_agent_state</code>) mounted by symlink, absent from any checkout of 
+                <code>tom_ai/core</code>, so such a citation cannot resolve for anyone reading a package. Two sites in 
+                <code>tom_flutter_ui/doc/</code> cited a quest planning document, and the section doing so called it 
+                <em>the canonical layout contract</em> — a shipped document deferring its authority to a file its reader cannot obtain, which leaves the contract effectively unstated.
+              </p>
+              <p>
+                Two faults, for the two shapes a citation takes. <code>AILINK</code> is a path under <code>_ai/</code>. 
+                <code>AINAME</code> is the shape a citation takes once its author knows the document well enough to stop saying where it lives: a bare filename — a quest's deferral note, or a completion document's name. Three of those in one package's library and docs had been written by three different passes, and one pointed at a document that did not even carry the claim it was cited for. A name is a fault when it belongs to a 
+                <code>.md</code> or <code>.yaml</code> file in the quest folders of <code>_ai/</code> — each quest's machine-local 
+                <code>history/</code> excluded — and to no file anywhere in this repository, so <code>README.md</code>
+                 or <code>pubspec.yaml</code> never match. When the quest tree is absent the gate reports <code>NOQUESTS</code>
+                 as a fault rather than passing half-measured.
+              </p>
+              <p>
+                The cited file exists, so this is not a dangling link but an unreachable one, and that distinction is why the defect survives a scan: neither 
+                <code>find</code> nor <code>git ls-files</code> follows the <code>_ai</code> symlink, so a citation of a file that is present reads as "file does not exist" to any tool run from the container root. Keying on the citation rather than on the target is what makes the answer stable.
+              </p>
+              <p>
+                Every <code>.dart</code> and <code>.md</code> file is in scope, <code>CHANGELOG.md</code> included — it ships, and a reader following an entry to a document they cannot open is stranded as surely as one following 
+                <code>doc/</code>. <code>_copilot_guidelines/</code>, <code>test/</code> and <code>tool/</code> are out of scope because their readers work inside this workspace, where the mount is present; generated Dart is skipped because its comments are copies of scanned source. One 
+                <code>_ai/</code> path is not a citation: <code>_ai/trail/</code> is where the Tom extension writes its prompt trail in whichever workspace it runs in, and the agent models that mirror that layout name it as code names any runtime directory.
+              </p>
+              <pre><code>python3 tool/check_open_ends.py          # the report
+python3 tool/check_open_ends.py --quiet  # findings only</code></pre>
+              <p>
+                Finds completion documents that never say what is still open. <code>completion/README.md</code> requires every document to close with a 
+                <code>### What is still open</code> subsection, because the section reads as a claim either way: present means the unit was assessed and this is the result, absent means it was 
+                <em>not</em> assessed — which is not the same as nothing being open, and is the reading a later scan has to assume.
+              </p>
+              <p>
+                Two faults, and the second is the cheap evasion. <code>MISSING</code> is no heading at all. <code>EMPTY</code>
+                 is a heading with nothing under it — a legitimate claim ("assessed, nothing open") that the contract asks be written as one, with the date, because a bare heading and a forgotten heading look identical.
+              </p>
+              <p>
+                This is the one gate in the suite whose count is <em>expected</em> to fall rather than sit at zero, and it is held rather than driven there in a sweep: writing every missing section in one pass would produce the artifact the requirement exists to prevent — a section per document asserting an assessment nobody performed. The section is written when the unit is assessed, so each completed assessment lowers the number by one and the ratchet then requires the drop be recorded.
+              </p>
+              <pre><code>python3 tool/check_open_ends_ledger.py             # the report
+python3 tool/check_open_ends_ledger.py --self-test # plant each fault, require detection</code></pre>
+              <p>
+                Holds each <code>### What is still open</code> section to the quest todos still open on its unit. The gate above asks whether the section is 
+                <em>there</em>; this one asks whether it is still <em>true</em>.
+              </p>
+              <p>
+                A section is written once, when the unit is assessed. Every todo filed against that unit afterwards is a fact about it the section does not know, and nothing connected the two — so a section goes on saying "nothing is open" while work is queued against the same code. The 
+                <code>mcp_auth</code> section did exactly that one turn after it was written, with three todos filed and unworked; two other sections said literally "Nothing." while four unclosed todos sat on their units.
+              </p>
+              <p>
+                The join is an equality, not a heuristic. A completion document is named <code>&lt;project&gt;_&lt;module&gt;_{new,changes}.md</code>
+                 and a todo carries <code>scope.project</code> and <code>scope.module</code>, so nothing here reads prose to decide what a document is about. 
+                <code>UNNAMED</code> is a todo open on the unit that the section never names; <code>PHANTOM</code> is an id the section names that the corpus does not contain.
+              </p>
+              <p>
+                A todo whose <code>scope.files</code> names the completion document is out of scope for it — a todo asking for the section to be written would otherwise report itself as an open end forever. That is a rule about what the todo is 
+                <em>about</em> rather than an exemption list, so the next one needs no edit here.
+              </p>
+              <p>
+                The obvious third question — a struck-through item citing a todo that is not completed — is deliberately not asked. A closed item legitimately cites an open todo when a finding 
+                <em>moved</em> rather than ended, which is what <code>mcp_auth</code>'s reference-link item does: closed on that page, still open on two others, with the id named so a reader can follow it. Faulting that would fault the sentence worth writing.
+              </p>
+              <pre><code>python3 tool/check_suite_figures.py             # the report
+python3 tool/check_suite_figures.py --self-test # plant each fault, require detection</code></pre>
+              <p>
+                Holds <code>tom_core_samples/assets/architecture/</code> and every document that embeds from it to one another. A figure store fails silently in three ways — a figure nobody embeds, an embed whose file was renamed (a renderer shows a blank), and an inventory that misses a figure — and the "adding a figure" checklist in 
+                <code>tom_core_samples/assets/README.md</code> has four manual steps, the last of which, registering the figure, is the one that gets skipped.
+              </p>
+              <p>
+                <code>ORPHAN</code>, <code>DANGLING</code> and <code>INVENTORY</code> are those three; the inventory is compared in both directions, and each row's "Embedded by" links must be exactly the documents that embed the figure. 
+                <code>SITE</code>, <code>ALT</code> and <code>SVG</code> hold the convention: the <code>&lt;!-- Figure: … --&gt;</code>
+                 comment above each embed and the <code>Text / mermaid equivalent</code> disclosure below it, alt text that is a sentence rather than a label, and a 
+                <code>viewBox</code> and opening description comment on every SVG. Fenced blocks and inline code are skipped, so the README's own recipe is not read as an embed. Whether an SVG parses is 
+                <code>check_figure_wellformed</code>'s question, and a line number cited inside one is <code>check_source_citations</code>'.
+              </p>
+              <p>
+                Its first run faulted figure 09 as an orphan. A1's alt text contains <code>projectRoleFieldGrades[role]</code>, balanced brackets CommonMark allows in link text, which the embed pattern had not. The pattern now allows one level of nesting — the fault was the checker's, and the self-test runs against the real files, so a pattern that stops matching shows up as a failure rather than as a cleaner repository.
               </p>
               <h2>License</h2>
               <p>
-                Proprietary and confidential. Each package carries the same proprietary <a href="tom_core_kernel/LICENSE"><code>LICENSE</code></a>; see any package folder for the full text.
+                BSD 3-Clause licensed. Each package carries the same <a href="https://github.com/al-the-bear/tom_core/blob/main/tom_core_kernel/LICENSE"><code>LICENSE</code></a>; see any package folder for the full text.
               </p>
             </div>
           </section>

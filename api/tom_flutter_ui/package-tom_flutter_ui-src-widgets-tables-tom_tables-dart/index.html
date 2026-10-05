@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1395,7 +1401,6 @@
                   <a class="leaf" href="#TomPaginatedDataTable">TomPaginatedDataTable</a>
                   <a class="leaf" href="#TomReorderableListView">TomReorderableListView</a>
                   <a class="leaf" href="#TomTable">TomTable</a>
-                  <a class="leaf" href="#_TomAuthContent">_TomAuthContent</a>
                 </div>
               </div>
               <div class="reader">
@@ -1405,12 +1410,24 @@
                   <h3 class="api-decl-title">class TomDataCell</h3>
                   <code class="api-signature">class TomDataCell extends DataCell</code>
                   <div class="api-doc">
+                    <p>Tom equivalent for [DataCell] (non-widget data class).</p>
+                    <p>
+                      DataCell is not a widget — it's a data class for DataTable rows. This class mirrors DataCell's API and adds Tom ID support for resource resolution and authorization tracking.
+                    </p>
+                    <p>Usage:</p>
+                    <pre><code>TomDataRow(
+  cells: [
+    TomDataCell(tomId: 'name', child: TomText(text: 'John')),
+    TomDataCell(tomId: 'email', child: TomText(text: 'john@example.com')),
+  ],
+)</code></pre>
                     <p>Tom extension of [DataCell] with built-in authorization and resource resolution.</p>
                     <p>
                       Extends DataCell directly, preserving type identity (<code>TomDataCell is DataCell</code>). Authorization is checked at render time via an internal wrapper widget.
                     </p>
                     <ul>
                       <li><strong>Hidden</strong>: Cell content renders as empty</li>
+                      <li><strong>Disabled</strong>: Cell content is dimmed and absorbs pointer events</li>
                       <li><strong>Readonly</strong>: Cell content has readonly styling, interactions disabled</li>
                       <li><strong>Full access</strong>: Normal rendering and behavior</li>
                     </ul>
@@ -1432,7 +1449,7 @@
                     <div id="TomDataCell.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomDataCell.new({String? tomId, InvalidType tomGroup, InvalidType scope, Widget? child, bool placeholder = false, bool showEditIcon = false, void Function()?? onTap, void Function()?? onLongPress, void Function()?? onDoubleTap, void Function()?? onTapCancel, void Function(TapDownDetails)?? onTapDown})
+                          TomDataCell.new({String? tomId, InvalidType tomGroup, InvalidType scope, InvalidType authorizer, InvalidType uiStateController, Widget? child, bool placeholder = false, bool showEditIcon = false, void Function()?? onTap, void Function()?? onLongPress, void Function()?? onDoubleTap, void Function()?? onTapCancel, void Function(TapDownDetails)?? onTapDown})
                         </code>
                       </div>
                       <div class="api-doc">
@@ -1445,9 +1462,16 @@
                     </div>
                     <div id="TomDataCell.empty" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">TomDataCell.empty({String? tomId, InvalidType tomGroup, InvalidType scope})</code>
+                        <code class="api-signature">
+                          TomDataCell.empty({String? tomId, InvalidType tomGroup, InvalidType scope, InvalidType authorizer, InvalidType uiStateController})
+                        </code>
                       </div>
-                      <div class="api-doc"><p>Creates an empty/placeholder cell.</p></div>
+                      <div class="api-doc">
+                        <p>Creates an empty/placeholder cell.</p>
+                        <p>
+                          An empty cell renders nothing either way, so gating its slot would be pointless — but it accepts the same authorization inputs as the full constructor, and [authState] answers from all four of them, so a caller can ask an empty cell the same question it asks any other.
+                        </p>
+                      </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
@@ -1464,10 +1488,21 @@
                       <div class="api-member-head"><code class="api-signature">final InvalidType scope</code></div>
                       <div class="api-doc"><p>Optional explicit scope for resource resolution.</p></div>
                     </div>
+                    <div id="TomDataCell.authorizer" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final InvalidType authorizer</code></div>
+                      <div class="api-doc"><p>Optional per-cell authorizer, applied after the group's mode.</p></div>
+                    </div>
+                    <div id="TomDataCell.uiStateController" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final InvalidType uiStateController</code></div>
+                      <div class="api-doc"><p>Optional build-time UI-state controller, applied last.</p></div>
+                    </div>
                     <div id="TomDataCell.basePath" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final String? basePath</code></div>
                       <div class="api-doc"><p>The resolved canonical resource base path.</p></div>
                     </div>
+                    <div id="TomDataCell.authState" class="api-member"><div class="api-member-head"><code class="api-signature">InvalidType authState</code></div></div>
+                    <div id="TomDataCell.isVisible" class="api-member"><div class="api-member-head"><code class="api-signature">bool isVisible</code></div></div>
+                    <div id="TomDataCell.isReadonly" class="api-member"><div class="api-member-head"><code class="api-signature">bool isReadonly</code></div></div>
                   </div>
                 </section>
                 <section id="TomDataColumn" class="api-declaration">
@@ -1480,6 +1515,7 @@
                     </p>
                     <ul>
                       <li><strong>Hidden</strong>: Column header renders as empty (column still takes space)</li>
+                      <li><strong>Disabled</strong>: Column header is dimmed and absorbs pointer events</li>
                       <li><strong>Readonly</strong>: Column header has readonly styling</li>
                       <li><strong>Full access</strong>: Normal rendering</li>
                     </ul>
@@ -1494,14 +1530,14 @@
                     <pre><code>final columns = [
   TomDataColumn(tomId: 'name'),  // Resolves label/tooltip from resources
   TomDataColumn(tomId: 'salary'),
-].where((c) =&gt; c.isVisible(context)).toList();</code></pre>
+].where((c) =&gt; c.isVisible).toList();</code></pre>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomDataColumn.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomDataColumn.new({String? tomId, InvalidType tomGroup, InvalidType scope, Widget? label, String? tooltip, bool numeric = false, void Function(int, bool)?? onSort, WidgetStateProperty&lt;MouseCursor?&gt;? mouseCursor})
+                          TomDataColumn.new({String? tomId, InvalidType tomGroup, InvalidType scope, InvalidType authorizer, InvalidType uiStateController, Widget? label, String? tooltip, bool numeric = false, void Function(int, bool)?? onSort, WidgetStateProperty&lt;MouseCursor?&gt;? mouseCursor})
                         </code>
                       </div>
                       <div class="api-doc">
@@ -1527,25 +1563,21 @@
                       <div class="api-member-head"><code class="api-signature">final InvalidType scope</code></div>
                       <div class="api-doc"><p>Optional explicit scope for resource resolution.</p></div>
                     </div>
+                    <div id="TomDataColumn.authorizer" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final InvalidType authorizer</code></div>
+                      <div class="api-doc"><p>Optional per-column authorizer, applied after the group's mode.</p></div>
+                    </div>
+                    <div id="TomDataColumn.uiStateController" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final InvalidType uiStateController</code></div>
+                      <div class="api-doc"><p>Optional build-time UI-state controller, applied last.</p></div>
+                    </div>
                     <div id="TomDataColumn.basePath" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final String? basePath</code></div>
                       <div class="api-doc"><p>The resolved canonical resource base path.</p></div>
                     </div>
-                  </div>
-                  <h4 class="api-group-title">Methods</h4>
-                  <div class="api-members">
-                    <div id="TomDataColumn.isVisible" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">bool isVisible(BuildContext context)</code></div>
-                      <div class="api-doc">
-                        <p>Returns true if this column should be visible based on authorization.</p>
-                        <p>Use this to filter columns before passing to DataTable:</p>
-                        <pre><code>columns.where((c) =&gt; c is! TomDataColumn || c.isVisible(context)).toList()</code></pre>
-                      </div>
-                    </div>
-                    <div id="TomDataColumn.isReadonly" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">bool isReadonly(BuildContext context)</code></div>
-                      <div class="api-doc"><p>Returns true if this column should be readonly based on authorization.</p></div>
-                    </div>
+                    <div id="TomDataColumn.authState" class="api-member"><div class="api-member-head"><code class="api-signature">InvalidType authState</code></div></div>
+                    <div id="TomDataColumn.isVisible" class="api-member"><div class="api-member-head"><code class="api-signature">bool isVisible</code></div></div>
+                    <div id="TomDataColumn.isReadonly" class="api-member"><div class="api-member-head"><code class="api-signature">bool isReadonly</code></div></div>
                   </div>
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
@@ -1575,14 +1607,14 @@
     TomDataCell(tomId: 'name'),  // Resolves from resources
     TomDataCell(tomId: 'salary'),
   ],
-)).where((r) =&gt; r.isVisible(context)).toList();</code></pre>
+)).where((r) =&gt; r.isVisible).toList();</code></pre>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomDataRow.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomDataRow.new({String? tomId, InvalidType tomGroup, InvalidType scope, LocalKey? key, bool selected = false, void Function(bool?)?? onSelectChanged, void Function()?? onLongPress, WidgetStateProperty&lt;Color?&gt;? color, required List&lt;DataCell&gt; cells, WidgetStateProperty&lt;MouseCursor?&gt;? mouseCursor})
+                          TomDataRow.new({String? tomId, InvalidType tomGroup, InvalidType scope, InvalidType authorizer, InvalidType uiStateController, LocalKey? key, bool selected = false, void Function(bool?)?? onSelectChanged, void Function()?? onLongPress, WidgetStateProperty&lt;Color?&gt;? color, required List&lt;DataCell&gt; cells, WidgetStateProperty&lt;MouseCursor?&gt;? mouseCursor})
                         </code>
                       </div>
                       <div class="api-doc"><p>Creates a Tom DataRow with authorization support.</p></div>
@@ -1602,25 +1634,21 @@
                       <div class="api-member-head"><code class="api-signature">final InvalidType scope</code></div>
                       <div class="api-doc"><p>Optional explicit scope for resource resolution.</p></div>
                     </div>
+                    <div id="TomDataRow.authorizer" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final InvalidType authorizer</code></div>
+                      <div class="api-doc"><p>Optional per-row authorizer, applied after the group's mode.</p></div>
+                    </div>
+                    <div id="TomDataRow.uiStateController" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final InvalidType uiStateController</code></div>
+                      <div class="api-doc"><p>Optional build-time UI-state controller, applied last.</p></div>
+                    </div>
                     <div id="TomDataRow.basePath" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final String? basePath</code></div>
                       <div class="api-doc"><p>The resolved canonical resource base path.</p></div>
                     </div>
-                  </div>
-                  <h4 class="api-group-title">Methods</h4>
-                  <div class="api-members">
-                    <div id="TomDataRow.isVisible" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">bool isVisible(BuildContext context)</code></div>
-                      <div class="api-doc">
-                        <p>Returns true if this row should be visible based on authorization.</p>
-                        <p>Use this to filter rows before passing to DataTable:</p>
-                        <pre><code>rows.where((r) =&gt; r is! TomDataRow || r.isVisible(context)).toList()</code></pre>
-                      </div>
-                    </div>
-                    <div id="TomDataRow.isReadonly" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">bool isReadonly(BuildContext context)</code></div>
-                      <div class="api-doc"><p>Returns true if this row should be readonly based on authorization.</p></div>
-                    </div>
+                    <div id="TomDataRow.authState" class="api-member"><div class="api-member-head"><code class="api-signature">InvalidType authState</code></div></div>
+                    <div id="TomDataRow.isVisible" class="api-member"><div class="api-member-head"><code class="api-signature">bool isVisible</code></div></div>
+                    <div id="TomDataRow.isReadonly" class="api-member"><div class="api-member-head"><code class="api-signature">bool isReadonly</code></div></div>
                   </div>
                 </section>
                 <section id="TomDataTable" class="api-declaration">
@@ -1637,7 +1665,7 @@
                     <div id="TomDataTable.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomDataTable.new({Key? key, String? tomId, InvalidType tomGroup, InvalidType scope, InvalidType authorizer, InvalidType authorizerStrategy, InvalidType uiStateController, required List&lt;DataColumn&gt; columns, int? sortColumnIndex, bool sortAscending = true, void Function(bool?)?? onSelectAll, Decoration? decoration, WidgetStateProperty&lt;Color?&gt;? dataRowColor, double? dataRowMinHeight, double? dataRowMaxHeight, TextStyle? dataTextStyle, WidgetStateProperty&lt;Color?&gt;? headingRowColor, double? headingRowHeight, TextStyle? headingTextStyle, double? horizontalMargin, double? columnSpacing, bool showCheckboxColumn = true, bool showBottomBorder = false, double? dividerThickness, double? checkboxHorizontalMargin, TableBorder? border, Clip clipBehavior = Clip.none, required List&lt;DataRow&gt; rows})
+                          TomDataTable.new({Key? key, String? tomId, InvalidType tomGroup, InvalidType scope, InvalidType authorizer, InvalidType uiStateController, required List&lt;DataColumn&gt; columns, int? sortColumnIndex, bool sortAscending = true, void Function(bool?)?? onSelectAll, Decoration? decoration, WidgetStateProperty&lt;Color?&gt;? dataRowColor, double? dataRowMinHeight, double? dataRowMaxHeight, TextStyle? dataTextStyle, WidgetStateProperty&lt;Color?&gt;? headingRowColor, double? headingRowHeight, TextStyle? headingTextStyle, double? horizontalMargin, double? columnSpacing, bool showCheckboxColumn = true, bool showBottomBorder = false, double? dividerThickness, double? checkboxHorizontalMargin, TableBorder? border, Clip clipBehavior = Clip.none, required List&lt;DataRow&gt; rows})
                         </code>
                       </div>
                     </div>
@@ -1751,7 +1779,7 @@
                     <div id="TomGridView.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomGridView.new({Key? key, String? tomId, InvalidType tomGroup, InvalidType scope, InvalidType authorizer, InvalidType authorizerStrategy, InvalidType uiStateController, Axis scrollDirection = Axis.vertical, bool reverse = false, ScrollController? controller, bool? primary, ScrollPhysics? physics, bool shrinkWrap = false, EdgeInsetsGeometry? padding, required SliverGridDelegate gridDelegate, required SliverChildDelegate childrenDelegate, double? cacheExtent, int? semanticChildCount, DragStartBehavior dragStartBehavior = DragStartBehavior.start, ScrollViewKeyboardDismissBehavior keyboardDismissBehavior = ScrollViewKeyboardDismissBehavior.manual, String? restorationId, Clip clipBehavior = Clip.hardEdge})
+                          TomGridView.new({Key? key, String? tomId, InvalidType tomGroup, InvalidType scope, InvalidType authorizer, InvalidType uiStateController, Axis scrollDirection = Axis.vertical, bool reverse = false, ScrollController? controller, bool? primary, ScrollPhysics? physics, bool shrinkWrap = false, EdgeInsetsGeometry? padding, required SliverGridDelegate gridDelegate, required SliverChildDelegate childrenDelegate, double? cacheExtent, int? semanticChildCount, DragStartBehavior dragStartBehavior = DragStartBehavior.start, ScrollViewKeyboardDismissBehavior keyboardDismissBehavior = ScrollViewKeyboardDismissBehavior.manual, String? restorationId, Clip clipBehavior = Clip.hardEdge})
                         </code>
                       </div>
                     </div>
@@ -1789,7 +1817,7 @@
                     <div id="TomGridView._resolvedPrimary" class="api-member"><div class="api-member-head"><code class="api-signature">final bool? _resolvedPrimary</code></div></div>
                     <div id="TomGridView._resolvedShrinkWrap" class="api-member"><div class="api-member-head"><code class="api-signature">final bool _resolvedShrinkWrap</code></div></div>
                     <div id="TomGridView._resolvedCacheExtent" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final double? _resolvedCacheExtent</code></div>
+                      <div class="api-member-head"><code class="api-signature">final ScrollCacheExtent? _resolvedCacheExtent</code></div>
                     </div>
                     <div id="TomGridView._resolvedSemanticChildCount" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final int? _resolvedSemanticChildCount</code></div>
@@ -1823,7 +1851,7 @@
                     <div id="TomPaginatedDataTable.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomPaginatedDataTable.new({Key? key, String? tomId, InvalidType tomGroup, InvalidType scope, InvalidType authorizer, InvalidType authorizerStrategy, InvalidType uiStateController, Widget? header, List&lt;Widget&gt;? actions, required List&lt;DataColumn&gt; columns, int? sortColumnIndex, bool sortAscending = true, void Function(bool?)?? onSelectAll, double? dataRowMinHeight, double? dataRowMaxHeight, double? headingRowHeight, double? horizontalMargin, double? columnSpacing, bool showCheckboxColumn = true, bool showFirstLastButtons = false, int? initialFirstRowIndex = 0, void Function(int)?? onPageChanged, int rowsPerPage = PaginatedDataTable.defaultRowsPerPage, List&lt;int&gt; availableRowsPerPage = const [PaginatedDataTable.defaultRowsPerPage, PaginatedDataTable.defaultRowsPerPage * 2, PaginatedDataTable.defaultRowsPerPage * 5, PaginatedDataTable.defaultRowsPerPage * 10], void Function(int?)?? onRowsPerPageChanged, DragStartBehavior dragStartBehavior = DragStartBehavior.start, double? arrowHeadColor, double? checkboxHorizontalMargin, WidgetStateProperty&lt;Color?&gt;? headingRowColor, bool showEmptyRows = false, required DataTableSource source})
+                          TomPaginatedDataTable.new({Key? key, String? tomId, InvalidType tomGroup, InvalidType scope, InvalidType authorizer, InvalidType uiStateController, Widget? header, List&lt;Widget&gt;? actions, required List&lt;DataColumn&gt; columns, int? sortColumnIndex, bool sortAscending = true, void Function(bool?)?? onSelectAll, double? dataRowMinHeight, double? dataRowMaxHeight, double? headingRowHeight, double? horizontalMargin, double? columnSpacing, bool showCheckboxColumn = true, bool showFirstLastButtons = false, int? initialFirstRowIndex = 0, void Function(int)?? onPageChanged, int rowsPerPage = PaginatedDataTable.defaultRowsPerPage, List&lt;int&gt; availableRowsPerPage = const [PaginatedDataTable.defaultRowsPerPage, PaginatedDataTable.defaultRowsPerPage * 2, PaginatedDataTable.defaultRowsPerPage * 5, PaginatedDataTable.defaultRowsPerPage * 10], void Function(int?)?? onRowsPerPageChanged, DragStartBehavior dragStartBehavior = DragStartBehavior.start, double? arrowHeadColor, double? checkboxHorizontalMargin, WidgetStateProperty&lt;Color?&gt;? headingRowColor, bool showEmptyRows = false, required DataTableSource source})
                         </code>
                       </div>
                     </div>
@@ -1936,7 +1964,7 @@
                     <div id="TomReorderableListView.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomReorderableListView.new({Key? key, String? tomId, InvalidType tomGroup, InvalidType scope, InvalidType authorizer, InvalidType authorizerStrategy, InvalidType uiStateController, required List&lt;Widget&gt; children, required void Function(int, int) onReorder, void Function(int)?? onReorderStart, void Function(int)?? onReorderEnd, double? itemExtent, Widget? prototypeItem, Widget Function(Widget, int, Animation&lt;double&gt;)?? proxyDecorator, bool buildDefaultDragHandles = true, EdgeInsets? padding, Widget? header, Widget? footer, Axis scrollDirection = Axis.vertical, bool reverse = false, ScrollController? scrollController, bool? primary, ScrollPhysics? physics, bool shrinkWrap = false, double? anchor, double? cacheExtent, DragStartBehavior dragStartBehavior = DragStartBehavior.start, ScrollViewKeyboardDismissBehavior keyboardDismissBehavior = ScrollViewKeyboardDismissBehavior.manual, String? restorationId, Clip clipBehavior = Clip.hardEdge, double? autoScrollerVelocityScalar})
+                          TomReorderableListView.new({Key? key, String? tomId, InvalidType tomGroup, InvalidType scope, InvalidType authorizer, InvalidType uiStateController, required List&lt;Widget&gt; children, required void Function(int, int) onReorderItem, void Function(int)?? onReorderStart, void Function(int)?? onReorderEnd, double? itemExtent, Widget? prototypeItem, Widget Function(Widget, int, Animation&lt;double&gt;)?? proxyDecorator, bool buildDefaultDragHandles = true, EdgeInsets? padding, Widget? header, Widget? footer, Axis scrollDirection = Axis.vertical, bool reverse = false, ScrollController? scrollController, bool? primary, ScrollPhysics? physics, bool shrinkWrap = false, double? anchor, double? cacheExtent, DragStartBehavior dragStartBehavior = DragStartBehavior.start, ScrollViewKeyboardDismissBehavior keyboardDismissBehavior = ScrollViewKeyboardDismissBehavior.manual, String? restorationId, Clip clipBehavior = Clip.hardEdge, double? autoScrollerVelocityScalar})
                         </code>
                       </div>
                     </div>
@@ -1946,8 +1974,8 @@
                     <div id="TomReorderableListView.children" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final List&lt;Widget&gt; children</code></div>
                     </div>
-                    <div id="TomReorderableListView.onReorder" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final void Function(int, int) onReorder</code></div>
+                    <div id="TomReorderableListView.onReorderItem" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final void Function(int, int) onReorderItem</code></div>
                     </div>
                     <div id="TomReorderableListView.onReorderStart" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final void Function(int)?? onReorderStart</code></div>
@@ -1993,7 +2021,7 @@
                       <div class="api-member-head"><code class="api-signature">final double? _resolvedItemExtent</code></div>
                     </div>
                     <div id="TomReorderableListView._resolvedCacheExtent" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final double? _resolvedCacheExtent</code></div>
+                      <div class="api-member-head"><code class="api-signature">final ScrollCacheExtent? _resolvedCacheExtent</code></div>
                     </div>
                     <div id="TomReorderableListView._resolvedAnchor" class="api-member"><div class="api-member-head"><code class="api-signature">final double _resolvedAnchor</code></div></div>
                     <div id="TomReorderableListView._resolvedAutoScrollerVelocityScalar" class="api-member">
@@ -2031,7 +2059,7 @@
                     <div id="TomTable.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomTable.new({Key? key, String? tomId, InvalidType tomGroup, InvalidType scope, InvalidType authorizer, InvalidType authorizerStrategy, InvalidType uiStateController, List&lt;TableRow&gt; children = const [], Map&lt;int, TableColumnWidth&gt;? columnWidths, TableColumnWidth defaultColumnWidth = const FlexColumnWidth(), TextDirection? textDirection, TableBorder? border, TableCellVerticalAlignment defaultVerticalAlignment = TableCellVerticalAlignment.top, TextBaseline? textBaseline})
+                          TomTable.new({Key? key, String? tomId, InvalidType tomGroup, InvalidType scope, InvalidType authorizer, InvalidType uiStateController, List&lt;TableRow&gt; children = const [], Map&lt;int, TableColumnWidth&gt;? columnWidths, TableColumnWidth defaultColumnWidth = const FlexColumnWidth(), TextDirection? textDirection, TableBorder? border, TableCellVerticalAlignment defaultVerticalAlignment = TableCellVerticalAlignment.top, TextBaseline? textBaseline})
                         </code>
                       </div>
                     </div>
@@ -2071,54 +2099,6 @@
                     </div>
                     <div id="TomTable._resolveTableBorder" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TableBorder? _resolveTableBorder(String suffix)</code></div>
-                    </div>
-                  </div>
-                </section>
-                <section id="_TomAuthContent" class="api-declaration">
-                  <h3 class="api-decl-title">class _TomAuthContent</h3>
-                  <code class="api-signature">class _TomAuthContent extends StatelessWidget</code>
-                  <div class="api-doc">
-                    <p>Tom equivalent for [DataCell] (non-widget data class).</p>
-                    <p>
-                      DataCell is not a widget — it's a data class for DataTable rows. This class mirrors DataCell's API and adds Tom ID support for resource resolution and authorization tracking.
-                    </p>
-                    <p>Usage:</p>
-                    <pre><code>TomDataRow(
-  cells: [
-    TomDataCell(tomId: 'name', child: TomText(text: 'John')),
-    TomDataCell(tomId: 'email', child: TomText(text: 'john@example.com')),
-  ],
-)</code></pre>
-                    <p>Internal widget that wraps content with authorization checking.</p>
-                    <p>
-                      At render time, checks the tomId's authorization state and: - Hidden: renders SizedBox.shrink() - Readonly: applies readonly styling - Full access: renders the child normally
-                    </p>
-                  </div>
-                  <h4 class="api-group-title">Constructors</h4>
-                  <div class="api-members">
-                    <div id="_TomAuthContent.new" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">
-                          _TomAuthContent.new({required String? tomId, InvalidType tomGroup, InvalidType scope, required Widget child})
-                        </code>
-                      </div>
-                    </div>
-                  </div>
-                  <h4 class="api-group-title">Properties</h4>
-                  <div class="api-members">
-                    <div id="_TomAuthContent.tomId" class="api-member"><div class="api-member-head"><code class="api-signature">final String? tomId</code></div></div>
-                    <div id="_TomAuthContent.tomGroup" class="api-member"><div class="api-member-head"><code class="api-signature">final InvalidType tomGroup</code></div></div>
-                    <div id="_TomAuthContent.scope" class="api-member"><div class="api-member-head"><code class="api-signature">final InvalidType scope</code></div></div>
-                    <div id="_TomAuthContent.child" class="api-member"><div class="api-member-head"><code class="api-signature">final Widget child</code></div></div>
-                    <div id="_TomAuthContent.basePath" class="api-member"><div class="api-member-head"><code class="api-signature">final String? basePath</code></div></div>
-                  </div>
-                  <h4 class="api-group-title">Methods</h4>
-                  <div class="api-members">
-                    <div id="_TomAuthContent.build" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">Widget build(BuildContext context)</code>
-                        <span class="api-badge api-badge--override">override</span>
-                      </div>
                     </div>
                   </div>
                 </section>

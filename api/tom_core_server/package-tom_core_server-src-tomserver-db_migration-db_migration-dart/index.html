@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1391,6 +1397,7 @@
                   <a class="leaf" href="#TomDbMigrationException">TomDbMigrationException</a>
                   <a class="leaf" href="#TomDbMigrations">TomDbMigrations</a>
                   <a class="leaf" href="#TomDbMigrator">TomDbMigrator</a>
+                  <a class="leaf" href="#TomMigrationFileName">TomMigrationFileName</a>
                 </div>
               </div>
               <div class="reader">
@@ -1433,7 +1440,7 @@
                     <div id="TomDbMigrationException.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomDbMigrationException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, Object? stack, Object? rootException, bool autoLog = false})
+                          TomDbMigrationException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, StackTrace? stack, Object? rootException, bool autoLog = false})
                         </code>
                       </div>
                       <div class="api-doc">
@@ -1456,10 +1463,16 @@
   &lt;datasourceName&gt;/        # matches a registered TomDataSourceInfo name
     &lt;schemaName&gt;/          # one schema within that data source
       [1]-create_users.sql
-      [2]-add_index.sql</code></pre>
+      [2]-add_index.sql
+      [3]-demo_seed@dev.sql    # only under the `dev` environment</code></pre>
                     <p>
-                      Each migration file name must match <code>[&lt;numeric version&gt;]-&lt;description&gt;</code> (the description being letters and underscores), followed by any extension. Files are applied in ascending name order through the data source's migrator, resolved from its 
-                      <code>type</code> via [TomDbMigrationAdaptor].
+                      Each migration file name must match <code>[&lt;numeric version&gt;]-&lt;description&gt;[@&lt;env&gt;[,&lt;env&gt;…]]</code>
+                       — the description being letters and underscores, the environment tag optional — followed by any extension. This is the grammar [parseMigrationFileName] enforces and quotes back when it refuses a name.
+                    </p>
+                    <p>
+                      Files are applied in ascending <strong>numeric version</strong> order, not name order: the sort is on the parsed integer, so 
+                      <code>[2]</code> precedes <code>[10]</code> where a lexicographic sort would not. They run through the data source's migrator, resolved from its 
+                      <code>type</code> via [TomDbMigrationAdaptor]. A migration tagged for an environment other than the active one is skipped (C-16) — see [TomMigrationFileName.appliesInEnvironment] and [resolveActiveEnvironment].
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1471,8 +1484,180 @@
                     <div id="TomDbMigrations._migrationAdaptorTypes" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static Map&lt;String, TomDbMigrator&gt; _migrationAdaptorTypes</code></div>
                     </div>
+                    <div id="TomDbMigrations._migrationNamePattern" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static RegExp _migrationNamePattern</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The anchored migration-filename pattern: a <code>[&lt;numeric version&gt;]</code> prefix followed by 
+                          <code>-&lt;description&gt;</code> (letters and underscores) and an <strong>optional</strong> environment tag 
+                          <code>@&lt;env&gt;[,&lt;env&gt;…]</code> (C-16), spanning the <em>whole</em> basename (no surrounding text).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomDbMigrations._nonMigrationFileNames" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Set&lt;String&gt; _nonMigrationFileNames</code></div>
+                      <div class="api-doc">
+                        <p>The names, lower-cased, that a schema directory may hold without them being migrations.</p>
+                        <p>
+                          Everything on this list is written by something other than the author of the migration chain: a file explorer (<code>thumbs.db</code>, 
+                          <code>desktop.ini</code>) or a person documenting the directory (<code>readme.md</code>). <code>.DS_Store</code>, 
+                          <code>.gitkeep</code> and an editor's swap file need no entry — they are dot-files, which [isNotAMigrationFile] skips as a class.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomDbMigrations._initializeMigrationAdaptorTypes" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static void _initializeMigrationAdaptorTypes()</code></div>
+                    </div>
+                    <div id="TomDbMigrations.instantiateMigrator" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static TomDbMigrator instantiateMigrator(Object? candidate, Object? Function() construct)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Builds one scanned adaptor candidate, turning either failure mode — a constructor that throws, or a class that does not implement [TomDbMigrator] — into a [TomDbMigrationException] naming [candidate].
+                        </p>
+                        <p>
+                          When [construct] throws, the error and its trace are forwarded as the raised exception's root cause. This is a startup failure on a reflective code path: the candidate's name alone says 
+                          <em>which</em> class could not be built but nothing about <em>why</em> — a missing zero-argument constructor, a throwing field initialiser, a failed dependency lookup all read alike — and that is precisely the context an operator cannot reconstruct from the outside. Forwarding the caught trace rather than letting the exception capture its own matters for the same reason: captured here, the trace describes the scan, from which the constructor has already unwound.
+                        </p>
+                        <p>
+                          Split out of the scan and parameterised by [construct] rather than taking the reflected class, because the scan reads a global registry a test cannot populate — and populating it would be worse than untestable, since a fixture whose constructor throws would break the scan for every real caller. The one call the scan makes on the mirror is therefore the seam, leaving [candidate] to carry the identity for the message.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomDbMigrations.parseMigrationFileName" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static TomMigrationFileName parseMigrationFileName(String basename)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Parses a migration file's [basename] (without extension) into its version, description and optional environment tag.
+                        </p>
+                        <p>
+                          The basename must match <code>[&lt;numeric version&gt;]-&lt;description&gt;[@&lt;env&gt;[,&lt;env&gt;…]]</code>
+                           in full; anything else — surrounding text, a digit inside the description, an empty description, a malformed tag — is rejected with a [TomDbMigrationException] (<code>…illegal_filename_in_migrations_directory</code>).
+                        </p>
+                        <p>
+                          The <code>@&lt;env&gt;</code> tag is optional: <code>[003]-demo_seed@dev</code> parses with <code>environments == ['dev']</code>, 
+                          <code>[000]-app_core_schema</code> with an empty (all-environments) tag.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomDbMigrations.requireMigrationsDirectory" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static void requireMigrationsDirectory(Directory directory, String role)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Asserts that [directory] — playing the role named by [role] — exists, throwing <code>db_migration.migration.migrations_directory_not_found</code>
+                           if it does not.
+                        </p>
+                        <p>
+                          A migration tree a tool is <em>told</em> to walk is an input, not content: absent, it means the configured path is wrong, not that the deployment has no migrations. Tolerating it is the worst available outcome, because both tools then succeed vacuously — the engine reports migrations complete against an untouched database, and [TomSchemaConvergenceCheck.checkAll] returns an empty report list that no call site can tell apart from "every pair converged".
+                        </p>
+                        <p>
+                          A <strong>relative</strong> path is reported with what it resolved to as well, because its usual cause is the right path read from the wrong working directory, and the path alone cannot distinguish that from a typo. An absolute one is already unambiguous and is not repeated.
+                        </p>
+                        <p>
+                          Shared with the convergence check for the reason [collectMigrationFiles] and [orderMigrationNames] are: two entry points over one tree must not disagree about whether the tree being absent is a failure.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomDbMigrations.isNotAMigrationFile" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static bool isNotAMigrationFile(String name)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Whether [name] — a file's basename <em>with</em> its extension — is one a schema directory may hold that is not a migration.
+                        </p>
+                        <p>
+                          A file in a schema directory whose name does not parse is refused, and that stays: a surprising file there is more likely a migration nobody noticed was not running than deliberate clutter, and the cost of the two mistakes is not symmetric. But the argument is about files 
+                          <em>a developer put there</em>. It does not reach the ones an operating system, a file explorer or an editor writes without being asked, and for those the refusal is a hard startup failure whose fix is to delete a file the operator did not create.
+                        </p>
+                        <p>So two classes are skipped, and only two:</p>
+                        <ul>
+                          <li>
+                            <strong>dot-files</strong> — <code>.DS_Store</code>, <code>.gitkeep</code>, <code>.gitignore</code>, and the swap file
+                          </li>
+                        </ul>
+                        <p>
+                          an editor leaves beside the migration it has open, whose name begins with a dot. A dot-file is hidden by convention on every platform this runs on, which is as close as a file system comes to saying "not content"; * the fixed list [_nonMigrationFileNames], matched case-insensitively.
+                        </p>
+                        <p>
+                          Everything else still aborts, which is the point of drawing the line here rather than at the extension. 
+                          <code>[3]-add_index.sqll</code> is a mis-typed migration, <code>[3]-add_index.orig</code> is an editor's backup of one — under an extension filter both would be invisible, and the file that was meant to run would simply not run. Under this rule both are still reported, the second as a duplicate basename.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomDbMigrations.collectMigrationFiles" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static Map&lt;String, File&gt; collectMigrationFiles(Iterable&lt;FileSystemEntity&gt; entries)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Collects the migration files among [entries], keyed by basename without extension — the key everything downstream identifies a migration by.
+                        </p>
+                        <p>
+                          Two files whose basenames collide (<code>[3]-add_index.sql</code> and <code>[3]-add_index.ddl</code>, or a stray 
+                          <code>[3]-add_index.orig</code> beside the real migration) throw <code>db_migration.migration.duplicate_migration_basename</code>, naming both paths.
+                        </p>
+                        <p>
+                          The alternative — keeping whichever the directory listing yielded last — is not a tie-break but a coin toss, and a silent one: the run proceeds as though the tree had always held a single file. It is also the wrong shape for this module, which aborts on a name it cannot parse precisely because a surprising file in a migrations directory is more likely a migration nobody noticed was not running than deliberate clutter. A duplicate is that same hazard with a sharper edge: an editor backup ending in 
+                          <code>.orig</code> strips to the same key as the <code>.sql</code> it was a backup <em>of</em>, so the losing file can be the one that was meant to run.
+                        </p>
+                        <p>
+                          Non-file entries are skipped, so a sub-directory in a schema folder is ignored rather than collected, and so are the entries [isNotAMigrationFile] recognises — the files a machine put in the directory rather than a person.
+                        </p>
+                        <p>
+                          Shared with [TomSchemaConvergenceCheck.readChain] for the reason [orderMigrationNames] is: a check that accepted a tree the engine refuses would report a chain that cannot be applied.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomDbMigrations.orderMigrationNames" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static List&lt;({String basename, TomMigrationFileName parsed})&gt; orderMigrationNames(Iterable&lt;String&gt; basenames)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Parses [basenames] (file basenames without extension) and returns them ordered by <strong>ascending numeric version</strong>, each paired with its parsed [TomMigrationFileName].
+                        </p>
+                        <p>
+                          Ordering is by the parsed integer version — not lexicographic — so e.g. <code>[2]-…</code> precedes <code>[10]-…</code>. Any malformed name reaches [parseMigrationFileName] and throws.
+                        </p>
+                        <p>
+                          Two names claiming the same version throw <code>db_migration.migration.duplicate_migration_version</code>, naming both. A version is what the versioning table records and what a migrator decides "already applied" from, so a pair sharing one cannot both be recorded distinguishably — and the damage outlives the run that causes it. Both scripts apply in the first pass (a migrator's applied-version list is a snapshot taken at initialisation, so the second call cannot see the first), in an order the sort does not define, and the table is left with two rows for one version; the 
+                          <em>next</em> run meets the first of them while being offered the second's script, and reports a description or checksum mismatch — accusing someone of editing a past migration when nobody did.
+                        </p>
+                        <p>
+                          Checked on the parsed integer, so <code>[1]</code> and <code>[001]</code> collide as they should, and checked 
+                          <strong>before</strong> environment selection, so a tagged and an untagged file cannot share a version either. The tag does not make the pair safe: it only decides which of them runs 
+                          <em>here</em>, while the row they collide over is written to a history that a box switched between environments will read back. A tree that is valid on some machines and broken on others is the failure this module exists to prevent, so the answer cannot depend on the active environment — and [TomSchemaConvergenceCheck.readChain], which shares this helper, has no environment to depend on in the first place.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomDbMigrations.resolveActiveEnvironment" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String resolveActiveEnvironment()</code></div>
+                      <div class="api-doc">
+                        <p>The environment name migrations are filtered against (C-16).</p>
+                        <p>
+                          Resolved via [TomRuntime] — never a raw <code>Platform</code>/env-var read (G-ENV-1). When no environment has been initialized the engine falls back to [defaultTomEnvironment]: the production-safe default, under which only untagged migrations apply and every 
+                          <code>@dev</code>/<code>@test</code>-tagged migration is skipped.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomDbMigrations.selectForEnvironment" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static List&lt;({String basename, TomMigrationFileName parsed})&gt; selectForEnvironment(Iterable&lt;({String basename, TomMigrationFileName parsed})&gt; ordered, String environmentName)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Filters an [ordered] migration list to those applying in [environmentName] (C-16), preserving order.</p>
+                        <p>
+                          A migration whose parsed tag does not include [environmentName] is skipped; untagged (schema) migrations always pass. Skipping is a pure omission — the applied-version bookkeeping is unchanged, so a re-run in the same environment stays idempotent.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomDbMigrations.migrateDatabases" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static Future&lt;void&gt; migrateDatabases(String directory)</code></div>
@@ -1480,7 +1665,26 @@
                         <p>Runs all pending migrations under [directory].</p>
                         <p>
                           Walks <code>&lt;directory&gt;/&lt;datasourceName&gt;/&lt;schemaName&gt;/</code> and, for each schema, initialises the data source's migrator and applies every 
-                          <code>[&lt;version&gt;]-&lt;description&gt;.&lt;ext&gt;</code> file in ascending name order. Throws a [TomDbMigrationException] if a data source or migrator is missing, a file name is malformed, or a script fails.
+                          <code>[&lt;version&gt;]-&lt;description&gt;[@&lt;env&gt;[,&lt;env&gt;…]].&lt;ext&gt;</code> file in ascending numeric version order. Migrations tagged for an environment other than the active one ([resolveActiveEnvironment]) are skipped (C-16); untagged migrations always apply. Throws a [TomDbMigrationException] if [directory] does not exist, a data source or migrator is missing, a file name is malformed, or a script fails.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomDbMigrations.migrateDataSource" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static Future&lt;void&gt; migrateDataSource(TomDbMigrator migrator, TomDataSourceInfo dsInfo, Directory dataSourceDirectory, String environmentName)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Applies every schema under [dataSourceDirectory] to data source [dsInfo] through [migrator], selecting migrations for [environmentName].
+                        </p>
+                        <p>
+                          Each immediate sub-directory is one schema. Per schema the migrator is <strong>reset and then re-initialised</strong>, because a migrator's applied-version state belongs to one 
+                          <code>(data source, schema)</code> pair: resetting once for the whole data source would let the first schema's history stand for the second's, and the second schema's version 1 would be silently skipped as already applied. Within a schema, files are applied in ascending numeric version order, skipping any tagged for another environment (C-16).
+                        </p>
+                        <p>
+                          Split out of [migrateDatabases] so the walk can be driven with a caller-supplied [migrator] — the reflection-scanned registry [migrateDatabases] resolves from is not injectable, which left this per-schema lifecycle testable only against a live server.
                         </p>
                       </div>
                     </div>
@@ -1492,7 +1696,11 @@
                   <div class="api-doc">
                     <p>The contract a database-specific migrator implements.</p>
                     <p>
-                      For one schema, [initializeMigration] prepares the version-tracking state (e.g. creating a versioning table and reading already-applied versions) and returns the earliest recorded version (or a sentinel when none). Each migration script is then handed to [applyMigration] in ascending version order; an already-applied version is verified (description/checksum) and skipped, a new one is executed and recorded. [reset] clears per-run state so one migrator instance can serve several data sources of the same type.
+                      A migrator instance serves <strong>one schema at a time</strong>. [initializeMigration] binds it to a 
+                      <code>(data source, schema)</code> pair and prepares that pair's version-tracking state (e.g. creating a versioning table and reading already-applied versions). Each migration script is then handed to [applyMigration] in ascending version order; an already-applied version is verified (description/checksum) and skipped, a new one is executed and recorded. [reset] releases the binding so the same instance can serve the next pair.
+                    </p>
+                    <p>
+                      The unit of state is the <strong>pair</strong>, not the data source: one data source routinely holds several schemas, and each keeps its own applied-version history. A migrator that carried one schema's history into the next would treat the next schema's version 1 as already applied and skip it. The orchestrator therefore resets once per schema, not once per data source — see [TomDbMigrations.migrateDataSource].
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1503,11 +1711,15 @@
                   <div class="api-members">
                     <div id="TomDbMigrator.initializeMigration" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">Future&lt;int&gt; initializeMigration(TomDataSourceInfo dsi, String schemaName)</code>
+                        <code class="api-signature">Future&lt;void&gt; initializeMigration(TomDataSourceInfo dsi, String schemaName)</code>
                       </div>
                       <div class="api-doc">
+                        <p>Binds this migrator to [schemaName] in data source [dsi] and prepares that pair's version tracking.</p>
                         <p>
-                          Prepares version tracking for [schemaName] in data source [dsi] and returns the earliest recorded version (implementation-defined sentinel when nothing has been applied yet).
+                          Binding is a <strong>rebind</strong>: whatever pair the instance was serving before is dropped, along with its applied-version state. An implementation must not accumulate — the version list after this call describes [schemaName] and nothing else.
+                        </p>
+                        <p>
+                          Returns nothing on purpose. The applied-version history it loads is the useful output, and no single number stands for it: "the earliest version" and "the version installed first" are different numbers the moment migrations are applied out of numeric order, which environment tags (C-16) make ordinary. The history belongs to the implementation that knows how to represent it — see [MariadbMigrationAdaptor.versions].
                         </p>
                       </div>
                     </div>
@@ -1525,7 +1737,74 @@
                     </div>
                     <div id="TomDbMigrator.reset" class="api-member">
                       <div class="api-member-head"><code class="api-signature">void reset()</code></div>
-                      <div class="api-doc"><p>Clears per-run state so this migrator can be reused for another data source of the same type.</p></div>
+                      <div class="api-doc">
+                        <p>
+                          Releases the current <code>(data source, schema)</code> binding and its applied-version state, so this instance can serve the next pair.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="TomMigrationFileName" class="api-declaration">
+                  <h3 class="api-decl-title">class TomMigrationFileName</h3>
+                  <code class="api-signature">class TomMigrationFileName</code>
+                  <div class="api-doc">
+                    <p>
+                      A migration file name parsed into its numeric [version], [description] and optional [environments] tag (C-16).
+                    </p>
+                    <p>
+                      Produced by [TomDbMigrations.parseMigrationFileName] from a basename matching the <code>[&lt;numeric version&gt;]-&lt;description&gt;[@&lt;env&gt;[,&lt;env&gt;…]]</code>
+                       scheme.
+                    </p>
+                    <p>
+                      An <strong>untagged</strong> migration ([environments] empty) applies in <strong>every</strong> environment — the safe default, so schema is never accidentally environment-scoped. A 
+                      <strong>tagged</strong> migration applies only when the active environment name is one of [environments] (see [appliesInEnvironment]).
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomMigrationFileName.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          const TomMigrationFileName.new(int version, String description, [List&lt;String&gt; environments = const []])
+                        </code>
+                      </div>
+                      <div class="api-doc"><p>Binds a parsed [version] / [description] / [environments] tag.</p></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="TomMigrationFileName.version" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final int version</code></div>
+                      <div class="api-doc"><p>The numeric version from the <code>[&lt;version&gt;]</code> prefix.</p></div>
+                    </div>
+                    <div id="TomMigrationFileName.description" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String description</code></div>
+                      <div class="api-doc"><p>The <code>&lt;description&gt;</code> part (letters and underscores).</p></div>
+                    </div>
+                    <div id="TomMigrationFileName.environments" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final List&lt;String&gt; environments</code></div>
+                      <div class="api-doc">
+                        <p>The environment names this migration is tagged for, in file order.</p>
+                        <p>
+                          Empty means <strong>untagged</strong> — the migration applies in every environment. A non-empty list restricts the migration to exactly those environments (e.g. 
+                          <code>@dev</code> → <code>['dev']</code>, <code>@dev,test</code> → <code>['dev', 'test']</code>).
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="TomMigrationFileName.appliesInEnvironment" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool appliesInEnvironment(String environmentName)</code></div>
+                      <div class="api-doc">
+                        <p>Whether this migration applies when the active environment is [environmentName].</p>
+                        <p>
+                          An untagged migration ([environments] empty) applies everywhere; a tagged one applies only when [environmentName] is in its tag list. The match is on the environment 
+                          <em>name</em> directly (no hierarchy walk): a <code>@dev</code> migration is skipped under <code>prod</code>, applied under 
+                          <code>dev</code>.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>

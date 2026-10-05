@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1385,7 +1391,13 @@
             <h2></h2>
             <a class="crosslink" href="/api/tom_d4rt_ast">← tom_d4rt_ast API</a>
             <div class="treewrap">
-              <div class="treepane"><div class="treenodes"><a class="leaf" href="#AstModuleLoader">AstModuleLoader</a></div></div>
+              <div class="treepane">
+                <div class="treenodes">
+                  <a class="leaf" href="#AstModuleLoader">AstModuleLoader</a>
+                  <a class="leaf" href="#_InFlightModule">_InFlightModule</a>
+                  <a class="leaf" href="#_ownTopLevelNames">_ownTopLevelNames</a>
+                </div>
+              </div>
               <div class="reader">
                 <h2 class="api-library-title">package:tom_d4rt_ast/src/runtime/ast_module_loader.dart</h2>
                 <code class="api-import">import 'package:tom_d4rt_ast/src/runtime/ast_module_loader.dart';</code>
@@ -1418,7 +1430,7 @@
                     <div id="AstModuleLoader.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          AstModuleLoader.new({required Map&lt;String, SCompilationUnit&gt; modules, required Environment globalEnvironment, required D4rtRunner runner})
+                          AstModuleLoader.new({required Map&lt;String, SCompilationUnit&gt; modules, required Environment globalEnvironment, required D4rtRunner runner, Map&lt;String, String&gt;? sources, Map&lt;String, Environment&gt;? sharedBridgedModuleEnvironments, Environment? sharedModuleEnclosing, void Function()?? onBridgedModuleEnvBuilt})
                         </code>
                       </div>
                       <div class="api-doc">
@@ -1437,10 +1449,29 @@
                       <div class="api-member-head"><code class="api-signature">final Map&lt;String, SCompilationUnit&gt; modules</code></div>
                       <div class="api-doc"><p>Pre-parsed modules from the bundle, keyed by URI string.</p></div>
                     </div>
+                    <div id="AstModuleLoader.sources" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Map&lt;String, String&gt;? sources</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The bundle's source text by module URI, when it was built with it (<code>AstBundle.sources</code>). Read only by diagnostics that quote source (SCE236); execution never needs it.
+                        </p>
+                      </div>
+                    </div>
                     <div id="AstModuleLoader.globalEnvironment" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">final Environment globalEnvironment</code>
                         <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="AstModuleLoader.callStack" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">final D4rtCallStack callStack</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          The interpreted call stack of the run this loader serves, located through the bundle's [sources] — a bundle built without them yields empty traces.
+                        </p>
                       </div>
                     </div>
                     <div id="AstModuleLoader.currentLibrary" class="api-member">
@@ -1457,6 +1488,14 @@
                       <div class="api-member-head"><code class="api-signature">final Map&lt;Uri, LoadedModule&gt; _moduleCache</code></div>
                       <div class="api-doc"><p>Cache of already-loaded modules to avoid reprocessing.</p></div>
                     </div>
+                    <div id="AstModuleLoader._inFlightModules" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Map&lt;Uri, _InFlightModule&gt; _inFlightModules</code></div>
+                      <div class="api-doc">
+                        <p>
+                          DFUB10 — modules currently being loaded, keyed like [_moduleCache]. A URI is present here only between the start of its directive processing and its completion.
+                        </p>
+                      </div>
+                    </div>
                     <div id="AstModuleLoader._registeredStdlibs" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final Set&lt;String&gt; _registeredStdlibs</code></div>
                       <div class="api-doc"><p>Tracks which stdlib modules have been registered to avoid duplicates.</p></div>
@@ -1464,6 +1503,35 @@
                     <div id="AstModuleLoader._registeredBridgeUris" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final Set&lt;String&gt; _registeredBridgeUris</code></div>
                       <div class="api-doc"><p>Tracks which bridged library URIs have been processed.</p></div>
+                    </div>
+                    <div id="AstModuleLoader.loadedModuleCount" class="api-member"><div class="api-member-head"><code class="api-signature">int loadedModuleCount</code></div></div>
+                    <div id="AstModuleLoader.sharedBridgedModuleEnvironments" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">final Map&lt;String, Environment&gt;? sharedBridgedModuleEnvironments</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Optional process-global cache of bridged-module environments keyed by module URI, shared across every execution that has the same allowed-set signature (PERF step #2). When supplied, [_tryLoadBridgedModule] reuses an already-built module env instead of re-registering the ~982-class flutter bridge surface on every run. 
+                          <code>null</code> for legacy (empty allowed-set) instances, which keep the per-loader [_bridgedModuleEnvironments] cache.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="AstModuleLoader.sharedModuleEnclosing" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Environment? sharedModuleEnclosing</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Enclosing environment for entries built into [sharedBridgedModuleEnvironments]. Must be the shared warm parent (not the per-execution global environment), so a cached module env is safe to reuse across executions. 
+                          <code>null</code> falls back to [globalEnvironment].
+                        </p>
+                      </div>
+                    </div>
+                    <div id="AstModuleLoader.onBridgedModuleEnvBuilt" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final void Function()?? onBridgedModuleEnvBuilt</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Invoked once each time a bridged-module env is actually built (cache miss). Lets the runner expose a debug build counter for the reuse unit test.
+                        </p>
+                      </div>
                     </div>
                     <div id="AstModuleLoader._stdlibEnvironments" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final Map&lt;String, Environment&gt; _stdlibEnvironments</code></div>
@@ -1490,16 +1558,53 @@
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
+                    <div id="AstModuleLoader.releaseLoadedModules" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void releaseLoadedModules()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Step #3 (retention) — drops the per-loader parsed-module cache so a finished run's [SCompilationUnit] graph becomes collectable. Only the per-loader [_moduleCache] is cleared; the process-global shared bridge caches ([sharedBridgedModuleEnvironments] et al.) are untouched. A subsequent execute rebuilds the loader and re-populates the cache.
+                        </p>
+                      </div>
+                    </div>
                     <div id="AstModuleLoader.checkPermission" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">bool checkPermission(dynamic operation)</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
+                    <div id="AstModuleLoader._checkModulePermissions" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void _checkModulePermissions(Uri uri)</code></div>
+                      <div class="api-doc">
+                        <p>Refuses a dangerous <code>dart:</code> import unless the embedder granted the matching capability.</p>
+                        <p>
+                          SCE166 — THE MIRROR OF <code>ModuleLoader._checkModulePermissions</code>, which this tree did not have. Both permission classes were DECLARED here and consulted nowhere, so a bundle could import 
+                          <code>dart:isolate</code>, build <code>ReceivePort</code>s and call <code>Isolate.spawn</code> with nothing granted — and 
+                          <code>dart:io</code> was equally open.
+                        </p>
+                        <p>
+                          The place matters more than the gap. This is the tree that ships inside Flutter apps executing bundles downloaded at runtime, which is exactly the deployment where an ungated capability counts. A permission class present in the public API but never consulted is worse than an absent one: an embedder reading 
+                          <code>IsolatePermission</code> reasonably concludes the capability is gated.
+                        </p>
+                        <p>
+                          Called BEFORE the module cache is consulted, as the reference does, so a second import of an already-loaded library is gated too. A check behind the cache would admit everything after the first grant-then-revoke.
+                        </p>
+                      </div>
+                    </div>
                     <div id="AstModuleLoader.loadModule" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">LoadedModule loadModule(Uri uri, {Set&lt;String&gt;? showNames, Set&lt;String&gt;? hideNames})</code>
                         <span class="api-badge api-badge--override">override</span>
+                      </div>
+                      <div class="api-doc">
+                        <p>Loads (or returns the cached) module for [uri].</p>
+                        <p>
+                          DFUB10 — the real work lives in [_loadModule]; this wrapper only guarantees that a <em>failed</em> load drops its in-flight registration, so an abandoned partial is never handed out on a later execute.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="AstModuleLoader._loadModule" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">LoadedModule _loadModule(Uri uri, {Set&lt;String&gt;? showNames, Set&lt;String&gt;? hideNames})</code>
                       </div>
                     </div>
                     <div id="AstModuleLoader._loadStdlibModule" class="api-member">
@@ -1527,13 +1632,13 @@
                     </div>
                     <div id="AstModuleLoader._hasBridgedContent" class="api-member">
                       <div class="api-member-head"><code class="api-signature">bool _hasBridgedContent(String uriString)</code></div>
-                      <div class="api-doc"><p>Checks if the runner has any bridged content for the given URI.</p></div>
-                    </div>
-                    <div id="AstModuleLoader._anyEntryMatches" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">bool _anyEntryMatches&lt;T&gt;(List&lt;Map&lt;String, T&gt;&gt; entries, String key)</code>
+                      <div class="api-doc">
+                        <p>Checks if the runner has any bridged content for the given URI.</p>
+                        <p>
+                          Step 1 (import-optimization plan): the registries are now URI-keyed, so this is an O(1) <code>containsKey</code>
+                           per registry instead of scanning the whole list.
+                        </p>
                       </div>
-                      <div class="api-doc"><p>Checks if any map entry in a list has the given key.</p></div>
                     </div>
                     <div id="AstModuleLoader._registerBridgesForUriInto" class="api-member">
                       <div class="api-member-head">
@@ -1621,6 +1726,24 @@
                       </div>
                       <div class="api-doc"><p>Processes export directives, merging exported modules into [exportedEnv].</p></div>
                     </div>
+                    <div id="AstModuleLoader._inFlightFor" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">_InFlightModule? _inFlightFor(LoadedModule module)</code></div>
+                      <div class="api-doc">
+                        <p>DFUB10 — the in-flight entry that owns [module], or null when the module is fully loaded.</p>
+                        <p>
+                          The scan is over the current import-nesting depth (one entry per module on the load stack), not over the module cache, so it stays tiny.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="AstModuleLoader._mergeFromModule" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void _mergeFromModule(LoadedModule source, void Function() merge)</code></div>
+                      <div class="api-doc">
+                        <p>DFUB10 — runs [merge] now and schedules a replay when [source] is only partially loaded.</p>
+                        <p>
+                          <code>Environment.importEnvironment</code> copies bindings at call time; a merge that runs against a module still walking its own directives therefore captures an incomplete — often empty — export set and would never self-heal. Replaying once [source] finishes fills in the rest.
+                        </p>
+                      </div>
+                    </div>
                     <div id="AstModuleLoader._resolveUri" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Uri _resolveUri(Uri importUri, Uri moduleUri)</code></div>
                       <div class="api-doc"><p>Resolves an import/export URI relative to its containing module.</p></div>
@@ -1639,17 +1762,83 @@
                   </div>
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
+                    <div id="AstModuleLoader.stdlibModuleNames" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Iterable&lt;String&gt; stdlibModuleNames</code></div>
+                    </div>
+                    <div id="AstModuleLoader._latentStdlib" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Environment _latentStdlib</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Every stdlib library's bridges in one environment, built once per process (SCF44). See [Environment.latentBridgeLookup]. One environment is sound because SCC76 holds the stdlib modules free of duplicate names.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="AstModuleLoader._latentPrecise" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Map&lt;Type, BridgedClass?&gt; _latentPrecise</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Answers by native type, cached, so a type no bridge claims is looked up once rather than on every speculative wrap. Keyed by 
+                          <code>(type, structural)</code>.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="AstModuleLoader._latentStructural" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Map&lt;Type, BridgedClass?&gt; _latentStructural</code></div>
+                    </div>
                     <div id="AstModuleLoader._stdlibRegistrars" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">static Map&lt;String, void Function(Environment)??&gt; _stdlibRegistrars</code>
                       </div>
+                    </div>
+                    <div id="AstModuleLoader.latentStdlibBridgeFor" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static BridgedClass? latentStdlibBridgeFor(Type nativeType, {bool structural = false})</code>
+                      </div>
                       <div class="api-doc">
-                        <p>Known stdlib modules and their registration functions.</p>
+                        <p>The stdlib bridge for [nativeType] from any stdlib library, imported or not.</p>
                         <p>
-                          Maps <code>dart:xxx</code> path names to their registration callbacks. <code>null</code> means the module is handled by [Stdlib.register] at init time (core, async) and requires no additional registration.
+                          Precise (the default): the exact type, else the bridge whose name or <code>nativeNames</code> equals the type's name (without type arguments, a leading underscore or an 
+                          <code>Impl</code> suffix). [structural]: SCC49's suffix rule, which the caller asks only after the imported scope's own suffix rule missed — so an imported library still wins at each tier, and widening to every library never lets a guess outrank a declared match.
                         </p>
                       </div>
                     </div>
+                  </div>
+                </section>
+                <section id="_InFlightModule" class="api-declaration">
+                  <h3 class="api-decl-title">class _InFlightModule</h3>
+                  <code class="api-signature">class _InFlightModule</code>
+                  <div class="api-doc">
+                    <p>DFUB10 — a module whose load is still in flight.</p>
+                    <p>
+                      Registered before a module's import/export directives are walked, so that a cyclic re-entry gets this partial entry back instead of recursing forever. Circular imports and exports are legal Dart and must load, so we support the cycle rather than rejecting it.
+                    </p>
+                    <p>
+                      [deferredMerges] exists because [Environment.importEnvironment] copies bindings at call time rather than aliasing the source environment. A module that merges from an in-flight module therefore copies an incomplete — often empty — set of exports. Each such merge is recorded here and replayed once the in-flight module finishes, at which point its exports are complete. The replay is idempotent: 
+                      <code>importEnvironment</code> skips names already bound to the identical value, so re-merging costs nothing and cannot raise a spurious conflict.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="_InFlightModule.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">_InFlightModule.new(LoadedModule partial)</code></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="_InFlightModule.partial" class="api-member"><div class="api-member-head"><code class="api-signature">final LoadedModule partial</code></div></div>
+                    <div id="_InFlightModule.deferredMerges" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final List&lt;void Function()&gt; deferredMerges</code></div>
+                    </div>
+                  </div>
+                </section>
+                <section id="_ownTopLevelNames" class="api-declaration">
+                  <h3 class="api-decl-title">function _ownTopLevelNames</h3>
+                  <code class="api-signature">Set&lt;String&gt; _ownTopLevelNames(SCompilationUnit unit)</code>
+                  <div class="api-doc">
+                    <p>
+                      The names a module declares at its top level (DFIN6): what its exported environment carries before its 
+                      <code>export</code> directives are applied. Imported names are not among them.
+                    </p>
                   </div>
                 </section>
               </div>

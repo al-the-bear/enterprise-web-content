@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1391,14 +1397,18 @@
                   <a class="leaf" href="#TomBeanLocatorException">TomBeanLocatorException</a>
                   <a class="leaf" href="#TomComponent">TomComponent</a>
                   <a class="leaf" href="#TomNoInterface">TomNoInterface</a>
-                  <a class="leaf" href="#TomNullInterface">TomNullInterface</a>
                   <a class="leaf" href="#_TomImplementationInfo">_TomImplementationInfo</a>
+                  <a class="leaf" href="#_TomNullInterface">_TomNullInterface</a>
                   <a class="leaf" href="#_discoverAndInstantiateBeans">_discoverAndInstantiateBeans</a>
+                  <a class="leaf" href="#_environmentMatches">_environmentMatches</a>
                   <a class="leaf" href="#_findImplementors">_findImplementors</a>
                   <a class="leaf" href="#_instantiateConcreteBean">_instantiateConcreteBean</a>
                   <a class="leaf" href="#_instantiateInterfaceBean">_instantiateInterfaceBean</a>
-                  <a class="leaf" href="#_validateBeanReferences">_validateBeanReferences</a>
+                  <a class="leaf" href="#_platformMatches">_platformMatches</a>
+                  <a class="leaf" href="#_refuseConstructorArguments">_refuseConstructorArguments</a>
+                  <a class="leaf" href="#_requireCurrentEnvironment">_requireCurrentEnvironment</a>
                   <a class="leaf" href="#initializeBeanContext">initializeBeanContext</a>
+                  <a class="leaf" href="#validateBeanReferences">validateBeanReferences</a>
                 </div>
               </div>
               <div class="reader">
@@ -1476,6 +1486,9 @@ final user = userService().getUser(id);  // Calls get() then getUser()</code></p
                         <p>[name] The registered name of the bean.</p>
                         <p>Example:</p>
                         <pre><code>final config = TomBean&lt;AppConfig&gt;.fromName("appConfig").get();</code></pre>
+                        <p>
+                          The name need not be registered yet. A handle may be held as a field and the bean registered later in startup; the handle resolves on first use. [initializeBeanContext] does not force such a handle to resolve — see [validateBeanReferences] — so a still-unregistered name is not a boot failure.
+                        </p>
                       </div>
                     </div>
                     <div id="TomBean.withName" class="api-member">
@@ -1488,6 +1501,23 @@ final user = userService().getUser(id);  // Calls get() then getUser()</code></p
                         <pre><code>TomBean.withName("config", AppConfig());</code></pre>
                       </div>
                     </div>
+                    <div id="TomBean.overrideWithName" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">factory TomBean.overrideWithName(String name, Object bean)</code></div>
+                      <div class="api-doc">
+                        <p>Registers a named bean, replacing whatever was registered under [name].</p>
+                        <p>
+                          Where [TomBean.withName] refuses a name that is already taken — the guard that stops two startup paths from silently clobbering each other — this factory is the deliberate exception, for substituting an implementation in a test.
+                        </p>
+                        <p>Example:</p>
+                        <pre><code>TomBean.overrideWithName("config", StubAppConfig());</code></pre>
+                        <p>Two consequences are worth knowing, because both fail silently:</p>
+                        <ul><li>A handle that has already resolved keeps the instance it resolved. Only</li></ul>
+                        <p>
+                          handles created (or first used) after the override see the replacement. - [initializeBeanContext] empties the registry, so an override must be applied 
+                          <em>after</em> the pass that would otherwise bind the original.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomBean.withType" class="api-member">
                       <div class="api-member-head"><code class="api-signature">factory TomBean.withType(Type t, Object bean)</code></div>
                       <div class="api-doc">
@@ -1497,7 +1527,38 @@ final user = userService().getUser(id);  // Calls get() then getUser()</code></p
                         <p>Example:</p>
                         <pre><code>TomBean.withType(UserService, UserServiceImpl());</code></pre>
                         <p>
-                          Note: This will take precedence over any @TomComponent registrations for the same type. This is useful for testing or if environment/platform-specific selection is not desired or cannot be expressed via annotations.
+                          Note: registering a type <em>before</em> [initializeBeanContext] takes precedence over any <code>@TomComponent</code>
+                           registration for the same type — discovery leaves a key that is already bound alone. To substitute an implementation once the context is initialized, use [TomBean.overrideWithType]; this factory throws there rather than replacing.
+                        </p>
+                        <p>
+                          <strong>[bean] is not checked against [t] here, and cannot be.</strong> [t] arrives as a <code>Type</code>
+                           <em>value</em>, and Dart has no expression that decides whether an object is an instance of one: <code>is</code>
+                           needs a type, not a value of type <code>Type</code>. Reflection does not close the gap either, and that is measured rather than assumed — 
+                          <code>tomReflector.canReflectType</code> answers false for any class carrying no <code>@tomReflector</code>, which is precisely the population this factory exists to serve, and 
+                          <code>superinterfaces</code> comes back empty even for a class it can reflect.
+                        </p>
+                        <p>
+                          So the check happens where the relation <em>is</em> decidable: resolving <code>TomBean&lt;X&gt;()</code>
+                           has a real type argument, and a bean registered under <code>X</code> that is not an <code>X</code> raises 
+                          <code>beanlocator.bean_access.bean_not_assignable_to_type</code> naming both the type asked for and the type found — rather than reporting the bean as missing, which sends the reader looking for a registration that is in fact right there.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBean.overrideWithType" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">factory TomBean.overrideWithType(Type t, Object bean)</code></div>
+                      <div class="api-doc">
+                        <p>Registers a bean by type, replacing whatever was registered under [t].</p>
+                        <p>
+                          Where [TomBean.withType] refuses a type that is already bound — the guard that stops two startup paths from silently clobbering each other — this factory is the deliberate exception, for substituting an implementation in a test:
+                        </p>
+                        <pre><code>initializeBeanContext();
+TomBean.overrideWithType(UserService, MockUserService());</code></pre>
+                        <p>Three consequences are worth knowing, because all three fail silently:</p>
+                        <ul><li>A handle that has already resolved keeps the instance it resolved. Only</li></ul>
+                        <p>
+                          handles created (or first used) after the override see the replacement. - [initializeBeanContext] empties the registry, so an override must be applied 
+                          <em>after</em> the pass, and re-applied after every later pass. - [bean] must be assignable to the type consumers ask for. It is not checked here — see [TomBean.withType] for why that is not possible — and a mismatch is raised by resolution as 
+                          <code>beanlocator.bean_access.bean_not_assignable_to_type</code>.
                         </p>
                       </div>
                     </div>
@@ -1512,6 +1573,7 @@ final user = userService().getUser(id);  // Calls get() then getUser()</code></p
                       <div class="api-member-head"><code class="api-signature">String? _name</code></div>
                       <div class="api-doc"><p>The registered name for named beans.</p></div>
                     </div>
+                    <div id="TomBean._awaitsNamedRegistration" class="api-member"><div class="api-member-head"><code class="api-signature">bool _awaitsNamedRegistration</code></div></div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
@@ -1526,6 +1588,9 @@ final user = userService().getUser(id);  // Calls get() then getUser()</code></p
                         <p>
                           Resolution strategy: 1. If already resolved, return cached instance 2. If named, look up by name in context 3. Otherwise, search by type assignability
                         </p>
+                        <p>
+                          Only a <em>successful</em> resolution caches. A handle that failed — nothing registered, or two implementations satisfying the same type — holds no instance, so every later call re-runs the lookup and throws again with the same key and the same parameters. A failure that answered once and then started returning a value would be worse than the failure.
+                        </p>
                         <p>Throws [TomBeanLocatorException] if resolution fails.</p>
                       </div>
                     </div>
@@ -1535,7 +1600,12 @@ final user = userService().getUser(id);  // Calls get() then getUser()</code></p
                     </div>
                     <div id="TomBean._resolveByType" class="api-member">
                       <div class="api-member-head"><code class="api-signature">T _resolveByType()</code></div>
-                      <div class="api-doc"><p>Resolves bean by type assignability.</p></div>
+                      <div class="api-doc">
+                        <p>Resolves bean by type assignability.</p>
+                        <p>
+                          The walk collects <strong>every</strong> assignable bean before deciding anything, and nothing writes [_bean] until exactly one candidate is known. That ordering is the point: assigning the first match as it is found and only raising on the second leaves the handle holding that first match, so [get] short- circuits on the cache and every later call answers with whichever implementation the registry happened to iterate first — the arbitrary resolution the ambiguity error exists to prevent, and silent, because the caller who receives the answer is not the caller who saw the throw. Ambiguity is an error, not a preference, so it is raised on every call.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomBean.call" class="api-member">
                       <div class="api-member-head"><code class="api-signature">T call()</code></div>
@@ -1557,9 +1627,26 @@ final user = service().getUser(123);  // Equivalent to service.get().getUser(123
                   </div>
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
-                    <div id="TomBean._tomBeanContext" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static Map&lt;Object, Object&gt; _tomBeanContext</code></div>
-                      <div class="api-doc"><p>The global bean context mapping types/names to instances.</p></div>
+                    <div id="TomBean._tomBeansByType" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Map&lt;Type, Object&gt; _tomBeansByType</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Beans registered under a [Type] — by [TomBean.withType], by [installByEnvironment], and by annotation discovery.
+                        </p>
+                        <p>
+                          Separate from [_tomBeansByName] rather than one <code>Map&lt;Object, Object&gt;</code> holding both, because the two are different namespaces that were only sharing a container. A 
+                          <code>String</code> key can never equal a <code>Type</code> key, so the shared map was not <em>unsafe</em>; what it cost was that nothing said so. The declaration named 
+                          <code>Object</code>, which is the one thing a registry should never be vague about; [_resolveByType] had to skip non-<code>Type</code>
+                           keys at runtime, a filter the type system expresses for free; and that walk iterated every named bean in order to reject it. Nothing reads the two together — resolution by name and resolution by type are separate methods with separate errors — so the only operation spanning both is emptying them, which [resetBeanContext] and a re-run of [initializeBeanContext] each do explicitly.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBean._tomBeansByName" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Map&lt;String, Object&gt; _tomBeansByName</code></div>
+                      <div class="api-doc">
+                        <p>Beans registered under a name, by [TomBean.withName].</p>
+                        <p>See [_tomBeansByType] for why the two registries are separate.</p>
+                      </div>
                     </div>
                     <div id="TomBean._tomBeanList" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static List&lt;TomBean&lt;dynamic&gt;&gt; _tomBeanList</code></div>
@@ -1569,6 +1656,28 @@ final user = service().getUser(123);  // Equivalent to service.get().getUser(123
                       <div class="api-member-head"><code class="api-signature">static bool _initialized</code></div>
                       <div class="api-doc"><p>Whether the bean context has been initialized.</p></div>
                     </div>
+                    <div id="TomBean.installByEnvironment" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static TomBean&lt;T&gt; installByEnvironment&lt;T&gt;(Map&lt;String, T Function()&gt; factories, {String? environment})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Selects and installs exactly one implementation of [T] by the current runtime environment.</p>
+                        <p>
+                          [factories] maps an environment name to the factory that builds the implementation for that environment. The active environment name — taken from [environment] when given, otherwise [TomRuntime.getCurrentEnvironment] — selects which single factory runs; the built instance is registered by type via [TomBean.withType], so a later 
+                          <code>TomBean&lt;T&gt;().get()</code> resolves it.
+                        </p>
+                        <p>
+                          This is the environment-selector form of dependency injection: the caller picks the environment <em>name</em>
+                           (e.g. from a launch flag), and the locator picks the collaborator from that name. Exactly one factory runs and exactly one bean is registered — there is no runtime dispatcher choosing between two installed implementations.
+                        </p>
+                        <p>
+                          Throws [TomBeanLocatorException] if no factory is registered for the active environment. A missing mapping is a wiring bug, not a silent fallback. The same exception type — key 
+                          <code>beanlocator.environment.runtime_environment_not_initialized</code> — reports an unconfigured runtime when [environment] is omitted and there is no active environment to read. Passing [environment] answers that question at the call site, so it needs no configured runtime at all.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomBean.getBeanByType" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static Object? getBeanByType(Type type)</code></div>
                       <div class="api-doc"><p>Returns the bean registered for [type], or null if not found.</p></div>
@@ -1576,6 +1685,18 @@ final user = service().getUser(123);  // Equivalent to service.get().getUser(123
                     <div id="TomBean.getBeanByName" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static Object? getBeanByName(String name)</code></div>
                       <div class="api-doc"><p>Returns the bean registered with [name], or null if not found.</p></div>
+                    </div>
+                    <div id="TomBean.resetBeanContext" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static void resetBeanContext()</code></div>
+                      <div class="api-doc">
+                        <p>Clears all registered beans and resets the initialization flag.</p>
+                        <p>
+                          This empties the global bean context, drops every pending unresolved handle, and marks the context as uninitialized so a subsequent [initializeBeanContext] starts from a clean slate.
+                        </p>
+                        <p>
+                          The bean context is process-global static state. Without a way to clear it, registrations leak between independent units of work — most visibly in tests, where a bean registered by one test would otherwise still be present in the next. Call this between such units to isolate them.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>
@@ -1588,20 +1709,34 @@ final user = service().getUser(123);  // Equivalent to service.get().getUser(123
                       This exception is used throughout the bean locator system to indicate errors during: - Bean instantiation and registration - Bean resolution by name or type - Duplicate bean detection
                     </p>
                     <h2>Exception Keys</h2>
-                    <ul>
-                      <li><code>beanlocator.initialization.duplicate_bean_with_name</code>: Duplicate named bean</li>
-                      <li><code>beanlocator.bean_access.bean_not_found_by_name</code>: Named bean not found</li>
-                      <li><code>beanlocator.bean_access.bean_not_found_by_type</code>: Type mismatch for named bean</li>
-                      <li><code>beanlocator.bean_access.no_bean_found_uninitialized</code>: Unresolved bean</li>
-                      <li><code>beanlocator.initialization.no_matching_implementation_found</code>: No implementation</li>
-                    </ul>
+                    <p>
+                      This is the complete set the module raises — every failure inside the bean locator arrives as this type, so 
+                      <code>on TomBeanLocatorException</code> is a sufficient handler.
+                    </p>
+                    <ul><li><code>beanlocator.initialization.duplicate_bean_with_name</code>: [TomBean.withName]</li></ul>
+                    <p>
+                      was given a name another bean already occupies. Use [TomBean.overrideWithName] to replace a binding deliberately - 
+                      <code>beanlocator.initialization.duplicate_bean_with_type</code>: [TomBean.withType] was given a type another bean already occupies, including one discovery has bound. Use [TomBean.overrideWithType] to replace a binding deliberately - 
+                      <code>beanlocator.initialization.no_matching_implementation_found</code>: every implementation of an interface was ruled out by its 
+                      <code>@TomEnvironment</code> or <code>@TomPlatform</code> selector, leaving discovery nothing to bind - 
+                      <code>beanlocator.initialization.ambiguous_implementation</code>: two implementations qualify equally for one interface - 
+                      <code>beanlocator.initialization.constructor_takes_arguments</code>: a discovered component declares a constructor with a required parameter, and discovery calls the unnamed constructor with no arguments - 
+                      <code>beanlocator.bean_access.bean_not_found_by_name</code>: nothing is registered under the name the handle resolves by - 
+                      <code>beanlocator.bean_access.bean_not_found_by_type</code>: a bean is registered under the name, but is not an instance of the type the handle asks for - 
+                      <code>beanlocator.bean_access.no_bean_found_uninitialized</code>: nothing is registered for the requested type — typically a handle resolved before [initializeBeanContext] ran, or an interface with no component - 
+                      <code>beanlocator.bean_access.bean_not_assignable_to_type</code>: the requested type <em>is</em> registered, but to something that is not an instance of it. The sibling of the key above, and worth its own: a caller told the bean is missing goes looking for a registration that is right there - 
+                      <code>beanlocator.bean_access.more_than_one_implementation_found</code>: two registered beans satisfy one requested type - 
+                      <code>beanlocator.environment.no_factory_for_environment</code>: <code>installByEnvironment</code> has no factory for the active environment - 
+                      <code>beanlocator.environment.runtime_environment_not_initialized</code>: An operation needed the active environment and the runtime was never configured. The 
+                      <code>operation</code> and <code>subject</code> parameters name what was being wired.
+                    </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomBeanLocatorException.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomBeanLocatorException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, Object? stack, Object? rootException, bool autoLog = false})
+                          TomBeanLocatorException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, StackTrace? stack, Object? rootException, bool autoLog = false})
                         </code>
                       </div>
                       <div class="api-doc">
@@ -1636,6 +1771,36 @@ class MyUserServiceImpl implements UserService { ... }</code></pre>
 @TomComponent(UserService)
 @TomEnvironment("test", isTest: true)
 class MockUserService implements UserService { ... }</code></pre>
+                    <p>
+                      A selector matches the active deployment when the <strong>names</strong> agree — which <code>TomEnvironment</code>
+                       or <code>TomPlatform</code> instance carries the name is irrelevant, so the environment <code>TomRuntime</code>
+                       is given may be built at runtime from configuration. The name is the identity: <code>TomEnvironment("test")</code>
+                       and <code>TomEnvironment("test", isTest: true)</code> are the same environment as far as selection is concerned, and 
+                      <code>"none"</code> is reserved for the sentinels that mean "unconstrained".
+                    </p>
+                    <h2>Dependencies come from fields, not from the constructor</h2>
+                    <p>
+                      Discovery builds every component by calling its <strong>unnamed constructor with no arguments</strong>. A component cannot therefore declare its dependencies as constructor parameters; it holds [TomBean] fields and resolves them on use:
+                    </p>
+                    <pre><code>@tomReflector
+@TomComponent(OrderService)
+class OrderServiceImpl implements OrderService {
+  final TomBean&lt;UserService&gt; _users = TomBean();
+
+  Order place(int id) =&gt; Order(_users.get().find(id));
+}</code></pre>
+                    <p>
+                      Declaring a required parameter anyway is refused by name at discovery with <code>beanlocator.initialization.constructor_takes_arguments</code>, rather than left to fail inside the reflector. Three consequences are worth knowing before designing around the constraint:
+                    </p>
+                    <ul>
+                      <li><strong>A component cannot be immutable in its dependencies.</strong> A <code>final</code> field</li>
+                    </ul>
+                    <p>
+                      holding the collaborator itself cannot be initialized, because there is no constructor argument to initialize it from. The 
+                      <code>final</code> above is on the <em>handle</em>, which is a weaker promise: the handle cannot be replaced, but what it resolves to is decided later. - 
+                      <strong>A missing dependency is not detected at construction.</strong> The component builds regardless; the binding is answered for when the handle resolves, or by the next [validateBeanReferences] pass while it is still pending. - 
+                      <strong>Optional parameters are not affected.</strong> The pass omits them, so a defaulted argument is no obstacle to discovery.
+                    </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
@@ -1680,15 +1845,6 @@ class MockUserService implements UserService { ... }</code></pre>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomNoInterface.new" class="api-member"><div class="api-member-head"><code class="api-signature">TomNoInterface.new()</code></div></div>
-                  </div>
-                </section>
-                <section id="TomNullInterface" class="api-declaration">
-                  <h3 class="api-decl-title">class TomNullInterface</h3>
-                  <code class="api-signature">abstract class TomNullInterface</code>
-                  <div class="api-doc"><p>Marker interface indicating a null/missing component.</p></div>
-                  <h4 class="api-group-title">Constructors</h4>
-                  <div class="api-members">
-                    <div id="TomNullInterface.new" class="api-member"><div class="api-member-head"><code class="api-signature">TomNullInterface.new()</code></div></div>
                   </div>
                 </section>
                 <section id="_TomImplementationInfo" class="api-declaration">
@@ -1739,47 +1895,65 @@ class MockUserService implements UserService { ... }</code></pre>
                         <p>
                           Selection priority (highest to lowest): 1. Exact match: both environment AND platform match 2. Platform match: platform matches, no environment constraint 3. Environment match: environment matches, no platform constraint 4. Default: no environment or platform constraints
                         </p>
-                        <p>Returns null if no suitable implementation is found.</p>
+                        <p>
+                          Each tier reuses the same single-winner scan ([_findSingleMatch]); only the candidate predicate differs. Returns null if no tier matches.
+                        </p>
+                        <p>
+                          The tiers are tried in order and the first one with a match wins, so a lower tier never overrides a higher one. A tier with 
+                          <em>two</em> matches is an error rather than a reason to fall through — see [_findSingleMatch].
+                        </p>
                       </div>
                     </div>
-                    <div id="_TomImplementationInfo._findExactMatch" class="api-member">
+                    <div id="_TomImplementationInfo._findSingleMatch" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          static ClassMirror&lt;dynamic&gt;? _findExactMatch(List&lt;_TomImplementationInfo&gt; infos, TomComponent tc)
+                          static ClassMirror&lt;dynamic&gt;? _findSingleMatch(List&lt;_TomImplementationInfo&gt; infos, TomComponent tc, bool Function(_TomImplementationInfo) matches, String matchDescription)
                         </code>
                       </div>
-                      <div class="api-doc"><p>Finds implementation matching both environment and platform.</p></div>
-                    </div>
-                    <div id="_TomImplementationInfo._findPlatformMatch" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">
-                          static ClassMirror&lt;dynamic&gt;? _findPlatformMatch(List&lt;_TomImplementationInfo&gt; infos, TomComponent tc)
-                        </code>
+                      <div class="api-doc">
+                        <p>Returns the single candidate satisfying [matches], or null if none does.</p>
+                        <p>
+                          Throws [TomBeanLocatorException] when two candidates satisfy [matches]: within one tier the selectors carry no further information, so there is no principled way to prefer one over the other. Picking either would silently bind a deployment to an arbitrary implementation — the failure mode where the code runs, the tests pass, and production misbehaves. An ambiguous binding is a wiring bug, and it must surface as one.
+                        </p>
+                        <p>[matchDescription] names the tier for the trace log and the error.</p>
                       </div>
-                      <div class="api-doc"><p>Finds implementation matching platform only (no environment constraint).</p></div>
                     </div>
-                    <div id="_TomImplementationInfo._findEnvironmentMatch" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">
-                          static ClassMirror&lt;dynamic&gt;? _findEnvironmentMatch(List&lt;_TomImplementationInfo&gt; infos, TomComponent tc)
-                        </code>
-                      </div>
-                      <div class="api-doc"><p>Finds implementation matching environment only (no platform constraint).</p></div>
-                    </div>
-                    <div id="_TomImplementationInfo._findDefaultMatch" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">
-                          static ClassMirror&lt;dynamic&gt;? _findDefaultMatch(List&lt;_TomImplementationInfo&gt; infos, TomComponent tc)
-                        </code>
-                      </div>
-                      <div class="api-doc"><p>Finds default implementation (no environment or platform constraints).</p></div>
-                    </div>
+                  </div>
+                </section>
+                <section id="_TomNullInterface" class="api-declaration">
+                  <h3 class="api-decl-title">class _TomNullInterface</h3>
+                  <code class="api-signature">abstract class _TomNullInterface</code>
+                  <div class="api-doc">
+                    <p>Marker interface indicating a null/missing component.</p>
+                    <p>
+                      Library-private: it exists only to give [_nullComponent] a type, and no consumer can meaningfully implement or reference it.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="_TomNullInterface.new" class="api-member"><div class="api-member-head"><code class="api-signature">_TomNullInterface.new()</code></div></div>
                   </div>
                 </section>
                 <section id="_discoverAndInstantiateBeans" class="api-declaration">
                   <h3 class="api-decl-title">function _discoverAndInstantiateBeans</h3>
                   <code class="api-signature">void _discoverAndInstantiateBeans()</code>
                   <div class="api-doc"><p>Discovers and instantiates all annotated bean classes.</p></div>
+                </section>
+                <section id="_environmentMatches" class="api-declaration">
+                  <h3 class="api-decl-title">function _environmentMatches</h3>
+                  <code class="api-signature">bool _environmentMatches(TomEnvironment selector, TomEnvironment? active)</code>
+                  <div class="api-doc">
+                    <p>Whether the <code>@TomEnvironment</code> selector [selector] designates [active].</p>
+                    <p>
+                      Environments are matched <strong>by name</strong>, never by instance. <code>TomRuntime</code> keys its registry by name — [TomRuntime.setCurrentEnvironment] takes a name, and registering a second environment under a name already present is a duplicate rather than a second environment — so the name 
+                      <em>is</em> the environment's identity, and this comparison simply agrees with that.
+                    </p>
+                    <p>
+                      The distinction is not academic. An annotation is necessarily a <code>const</code>, and const expressions are canonicalised, so comparing instances happens to work for as long as the value handed to the runtime is written as an identical 
+                      <code>const</code>. Nothing keeps it written that way: <code>TomRuntime</code>'s own documented setup builds environments with a plain constructor call, and an application reading its environment name from configuration has no 
+                      <code>const</code> to write. An instance comparison would then match nothing, and the report would be [initializeBeanContext] announcing that an interface has no implementation while the implementation sits right there carrying what looks like the very same selector.
+                    </p>
+                  </div>
                 </section>
                 <section id="_findImplementors" class="api-declaration">
                   <h3 class="api-decl-title">function _findImplementors</h3>
@@ -1796,10 +1970,48 @@ class MockUserService implements UserService { ... }</code></pre>
                   <code class="api-signature">void _instantiateInterfaceBean(ClassMirror&lt;dynamic&gt; classMirror, TomComponent tc)</code>
                   <div class="api-doc"><p>Instantiates a bean that implements an interface.</p></div>
                 </section>
-                <section id="_validateBeanReferences" class="api-declaration">
-                  <h3 class="api-decl-title">function _validateBeanReferences</h3>
-                  <code class="api-signature">void _validateBeanReferences()</code>
-                  <div class="api-doc"><p>Validates all bean references by resolving them.</p></div>
+                <section id="_platformMatches" class="api-declaration">
+                  <h3 class="api-decl-title">function _platformMatches</h3>
+                  <code class="api-signature">bool _platformMatches(TomPlatform selector, TomPlatform? active)</code>
+                  <div class="api-doc">
+                    <p>Whether the <code>@TomPlatform</code> selector [selector] designates [active].</p>
+                    <p>
+                      Platforms are matched by name for the same reason environments are — see [_environmentMatches]. A null [active] matches nothing, so a component that constrains its platform stays unbound until the platform is known rather than being bound on the assumption that it fits.
+                    </p>
+                  </div>
+                </section>
+                <section id="_refuseConstructorArguments" class="api-declaration">
+                  <h3 class="api-decl-title">function _refuseConstructorArguments</h3>
+                  <code class="api-signature">void _refuseConstructorArguments(ClassMirror&lt;dynamic&gt; classMirror)</code>
+                  <div class="api-doc">
+                    <p>Refuses a component whose unnamed constructor takes required arguments.</p>
+                    <p>
+                      Discovery builds every component with <code>newInstance("", [])</code>, so a class that declares a required parameter names a constructor the pass will never call. Left to 
+                      <code>newInstance</code>, that arrives as <code>NoSuchCapabilityError: no capability to invoke the constructor ""</code>
+                       — which points at the reflector's configuration, not at the parameter, and sends the reader to add capabilities that would not have helped. It is also an exception type this module never tells anyone to catch.
+                    </p>
+                    <p>
+                      Decided by inspection rather than by catching, so the message can name the parameters the class actually declares.
+                    </p>
+                  </div>
+                </section>
+                <section id="_requireCurrentEnvironment" class="api-declaration">
+                  <h3 class="api-decl-title">function _requireCurrentEnvironment</h3>
+                  <code class="api-signature">TomEnvironment _requireCurrentEnvironment(String operation, Object subject)</code>
+                  <div class="api-doc">
+                    <p>
+                      Returns the active environment, raising the locator's own exception when the runtime has not been configured.
+                    </p>
+                    <p>
+                      [TomRuntime.getCurrentEnvironment] signals an unconfigured runtime with a bare <code>Exception</code>. That is 
+                      <code>tom_basics</code>' contract, not this module's: every example and every line of the bean locator's documentation teaches callers to write 
+                      <code>on TomBeanLocatorException</code>, and a bare <code>Exception</code> walks straight past such a handler — the caller does not get a worse message, it gets no handler at all. The bare exception also names neither the bean nor the interface whose selector asked for the environment, which is the only context that makes the failure actionable: "environment has not been initialized" does not say 
+                      <em>what was being wired</em> when it was needed.
+                    </p>
+                    <p>
+                      So the boundary is translated here, once, rather than at each call site. [operation] names what the locator was doing and [subject] what it was doing it to; both travel in the exception parameters so a handler can react to them without parsing the message.
+                    </p>
+                  </div>
                 </section>
                 <section id="initializeBeanContext" class="api-declaration">
                   <h3 class="api-decl-title">function initializeBeanContext</h3>
@@ -1815,18 +2027,62 @@ class MockUserService implements UserService { ... }</code></pre>
                     </p>
                     <h2>Initialization Order</h2>
                     <p>
-                      1. Clear any existing context if re-initializing 2. Discover annotated classes via reflection 3. Filter by environment and platform constraints 4. Instantiate and register beans 5. Validate all TomBean references
+                      1. Clear any existing registry if re-initializing 2. Discover annotated classes via reflection 3. Filter by environment and platform constraints 4. Instantiate and register beans 5. Validate the pending TomBean references
                     </p>
+                    <h2>Which handles are validated</h2>
+                    <p>
+                      Every handle constructed since the last pass (or since [TomBean.resetBeanContext]) is pending, and validation resolves it — so a handle created 
+                      <em>between</em> two passes is checked by the second one exactly as a handle created before the first is checked by the first. Whether a dependency is verified must not depend on which side of a call it happened to be declared on.
+                    </p>
+                    <p>Handles awaiting a named registration are the documented exception; see [validateBeanReferences].</p>
                     <h2>Usage</h2>
-                    <pre><code>// Set up environment first
+                    <pre><code>// Set up the runtime first. The environment has to be registered before it
+// can be made current — `setCurrentEnvironment` resolves a *name* against
+// the registry and falls back when the name is unknown.
+TomRuntime.addEnvironment(const TomEnvironment("dev"));
 TomRuntime.setCurrentEnvironment("dev");
-TomRuntime.initializePlatform();
+
+// The platform likewise: `TomRuntime.initializePlatform()` detects it, but
+// only once `TomPlatformUtils.setCurrentPlatform` has supplied a real
+// implementation — the fallback throws. Naming it directly also works.
+TomRuntime.setCurrentPlatform(platformLinux);
 
 // Then initialize beans
 initializeBeanContext();
 
 // Now beans can be resolved
 final service = TomBean&lt;MyService&gt;().get();</code></pre>
+                  </div>
+                </section>
+                <section id="validateBeanReferences" class="api-declaration">
+                  <h3 class="api-decl-title">function validateBeanReferences</h3>
+                  <code class="api-signature">void validateBeanReferences()</code>
+                  <div class="api-doc">
+                    <p>Resolves every pending handle so that wiring errors surface at startup.</p>
+                    <p>
+                      A <em>pending</em> handle is any [TomBean] constructed since the last validation (or since [TomBean.resetBeanContext]). [initializeBeanContext] ends by calling this, which is where most callers meet it. It is public because that is not the only moment worth checking:
+                    </p>
+                    <p>
+                      <strong>A handle constructed after the last pass is checked by the next one, and an application that initializes once has no next one.</strong>
+                       Wiring assembled after boot — a handle held by a plugin loaded later, a bean registered by a feature that starts on demand — accumulates unvalidated, and its first error is whatever call first needed it. Re-running [initializeBeanContext] is not the remedy: it rebuilds the registry from scratch and drops every imperative [TomBean.withName] and [TomBean.withType] registration made since. Call this instead, at the end of whatever assembled the wiring:
+                    </p>
+                    <pre><code>initializeBeanContext();          // boot
+TomBean.withName('config', loadConfig());
+startLateFeature();               // constructs more handles
+validateBeanReferences();         // and vouches for them, registry intact</code></pre>
+                    <p>
+                      Calling it twice is not an error and not a second check: a handle it has vouched for is dropped from the pending list, so the second call sees only what was constructed since the first.
+                    </p>
+                    <p>
+                      Validation vouches for what the pass itself could have supplied. Discovery registers under <code>Type</code>
+                       keys only — a concrete bean under its runtime type, an interface implementation under the interface — so a typed handle that is still unresolvable at the end of the pass names a binding nothing produced. That is a wiring bug, and reporting it at boot is the whole point of validating at all.
+                    </p>
+                    <p>
+                      A handle awaiting a <em>named</em> registration is a different case and is skipped. Nothing in discovery ever registers a name: names enter the registry solely through the imperative [TomBean.withName]. Resolving such a handle here would therefore demand, at boot, something the pass has no way to provide — turning the supported "create the handle now, register the bean later in startup" pattern into a startup failure for the sole reason that the handle happened to exist when the pass ran.
+                    </p>
+                    <p>
+                      The skip is narrow on purpose. A named handle whose name <em>is</em> registered is validated like any other, so a name bound to the wrong type is still caught at boot — that question is answerable now, and no later registration repairs a mismatch.
+                    </p>
                   </div>
                 </section>
               </div>

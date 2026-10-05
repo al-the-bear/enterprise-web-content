@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1454,11 +1460,23 @@ final auth = TomAuthorization.resolveAuth('checkout.email');</code></pre>
                   </div>
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
-                    <div id="TomAuthorization._adapter" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static TomAuthorizationAdapter? _adapter</code></div>
-                    </div>
                     <div id="TomAuthorization.adapter" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static TomAuthorizationAdapter adapter</code></div>
+                      <div class="api-member-head"><code class="api-signature">static TomAuthorizationAdapter? adapter</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The installed [TomAuthorizationAdapter] backing [resolveAuth], or <code>null</code> when none is installed — in which case authorization resolves to [TomAuthState.full] (development mode).
+                        </p>
+                        <p>
+                          Readable so that a diagnostics screen or a startup assertion can ask what is wired, and so that code installing an adapter for one operation can put the previous one back rather than tearing down whatever the application had:
+                        </p>
+                        <pre><code>final saved = TomAuthorization.adapter;
+TomAuthorization.adapter = ReadOnlyAuthorizationAdapter();
+// ...
+TomAuthorization.adapter = saved;</code></pre>
+                        <p>
+                          Assigning <code>null</code> uninstalls. [reset] does the same and stays the named teardown hook for tests; the two coincide here because this class holds nothing besides the adapter.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomAuthorization.resolveAuth" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static TomAuthState resolveAuth(String resourceKeyPath)</code></div>
@@ -1499,12 +1517,19 @@ final auth = TomAuthorization.resolveAuth('checkout.email');</code></pre>
                   <div class="api-doc">
                     <p>A group of related Tom elements that share authorization control.</p>
                     <p>
-                      Members implement [TomAuthorizable], ensuring type-safe access to [tomId] and [authorizationGroup] properties.
+                      Members implement [TomAuthorizable], which is what gives the group type-safe access to their [TomAuthorizable.tomId] and [TomAuthorizable.tomGroup] properties.
                     </p>
-                    <pre><code>final shippingGroup = TomAuthorizationGroup('shipping',
+                    <p>Membership is established by registering with the group:</p>
+                    <pre><code>final shipping = TomAuthorizationGroup('shipping',
     mode: AuthGroupMode.controlsAll);
-TomTextField(tomId: 'street', authorizationGroup: shippingGroup, ...),
-TomTextField(tomId: 'city', authorizationGroup: shippingGroup, ...),</code></pre>
+shipping.register(streetField);
+shipping.register(cityField);</code></pre>
+                    <p>
+                      UI packages built on this kernel wire the same thing up declaratively. In Tom Flutter UI every widget, form and action controller takes the group as 
+                      <code>tomGroup</code> — one spelling throughout — and registers itself:
+                    </p>
+                    <pre><code>TomTextField(tomId: 'street', tomGroup: shipping, ...),
+TomTextField(tomId: 'city', tomGroup: shipping, ...),</code></pre>
                     <p>Group paths follow the pattern: <code>&lt;scopePath&gt;.&lt;groupId&gt;</code>.</p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1543,31 +1568,61 @@ TomTextField(tomId: 'city', authorizationGroup: shippingGroup, ...),</code></pre
                   <div class="api-members">
                     <div id="TomAuthorizationGroup.register" class="api-member">
                       <div class="api-member-head"><code class="api-signature">void register(TomAuthorizable element)</code></div>
-                      <div class="api-doc"><p>Registers a [TomAuthorizable] element with this group.</p></div>
+                      <div class="api-doc">
+                        <p>Registers a [TomAuthorizable] element with this group.</p>
+                        <p>
+                          Registration is independent of visibility: an element whose [TomAuthorizable.effectiveAuthState] is [TomAuthState.none] is registered like any other, it simply does not show up in [members] while hidden.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomAuthorizationGroup.unregister" class="api-member">
                       <div class="api-member-head"><code class="api-signature">void unregister(TomAuthorizable element)</code></div>
-                      <div class="api-doc"><p>Unregisters an element from this group.</p></div>
+                      <div class="api-doc">
+                        <p>Unregisters an element from this group.</p>
+                        <p>
+                          Works on the raw registrations rather than on [members], so a hidden element can still be removed by whoever put it there.
+                        </p>
+                      </div>
                     </div>
-                    <div id="TomAuthorizationGroup._cleanupStaleReferences" class="api-member"><div class="api-member-head"><code class="api-signature">void _cleanupStaleReferences()</code></div></div>
                     <div id="TomAuthorizationGroup.resolveGroupPath" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">String resolveGroupPath()</code></div>
-                      <div class="api-doc"><p>Resolves the full canonical path for this group.</p></div>
+                      <div class="api-member-head"><code class="api-signature">String resolveGroupPath([TomScope? scope])</code></div>
+                      <div class="api-doc">
+                        <p>Resolves the full canonical path for this group, in [scope].</p>
+                        <p>
+                          [scope] defaults to the ambient [TomScope.current], which is right whenever the caller is standing in the frame it is asking about. It is wrong for the two cases a scope is passed as a 
+                          <em>value</em> rather than installed on a zone — a member constructed with an explicit <code>scope</code>, and a callback wrapped by [ScopeCapture] — and those are exactly the cases that supply it here.
+                        </p>
+                        <p>
+                          The member's own path and this one have to come out of the same frame: they are a <code>&lt;prefix&gt;.&lt;id&gt;</code>
+                           pair, and a prefix that differs between them looks up a ceiling that belongs to some other member.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomAuthorizationGroup.applyMode" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">TomAuthState applyMode(TomAuthState memberState)</code></div>
+                      <div class="api-member-head">
+                        <code class="api-signature">TomAuthState applyMode(TomAuthState memberState, [TomScope? scope])</code>
+                      </div>
                       <div class="api-doc">
                         <p>Applies this group's authorization mode to a member's state.</p>
                         <ul>
-                          <li>[controlsAll]: group state replaces the member's state</li>
-                          <li>[controlsWidest]: group state is the ceiling (narrows the member)</li>
-                          <li>[controlsNarrowest]: group state is the floor (widens the member)</li>
+                          <li>[AuthGroupMode.controlsAll]: group state replaces the member's state</li>
+                          <li>[AuthGroupMode.controlsWidest]: group state is the ceiling (narrows</li>
                         </ul>
+                        <p>the member) - [AuthGroupMode.controlsNarrowest]: group state is the floor (widens the member)</p>
+                        <p>
+                          [scope] is the frame the group is resolved in — see [resolveGroupPath]. A caller that resolved the member's own path against an explicit scope must pass the same one, or the two halves of the composition disagree about where they are and the group's ceiling is applied to the wrong member, or to none.
+                        </p>
                       </div>
+                    </div>
+                    <div id="TomAuthorizationGroup._authStateIn" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomAuthState _authStateIn(TomScope? scope)</code></div>
                     </div>
                     <div id="TomAuthorizationGroup.findMember" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomAuthorizable? findMember(String tomId)</code></div>
-                      <div class="api-doc"><p>Finds a member by [tomId] within this group.</p></div>
+                      <div class="api-doc">
+                        <p>Finds a visible member by [tomId] within this group — see [members].</p>
+                        <p>Returns <code>null</code> for a member that is registered but hidden.</p>
+                      </div>
                     </div>
                     <div id="TomAuthorizationGroup.toString" class="api-member">
                       <div class="api-member-head">

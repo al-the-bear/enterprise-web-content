@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1389,13 +1395,16 @@
                 <div class="treenodes">
                   <a class="leaf" href="#TomAccessControlDefinition">TomAccessControlDefinition</a>
                   <a class="leaf" href="#TomAccessControlInformation">TomAccessControlInformation</a>
+                  <a class="leaf" href="#TomClientContext">TomClientContext</a>
                   <a class="leaf" href="#TomClientLimitsInformation">TomClientLimitsInformation</a>
+                  <a class="leaf" href="#TomClientLimitsProvider">TomClientLimitsProvider</a>
                   <a class="leaf" href="#TomEntitlement">TomEntitlement</a>
                   <a class="leaf" href="#TomGroup">TomGroup</a>
                   <a class="leaf" href="#TomPrincipal">TomPrincipal</a>
                   <a class="leaf" href="#TomRole">TomRole</a>
                   <a class="leaf" href="#TomUser">TomUser</a>
                   <a class="leaf" href="#_TomAci">_TomAci</a>
+                  <a class="leaf" href="#_resourceKeyGrantCovers">_resourceKeyGrantCovers</a>
                 </div>
               </div>
               <div class="reader">
@@ -1575,10 +1584,10 @@ if (aci.roles.contains('admin')) {
                     <div id="TomAccessControlInformation.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomAccessControlInformation.new({List&lt;String&gt; roles = const [], List&lt;String&gt; entitlements = const [], List&lt;String&gt; resourceKeys = const [], List&lt;String&gt; groups = const []})
+                          TomAccessControlInformation.new({List&lt;String&gt; roles = const [], List&lt;String&gt; entitlements = const [], List&lt;String&gt; resourceKeys = const [], List&lt;String&gt; groups = const [], Map&lt;String, String&gt; resourceRoles = const {}})
                         </code>
                       </div>
-                      <div class="api-doc"><p>Creates access control information.</p><p>All lists are optional and default to empty.</p></div>
+                      <div class="api-doc"><p>Creates access control information.</p><p>All collections are optional and default to empty.</p></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
@@ -1603,13 +1612,108 @@ if (aci.roles.contains('admin')) {
                     <div id="TomAccessControlInformation.resourceKeys" class="api-member">
                       <div class="api-member-head"><code class="api-signature">List&lt;String&gt; resourceKeys</code></div>
                     </div>
+                    <div id="TomAccessControlInformation._resourceRoles" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Map&lt;String, String&gt; _resourceRoles</code></div>
+                    </div>
+                    <div id="TomAccessControlInformation.resourceRoles" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Map&lt;String, String&gt; resourceRoles</code></div>
+                    </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
+                    <div id="TomAccessControlInformation.holdsResourceKey" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool holdsResourceKey(String resourceKey)</code></div>
+                      <div class="api-doc">
+                        <p>Whether one of the [resourceKeys] grants covers [resourceKey].</p>
+                        <p>A grant is one of three shapes:</p>
+                        <table class="mdtable">
+                          <thead><tr><th>Grant</th><th>Covers</th></tr></thead>
+                          <tbody>
+                            <tr><td><code>user.email</code></td><td>exactly <code>user.email</code></td></tr>
+                            <tr>
+                              <td><code>user.*</code></td>
+                              <td>
+                                every key under 
+                                <code>user.</code>
+                                 — 
+                                <code>user.email</code>
+                                , 
+                                <code>user.address.city</code>
+                                 — but not 
+                                <code>user</code>
+                                 itself, nor 
+                                <code>username</code>
+                              </td>
+                            </tr>
+                            <tr><td><code>*</code></td><td>every key except a revocation</td></tr>
+                          </tbody>
+                        </table>
+                        <p>
+                          A <code>*</code> anywhere but the final segment is an ordinary character, so <code>tom.*.email</code>
+                           covers only the literal key <code>tom.*.email</code>.
+                        </p>
+                        <p>
+                          A key beginning with <code>-</code> names a <strong>revocation</strong>: the server's endpoint pipeline asks whether a principal holds 
+                          <code>-&lt;member&gt;</code> to withdraw one member of a container the principal otherwise holds. A revocation is issued by name — 
+                          <code>-Orders.delete</code>, or a revocation pattern such as <code>-Orders.*</code> — and never by <code>*</code>, or a principal granted everything would also be refused everything.
+                        </p>
+                        <p>
+                          Every reader of [resourceKeys] as a grant list asks this rather than testing membership, so an exact-only reading cannot quietly disagree with a pattern-aware one.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomAccessControlInformation.toString" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">String toString()</code>
                         <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="TomClientContext" class="api-declaration">
+                  <h3 class="api-decl-title">class TomClientContext</h3>
+                  <code class="api-signature">class TomClientContext</code>
+                  <div class="api-doc">
+                    <p>The language, country and timezone a principal carries when nothing better is known.</p>
+                    <p>
+                      Named rather than written out, because these are <em>compared</em> about as often as they are assigned: a consumer that has to recognise "no country" writes the same two letters as the class that produced them, and the two drift apart silently — a literal in a comparison is a copy of a decision, not a reference to it. Every login message, every OAuth request and every 
+                      <code>TomContextProviders</code> fallback reads them from here.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomClientContext._" class="api-member"><div class="api-member-head"><code class="api-signature">TomClientContext._()</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="TomClientContext.defaultLanguage" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String defaultLanguage</code></div>
+                      <div class="api-doc">
+                        <p>The language code used when the client names none: <code>en</code>.</p>
+                        <p>
+                          A default rather than a sentinel — it names a real language, and a consumer that resolves a bundle for it gets an English one. That is the point: the alternative to guessing is rendering raw keys.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomClientContext.noCountry" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String noCountry</code></div>
+                      <div class="api-doc">
+                        <p>The country code used when the client names none: <code>XX</code>.</p>
+                        <p>
+                          A <strong>deliberate non-locale sentinel</strong>, not a country. It is in the range ISO 3166-1 permanently withholds from assignment (<code>AA</code>, 
+                          <code>QM</code>-<code>QZ</code>, <code>XA</code>-<code>XZ</code>, <code>ZZ</code>) precisely so applications can use it for "none". Being two letters, anything checking only the shape accepts it as a country; anything building a locale key must drop it instead, and 
+                          <code>TomTextLocale</code> does.
+                        </p>
+                        <p>
+                          It travels the wire as an ordinary value rather than a rare one: a device that names no region sends it verbatim, and it reaches [TomPrincipal.clientCountry] unchanged.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomClientContext.defaultTimezone" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String defaultTimezone</code></div>
+                      <div class="api-doc">
+                        <p>The timezone identifier used when the client names none: <code>utc</code>.</p>
+                        <p>Resolvable, unlike an empty string, so a consumer that parses it gets a zone rather than an error.</p>
                       </div>
                     </div>
                   </div>
@@ -1628,6 +1732,10 @@ if (aci.roles.contains('admin')) {
                       <li>Subscription tier limits (e.g., API call quotas)</li>
                       <li>Module enablement per client</li>
                     </ul>
+                    <h2>Immutability</h2>
+                    <p>
+                      Limits are read-only once constructed, the same way [TomAccessControlInformation] is: the constructor copies what it is given and the getters hand out unmodifiable views. A client's subscription is decided by whatever issued it, not by the code reading it, so there is no in-place edit. To apply a new subscription state, build a new instance.
+                    </p>
                     <h2>Example</h2>
                     <pre><code>var cli = TomClientLimitsInformation(
   enabledModules: ['core', 'reporting'],
@@ -1641,6 +1749,17 @@ if (cli.enabledModules.contains('reporting')) {
 if (currentUsage &lt; cli.quotas['api_calls']!) {
   // Allow API call
 }</code></pre>
+                    <h2>Where the values come from</h2>
+                    <p>
+                      At login, from the application's authentication service, on the principal it returns — the same call that answers the [TomAccessControlInformation] — or, when a [TomClientLimitsProvider] is installed, from that provider, which the server asks before it mints the tokens. The provider is the seam a subscription service fills (Tom SQM); the framework ships the contract and no implementation. Neither the kernel nor 
+                      <code>tom_core_server</code> holds a subscription store or reads the environment for these.
+                    </p>
+                    <p>
+                      From there they travel in the <strong>public</strong> half of the JWT, as the claims <code>subscription_enabledModules</code>
+                       and <code>subscription_quotas</code>, and are read back into [TomPrincipal.cli] when a token is parsed. So the token carries a login-time snapshot, readable by whoever holds it. A client revises its copy mid-session with 
+                      <code>TomBearerAuthentication.refreshClientLimits</code>, which asks the installed provider, or <code>TomBearerAuthentication.replaceClientLimits</code>
+                       when it already holds the new values — the same replacement the ACI has. A server wanting the current figures rather than the snapshot asks the provider itself.
+                    </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
@@ -1650,18 +1769,21 @@ if (currentUsage &lt; cli.quotas['api_calls']!) {
                           TomClientLimitsInformation.new({List&lt;String&gt; enabledModules = const [], Map&lt;String, int&gt; quotas = const {}})
                         </code>
                       </div>
+                      <div class="api-doc"><p>Creates client limits information.</p><p>Both collections are optional and default to empty.</p></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
+                    <div id="TomClientLimitsInformation._enabledModules" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final List&lt;String&gt; _enabledModules</code></div>
+                    </div>
                     <div id="TomClientLimitsInformation.enabledModules" class="api-member">
                       <div class="api-member-head"><code class="api-signature">List&lt;String&gt; enabledModules</code></div>
-                      <div class="api-doc"><p>List of module names that are enabled for this client.</p></div>
                     </div>
-                    <div id="TomClientLimitsInformation.quotas" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">Map&lt;String, int&gt; quotas</code></div>
-                      <div class="api-doc"><p>Map of quota names to their limits.</p></div>
+                    <div id="TomClientLimitsInformation._quotas" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Map&lt;String, int&gt; _quotas</code></div>
                     </div>
+                    <div id="TomClientLimitsInformation.quotas" class="api-member"><div class="api-member-head"><code class="api-signature">Map&lt;String, int&gt; quotas</code></div></div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
@@ -1669,6 +1791,77 @@ if (currentUsage &lt; cli.quotas['api_calls']!) {
                       <div class="api-member-head">
                         <code class="api-signature">String toString()</code>
                         <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="TomClientLimitsProvider" class="api-declaration">
+                  <h3 class="api-decl-title">class TomClientLimitsProvider</h3>
+                  <code class="api-signature">abstract class TomClientLimitsProvider</code>
+                  <div class="api-doc">
+                    <p>The source of a client's limits: what its subscription currently grants.</p>
+                    <p>
+                      The seam a subscription and quota service — Tom SQM — fills. The framework ships this contract, the installation point and the two places that ask it, and deliberately no implementation:
+                    </p>
+                    <ul><li><code>tom_core_server</code>'s authentication server asks it for every principal</li></ul>
+                    <p>
+                      before minting tokens, so a login carries the provider's answer rather than the authentication service's; - 
+                      <code>TomBearerAuthentication.refreshClientLimits</code> asks it for the client's current principal, so a subscription change reaches a running session without a new login.
+                    </p>
+                    <p>
+                      With no provider installed — the default — limits are the authentication service's answer and nothing else.
+                    </p>
+                    <pre><code>class SqmClientLimits extends TomClientLimitsProvider {
+  @override
+  Future&lt;TomClientLimitsInformation?&gt; clientLimitsFor(
+    TomPrincipal principal,
+  ) async {
+    final plan = await sqm.planFor(principal.clientId);
+    return plan == null
+        ? null
+        : TomClientLimitsInformation(
+            enabledModules: plan.modules,
+            quotas: plan.quotas,
+          );
+  }
+}
+
+TomClientLimitsProvider.installed = SqmClientLimits();</code></pre>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomClientLimitsProvider.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">const TomClientLimitsProvider.new()</code></div>
+                      <div class="api-doc"><p>Const constructor for subclasses.</p></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="TomClientLimitsProvider.clientLimitsFor" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Future&lt;TomClientLimitsInformation?&gt; clientLimitsFor(TomPrincipal principal)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          The limits [principal]'s client is currently granted, or <code>null</code> when this provider has no answer for it — the principal then keeps the limits it already carries.
+                        </p>
+                        <p>
+                          Answer about [principal], not about the ambient zone: at login there is no principal on the zone yet.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="TomClientLimitsProvider.installed" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static TomClientLimitsProvider? installed</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The installed provider, or <code>null</code> — the default, under which a client's limits are whatever its authentication service put on the principal.
+                        </p>
+                        <p>
+                          Process-wide, like <code>TomAuthorization.adapter</code>: a provider answers about the principal it is handed, so one installation serves every request.
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -1898,19 +2091,25 @@ principal.addToContext({'lastActivity': DateTime.now()});</code></pre>
                     </div>
                     <div id="TomPrincipal.organizationId" class="api-member">
                       <div class="api-member-head"><code class="api-signature">int organizationId</code></div>
-                      <div class="api-doc"><p>The organization's database ID.</p></div>
+                      <div class="api-doc">
+                        <p>The organization's database ID, or <code>-1</code> when unset.</p>
+                        <p>
+                          These four ids are non-nullable and carry <code>-1</code> as their "unset" value, where their string counterparts above ([organization], [application], [process]) are nullable and use 
+                          <code>null</code>. Test for <code>-1</code>, not for <code>0</code> and not for null.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomPrincipal.applicationId" class="api-member">
                       <div class="api-member-head"><code class="api-signature">int applicationId</code></div>
-                      <div class="api-doc"><p>The application's database ID.</p></div>
+                      <div class="api-doc"><p>The application's database ID, or <code>-1</code> when unset.</p></div>
                     </div>
                     <div id="TomPrincipal.processId" class="api-member">
                       <div class="api-member-head"><code class="api-signature">int processId</code></div>
-                      <div class="api-doc"><p>The process's database ID.</p></div>
+                      <div class="api-doc"><p>The process's database ID, or <code>-1</code> when unset.</p></div>
                     </div>
                     <div id="TomPrincipal.clientId" class="api-member">
                       <div class="api-member-head"><code class="api-signature">int clientId</code></div>
-                      <div class="api-doc"><p>The client's database ID.</p></div>
+                      <div class="api-doc"><p>The client's database ID, or <code>-1</code> when unset.</p></div>
                     </div>
                     <div id="TomPrincipal.language" class="api-member">
                       <div class="api-member-head"><code class="api-signature">String? language</code></div>
@@ -1950,10 +2149,15 @@ principal.addToContext({'lastActivity': DateTime.now()});</code></pre>
                       <div class="api-member-head"><code class="api-signature">TomAccessControlInformation aci</code></div>
                       <div class="api-doc"><p>The user's access control information (roles, groups, entitlements).</p></div>
                     </div>
-                    <div id="TomPrincipal._cli" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">TomClientLimitsInformation _cli</code></div>
+                    <div id="TomPrincipal.cli" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomClientLimitsInformation cli</code></div>
+                      <div class="api-doc">
+                        <p>The client's limits information (quotas, enabled modules).</p>
+                        <p>
+                          Replaced as a whole value, never edited: [TomClientLimitsInformation] is immutable, so a refresh assigns a new instance — the way [aci] is replaced. See [TomClientLimitsProvider] for where a new value comes from.
+                        </p>
+                      </div>
                     </div>
-                    <div id="TomPrincipal.cli" class="api-member"><div class="api-member-head"><code class="api-signature">TomClientLimitsInformation cli</code></div></div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
@@ -2074,7 +2278,7 @@ var userRole = TomRole(
   firstname: 'John',
   lastname: 'Doe',
   email: 'john.doe@example.com',
-  timeZone: 'America/New_York',
+  timezone: 'America/New_York',
 );
 
 // Check if guest
@@ -2087,7 +2291,7 @@ if (user.username == TomUser.guestUsername) {
                     <div id="TomUser.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomUser.new({int id = -1, String username = guestUsername, String? firstname, String? lastname, String? email, String? phone, String? mobile, String? addressLine1, String? addressLine2, String? city, String? postcode, String? stateRegion, String? timeZone, Map&lt;String, Object?&gt;? attributes})
+                          TomUser.new({int id = -1, String username = guestUsername, String? firstname, String? lastname, String? email, String? phone, String? mobile, String? addressLine1, String? addressLine2, String? city, String? postcode, String? stateRegion, String? timezone, Map&lt;String, Object?&gt;? attributes})
                         </code>
                       </div>
                       <div class="api-doc">
@@ -2124,10 +2328,10 @@ if (user.username == TomUser.guestUsername) {
                     <div id="TomUser.postcode" class="api-member"><div class="api-member-head"><code class="api-signature">String? postcode</code></div></div>
                     <div id="TomUser._stateRegion" class="api-member"><div class="api-member-head"><code class="api-signature">String? _stateRegion</code></div></div>
                     <div id="TomUser.stateRegion" class="api-member"><div class="api-member-head"><code class="api-signature">String? stateRegion</code></div></div>
-                    <div id="TomUser._timeZone" class="api-member"><div class="api-member-head"><code class="api-signature">String? _timeZone</code></div></div>
-                    <div id="TomUser.timeZone" class="api-member"><div class="api-member-head"><code class="api-signature">String? timeZone</code></div></div>
+                    <div id="TomUser._timezone" class="api-member"><div class="api-member-head"><code class="api-signature">String? _timezone</code></div></div>
+                    <div id="TomUser.timezone" class="api-member"><div class="api-member-head"><code class="api-signature">String? timezone</code></div></div>
                     <div id="TomUser._attributes" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">Map&lt;String, Object?&gt; _attributes</code></div>
+                      <div class="api-member-head"><code class="api-signature">final Map&lt;String, Object?&gt; _attributes</code></div>
                     </div>
                     <div id="TomUser.attributes" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Map&lt;String, Object?&gt; attributes</code></div>
@@ -2174,6 +2378,15 @@ if (user.username == TomUser.guestUsername) {
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
+                  </div>
+                </section>
+                <section id="_resourceKeyGrantCovers" class="api-declaration">
+                  <h3 class="api-decl-title">function _resourceKeyGrantCovers</h3>
+                  <code class="api-signature">bool _resourceKeyGrantCovers(String grant, String resourceKey)</code>
+                  <div class="api-doc">
+                    <p>
+                      Whether the single resource-key [grant] covers [resourceKey]; the rule [TomAccessControlInformation.holdsResourceKey] states.
+                    </p>
                   </div>
                 </section>
               </div>

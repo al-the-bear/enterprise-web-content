@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1394,6 +1400,23 @@
                 <section id="LinkedHashMapCollection" class="api-declaration">
                   <h3 class="api-decl-title">class LinkedHashMapCollection</h3>
                   <code class="api-signature">class LinkedHashMapCollection</code>
+                  <div class="api-doc">
+                    <p>Bridged LinkedHashMap.</p>
+                    <p>
+                      IT RE-DECLARES <code>Map</code> MEMBERS THAT THE <code>LinkedHashMap -&gt; Map</code> EDGE WOULD ALREADY REACH — among them 
+                      <code>cast</code>, <code>removeWhere</code>, <code>update</code> and <code>updateAll</code>, which <code>SplayTreeMap</code>
+                       leaves to the walk. That asymmetry is KEPT, as a decision (SCE203), not an oversight:
+                    </p>
+                    <ul><li>The hazard shadowing carries is drift: two implementations of one member</li></ul>
+                    <p>
+                      on one type, with the leaf winning. The SCC51 shadow differential (F-SCC51-8, widened by SCE185) invokes every such pair on the same object and fails on any divergence, so that hazard is now measured, not trusted. - Member PARITY across the map family is measured over REACHABLE members (<code>sce203_family_reachable_parity_test.dart</code>), where shadowing is invisible; the only difference it records is 
+                      <code>SplayTreeMap</code>'s sorted-map API, which is the SDK's.
+                    </p>
+                    <p>
+                      Deleting the copies would change nothing a script can observe, so it is a clean-up rather than a fix. 
+                      <code>ServerSocket</code>'s 28 were deleted (sce195) because they were never covered by the differential; these are.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="LinkedHashMapCollection.new" class="api-member"><div class="api-member-head"><code class="api-signature">LinkedHashMapCollection.new()</code></div></div>

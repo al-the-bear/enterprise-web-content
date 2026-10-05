@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1387,25 +1393,76 @@
             <div class="treewrap">
               <div class="treepane">
                 <div class="treenodes">
+                  <a class="leaf" href="#TomCupertinoFormFileThumbnail">TomCupertinoFormFileThumbnail</a>
                   <a class="leaf" href="#TomCupertinoFormFileUpload">TomCupertinoFormFileUpload</a>
+                  <a class="leaf" href="#_CupertinoFileThumbnailWidget">_CupertinoFileThumbnailWidget</a>
+                  <a class="leaf" href="#_CupertinoFileThumbnailWidgetState">_CupertinoFileThumbnailWidgetState</a>
                   <a class="leaf" href="#_CupertinoFileUploadWidget">_CupertinoFileUploadWidget</a>
                   <a class="leaf" href="#_CupertinoFileUploadWidgetState">_CupertinoFileUploadWidgetState</a>
+                  <a class="leaf" href="#_CupertinoTransferStatus">_CupertinoTransferStatus</a>
                 </div>
               </div>
               <div class="reader">
                 <h2 class="api-library-title">package:tom_flutter_ui/src/forms/fields/cupertino/tom_cupertino_form_file_field.dart</h2>
                 <code class="api-import">import 'package:tom_flutter_ui/src/forms/fields/cupertino/tom_cupertino_form_file_field.dart';</code>
                 <div class="api-doc">
-                  <p>Phase 5c — Cupertino File concrete.</p>
+                  <p>Cupertino File concretes.</p>
                   <p>
-                    One concrete that subclasses the same <code>TomFormFileField</code> abstract used by the Material side (Phase 4): * [TomCupertinoFormFileUpload]  → 
-                    <code>CupertinoButton.filled</code> + selected file caption + clear icon.
+                    Two concretes that subclass the same <code>TomFormFileField</code> abstract used by the Material side: 
+                    <em> [TomCupertinoFormFileUpload]  → <code>CupertinoButton.filled</code> + selected file caption + clear icon. 
+                    </em> [TomCupertinoFormFileThumbnail] → square preview of the file's own content, with the file-kind icon as the fallback.
                   </p>
                   <p>
                     Picking errors surface through a <code>CupertinoAlertDialog</code> (Material's equivalent uses <code>ScaffoldMessenger</code>, which doesn't naturally exist in a pure-Cupertino tree). Otherwise the surface mirrors the Material 
                     <code>TomFormFileUpload</code> exactly so mixed-family demos line up vertically.
                   </p>
+                  <p>
+                    The picker, upload and download behaviour is shared with the Material side through <code>TomFileFieldStateMixin</code>; only the chrome differs — which is why the transfer status row below is hand-built from Cupertino widgets rather than reusing 
+                    <code>TomFileTransferIndicator</code>.
+                  </p>
                 </div>
+                <section id="TomCupertinoFormFileThumbnail" class="api-declaration">
+                  <h3 class="api-decl-title">class TomCupertinoFormFileThumbnail</h3>
+                  <code class="api-signature">
+                    class TomCupertinoFormFileThumbnail extends TomFormFileField with TomGenericFieldDecorationMixin&lt;FileRef?&gt;
+                  </code>
+                  <div class="api-doc">
+                    <p>The Cupertino sibling of <code>TomFormFileThumbnail</code>.</p>
+                    <p>
+                      Same abstract base, same preview logic — <code>TomFileThumbnailStateMixin</code> decides what can be painted and fetches a stored file's bytes once — and only the chrome differs: Cupertino icons, a 
+                      <code>GestureDetector</code> where the Material side uses an <code>InkWell</code>, and the hand-built transfer status row.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomCupertinoFormFileThumbnail.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          TomCupertinoFormFileThumbnail.new(String tomId, FileRef? initialValue, {Future&lt;FileRef?&gt; Function(BuildContext)?? picker, TomFilePickKind pickKind = TomFilePickKind.any, InvalidType transferClient, String? storageSlot, bool autoUpload = true, void Function(FileRef, Uint8List)?? onDownload, double thumbnailSize = 96.0, String? labelTextOverride, String? descriptionTextOverride, List&lt;String&gt;? allowedExtensions, int? maxSizeBytes, TomForm&lt;InvalidType&gt;? form, List&lt;Object&gt; validators = const [], bool autoValidate = false, InvalidType tomGroup, InvalidType authorizer, InvalidType uiStateController, Widget? actionIcon, String? actionIconTooltip, void Function()?? onActionIconPressed})
+                        </code>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="TomCupertinoFormFileThumbnail.thumbnailSize" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final double thumbnailSize</code></div>
+                      <div class="api-doc"><p>Edge length of the square preview surface.</p></div>
+                    </div>
+                    <div id="TomCupertinoFormFileThumbnail.labelText" class="api-member"><div class="api-member-head"><code class="api-signature">String? labelText</code></div></div>
+                    <div id="TomCupertinoFormFileThumbnail.descriptionText" class="api-member"><div class="api-member-head"><code class="api-signature">String? descriptionText</code></div></div>
+                    <div id="TomCupertinoFormFileThumbnail.widget" class="api-member"><div class="api-member-head"><code class="api-signature">Widget widget</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="TomCupertinoFormFileThumbnail.resolveStyle" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">TomFieldStyle resolveStyle(BuildContext context)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
                 <section id="TomCupertinoFormFileUpload" class="api-declaration">
                   <h3 class="api-decl-title">class TomCupertinoFormFileUpload</h3>
                   <code class="api-signature">
@@ -1416,7 +1473,7 @@
                     <div id="TomCupertinoFormFileUpload.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomCupertinoFormFileUpload.new(String tomId, FileRef? initialValue, {required Future&lt;FileRef?&gt; Function(BuildContext) picker, String? labelTextOverride, String? descriptionTextOverride, List&lt;String&gt;? allowedExtensions, int? maxSizeBytes, TomForm&lt;InvalidType&gt;? form, List&lt;Object&gt; validators = const [], bool autoValidate = false, InvalidType tomGroup, InvalidType authorizer, InvalidType uiStateController, Widget? actionIcon, String? actionIconTooltip, void Function()?? onActionIconPressed})
+                          TomCupertinoFormFileUpload.new(String tomId, FileRef? initialValue, {Future&lt;FileRef?&gt; Function(BuildContext)?? picker, TomFilePickKind pickKind = TomFilePickKind.any, InvalidType transferClient, String? storageSlot, bool autoUpload = true, void Function(FileRef, Uint8List)?? onDownload, String? labelTextOverride, String? descriptionTextOverride, List&lt;String&gt;? allowedExtensions, int? maxSizeBytes, TomForm&lt;InvalidType&gt;? form, List&lt;Object&gt; validators = const [], bool autoValidate = false, InvalidType tomGroup, InvalidType authorizer, InvalidType uiStateController, Widget? actionIcon, String? actionIconTooltip, void Function()?? onActionIconPressed})
                         </code>
                       </div>
                     </div>
@@ -1432,6 +1489,66 @@
                     <div id="TomCupertinoFormFileUpload.resolveStyle" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">TomFieldStyle resolveStyle(BuildContext context)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="_CupertinoFileThumbnailWidget" class="api-declaration">
+                  <h3 class="api-decl-title">class _CupertinoFileThumbnailWidget</h3>
+                  <code class="api-signature">class _CupertinoFileThumbnailWidget extends StatefulWidget</code>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="_CupertinoFileThumbnailWidget.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">const _CupertinoFileThumbnailWidget.new({required TomCupertinoFormFileThumbnail field})</code>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="_CupertinoFileThumbnailWidget.field" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final TomCupertinoFormFileThumbnail field</code></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="_CupertinoFileThumbnailWidget.createState" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">State&lt;_CupertinoFileThumbnailWidget&gt; createState()</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="_CupertinoFileThumbnailWidgetState" class="api-declaration">
+                  <h3 class="api-decl-title">class _CupertinoFileThumbnailWidgetState</h3>
+                  <code class="api-signature">
+                    class _CupertinoFileThumbnailWidgetState extends State&lt;_CupertinoFileThumbnailWidget&gt; with TomFileFieldStateMixin&lt;_CupertinoFileThumbnailWidget&gt;, TomFileThumbnailStateMixin&lt;_CupertinoFileThumbnailWidget&gt;
+                  </code>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="_CupertinoFileThumbnailWidgetState.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">_CupertinoFileThumbnailWidgetState.new()</code></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="_CupertinoFileThumbnailWidgetState.field" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomCupertinoFormFileThumbnail field</code></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="_CupertinoFileThumbnailWidgetState.showFileRejected" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Future&lt;void&gt; showFileRejected(String errorKey)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="_CupertinoFileThumbnailWidgetState.build" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Widget build(BuildContext context)</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
@@ -1466,7 +1583,9 @@
                 </section>
                 <section id="_CupertinoFileUploadWidgetState" class="api-declaration">
                   <h3 class="api-decl-title">class _CupertinoFileUploadWidgetState</h3>
-                  <code class="api-signature">class _CupertinoFileUploadWidgetState extends State&lt;_CupertinoFileUploadWidget&gt;</code>
+                  <code class="api-signature">
+                    class _CupertinoFileUploadWidgetState extends State&lt;_CupertinoFileUploadWidget&gt; with TomFileFieldStateMixin&lt;_CupertinoFileUploadWidget&gt;
+                  </code>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="_CupertinoFileUploadWidgetState.new" class="api-member">
@@ -1475,33 +1594,80 @@
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="_CupertinoFileUploadWidgetState._observer" class="api-member"><div class="api-member-head"><code class="api-signature">final InvalidType _observer</code></div></div>
                     <div id="_CupertinoFileUploadWidgetState.field" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomCupertinoFormFileUpload field</code></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
-                    <div id="_CupertinoFileUploadWidgetState.initState" class="api-member">
+                    <div id="_CupertinoFileUploadWidgetState.showFileRejected" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">void initState()</code>
+                        <code class="api-signature">Future&lt;void&gt; showFileRejected(String errorKey)</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
-                    <div id="_CupertinoFileUploadWidgetState._onValidationChanged" class="api-member"><div class="api-member-head"><code class="api-signature">void _onValidationChanged()</code></div></div>
-                    <div id="_CupertinoFileUploadWidgetState.dispose" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">void dispose()</code>
-                        <span class="api-badge api-badge--override">override</span>
-                      </div>
-                    </div>
-                    <div id="_CupertinoFileUploadWidgetState._pick" class="api-member"><div class="api-member-head"><code class="api-signature">Future&lt;void&gt; _pick()</code></div></div>
-                    <div id="_CupertinoFileUploadWidgetState._humanSize" class="api-member"><div class="api-member-head"><code class="api-signature">String _humanSize(int bytes)</code></div></div>
                     <div id="_CupertinoFileUploadWidgetState.build" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">Widget build(BuildContext context)</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="_CupertinoTransferStatus" class="api-declaration">
+                  <h3 class="api-decl-title">class _CupertinoTransferStatus</h3>
+                  <code class="api-signature">class _CupertinoTransferStatus extends StatelessWidget</code>
+                  <div class="api-doc">
+                    <p>The Cupertino counterpart of <code>TomFileTransferIndicator</code>.</p>
+                    <p>Renders nothing while idle, so it can be included unconditionally.</p>
+                    <p>
+                      The chrome differs from the Material indicator; the <em>wording</em> deliberately does not. Both read the same [TomFileLabels] keys, so an application that translates its file widgets translates them once rather than once per widget family.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="_CupertinoTransferStatus.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          const _CupertinoTransferStatus.new({required TomFileTransferController controller, String? basePath, void Function()?? onCancel, void Function()?? onRetry})
+                        </code>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="_CupertinoTransferStatus.controller" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final TomFileTransferController controller</code></div>
+                    </div>
+                    <div id="_CupertinoTransferStatus.basePath" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? basePath</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The field's resource path, so this row's wording can be overridden per field exactly as the Material indicator's can.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="_CupertinoTransferStatus.onCancel" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final void Function()?? onCancel</code></div>
+                    </div>
+                    <div id="_CupertinoTransferStatus.onRetry" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final void Function()?? onRetry</code></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="_CupertinoTransferStatus.build" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Widget build(BuildContext context)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="_CupertinoTransferStatus._runningLabel" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String _runningLabel(TomFileTransferState state)</code></div>
+                      <div class="api-doc"><p>The progress line, on the same keys the Material indicator uses.</p></div>
+                    </div>
+                    <div id="_CupertinoTransferStatus._row" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Widget _row({required Widget child})</code></div>
                     </div>
                   </div>
                 </section>

@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1387,10 +1393,12 @@
             <div class="treewrap">
               <div class="treepane">
                 <div class="treenodes">
-                  <a class="leaf" href="#TomRequestId">TomRequestId</a>
                   <a class="leaf" href="#TomRequestLogInfo">TomRequestLogInfo</a>
                   <a class="leaf" href="#TomServer">TomServer</a>
+                  <a class="leaf" href="#TomCredentialOutcome">TomCredentialOutcome</a>
+                  <a class="leaf" href="#_forTheLog">_forTheLog</a>
                   <a class="leaf" href="#_handleError">_handleError</a>
+                  <a class="leaf" href="#_resolveRequestPrincipal">_resolveRequestPrincipal</a>
                   <a class="leaf" href="#contextSetupMiddleware">contextSetupMiddleware</a>
                   <a class="leaf" href="#extractAuthentication">extractAuthentication</a>
                   <a class="leaf" href="#noopHandler">noopHandler</a>
@@ -1401,41 +1409,6 @@
               <div class="reader">
                 <h2 class="api-library-title">package:tom_core_server/src/tomserver/server/server.dart</h2>
                 <code class="api-import">import 'package:tom_core_server/src/tomserver/server/server.dart';</code>
-                <section id="TomRequestId" class="api-declaration">
-                  <h3 class="api-decl-title">class TomRequestId</h3>
-                  <code class="api-signature">class TomRequestId</code>
-                  <div class="api-doc">
-                    <p>A per-request correlation id.</p>
-                    <p>
-                      [tomDefaultAuthenticationMiddleware] creates one [TomRequestId] per incoming request and publishes it into the request zone (keyed by 
-                      <code>TomRequestId</code>), so any code running under that request can recover it with <code>getFromCurrentZone&lt;TomRequestId&gt;()</code>. It is the source of the 
-                      <code>requestUuid</code> stamped onto server exceptions ([TomServerException]) and of the request id surfaced by the endpoints pipeline.
-                    </p>
-                  </div>
-                  <h4 class="api-group-title">Constructors</h4>
-                  <div class="api-members">
-                    <div id="TomRequestId.new" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">TomRequestId.new()</code></div>
-                      <div class="api-doc"><p>Creates a request id with a new random v4 [uuid].</p></div>
-                    </div>
-                  </div>
-                  <h4 class="api-group-title">Properties</h4>
-                  <div class="api-members">
-                    <div id="TomRequestId.uuid" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final String uuid</code></div>
-                      <div class="api-doc"><p>A freshly generated v4 UUID identifying this request.</p></div>
-                    </div>
-                  </div>
-                  <h4 class="api-group-title">Methods</h4>
-                  <div class="api-members">
-                    <div id="TomRequestId.toString" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">String toString()</code>
-                        <span class="api-badge api-badge--override">override</span>
-                      </div>
-                    </div>
-                  </div>
-                </section>
                 <section id="TomRequestLogInfo" class="api-declaration">
                   <h3 class="api-decl-title">class TomRequestLogInfo</h3>
                   <code class="api-signature">class TomRequestLogInfo</code>
@@ -1506,7 +1479,15 @@
                     </div>
                     <div id="TomServer.securityContext" class="api-member">
                       <div class="api-member-head"><code class="api-signature">SecurityContext? securityContext</code></div>
-                      <div class="api-doc"><p>The TLS security context, built from the configuration when SSL is on.</p></div>
+                      <div class="api-doc">
+                        <p>The TLS context this server is serving with, or <code>null</code> when it is serving plaintext.</p>
+                        <p>
+                          Built by [start] from the configuration's certificate chain and private key, and left <code>null</code>
+                           when <code>noSsl</code> is set — so, like [router], this is a handle that only means anything <em>after</em>
+                           the server has been started, and reads <code>null</code> on one that has not been. A caller asking beforehand whether TLS was 
+                          <em>requested</em> wants <code>configuration.noSsl</code>; this answers what the bound socket actually ended up with.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomServer.router" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Router? router</code></div>
@@ -1517,10 +1498,14 @@
                       <div class="api-doc">
                         <p>Maps a thrown error to a JSON error response (HTTP 500).</p>
                         <p>
-                          The body always carries <code>errorType</code>; a [TomException] additionally contributes <code>errorKey</code>, 
-                          <code>uuid</code>, <code>autoLog</code>, and <code>requestUuid</code>, and a [TomServerException] adds 
-                          <code>clientThrow</code>. Every response carries the <code>x-tom-error: true</code> header. Overridden by 
-                          <code>TomBaseServerConfiguration.errorHandler</code> when provided.
+                          The body is [tomErrorEnvelope] — the package's single definition of the wire error shape, which this handler renders and does not define. Every response carries the 
+                          <code>x-tom-error: true</code> header and declares <code>application/json</code>. Overridden by <code>TomBaseServerConfiguration.errorHandler</code>
+                           when provided.
+                        </p>
+                        <p>
+                          It carries <strong>no message</strong>, which is also what makes it safe: the envelope reports <code>errorKey</code>
+                           for a client to resolve against its own resources and never <code>defaultUserMessage</code>, so no exception's text can escape through it. A replacement that adds a message takes on the obligation the envelope avoids, and must read it through [TomServerException.clientMessage] rather than from the field — 
+                          <code>clientThrow</code> binds the value, not the handler.
                         </p>
                       </div>
                     </div>
@@ -1551,16 +1536,159 @@
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
                     <div id="TomServer.start" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">void start()</code></div>
+                      <div class="api-member-head"><code class="api-signature">Future&lt;HttpServer&gt; start()</code></div>
                       <div class="api-doc">
-                        <p>Initialises the router, composes the pipeline, and binds the socket.</p>
+                        <p>Logs the deployment in, initialises the router, composes the pipeline, and binds the socket.</p>
                         <p>
-                          Builds the TLS [SecurityContext] (unless <code>noSsl</code>), resolves the listen address (<code>host</code>, or any-IPv4 when empty or 
+                          The login comes first: when the configuration carries a service credential, [TomServerSelfLogin.loginAndInstall] installs the deployment's own principal before anything is bound, so no request is ever served with user grants uncapped. A configured deployment that cannot log in has the error logged and rethrown and 
+                          <strong>no socket is bound</strong>; one that configured no credential skips the login and is unaffected.
+                        </p>
+                        <p>
+                          The rest builds the TLS [SecurityContext] (unless <code>noSsl</code>), resolves the listen address (<code>host</code>, or any-IPv4 when empty or 
                           <code>listenToAnyIP</code>), optionally wraps the router in a [Cascade] with the configuration's pre/post handlers, then serves the assembled pipeline on the configured port (with 
-                          <code>shared</code> sockets when running multiple isolates). Fire-and-forget: it starts listening and logs the bound address; it does not return the [HttpServer].
+                          <code>shared</code> sockets when running multiple isolates).
+                        </p>
+                        <p>
+                          Returns the bound [HttpServer], so the future completes <strong>when the socket is listening</strong>
+                           and not before. Three things follow, and each was missing while this returned <code>void</code>:
+                        </p>
+                        <ul><li>a bind failure — a port already in use, an unreadable certificate, a</li></ul>
+                        <p>
+                          malformed private key — rejects the returned future instead of surfacing as an unhandled asynchronous error from a future nobody holds; 
+                          <em> a caller can tell </em>listening<em> from </em>called<em>, which is what a test or a supervisor needs before it sends the first request; </em>
+                           the socket can be closed, so a server can be shut down by whoever started it rather than only by ending the process.
+                        </p>
+                        <p>
+                          Awaiting is optional and nothing about the old shape is lost: a caller that ignores the future gets exactly the fire-and-forget behaviour it had, because the bound socket keeps the isolate alive on its own. What changes is that ignoring it is now a choice rather than the only option.
                         </p>
                       </div>
                     </div>
+                    <div id="TomServer.warnOnDevelopmentTlsMaterial" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void warnOnDevelopmentTlsMaterial()</code></div>
+                      <div class="api-doc">
+                        <p>Warns when this server is about to serve TLS with the checked-in development pair.</p>
+                        <p>
+                          The pair stays a field default — a development machine has to be able to speak HTTPS without a certificate authority — so the boot says so instead, every time, rather than serving a published key in silence. Nothing refuses to start: an opt-in flag would cost every local TLS run an extra setting, and a deployment that reads its logs has been told.
+                        </p>
+                        <p>
+                          Silent when [TomBaseServerConfiguration.noSsl] is set, because nothing is served over TLS and a warning that does not apply is the kind that teaches an operator to ignore the ones that do.
+                        </p>
+                        <p>
+                          Public and separate from [start] for the reason the rest of <code>start()</code> is not tested here: it binds a socket and returns nothing, so a property of the boot is otherwise unobservable. This one can be asked directly.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomServer.warnOnUnenforcedResourceKeys" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void warnOnUnenforcedResourceKeys()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Warns when this server is about to serve with resource-key grants unenforced, outside a development or test environment.
+                        </p>
+                        <p>
+                          Enforcement ([TomResourceKeyProtection.globalSettingProtectionDefault], setting <code>tom.protection.resourceKeys</code>) is off by default, deliberately: turning it on refuses every endpoint without an access declaration and blanks every protected value nobody holds a grant for, which an application that has not configured grants yet cannot survive. The cost of that default is a production deployment that never switches it on, and whose grants are therefore decorative. The boot says so instead of refusing: nothing changes, and a deployment that reads its logs has been told which setting to change.
+                        </p>
+                        <p>
+                          Silent in a development or test environment, where the open default is the point, and when enforcement is on.
+                        </p>
+                        <p>
+                          Public and separate from [start] for the reason [warnOnDevelopmentTlsMaterial] is: <code>start()</code>
+                           binds a socket and returns nothing observable about its boot.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomServer._installServerPrincipal" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;void&gt; _installServerPrincipal()</code></div>
+                      <div class="api-doc">
+                        <p>Logs the deployment in as itself, before the socket is bound.</p>
+                        <p>
+                          The ordering is load-bearing. The server principal caps every user's grants (<code>min(user, server)</code>), so binding the socket first would open a window in which requests are served 
+                          <em>uncapped</em> — the one direction in which getting it wrong grants access rather than denying it.
+                        </p>
+                        <p>
+                          Does nothing when the deployment configured no service credential, which is the default: such a server binds with no principal installed and caps nothing. A 
+                          <em>configured</em> deployment that cannot log in aborts the start: the error is logged and rethrown, so the socket is never bound. Starting anyway would mean running uncapped after explicitly asking to be capped.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="TomCredentialOutcome" class="api-declaration">
+                  <h3 class="api-decl-title">enum TomCredentialOutcome</h3>
+                  <code class="api-signature">enum TomCredentialOutcome</code>
+                  <div class="api-doc">
+                    <p>
+                      Why a request carries the credentials it does — the third element of [extractAuthentication]'s result.
+                    </p>
+                    <p>
+                      The first two elements cannot say. A <code>null</code> principal and a <code>null</code> token is the answer to four different requests: one that sent no 
+                      <code>Authorization</code> header, one that sent a scheme this server does not speak, one whose bearer token failed verification, and one whose verified token yielded no principal. Those are an anonymous caller, a misconfigured client, a rotated signing key and a malformed claim set respectively, and an operator who cannot tell them apart cannot act on any of them.
+                    </p>
+                    <p>
+                      The distinction is for the <em>reader of this function</em>, not for the HTTP client. All four still receive the same answer over the wire — see 
+                      <code>doc/server.md</code>, "Not Yet Implemented" — because a client able to tell "your signature was wrong" from "you sent nothing" is an attacker able to tell whether they guessed.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Values</h4>
+                  <div class="api-members">
+                    <div id="TomCredentialOutcome.noCredentials" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">noCredentials</code></div>
+                      <div class="api-doc"><p>The request had no <code>Authorization</code> header — an ordinary anonymous caller.</p></div>
+                    </div>
+                    <div id="TomCredentialOutcome.unsupportedScheme" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">unsupportedScheme</code></div>
+                      <div class="api-doc">
+                        <p>The header named a scheme other than <code>Bearer</code>, or had no scheme at all.</p>
+                        <p>
+                          Nothing was read from it. A <code>Basic</code> header against a Tom server is a client configured for a different service, not an attack.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomCredentialOutcome.unreadableToken" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">unreadableToken</code></div>
+                      <div class="api-doc">
+                        <p>The header carried a bearer token that [verifyBearerToken] refused.</p>
+                        <p>
+                          A wrong signature, a token this deployment's key cannot check, a body that would not decode, or an empty one. This is the outcome a key rotation that missed an issuer produces, for every request from every client of that issuer.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomCredentialOutcome.noPrincipal" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">noPrincipal</code></div>
+                      <div class="api-doc">
+                        <p>The token verified, but no [TomPrincipal] could be built from it.</p>
+                        <p>
+                          The token is this deployment's own — it carries a signature this server can check — and it is handed back with the outcome: a refresh endpoint is reached with exactly it.
+                        </p>
+                        <p>
+                          The ordinary cause is a token that is <strong>not live</strong>: expired, without a readable <code>exp</code>, or with a 
+                          <code>validUntil</code> that disagrees with its <code>exp</code>. [TomBearerAuthentication.convertTokenPayloadToPrincipal] refuses to build a principal from such a token (<code>TomTokenLifetimeException</code>), because signature verification deliberately does not check the lifetime.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomCredentialOutcome.authenticated" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">authenticated</code></div>
+                      <div class="api-doc"><p>The token verified and yielded a principal.</p></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomCredentialOutcome.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">const TomCredentialOutcome.new()</code></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="TomCredentialOutcome.values" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static List&lt;TomCredentialOutcome&gt; values</code></div>
+                    </div>
+                  </div>
+                </section>
+                <section id="_forTheLog" class="api-declaration">
+                  <h3 class="api-decl-title">function _forTheLog</h3>
+                  <code class="api-signature">String _forTheLog(String value)</code>
+                  <div class="api-doc">
+                    <p>[value] shortened to a length an access log can carry.</p>
+                    <p>What is truncated here is client-supplied, and a client can supply kilobytes of it.</p>
                   </div>
                 </section>
                 <section id="_handleError" class="api-declaration">
@@ -1572,6 +1700,30 @@
                     <p>Wraps the inner handler so thrown errors are routed to [errorHandler].</p>
                     <p>
                       When the inner handler throws, the error and stack trace are logged and passed to [errorHandler]; a non-null result becomes the response, otherwise the error is rethrown to the next outer handler. [id] labels the layer for tracing. The pipeline installs two layers — an outer one (using the authentication error handler) and an inner one (using the main error handler) — see [TomServer.start].
+                    </p>
+                  </div>
+                </section>
+                <section id="_resolveRequestPrincipal" class="api-declaration">
+                  <h3 class="api-decl-title">function _resolveRequestPrincipal</h3>
+                  <code class="api-signature">
+                    Future&lt;TomPrincipal?&gt; _resolveRequestPrincipal(TomClientJwtToken? clientToken, TomPrincipal? tokenPrincipal)
+                  </code>
+                  <div class="api-doc">
+                    <p>Resolves the effective [TomPrincipal] for a request from its credentials.</p>
+                    <p>
+                      Two answers are available: what [TomAuthorizationCache] holds for [clientToken], and [tokenPrincipal] — the one [extractAuthentication] derived from the token itself. A cache hit wins; a cache miss, and a request with no token at all, fall back to the token principal.
+                    </p>
+                    <p>
+                      An expired cache entry is neither, and resolves to <code>null</code> — the same answer a request bearing no credentials gets. That is deliberate and is the reason this lives in its own function:
+                    </p>
+                    <ul><li>It must not throw. The expiry is raised as a distinct exception type</li></ul>
+                    <p>
+                      precisely because it is a prompt to re-authorize rather than a failure, so letting it escape would hand the client whatever the generic error handler makes of an unrecognised exception (an HTTP 500, by default) instead of an answer it can act on. - It must not fall back to [tokenPrincipal]. The cache entry's lifetime 
+                      <em>is</em> the token's — <code>TomAuthorizationCache</code> reads it from the token's <code>exp</code>
+                       claim — so an expired entry means <em>this token</em> has expired, and [extractAuthentication] has already declined to build a principal from it: [TomBearerAuthentication.convertTokenPayloadToPrincipal] enforces the token's lifetime whether or not anything was cached. Serving an expired entry's principal would be the one path around that check.
+                    </p>
+                    <p>
+                      Resolving to no principal keeps the cache from changing the answer in the dangerous direction: a protected endpoint refuses the request through the ordinary access-denied path, while an unauthenticated one — a refresh or re-login endpoint, say — is still reachable, and still receives the token itself from the request zone.
                     </p>
                   </div>
                 </section>
@@ -1589,13 +1741,34 @@
                 </section>
                 <section id="extractAuthentication" class="api-declaration">
                   <h3 class="api-decl-title">function extractAuthentication</h3>
-                  <code class="api-signature">(TomPrincipal?, TomClientJwtToken?) extractAuthentication(Request req)</code>
+                  <code class="api-signature">(TomPrincipal?, TomClientJwtToken?, TomCredentialOutcome) extractAuthentication(Request req)</code>
                   <div class="api-doc">
                     <p>Extracts the bearer credentials from a request's <code>Authorization</code> header.</p>
                     <p>
-                      Reads the <code>Authorization</code> header and, when it carries a <code>Bearer &lt;jwt&gt;</code> token, parses it into a [TomClientJwtToken] and derives the [TomPrincipal] via [TomBearerAuthentication.convertTokenPayloadToPrincipal]. Returns a record 
-                      <code>(principal, token)</code>; either element is <code>null</code> when the header is absent, not a bearer token, or fails to parse. Parsing/derivation errors are swallowed (the corresponding element stays 
-                      <code>null</code>) so an invalid token is treated as "no credentials" rather than raising — authorization decisions are made downstream.
+                      Reads the <code>Authorization</code> header and, when it carries a <code>Bearer &lt;jwt&gt;</code> token, 
+                      <strong>verifies its signature</strong> with [verifyBearerToken] and derives the [TomPrincipal] via [TomBearerAuthentication.convertTokenPayloadToPrincipal]. Returns a record 
+                      <code>(principal, token, outcome)</code>. The first two elements are <code>null</code> whenever the request is not authenticated; [TomCredentialOutcome] says which of the four ways that happened.
+                    </p>
+                    <p>
+                      It never raises and never refuses: an unusable credential is treated as "no credentials", because an endpoint marked 
+                      <code>@TomPublicAccess()</code> has to be servable through this same pipeline. Authorization decisions are made downstream. Every refusal is 
+                      <em>recorded</em>, though, at warning level and without the credential in it — see "What reaches the log" below.
+                    </p>
+                    <h2>Why the signature is checked here</h2>
+                    <p>
+                      A JWT's public payload is plain base64: a client can edit any claim in it and re-send it, and nothing about decoding notices. Everything this request is then judged by is reconstructed from that payload — the principal, its roles, and the 2FA claims whose own documentation says a client "achieves nothing" by editing them. That sentence is only true if somebody checks the signature, and this is the only inbound path where a client-supplied token enters the server, so this is where it is checked.
+                    </p>
+                    <p>
+                      The check is not conditional and there is no opt-out. A flag permitting an unverified token would be the same exposure with a name, and the one deployment shape that might have wanted it — a server running the framework's bundled sample keys — is already refused at boot by [installJwtSigning] outside a development or test environment.
+                    </p>
+                    <h2>What reaches the log</h2>
+                    <p>
+                      Never the credential. A token this server cannot read may still be a live credential somewhere else — the commonest reason it is unreadable is that it was minted for a different deployment — and an access log is the least protected place it could end up.
+                    </p>
+                    <p>
+                      So a refused bearer token is described by its <em>reason</em> (from [verifyBearerToken]) and a refused header by its 
+                      <em>scheme</em>, and a header with no scheme at all is reported as having none rather than by quoting what the client sent in its place. 
+                      <code>test/server_test.dart</code> holds the battery that checks a presented token never appears in any line the module writes.
                     </p>
                   </div>
                 </section>
@@ -1615,8 +1788,9 @@
                   <div class="api-doc">
                     <p>The default authentication [Middleware] of a [TomServer].</p>
                     <p>
-                      For each request it: 1. extracts bearer credentials with [extractAuthentication]; 2. resolves the effective [TomPrincipal] — preferring a principal cached for the client token by [TomAuthorizationCache], falling back to the one derived directly from the token; 3. runs the inner handler inside a [runZoned] scope whose [TomZoneValues] expose the shelf [Request], the ambient [TomExecutionContext], the resolved [TomPrincipal], the [TomClientJwtToken], and a fresh [TomRequestId] — making them recoverable anywhere in the request via 
-                      <code>getFromCurrentZone</code>.
+                      For each request it: 1. extracts bearer credentials with [extractAuthentication]; 2. resolves the effective [TomPrincipal] — preferring a principal cached for the client token by [TomAuthorizationCache], falling back to the one derived directly from the token, and resolving to 
+                      <em>no</em> principal when the cache reports the entry expired (see [_resolveRequestPrincipal]); 3. runs the inner handler inside a [runZoned] scope whose [TomZoneValues] expose the shelf [Request], the ambient [TomExecutionContext], the resolved [TomPrincipal], the [TomClientJwtToken], and a fresh [TomRequestId] — making them recoverable anywhere in the request via 
+                      <code>getFromCurrentZone</code> — and inside a [TomTransactionManager.runInTransactionScope], giving the request its own current transaction.
                     </p>
                     <p>
                       [id] labels the middleware for tracing; the optional [context] is merged into the request context before handling. Replace it via 
@@ -1632,10 +1806,18 @@
                   <div class="api-doc">
                     <p>The default request-logging [Middleware] of a [TomServer].</p>
                     <p>
-                      After the inner handler produces a response, it emits a single <code>HTTP/&lt;version&gt; [&lt;method&gt;] &lt;url&gt; ... &lt;status&gt;</code>
+                      After the inner handler produces a response, it emits a single <code>[&lt;appId&gt;] HTTP/&lt;version&gt; [&lt;method&gt;] &lt;url&gt; ... &lt;status&gt;</code>
                        info line — but only when the request's [TomRequestLogInfo] (read from the request context) has <code>shouldBeLogged == true</code>
                        and has not already been logged, after which it marks <code>hasBeenLogged</code>. This one-shot guard prevents duplicate lines when the pipeline retries or re-enters. It is the default value of 
                       <code>TomBaseServerConfiguration.loggingMiddleware</code>.
+                    </p>
+                    <p>
+                      The line opens with [tomAppId] so a deployment that runs several servers can tell their access logs apart once collected in one place — the requested URI carries a port, but that only separates them while they are separate ports on one host. The prefix is omitted entirely when no application id is configured, so a single-server deployment sees the line unchanged.
+                    </p>
+                    <p>
+                      <strong>It logs a response, not an outcome.</strong> [TomServer.start] places it above both error layers precisely so that a request rejected during authentication has been turned into a response before it arrives here — which is what makes a rejection appear in the access log at all. The one case still absent is an error that escapes 
+                      <em>both</em> layers, because no response was produced and there is no status to write; <code>_handleError</code>
+                       logs that error itself, and shelf answers the client.
                     </p>
                   </div>
                 </section>

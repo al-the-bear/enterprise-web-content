@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1395,13 +1401,12 @@
                 <h2 class="api-library-title">package:tom_flutter_ui/src/forms/form_field_family.dart</h2>
                 <code class="api-import">import 'package:tom_flutter_ui/src/forms/form_field_family.dart';</code>
                 <div class="api-doc">
-                  <p>Phase 5c — <code>FormFieldFamily</code> factory.</p>
                   <p>
                     A small factory that lets callers construct a field by abstract type while picking the concrete Material or Cupertino implementation at runtime. Both families share the same abstract bases (<code>TomFormStringField</code>, 
                     <code>TomFormEnumField&lt;T&gt;</code>, <code>TomFormFileField</code>, …), so a single declaration can resolve to either side just by switching the family.
                   </p>
                   <p>
-                    Designed for Phase 5c "Demo P" (family swap by breakpoint), but useful anywhere a form needs to render different concrete classes from the same field declaration.
+                    Swapping the family by breakpoint is the motivating case, but the factory is useful anywhere a form needs to render different concrete classes from the same field declaration.
                   </p>
                   <p>Usage:</p>
                   <pre><code>final family = isNarrow
@@ -1417,7 +1422,11 @@ final dob  = family.datePicker(
   lastDate: DateTime.now(),
 );</code></pre>
                   <p>
-                    Each factory method exposes a sensible subset of constructor parameters shared by both Material and Cupertino concretes. The returned type is the abstract base, so callers code against 
+                    A method exists here <strong>exactly when a field kind has a concrete on both sides</strong>. A one-sided kind cannot have one: the method would have to return the same class whichever family it was asked for, which defeats the point. The rule therefore reads in both directions — no method means the control is genuinely Material-only or Cupertino-only, not that the factory has a gap. Construct those from the catalogue directly. 
+                    <code>test/forms/form_field_family_completeness_test.dart</code> derives the both-sided kinds from the catalogue and holds this rule in both directions.
+                  </p>
+                  <p>
+                    Each factory method exposes a sensible subset of constructor parameters shared by both Material and Cupertino concretes; where the two sides take different extras, neither is offered here, because passing one would be choosing a rendering. The returned type is the abstract base, so callers code against 
                     <code>TomFormStringField</code> etc.
                   </p>
                 </div>
@@ -1464,6 +1473,42 @@ final dob  = family.datePicker(
                         </p>
                       </div>
                     </div>
+                    <div id="FormFieldFamily.stringPicker" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          TomFormStringField stringPicker(String tomId, String initialValue, {required TomSelectableSource&lt;String&gt; source, String? labelTextOverride, String? hintTextOverride, String? descriptionTextOverride, TomForm&lt;InvalidType&gt;? form, List&lt;Object&gt;? validators, bool autoValidate = true, InvalidType tomGroup, InvalidType authorizer, InvalidType uiStateController})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Pick one string from a list of options — Material <code>DropdownButton</code> vs Cupertino wheel sheet. The string analogue of [enumPicker].
+                        </p>
+                      </div>
+                    </div>
+                    <div id="FormFieldFamily.stringSegmented" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          TomFormStringField stringSegmented(String tomId, String initialValue, {required TomSelectableSource&lt;String&gt; source, String? labelTextOverride, String? descriptionTextOverride, TomForm&lt;InvalidType&gt;? form, List&lt;Object&gt;? validators, bool autoValidate = true, InvalidType tomGroup, InvalidType authorizer, InvalidType uiStateController})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Pick one string from a short option set laid out inline — Material <code>SegmentedButton</code> vs <code>CupertinoSlidingSegmentedControl</code>. Suited to two or three options; use [stringPicker] beyond that.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="FormFieldFamily.stringMultiSelect" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          TomFormStringListField stringMultiSelect(String tomId, List&lt;String&gt; initialValue, {required TomSelectableSource&lt;String&gt; source, String? labelTextOverride, String? descriptionTextOverride, TomForm&lt;InvalidType&gt;? form, List&lt;Object&gt;? validators, bool autoValidate = true, InvalidType tomGroup, InvalidType authorizer, InvalidType uiStateController})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Pick any number of strings — Material filter chips vs a Cupertino modal sheet of checked rows. The value is the selected list.
+                        </p>
+                      </div>
+                    </div>
                     <div id="FormFieldFamily.intInput" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
@@ -1480,6 +1525,18 @@ final dob  = family.datePicker(
                       </div>
                       <div class="api-doc"><p>Decimal text input.</p></div>
                     </div>
+                    <div id="FormFieldFamily.currencyInput" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          TomFormDoubleField currencyInput(String tomId, double initialValue, {String? locale, String? currencyCode, String? labelTextOverride, String? hintTextOverride, String? descriptionTextOverride, double? minValue, double? maxValue, TomForm&lt;InvalidType&gt;? form, List&lt;Object&gt;? validators, bool autoValidate = true, InvalidType tomGroup, InvalidType authorizer, InvalidType uiStateController})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Decimal input formatted as money. <code>locale</code> and <code>currencyCode</code> select the formatting; both families parse and format identically and differ only in the text field they wrap.
+                        </p>
+                      </div>
+                    </div>
                     <div id="FormFieldFamily.boolSwitch" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
@@ -1487,6 +1544,32 @@ final dob  = family.datePicker(
                         </code>
                       </div>
                       <div class="api-doc"><p>Boolean switch. Material <code>Switch</code> vs Cupertino <code>CupertinoSwitch</code>.</p></div>
+                    </div>
+                    <div id="FormFieldFamily.boolToggle" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          TomFormBoolField boolToggle(String tomId, bool initialValue, {String? onLabelOverride, String? offLabelOverride, String? labelTextOverride, String? descriptionTextOverride, TomForm&lt;InvalidType&gt;? form, List&lt;Object&gt;? validators, bool autoValidate = true, InvalidType tomGroup, InvalidType authorizer, InvalidType uiStateController})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Boolean rendered as a two-segment Off / On control rather than a switch — Material <code>SegmentedButton</code>
+                           vs <code>CupertinoSlidingSegmentedControl</code>. Prefer it over [boolSwitch] where both states deserve a written label.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="FormFieldFamily.nullableBoolToggle" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          TomFormNullableBoolField nullableBoolToggle(String tomId, bool? initialValue, {bool? tristate, String? labelTextOverride, String? descriptionTextOverride, TomForm&lt;InvalidType&gt;? form, List&lt;Object&gt;? validators, bool autoValidate = true, InvalidType tomGroup, InvalidType authorizer, InvalidType uiStateController})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Tristate boolean. Material renders an indeterminate <code>Checkbox</code>; the Cupertino family, which has no such control, renders a three-segment Off / — / On slider. Pass 
+                          <code>tristate: false</code> to keep the nullable value type while making the control two-state.
+                        </p>
+                      </div>
                     </div>
                     <div id="FormFieldFamily.datePicker" class="api-member">
                       <div class="api-member-head">
@@ -1504,6 +1587,45 @@ final dob  = family.datePicker(
                       </div>
                       <div class="api-doc"><p>Time-of-day picker — Material <code>showTimePicker</code> vs Cupertino wheel.</p></div>
                     </div>
+                    <div id="FormFieldFamily.dateTimePicker" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          TomFormDateTimeField dateTimePicker(String tomId, DateTime initialValue, {required DateTime firstDate, required DateTime lastDate, String? labelTextOverride, String? descriptionTextOverride, TomForm&lt;InvalidType&gt;? form, List&lt;Object&gt;? validators, bool autoValidate = true, InvalidType tomGroup, InvalidType authorizer, InvalidType uiStateController})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Combined date-and-time picker. Material runs its date dialog then its time dialog; Cupertino offers a single 
+                          <code>dateAndTime</code> wheel. The value is one <code>DateTime</code> either way.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="FormFieldFamily.dateRangePicker" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          TomFormDateRangeField dateRangePicker(String tomId, DateTimeRange&lt;DateTime&gt; initialValue, {required DateTime firstDate, required DateTime lastDate, String? labelTextOverride, String? descriptionTextOverride, TomForm&lt;InvalidType&gt;? form, List&lt;Object&gt;? validators, bool autoValidate = true, InvalidType tomGroup, InvalidType authorizer, InvalidType uiStateController})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Start/end date range — Material <code>showDateRangePicker</code> vs a Cupertino sheet holding one wheel per endpoint.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="FormFieldFamily.durationPicker" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          TomFormDurationField durationPicker(String tomId, Duration initialValue, {String? labelTextOverride, String? descriptionTextOverride, TomForm&lt;InvalidType&gt;? form, List&lt;Object&gt;? validators, bool autoValidate = true, InvalidType tomGroup, InvalidType authorizer, InvalidType uiStateController})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Duration entry. This is the pair whose two sides are least alike: Material types hours and minutes into text fields, Cupertino spins a 
+                          <code>CupertinoTimerPicker</code>. Only the shared parameters are exposed here — construct the concrete directly for 
+                          <code>maxHours</code> (Material) or <code>mode</code> / <code>minuteInterval</code> (Cupertino).
+                        </p>
+                      </div>
+                    </div>
                     <div id="FormFieldFamily.enumPicker" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
@@ -1511,6 +1633,38 @@ final dob  = family.datePicker(
                         </code>
                       </div>
                       <div class="api-doc"><p>Single-select enum picker — Material <code>DropdownButton</code> vs Cupertino wheel sheet.</p></div>
+                    </div>
+                    <div id="FormFieldFamily.enumPickerFor" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          TomFormEnumField&lt;E&gt; enumPickerFor&lt;E extends Enum&gt;(String tomId, E initialValue, {required List&lt;E&gt; values, String? labelTextOverride, String? descriptionTextOverride, TomForm&lt;InvalidType&gt;? form, List&lt;Object&gt;? validators, bool autoValidate = true, InvalidType tomGroup, InvalidType authorizer, InvalidType uiStateController})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Single-select enum picker whose option labels come from the text bundle — the resource-keyed form of [enumPicker].
+                        </p>
+                        <p>
+                          Resolves each option under <code>&lt;scope&gt;.&lt;enumName&gt;.&lt;value&gt;</code> via [TomEnumSelectableSource], so the picker carries no Dart-side label table and re-renders when the application switches locale. Prefer this over building a [StaticSelectableSource] of hardcoded labels.
+                        </p>
+                        <pre><code>family.enumPickerFor('status', TodoStatus.open, values: TodoStatus.values);</code></pre>
+                      </div>
+                    </div>
+                    <div id="FormFieldFamily.enumSegmented" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          TomFormEnumField&lt;T&gt; enumSegmented&lt;T extends Object&gt;(String tomId, T initialValue, {required TomSelectableSource&lt;T&gt; source, String? labelTextOverride, String? descriptionTextOverride, TomForm&lt;InvalidType&gt;? form, List&lt;Object&gt;? validators, bool autoValidate = true, InvalidType tomGroup, InvalidType authorizer, InvalidType uiStateController})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Single-select enum laid out inline — Material <code>SegmentedButton</code> vs <code>CupertinoSlidingSegmentedControl</code>. The inline form of [enumPicker], for enums short enough that every option fits on one row.
+                        </p>
+                        <p>
+                          <code>T</code> is bound to <code>Object</code> here where [enumPicker] leaves it open: <code>CupertinoSlidingSegmentedControl</code>
+                           requires a non-nullable type argument, so the factory can only promise what both sides accept.
+                        </p>
+                      </div>
                     </div>
                     <div id="FormFieldFamily.objectPicker" class="api-member">
                       <div class="api-member-head">
@@ -1545,6 +1699,26 @@ final dob  = family.datePicker(
                       <div class="api-doc">
                         <p>
                           File upload control. Material elevated button vs Cupertino filled button. Picking errors surface through Material's snackbar / Cupertino's alert dialog respectively.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="FormFieldFamily.fileThumbnail" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          TomFormFileField fileThumbnail(String tomId, FileRef? initialValue, {Future&lt;FileRef?&gt; Function(BuildContext)?? picker, TomFilePickKind pickKind = TomFilePickKind.image, InvalidType transferClient, String? storageSlot, void Function(FileRef, Uint8List)?? onDownload, double thumbnailSize = 96.0, String? labelTextOverride, String? descriptionTextOverride, List&lt;String&gt;? allowedExtensions, int? maxSizeBytes, TomForm&lt;InvalidType&gt;? form, List&lt;Object&gt;? validators, bool autoValidate = true, InvalidType tomGroup, InvalidType authorizer, InvalidType uiStateController})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          File control that shows the file rather than describing it — a square preview of the file's own content, falling back to the file-kind icon for anything Flutter has no codec for.
+                        </p>
+                        <p>Two deliberate differences from [fileUpload]:</p>
+                        <ul><li><code>picker</code> is optional. A form built from a specification has no picker</li></ul>
+                        <p>
+                          to pass; it relies on the one the application registered, and a <code>required</code> here would put that form out of reach. * the transfer wiring is exposed. Without it a re-opened form could never fetch the stored file's bytes, so the presentation would degrade to an icon in exactly the case it exists for.
+                        </p>
+                        <p>
+                          <code>pickKind</code> defaults to [TomFilePickKind.image]: a thumbnail that opened a "choose any file" dialog would invite the one file it cannot show.
                         </p>
                       </div>
                     </div>

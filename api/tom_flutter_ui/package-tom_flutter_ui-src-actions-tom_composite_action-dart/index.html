@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1389,7 +1395,6 @@
                 <div class="treenodes">
                   <a class="leaf" href="#TomCompositeAction">TomCompositeAction</a>
                   <a class="leaf" href="#TomCompositeStep">TomCompositeStep</a>
-                  <a class="leaf" href="#TomDualAction">TomDualAction</a>
                 </div>
               </div>
               <div class="reader">
@@ -1401,7 +1406,7 @@
                   <div class="api-doc">
                     <p>Adapter action that executes multiple actions sequentially.</p>
                     <p>
-                      Each sub-action can have an optional guard that determines whether it should actually execute. If a guard returns false, that sub-action is skipped.
+                      A step runs unless it is <em>blocked</em>. A step is blocked by either of two independent conditions: its optional [TomCompositeStep.guard] returns false, or the step's own action refuses via [TomAction.canExecute]. The two are treated identically, and [stopOnBlockedStep] decides what a blocked step does to the rest of the run.
                     </p>
                     <pre><code>final saveAndClose = TomCompositeAction(
   actionId: 'saveAndClose',
@@ -1410,7 +1415,7 @@
     TomCompositeStep(
       action: saveAction,
       contextBuilder: () =&gt; SaveContext(...),
-      guard: () =&gt; form.isValid,
+      guard: () =&gt; form.isDirty,
     ),
     TomCompositeStep(
       action: closeAction,
@@ -1418,13 +1423,24 @@
     ),
   ],
 );</code></pre>
+                    <p>
+                      The guard above asks <code>isDirty</code> rather than <code>isValid</code> because <code>isValid</code>
+                       means "validation has run and passed" — a form the user never touched is pristine, and pristine is not success, so an 
+                      <code>isValid</code> guard would block the save step on a perfectly valid form. Guard on "is there anything to do" and let the step's own action reject bad data.
+                    </p>
+                    <p>
+                      Two steps is the everyday case — <em>save-and-close</em>, <em>validate-and-submit</em> — and it needs nothing beyond this class. Steps may take 
+                      <strong>different context types</strong>: [TomCompositeStep]'s type parameter is covariant, so one list holds a 
+                      <code>TomCompositeStep&lt;CtxA&gt;</code> beside a <code>TomCompositeStep&lt;CtxB&gt;</code>, each pairing its own action with its own builder. Where the two steps are genuinely 
+                      <em>independent</em> — neither should block the other — pass <code>stopOnBlockedStep: false</code>.
+                    </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomCompositeAction.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomCompositeAction.new({required String actionId, required TomActionController controller, required List&lt;TomCompositeStep&lt;TomActionContext&gt;&gt; steps, bool stopOnGuardFailure = true, InvalidType scope, InvalidType tomGroup})
+                          TomCompositeAction.new({required String actionId, required TomActionController controller, required List&lt;TomCompositeStep&lt;TomActionContext&gt;&gt; steps, bool stopOnBlockedStep = true, InvalidType scope, InvalidType tomGroup})
                         </code>
                       </div>
                     </div>
@@ -1435,9 +1451,16 @@
                       <div class="api-member-head"><code class="api-signature">final List&lt;TomCompositeStep&lt;TomActionContext&gt;&gt; steps</code></div>
                       <div class="api-doc"><p>The steps to execute in order.</p></div>
                     </div>
-                    <div id="TomCompositeAction.stopOnGuardFailure" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final bool stopOnGuardFailure</code></div>
-                      <div class="api-doc"><p>Whether to stop at the first failed guard (true) or skip and continue (false).</p></div>
+                    <div id="TomCompositeAction.stopOnBlockedStep" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final bool stopOnBlockedStep</code></div>
+                      <div class="api-doc">
+                        <p>
+                          What a blocked step does to the rest of the run: abandon the remaining steps (true, the default) or skip only that step and carry on (false).
+                        </p>
+                        <p>
+                          This governs <em>all</em> the conditions that block a step — a [TomCompositeStep.guard] returning false, the step's own action being unauthorized, and that action returning false from [TomAction.canExecute]. A composite with no guards at all still stops at the first step that is blocked.
+                        </p>
+                      </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
@@ -1446,6 +1469,33 @@
                       <div class="api-member-head">
                         <code class="api-signature">bool canExecute(TomActionContext context)</code>
                         <span class="api-badge api-badge--override">override</span>
+                      </div>
+                      <div class="api-doc">
+                        <p>Whether [execute] would run at least one step.</p>
+                        <p>
+                          This mirrors [execute] exactly, which is what makes it safe to gate a button on: a step counts only if nothing blocks it — its guard, its action's authorization, or its action's own 
+                          <code>canExecute</code> — and when [stopOnBlockedStep] is set the run abandons everything after the first blocked step, so only the first step is reachable at all.
+                        </p>
+                        <p>
+                          [context] is ignored — each step supplies its own via [TomCompositeStep.contextBuilder], which is therefore called here as well as in [execute].
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomCompositeAction._contextIfRunnable" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">TomActionContext? _contextIfRunnable(TomCompositeStep&lt;TomActionContext&gt; step)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>The context [step] would run with, or <code>null</code> if the step is blocked.</p>
+                        <p>
+                          This is the single definition of <em>blocked</em>: a guard returning false, the step's action being unauthorized, or that action refusing the context it would be given. Both [canExecute] and [execute] route through it so the two cannot disagree about which steps run.
+                        </p>
+                        <p>
+                          A step's authorization is the step <strong>action's</strong>, not the composite's. The composite is one authorizable and each step is another; a trigger checks the composite before dispatching, and that says nothing about what the composite then reaches. Without this a hidden action would run as a step of a visible composite — the same defect the trigger's check closes, one layer down.
+                        </p>
+                        <p>
+                          Checked before [TomCompositeStep.contextBuilder] runs, so a step the user cannot reach does not build a context — the builder is application code and may itself touch data the refusal is about.
+                        </p>
                       </div>
                     </div>
                     <div id="TomCompositeAction.execute" class="api-member">
@@ -1478,68 +1528,21 @@
                     </div>
                     <div id="TomCompositeStep.contextBuilder" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final TContext Function() contextBuilder</code></div>
-                      <div class="api-doc"><p>Builds the context for this step's action.</p></div>
+                      <div class="api-doc">
+                        <p>Builds the context for this step's action.</p>
+                        <p>
+                          Called once per evaluation, by [TomCompositeAction.canExecute] as well as by [TomCompositeAction.execute] — so dispatching through a 
+                          <code>TomActionTrigger</code>, which checks before it runs, calls it twice. Build a context here; do not mutate anything.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomCompositeStep.guard" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final bool Function()?? guard</code></div>
-                      <div class="api-doc"><p>Optional guard — returns true if this step should execute.</p></div>
-                    </div>
-                  </div>
-                </section>
-                <section id="TomDualAction" class="api-declaration">
-                  <h3 class="api-decl-title">class TomDualAction</h3>
-                  <code class="api-signature">
-                    class TomDualAction&lt;TCtx1 extends TomActionContext, TCtx2 extends TomActionContext&gt; extends TomAction&lt;TomActionContext, TomActionUndo&gt;
-                  </code>
-                  <div class="api-doc">
-                    <p>Adapter action that executes two actions sequentially with individual guards.</p>
-                    <p>
-                      Convenience specialization of [TomCompositeAction] for the common two-action case (e.g., save-and-close, validate-and-submit).
-                    </p>
-                  </div>
-                  <h4 class="api-group-title">Constructors</h4>
-                  <div class="api-members">
-                    <div id="TomDualAction.new" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">
-                          TomDualAction.new({required String actionId, required TomActionController controller, required TomAction&lt;TCtx1, TomActionUndo&gt; first, required TCtx1 Function() firstContextBuilder, bool Function()?? firstGuard, required TomAction&lt;TCtx2, TomActionUndo&gt; second, required TCtx2 Function() secondContextBuilder, bool Function()?? secondGuard, InvalidType scope, InvalidType tomGroup})
-                        </code>
-                      </div>
-                    </div>
-                  </div>
-                  <h4 class="api-group-title">Properties</h4>
-                  <div class="api-members">
-                    <div id="TomDualAction.first" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final TomAction&lt;TCtx1, TomActionUndo&gt; first</code></div>
-                    </div>
-                    <div id="TomDualAction.firstContextBuilder" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final TCtx1 Function() firstContextBuilder</code></div>
-                    </div>
-                    <div id="TomDualAction.firstGuard" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final bool Function()?? firstGuard</code></div>
-                    </div>
-                    <div id="TomDualAction.second" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final TomAction&lt;TCtx2, TomActionUndo&gt; second</code></div>
-                    </div>
-                    <div id="TomDualAction.secondContextBuilder" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final TCtx2 Function() secondContextBuilder</code></div>
-                    </div>
-                    <div id="TomDualAction.secondGuard" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final bool Function()?? secondGuard</code></div>
-                    </div>
-                  </div>
-                  <h4 class="api-group-title">Methods</h4>
-                  <div class="api-members">
-                    <div id="TomDualAction.canExecute" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">bool canExecute(TomActionContext context)</code>
-                        <span class="api-badge api-badge--override">override</span>
-                      </div>
-                    </div>
-                    <div id="TomDualAction.execute" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">TomActionUndo? execute(TomActionContext context, TomActionTransaction tx)</code>
-                        <span class="api-badge api-badge--override">override</span>
+                      <div class="api-doc">
+                        <p>Optional guard — returns true if this step should execute.</p>
+                        <p>
+                          Consulted before [contextBuilder], and likewise on both the check and the run, so it should be a cheap predicate.
+                        </p>
                       </div>
                     </div>
                   </div>

@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1425,6 +1431,26 @@
                 Keep workspace context navigable without leaving Explorer / Activity Bar. Notes and todos are markdown / YAML files — the tree views are thin navigation shells with file-watcher refresh; the actual editor is VS Code's built-in markdown / YAML, or the custom 
                 <a href="https://github.com/al-the-bear/tom_vscode/blob/main/tom_vscode_extension/src/handlers/questTodoPanel-handler.ts">quest todo editor</a>
                  for <code>*.todo.yaml</code> files.
+              </p>
+              <h2>Notes views — picking up edits made elsewhere</h2>
+              <p>
+                The three notes views (VS CODE NOTES, WORKSPACE NOTES, QUEST NOTES) share one store, <a href="https://github.com/al-the-bear/tom_vscode/blob/main/tom_vscode_extension/src/handlers/notepad/notepadFileStorage.ts"><code>NotepadFileStorage</code></a>, and each hands it an 
+                <code>onExternalChange</code> callback that re-renders the view. Two things about it are load-bearing:
+              </p>
+              <ul>
+                <li>
+                  <strong>A <code>NOTEPAD_POLL_INTERVAL_MS</code> poll is the guarantee, not the <code>createFileSystemWatcher</code>.</strong>
+                   None of the three files is reliably watchable: quest and workspace notes sit under <code>_ai/</code>, a relative symlink whose real path is outside the workspace folder, and the global notes are in 
+                  <code>~/.tom/notes/</code>, outside any workspace folder. Same reason the MD Browser polls its live-trail (<code>markdownBrowser-handler.ts</code>). The watcher stays as a low-latency extra; if it never fires, the view still updates.
+                </li>
+                <li>
+                  <strong>The view's own autosave is recognised by content, not by timing.</strong> <code>save()</code>
+                   updates the in-memory content before writing, so a change signal whose disk content matches it is our own echo. Do not reintroduce an "ignore the next event" flag: it is set on every save and cleared only when an event arrives, so on these paths it stayed armed and swallowed the 
+                  <em>next real</em> external edit.
+                </li>
+              </ul>
+              <p>
+                Both are covered by <code>src/handlers/__tests__/notepadFileStorage.test.ts</code>, where the stub watcher never fires unless a test asks it to.
               </p>
               <h2>Window Status specifics</h2>
               <p>Shows one card per open <code>@Tom</code> window:</p>

@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1386,7 +1392,7 @@
               <span style="display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap"><span class="badge b-pub"><span class="d"></span>Published</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">role: extension</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">license: MIT</span></span>
             </div>
             <h2>tom_d4rt_exec</h2>
-            <div class="mono" style="color: #9FB6C9">tom_d4rt_exec · v1.8.6</div>
+            <div class="mono" style="color: #9FB6C9">tom_d4rt_exec · v1.51.0</div>
             <p style="margin-top: 10px">
               Parses Dart source with the analyzer at build time, then executes the mirror AST on `tom_d4rt_ast` with no analyzer at runtime. The build/CLI entry point of the analyzer-free line — the web/OTA-capable alternative to `tom_d4rt`, not a drop-in default.
             </p>
@@ -1397,9 +1403,9 @@
           </div>
           <div class="statgrid">
             <div class="stat"><div class="k">Status</div><div class="v" style="font-size: 1.05rem; color: #0F7FB0">Published</div></div>
-            <div class="stat"><div class="k">LOC</div><div class="v">2.3k</div></div>
-            <div class="stat"><div class="k">Tests</div><div class="v">2.5k</div></div>
-            <div class="stat"><div class="k">Test LOC</div><div class="v">39.9k</div></div>
+            <div class="stat"><div class="k">LOC</div><div class="v">3.4k</div></div>
+            <div class="stat"><div class="k">Tests</div><div class="v">4.2k</div></div>
+            <div class="stat"><div class="k">Test LOC</div><div class="v">79.5k</div></div>
           </div>
           <div class="dcols">
             <div>
@@ -1500,7 +1506,7 @@
               </p>
               <h2>Overview</h2>
               <p>
-                <code>tom_d4rt_exec</code> is the analyzer-free counterpart of <a href="https://github.com/al-the-bear/tom_d4rt/tree/main"><code>tom_d4rt</code></a>. It separates the two responsibilities the original package bundled together:
+                <code>tom_d4rt_exec</code> is the analyzer-free counterpart of <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt"><code>tom_d4rt</code></a>. It separates the two responsibilities the original package bundled together:
               </p>
               <p>
                 1. <strong>Parsing</strong> — Dart source is parsed by the <code>analyzer</code> package and converted 1:1 into the 
@@ -1518,7 +1524,7 @@
               </p>
               <h3>Which interpreter should I use?</h3>
               <p>
-                <a href="https://github.com/al-the-bear/tom_d4rt/tree/main"><code>tom_d4rt</code></a> is the stable reference and is 
+                <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt"><code>tom_d4rt</code></a> is the stable reference and is 
                 <strong>usually the preferable choice</strong> for command-line, server, and desktop embeddings. Reach for the analyzer-free line (<code>tom_d4rt_exec</code>
                  + <code>tom_d4rt_ast</code>) when you actually need the web / OTA case: the runtime has no analyzer dependency, but because the AST bundles it consumes are 
                 <strong>large</strong>, it is a complete alternative rather than a default.
@@ -1527,7 +1533,7 @@
                 <thead><tr><th>Package</th><th>What it is</th><th>Analyzer dependency</th><th>Use when</th></tr></thead>
                 <tbody>
                   <tr>
-                    <td><a href="https://github.com/al-the-bear/tom_d4rt/tree/main"><code>tom_d4rt</code></a></td>
+                    <td><a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt"><code>tom_d4rt</code></a></td>
                     <td>Source-based reference interpreter; parse + interpret in one package</td>
                     <td>Yes (parse and runtime)</td>
                     <td>CLI / server / desktop — the usual choice</td>
@@ -1601,9 +1607,11 @@
                 </tbody>
               </table>
               <h2>Installation</h2>
-              <pre><code>dependencies:
-  tom_d4rt_exec: ^1.8.5</code></pre>
               <pre><code>dart pub add tom_d4rt_exec</code></pre>
+              <p>
+                That writes the current constraint into your <code>pubspec.yaml</code>. A hand-written <code>tom_d4rt_exec: ^x.y.z</code>
+                 block is not shown here on purpose: it is a version stamp in a document, and a reader who copies one pins an older floor than the one they just installed.
+              </p>
               <h2>Features</h2>
               <ul>
                 <li>
@@ -1646,9 +1654,9 @@
                   <strong>Debug logging</strong> — <code>setDebug(true)</code> enables detailed trace output for all interpreter passes.
                 </li>
                 <li>
-                  <strong>Versioned build info</strong> — <code>TomVersionInfo</code> carries version, git commit, and build timestamp.
+                  <strong>Multi-platform</strong> — declared for Android, iOS, Linux, macOS and Windows. Not the web: this package depends on 
+                  <code>analyzer</code> and uses <code>dart:io</code>. On the web, run pre-built bundles with <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_ast"><code>tom_d4rt_ast</code></a>.
                 </li>
-                <li><strong>Multi-platform</strong> — declared for Android, iOS, Linux, macOS, Web, and Windows.</li>
               </ul>
               <h2>Quick Start</h2>
               <pre><code>import 'package:tom_d4rt_exec/d4rt.dart';
@@ -1667,7 +1675,7 @@ void main() {
 }</code></pre>
               <h2>Example projects</h2>
               <p>
-                <code>tom_d4rt_exec</code> shares its execution API and language semantics with <a href="https://github.com/al-the-bear/tom_d4rt/tree/main"><code>tom_d4rt</code></a>, so the runnable samples in 
+                <code>tom_d4rt_exec</code> shares its execution API and language semantics with <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt"><code>tom_d4rt</code></a>, so the runnable samples in 
                 <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_samples"><code>tom_d4rt_samples/</code></a>
                  apply here too — the only change is the import (<code>package:tom_d4rt_exec/tom_d4rt.dart</code>):
               </p>
@@ -1999,7 +2007,7 @@ tom_d4rt_exec          &lt;-- THIS PACKAGE
     |  (CLI runner, DCli scripting integration)
 tom_dcli_exec</code></pre>
               <p>
-                <a href="https://github.com/al-the-bear/tom_d4rt/tree/main"><code>tom_d4rt</code></a> is the source-based reference that bundles the analyzer, AST, and runtime together — and remains the usual choice for CLI / server / desktop (see 
+                <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt"><code>tom_d4rt</code></a> is the source-based reference that bundles the analyzer, AST, and runtime together — and remains the usual choice for CLI / server / desktop (see 
                 <a href="#which-interpreter-should-i-use">Which interpreter should I use?</a>). <code>tom_d4rt_exec</code>
                  is the entry point for the analyzer-free line you adopt when the web / OTA constraint applies. Bridge packages and scripts written against 
                 <code>tom_d4rt</code> move over by changing their import from <code>package:tom_d4rt/tom_d4rt.dart</code>
@@ -2042,7 +2050,7 @@ tom_dcli_exec</code></pre>
                   <code>AstConverter</code> (analyzer AST → mirror AST) and <code>AstBundler</code> this package re-exports
                 </li>
                 <li>
-                  <a href="https://github.com/al-the-bear/tom_d4rt/tree/main">tom_d4rt</a> — the source-based reference; base docs: 
+                  <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt">tom_d4rt</a> — the source-based reference; base docs: 
                   <a href="/docs?module=tom_d4rt&amp;path=doc%2Fd4rt_user_guide.md">User Guide</a> · <a href="/docs?module=tom_d4rt&amp;path=doc%2Fd4rt_limitations.md">Limitations (canonical)</a>
                 </li>
                 <li>
@@ -2055,12 +2063,14 @@ tom_dcli_exec</code></pre>
                 </li>
               </ul>
               <h2>Status</h2>
-              <p><strong>Version 1.8.5</strong> — current release on pub.dev (first published at 1.8.2).</p>
-              <ul>
-                <li>1680+ tests passing (2 intentional won't-fix exclusions).</li>
-                <li>All 20 Dart language areas covered in the <code>dart_overview</code> test suite.</li>
-                <li>Supported platforms: Android, iOS, Linux, macOS, Web, Windows.</li>
-              </ul>
+              <p>
+                Published on pub.dev; <code>pubspec.yaml</code> carries the current version and the CHANGELOG records what each release contained. Neither is repeated here: a version written into a README is stale the moment the next one ships, and a stale one under a heading reading "Status" is worse than none, because a reader cannot tell the two apart.
+              </p>
+              <ul><li>The test suite is a PORT of <code>tom_d4rt</code>'s, and</li></ul>
+              <p>
+                <code>test/conformance_drift_test.dart</code> is the live comparison of the two: it checks them file for file and case for case and records every sanctioned difference with its reason. A pass count is not quoted for the same reason a version is not — it changes on every added file, and the drift test answers the question a count was reaching for. - All 20 Dart language areas are covered in the 
+                <code>dart_overview</code> test suite. - Supported platforms: Android, iOS, Linux, macOS, Web, Windows.
+              </p>
               <p>
                 Repository: <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_exec">https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt_exec</a>
               </p>

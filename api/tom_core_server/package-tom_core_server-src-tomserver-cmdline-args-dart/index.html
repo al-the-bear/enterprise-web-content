@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1406,8 +1412,28 @@
                     </ul>
                     <p><code>Platform.environment</code>) using the same rules.</p>
                     <p>
-                      An argument with no <code>=</code> is treated as a flag. Note the two map-producing paths differ in how they encode a bare flag: [parseArgsToMap] stores the boolean 
-                      <code>true</code>, whereas [fillFromArgs] stores the string <code>"true"</code> (the reflection layer coerces it to the target field's type on assignment).
+                      An argument is split on its <strong>first</strong> <code>=</code>: the key is the text before it and the value is everything after, so a value may itself contain 
+                      <code>=</code> (a connection string, a URL with a query, a padded base64 blob). This is the rule <code>TomEnvFile.parse</code>
+                       applies, so the same text means the same thing on the command line and in a <code>.env</code> file.
+                    </p>
+                    <p>
+                      An argument with no <code>=</code> is treated as a flag. Both map-producing paths encode a bare flag identically as the boolean 
+                      <code>true</code> — consistent with how <code>key=true</code> is converted (see [convertToObjectMap]) — so a bare flag can fill a reflected 
+                      <code>bool</code> field directly.
+                    </p>
+                    <p>
+                      A key is stripped of its <strong>leading <code>-</code> characters</strong>, so <code>--port=8080</code>, 
+                      <code>-port=8080</code> and <code>port=8080</code> are one argument under the name <code>port</code>, and 
+                      <code>--verbose</code> is the flag <code>verbose</code>. The conventional command-line spelling therefore reaches a reflected field, which a key carrying its dashes cannot: no Dart class declares a field named 
+                      <code>--port</code>. Two consequences follow. A key cannot begin with <code>-</code>, and the dashed and bare spellings of one option are the same entry, so the later of the two wins rather than both being recorded. Only the 
+                      <em>leading</em> run is a prefix: a dash inside or at the end of a name is part of it (<code>--dry-run=1</code>
+                       is the key <code>dry-run</code>), and a dash in the value is data. Stripping is a command-line convention and is not applied by 
+                      <code>TomEnvFile.parse</code>, which takes a variable name as it is written — the one place the two sources part company by design.
+                    </p>
+                    <p>
+                      An argument whose key is empty is <strong>skipped</strong>: an empty argument, one that starts with <code>=</code>
+                       so that nothing precedes the separator, and one whose key is nothing but dashes (<code>--</code>, the conventional end-of-options marker) all name no field and are dropped rather than recorded under an empty key. Apart from the dashes this is the rule 
+                      <code>TomEnvFile.parse</code> applies. Skipping is per argument — the arguments around a malformed one are still parsed.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1420,9 +1446,30 @@
                       <div class="api-member-head"><code class="api-signature">static RegExp intPattern</code></div>
                       <div class="api-doc">
                         <p>
-                          Matches a run of digits. A value is parsed as an <code>int</code> only when this pattern matches the 
-                          <em>whole</em> string, so a leading sign or trailing text keeps the value a <code>String</code> (e.g. 
-                          <code>-5</code> and <code>12px</code> stay strings).
+                          Matches an optional <code>-</code> and then an unpadded run of digits — <code>0</code> itself, or a run starting with a non-zero digit. A value is parsed as an 
+                          <code>int</code> only when this pattern matches the <em>whole</em> string, so trailing text keeps the value a 
+                          <code>String</code> (<code>12px</code>), and so does a sign with nothing a number can be made of after it (<code>-</code>, 
+                          <code>-abc</code>).
+                        </p>
+                        <p>
+                          <strong>A <code>-</code> is admitted and a <code>+</code> is not</strong>, which is the padding rule rather than an omission. A 
+                          <code>-</code> is never decorative: it changes the value it introduces, and without it a negative setting could not reach a numeric field from any source. A 
+                          <code>+</code> in front of a digit run <em>is</em> decorative — it is how an international phone number is written — so converting 
+                          <code>+4917612345678</code> would produce a different identifier and report nothing, exactly as <code>007</code>
+                           → <code>7</code> would. The cost lands where it is loud instead of where it is silent: <code>+5</code>
+                           against an <code>int</code> field is refused at assignment, naming the key.
+                        </p>
+                        <p>
+                          The padding restriction is part of the rule, not a quirk of the regular expression. A leading zero is only ever written when the zeros carry meaning — nobody writes 
+                          <code>port=08080</code> intending 8080 — so a padded run is an identifier: a phone number written with its international prefix, a zero-padded account or article number, a postcode, a country code. Converting one produces a 
+                          <em>different</em> identifier and reports nothing, so <code>007</code> stays the <code>String</code> 
+                          <code>007</code>, and so does <code>-007</code>: the sign is judged first and the run after it exactly as an unsigned one is. A lone 
+                          <code>0</code> is not padding and converts to the <code>int</code> 0.
+                        </p>
+                        <p>
+                          Matching is necessary but not sufficient: the pattern constrains shape, not magnitude, and a run too long for a 64-bit 
+                          <code>int</code> also stays a <code>String</code>. The two ends are not mirrors — two's complement reaches one further down than up — so 
+                          <code>-9223372036854775808</code> converts and <code>9223372036854775808</code> does not.
                         </p>
                       </div>
                     </div>
@@ -1430,9 +1477,41 @@
                       <div class="api-member-head"><code class="api-signature">static RegExp doublePattern</code></div>
                       <div class="api-doc">
                         <p>
-                          Matches a decimal number (<code>digits . digits?</code>). A value is parsed as a <code>double</code> only when this pattern matches the 
-                          <em>whole</em> string and it is not already an <code>int</code>; a leading sign or a missing integer part keeps the value a 
-                          <code>String</code> (e.g. <code>-1.5</code> and <code>.5</code> stay strings).
+                          Matches an optional <code>-</code> and then a decimal number (<code>digits . digits*</code>). A value is parsed as a 
+                          <code>double</code> only when this pattern matches the <em>whole</em> string and it is not already an 
+                          <code>int</code>; a missing integer part keeps the value a <code>String</code> (<code>.5</code> and <code>-.5</code>
+                           stay strings).
+                        </p>
+                        <p>
+                          The sign follows [intPattern]'s rule for the same reason: <code>-1.5</code> is a quantity, while a leading 
+                          <code>+</code> is decoration an identifier may carry, so <code>+1.5</code> stays a <code>String</code>.
+                        </p>
+                        <p>
+                          The integer part obeys the same padding rule as [intPattern] — it is a digit run and loses its zeros the same way — so 
+                          <code>00.5</code> stays a <code>String</code> while <code>0.5</code> converts. The <em>fractional</em>
+                           part is deliberately unrestricted: a trailing zero after the point is not identity, since <code>1.50</code>
+                           and <code>1.5</code> are one quantity, whereas <code>007</code> and <code>7</code> are two identifiers.
+                        </p>
+                        <p>
+                          The fractional part is <code>*</code>, zero or more digits — not one optional digit. So <code>3.14</code>
+                           converts, and so does a value ending in a bare <code>.</code>: <code>5.</code> becomes the <code>double</code>
+                           <code>5.0</code> rather than staying a <code>String</code>.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomArgs.environmentNamePattern" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static RegExp environmentNamePattern</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Matches a name written in <code>SCREAMING_SNAKE_CASE</code>: an upper-case or digit run, then any number of further runs each introduced by one 
+                          <code>_</code>.
+                        </p>
+                        <p>
+                          Anchored at both ends, so the whole name must be of that shape. A name that is only partly upper-case (<code>Mixed_Case</code>), one that starts or ends on the separator (<code>_LEADING</code>, 
+                          <code>TRAILING_</code>), and one written in any other convention are all outside it — see [resolveEnvironmentNames] for why a near miss is left alone rather than approximated.
+                        </p>
+                        <p>
+                          The first character is <code>[A-Z]</code> rather than <code>[A-Z0-9]</code> because a name beginning with a digit has no field to name: a Dart identifier cannot.
                         </p>
                       </div>
                     </div>
@@ -1443,11 +1522,21 @@
                       <div class="api-doc">
                         <p>Fills [fillIn] from <code>key=value</code> [args] using reflection and returns it.</p>
                         <p>
-                          Each <code>key=value</code> argument becomes a field assignment on [fillIn]: the key names the field and the value is type-converted (see [convertToObjectMap]). A bare flag (<code>--verbose</code>) is recorded as the string 
-                          <code>"true"</code>, which the reflection layer coerces to the field's declared type.
+                          Each <code>key=value</code> argument becomes a field assignment on [fillIn]: the key is the text before the first 
+                          <code>=</code> with its leading dashes stripped, the value is everything after it, and the value is type-converted (see [convertToObjectMap]). So 
+                          <code>--port=8080</code> and <code>port=8080</code> both assign the field <code>port</code>. A bare flag (<code>--verbose</code>) is recorded as the boolean 
+                          <code>true</code>, matching how <code>key=true</code> converts, so it fills a reflected <code>bool</code>
+                           field directly. An argument whose key is empty, or nothing but dashes, is skipped and never reaches [fillIn].
                         </p>
                         <p>
                           [T] must be a type registered with the reflection system (<code>tomReflectionInfo.setValues</code> performs the assignment); unknown keys that do not map to a field are ignored by the reflection layer.
+                        </p>
+                        <p>
+                          <strong>Deliberately tolerant, not an oversight.</strong> The shared [tomReflectionInfo] is used rather than a 
+                          <code>TomReflectionInfo(strictUnknownFields: true)</code>, so a typo'd <code>--prot=8080</code> is dropped and the field keeps its default instead of failing the start. Strictness is wrong 
+                          <em>here</em> for two reasons that are properties of a command line rather than of this method. A wrapper script routinely hands one flag set to several tools, so every flag meant for another one would become fatal. And a bare flag is recorded as 
+                          <code>key=true</code>, which puts every undeclared switch — <code>--verbose</code>, <code>--dry-run</code>
+                           — in the same category. A caller that does want an unrecognised option to stop the process should compare the parsed keys against what it declares and say so itself, which is a decision about that program rather than about argument parsing.
                         </p>
                       </div>
                     </div>
@@ -1458,8 +1547,10 @@
                       <div class="api-doc">
                         <p>Parses <code>key=value</code> [args] into a loose map, type-converting each value.</p>
                         <p>
-                          <code>key=value</code> becomes <code>key -&gt; convertedValue</code> (see [convertToObjectMap] for the conversion table); a bare flag becomes 
-                          <code>flag -&gt; true</code> (boolean).
+                          <code>key=value</code> becomes <code>key -&gt; convertedValue</code>, split on the first <code>=</code>
+                           (see [convertToObjectMap] for the conversion table); a bare flag becomes <code>flag -&gt; true</code>
+                           (boolean). A key is stripped of its leading dashes, so <code>--port=8080</code> returns <code>port -&gt; 8080</code>
+                           and the returned map never carries a key beginning with <code>-</code>. An argument with an empty key contributes no entry, so the map never carries an empty key either.
                         </p>
                       </div>
                     </div>
@@ -1477,15 +1568,153 @@
                           <tbody>
                             <tr><td><code>"true"</code> / <code>null</code></td><td><code>bool</code> <code>true</code></td></tr>
                             <tr><td><code>"false"</code></td><td><code>bool</code> <code>false</code></td></tr>
+                            <tr><td>wrapped in a matched pair of <code>"</code> or <code>'</code></td><td>the unquoted contents</td></tr>
                             <tr>
-                              <td>starts with <code>"</code> or <code>'</code></td>
-                              <td>the unquoted contents (first/last char dropped)</td>
+                              <td>an optional <code>-</code>, then digits, unpadded, and it fits a 64-bit <code>int</code></td>
+                              <td><code>int</code></td>
                             </tr>
-                            <tr><td>all digits</td><td><code>int</code></td></tr>
-                            <tr><td>decimal number</td><td><code>double</code></td></tr>
+                            <tr>
+                              <td>
+                                an optional 
+                                <code>-</code>
+                                , then a decimal, 
+                                <code>digits . digits*</code>
+                                 (
+                                <code>5.</code>
+                                 included), integer part unpadded
+                              </td>
+                              <td><code>double</code></td>
+                            </tr>
                             <tr><td>anything else</td><td>the original <code>String</code></td></tr>
                           </tbody>
                         </table>
+                        <p>
+                          Quotes are only stripped as a <strong>pair</strong> (see [unquote]): an unbalanced quote is not a quoted value, so a lone 
+                          <code>"</code> and an unterminated <code>"hello</code> are both passed through unchanged rather than truncated.
+                        </p>
+                        <p>
+                          Three restrictions on a digit run are part of the rule rather than edge cases, and all three say the same thing: a type is produced only when it can carry the value faithfully, and otherwise the text arrives as it was written rather than as something else.
+                        </p>
+                        <ul><li><strong>Magnitude.</strong> Dart's <code>int</code> is 64-bit, so a digit run larger than</li></ul>
+                        <p>
+                          <code>9223372036854775807</code> has no <code>int</code> to become and stays a <code>String</code> — an account number or a device id arrives whole, rather than aborting the parse. - 
+                          <strong>Padding.</strong> A run with leading zeros stays a <code>String</code>, because the zeros are part of the identifier and an 
+                          <code>int</code> has no notion of them: <code>007</code> would arrive as <code>7</code>, and a phone number as a different phone number, with nothing reporting the change (see [intPattern]). A lone 
+                          <code>0</code> is not padding and converts. The consequence a deployment sees is that a padded number no longer reaches an 
+                          <code>int</code> field at all — <code>port=08080</code> is refused at assignment instead of silently binding 8080. - 
+                          <strong>Sign.</strong> A leading <code>-</code> is part of the number (<code>offset=-5</code> is the 
+                          <code>int</code> <code>-5</code>), because it changes the value and a negative setting must be able to reach a numeric field. A leading 
+                          <code>+</code> is not, because it is how an international phone number is written and dropping it yields a different identifier — the padding rule again, in its other spelling. Quoting is the escape in both directions: 
+                          <code>"-5"</code> stays the text <code>-5</code>.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomArgs.fieldNameOf" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String? fieldNameOf(String name)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Returns the <code>lowerCamelCase</code> field name a <code>SCREAMING_SNAKE_CASE</code> environment variable [name] spells, or null when [name] is not written in that convention.
+                        </p>
+                        <p>
+                          The separator is the underscore and nothing else. A digit does not open a segment, so <code>OAUTH2_TOKEN_URI</code>
+                           is three segments and becomes <code>oauth2TokenUri</code> — splitting on the digit instead would produce 
+                          <code>oAuth2TokenUri</code>, a field nobody declared.
+                        </p>
+                        <p>
+                          Each segment after the first contributes one capital and then lower case, which is the same rule the configuration fields are written under (<code>jwtRsaPubKey</code>, 
+                          <code>smsApiKey</code>, <code>authServerLoginUri</code> — an acronym is a word, not a run of capitals). A field spelled with a capitalised acronym is therefore not reachable by this convention, and is a naming inconsistency in that field rather than a gap here.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomArgs.resolveEnvironmentNames" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static Map&lt;String, dynamic&gt; resolveEnvironmentNames(Map&lt;String, Object?&gt; source)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Returns [source] with, for every <code>SCREAMING_SNAKE_CASE</code> key, an added entry under the field name it spells (see [fieldNameOf]).
+                        </p>
+                        <p>
+                          This is what lets a deployment write <code>JWT_SHARED_SECRET_KEY</code> — the spelling every <code>.env</code>
+                           file, container platform and CI secret store uses — and reach the <code>jwtSharedSecretKey</code> field, which before this was settable only by a variable literally named 
+                          <code>jwtSharedSecretKey</code>. The mapping is mechanical and total in one direction, so a reader can predict the variable for any field without consulting a table of special cases.
+                        </p>
+                        <p>Two rules keep it from taking anything away:</p>
+                        <ul><li><strong>The original key is kept.</strong> The alias is added alongside, so a</li></ul>
+                        <p>
+                          <code>${VAR}</code> datasource placeholder or any other verbatim reader is unaffected. - <strong>A key already spelled as the field wins.</strong>
+                           It names the target literally, with no convention in between, so a deployment that used the exact name is never overruled by a variable it did not know also aimed there.
+                        </p>
+                        <p>
+                          A name outside the convention contributes no alias at all. Approximating one would be guessing, and a guess that happened to match a declared field would bind a value nobody aimed at it — which is the failure this method exists to remove, not a cost worth paying to widen its reach.
+                        </p>
+                        <p>
+                          Apply this <strong>per source</strong>, before the sources are merged over one another: applied to an already-merged map, an alias derived from a low-precedence source would outrank a high-precedence exact key, reversing the documented order for exactly the keys the convention touches. See [TomBaseServerConfiguration.getDefaultValues].
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomArgs._parseArgs" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static Map&lt;String, dynamic&gt; _parseArgs(List&lt;String&gt; args)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Splits each <code>key=value</code> entry of [args] on its <strong>first</strong> <code>=</code> and converts the value, returning the resulting map. An entry with no 
+                          <code>=</code> is a flag and maps to the boolean <code>true</code>.
+                        </p>
+                        <p>
+                          The first <code>=</code> rather than every <code>=</code>, because everything after the separator is the value and may legitimately contain more of them — a connection string, a URL with a query, and a padded base64 blob all do. 
+                          <code>TomEnvFile.parse</code> splits the same way, which is what lets the two sources be documented as one syntax rather than two that merely resemble each other.
+                        </p>
+                        <p>
+                          The key is then stripped of its leading <code>-</code> characters, so the conventional <code>--port=8080</code>
+                           names the field <code>port</code>. See [_withoutLeadingDashes].
+                        </p>
+                        <p>
+                          An argument whose key is empty (<code>""</code>, <code>"=orphan"</code>, <code>"="</code>), or is nothing but dashes and so empty once they are stripped (<code>"--"</code>), is skipped. Apart from the dashes that is the shape a 
+                          <code>.env</code> file skips too.
+                        </p>
+                        <p>Both public entry points parse through here, so they cannot disagree.</p>
+                      </div>
+                    </div>
+                    <div id="TomArgs._withoutLeadingDashes" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String _withoutLeadingDashes(String key)</code></div>
+                      <div class="api-doc">
+                        <p>Returns [key] without the <code>-</code> characters it begins with.</p>
+                        <p>
+                          This is what makes <code>--port=8080</code> and <code>port=8080</code> one argument, so that the spelling every command line uses can also name a field: 
+                          <code>setValues</code> is given the key as a field name, and no Dart class declares <code>--port</code>.
+                        </p>
+                        <p>
+                          The whole leading run is removed rather than one or two characters. There is then no arity to remember and no difference between the short and long prefixes, and a third dash is a typo in the prefix rather than the first character of a name — a name that begins with 
+                          <code>-</code> is not reachable this way, which is the price of the convention.
+                        </p>
+                        <p>
+                          Only the leading run. A dash inside a name is part of it (<code>--dry-run</code> names <code>dry-run</code>), and the value is not touched at all, so a negative number or a 
+                          <code>-</code> standing for stdin survives.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomArgs.unquote" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String? unquote(String value)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Returns the contents of [value] with its surrounding quotes removed, or <code>null</code> if [value] is not a quoted literal.
+                        </p>
+                        <p>
+                          A value is quoted only when its quotes form a <strong>pair</strong>: it is at least two characters long, starts with 
+                          <code>"</code> or <code>'</code>, and ends with that same character. <code>""</code> is therefore a quoted literal whose contents are empty, while a lone 
+                          <code>"</code>, an unterminated <code>"hello</code>, and a mismatched <code>"hello'</code> are not quoted at all and yield 
+                          <code>null</code> so the caller can use them verbatim.
+                        </p>
+                        <p>
+                          Requiring the pair is what keeps a stray quote harmless. Dropping the first and last character on the strength of the opening quote alone truncates an unterminated value (<code>"hello</code>
+                           → <code>hello</code> minus its last character), and on a one-character value it asks for <code>substring(1, 0)</code>
+                           — a <code>RangeError</code> that names neither the key nor the file it came from.
+                        </p>
+                        <p>
+                          Both this class and <code>TomEnvFile.parse</code> decide through here, so the two sources cannot disagree about what counts as quoted.
+                        </p>
                       </div>
                     </div>
                     <div id="TomArgs._convertString" class="api-member">

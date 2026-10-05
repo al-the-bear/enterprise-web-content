@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1391,13 +1397,15 @@
                 <code class="api-import">import 'package:tom_flutter_ui/src/groups/tom_widget_mixin.dart';</code>
                 <section id="TomWidgetMixin" class="api-declaration">
                   <h3 class="api-decl-title">mixin TomWidgetMixin</h3>
-                  <code class="api-signature">mixin TomWidgetMixin on Widget</code>
+                  <code class="api-signature">mixin TomWidgetMixin on Widget implements TomWidgetSurface</code>
                   <div class="api-doc">
                     <p>Mixin for Tom widgets that extend Flutter widgets directly.</p>
                     <p>
                       This mixin provides the Tom UI concerns (ID, group, authorization, resources) to widgets that extend their Flutter originals.
                     </p>
-                    <p>Implements [TomAuthorizable] for type-safe group registration.</p>
+                    <p>
+                      Implements [TomWidgetSurface] — the same interface <code>TomNodeBase</code> implements, which is the point: these two are the kit's only two routes to a Tom widget, and naming one contract for both is what lets the conformance suite treat them uniformly instead of maintaining a second list of who has what.
+                    </p>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
@@ -1405,8 +1413,8 @@
                     <div id="TomWidgetMixin.tomGroup" class="api-member"><div class="api-member-head"><code class="api-signature">InvalidType tomGroup</code></div></div>
                     <div id="TomWidgetMixin.scope" class="api-member"><div class="api-member-head"><code class="api-signature">InvalidType scope</code></div></div>
                     <div id="TomWidgetMixin.authorizer" class="api-member"><div class="api-member-head"><code class="api-signature">InvalidType authorizer</code></div></div>
-                    <div id="TomWidgetMixin.authorizerStrategy" class="api-member"><div class="api-member-head"><code class="api-signature">InvalidType authorizerStrategy</code></div></div>
                     <div id="TomWidgetMixin.uiStateController" class="api-member"><div class="api-member-head"><code class="api-signature">InvalidType uiStateController</code></div></div>
+                    <div id="TomWidgetMixin.effectiveScope" class="api-member"><div class="api-member-head"><code class="api-signature">InvalidType effectiveScope</code></div></div>
                     <div id="TomWidgetMixin.basePath" class="api-member"><div class="api-member-head"><code class="api-signature">String? basePath</code></div></div>
                     <div id="TomWidgetMixin.effectiveAuthState" class="api-member"><div class="api-member-head"><code class="api-signature">InvalidType effectiveAuthState</code></div></div>
                     <div id="TomWidgetMixin.debugLabel" class="api-member"><div class="api-member-head"><code class="api-signature">String debugLabel</code></div></div>
@@ -1417,7 +1425,14 @@
                       <div class="api-member-head"><code class="api-signature">InvalidType getAuth()</code></div>
                       <div class="api-doc">
                         <p>Gets the effective authorization state for this widget.</p>
-                        <p>Combines resource auth, authorizer, and UI state controller.</p>
+                        <p>
+                          The layers and their order live in [TomAuthLayers.resolve], shared with <code>TomPolicyNodeBase.resolveEffectiveAuth</code>
+                           and <code>TomField.resolveEffectiveAuth</code>; this widget supplies no <code>narrowBy</code>, which only 
+                          <code>forms/</code> has.
+                        </p>
+                        <p>
+                          The group resolves in [effectiveScope] — the same scope [basePath] was built from, so an explicit scope reaches both or the group's ceiling is quietly looked up somewhere else.
+                        </p>
                       </div>
                     </div>
                     <div id="TomWidgetMixin.getText" class="api-member">
@@ -1435,7 +1450,16 @@
                     </div>
                     <div id="TomWidgetMixin.applyAuthState" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Widget applyAuthState(BuildContext context, Widget child)</code></div>
-                      <div class="api-doc"><p>Applies the appropriate visual treatment based on auth state.</p></div>
+                      <div class="api-doc">
+                        <p>Applies the appropriate visual treatment based on auth state.</p>
+                        <p>
+                          The mapping itself lives in [TomTheme.applyAuthState], shared with <code>TomPolicyNodeBase</code> — the two used to switch over the four states separately, which is how the 
+                          <code>disabled</code> treatment came to be written out twice with the opacity hard-coded in both.
+                        </p>
+                        <p>
+                          [child] is already built by the caller, so the laziness the callback affords is spent here; it still matters for the other enforcement point.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomWidgetMixin.registerWithGroup" class="api-member"><div class="api-member-head"><code class="api-signature">void registerWithGroup()</code></div></div>
                     <div id="TomWidgetMixin.unregisterFromGroup" class="api-member"><div class="api-member-head"><code class="api-signature">void unregisterFromGroup()</code></div></div>

@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1417,13 +1423,18 @@
   late final items = TomListForm&lt;OrderItem, OrderItemForm&gt;(
     listId: 'items',
     formFactory: (i) =&gt; OrderItemForm(),
+    parentForm: this,
   );
 
   @override
   void onBound() {
-    items.bind((_binding! as Order).items);
+    items.bind(currentBinding!.items);
   }
 }</code></pre>
+                    <p>
+                      Passing [parentForm] is what enrols the list in the parent's lifecycle and event bus — see the constructor. Calling [add] or [insert] against a 
+                      <em>bound</em> list additionally requires [createItem] to be overridden, since only the application can instantiate a [TItem].
+                    </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
@@ -1465,6 +1476,15 @@
                       <div class="api-doc">
                         <p>
                           The sub-forms backing this list. Stored as a kernel [TomList] so element observation is automatic: every contained [TForm] is watched for value-channel notifications, which propagate up to this list-form via the forwarder installed in the constructor. Add / insert / removeAt / clear all use the standard [TomList] mutators so the add / remove observer wiring stays in sync.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomListForm._formsForwarder" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final InvalidType _formsForwarder</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Keeps the constructor's <code>_forms</code> subscription alive. Observers are held weakly, so this reference 
+                          <em>is</em> the subscription's lifetime: the field is load-bearing by existing, which is why it is never read.
                         </p>
                       </div>
                     </div>
@@ -1533,7 +1553,8 @@
                       <div class="api-member-head"><code class="api-signature">void reorder(int from, int to)</code></div>
                       <div class="api-doc">
                         <p>
-                          Spec-canonical alias of [move] (§16: "reorder via drag handles drives <code>.reorder</code>"). Forwards to [move] so existing callers and events keep working unchanged.
+                          Spec-canonical alias of [move] — <code>tom_ui_widgets_forms.md</code> §16 has "reorder via drag handles drives 
+                          <code>.reorder</code>". Forwards to [move] so existing callers and events keep working unchanged.
                         </p>
                       </div>
                     </div>
@@ -1566,6 +1587,16 @@
                           Called by [TomList.resetWith] immediately before elements are removed. Disposes all current sub-forms so they are not left orphaned after the list contents are replaced (e.g. when an outer 
                           <code>TomForm.discard()</code> writes its snapshot back via <code>binding.setValues()</code>).
                         </p>
+                        <p>
+                          Also opens the mute that [onAfterReset] closes. <code>TomList.resetWith</code> is atomic to <em>its</em>
+                           observers — one notification, after every element is installed — and observers of this list-form are owed the same. Without the mute they are not: 
+                          <code>_forms</code> is emptied here and refilled one element at a time in [onAfterReset], and the forwarder installed in the constructor turns each of those steps into a notification, so an observer sees the list count up from zero and can act on a length the list is never really at. [TomMasterDetailListForm] does act on it — it clears its selection when the list shrinks past the selected row, which is right for a real removal and wrong for the empty moment inside a reset, and leaves the detail pane blank with nothing to restore it.
+                        </p>
+                        <p>
+                          Holding a mute across two callbacks is safe here because a reset that starts, finishes: <code>TomClass._setListMember</code>
+                           type-checks the whole payload before anything is cleared, precisely so the swap cannot fail half-done. [onAfterReset] releases in a 
+                          <code>finally</code> regardless.
+                        </p>
                       </div>
                     </div>
                     <div id="TomListForm.onAfterReset" class="api-member">
@@ -1576,6 +1607,10 @@
                       <div class="api-doc">
                         <p>
                           Called by [TomList.resetWith] immediately after new elements are installed. Creates and binds fresh sub-forms for every element now in the list. Resets [_initialOrder] to the new contents so [isDirty] and [hasStructuralChanges] start from the correct baseline.
+                        </p>
+                        <p>
+                          Closes the mute [onBeforeClear] opened, which is what turns the whole teardown-and-rebuild into the single notification an observer sees. The release is in a 
+                          <code>finally</code> so the unbound early return — the one path that reaches the end of this method without rebuilding anything — cannot leave the list-form permanently silent.
                         </p>
                       </div>
                     </div>

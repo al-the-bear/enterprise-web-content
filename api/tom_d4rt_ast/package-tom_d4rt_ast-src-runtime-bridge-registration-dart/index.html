@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1412,7 +1418,7 @@
                     <div id="BridgedEnumDefinition.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          BridgedEnumDefinition.new({required String name, required List&lt;T&gt; values, Map&lt;String, Object? Function(InterpreterVisitor?, Object)&gt; getters = const {}, Map&lt;String, Object? Function(InterpreterVisitor, Object, List&lt;Object?&gt;, Map&lt;String, Object?&gt;, List&lt;RuntimeType&gt;?)&gt; methods = const {}, Map&lt;String, Object? Function()&gt; staticGetters = const {}})
+                          BridgedEnumDefinition.new({required String name, required List&lt;T&gt; values, Map&lt;String, Object? Function(InterpreterVisitor?, Object)&gt; getters = const {}, Map&lt;String, Object? Function(InterpreterVisitor, Object, List&lt;Object?&gt;, Map&lt;String, Object?&gt;, List&lt;RuntimeType&gt;?)&gt; methods = const {}, Map&lt;String, Object? Function()&gt; staticGetters = const {}, Map&lt;String, Object? Function(InterpreterVisitor, List&lt;Object?&gt;, Map&lt;String, Object?&gt;, List&lt;RuntimeType&gt;?)&gt; staticMethods = const {}})
                         </code>
                       </div>
                     </div>
@@ -1449,12 +1455,38 @@
                         </p>
                       </div>
                     </div>
+                    <div id="BridgedEnumDefinition.staticMethods" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          final Map&lt;String, Object? Function(InterpreterVisitor, List&lt;Object?&gt;, Map&lt;String, Object?&gt;, List&lt;RuntimeType&gt;?)&gt; staticMethods
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Adapters for static methods on the enum type itself. These are static factory/helper methods like <code>PageFormat.fromString(name)</code>, invoked as 
+                          <code>EnumType.staticMethod(args)</code> from interpreted code.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="BridgedEnumDefinition._builtEnum" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">BridgedEnum? _builtEnum</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Memoized result of [buildBridgedEnum]. A [BridgedEnum] is effectively immutable once built (its adapter maps are populated only during construction), so a single instance can be safely shared across every environment and 
+                          <code>execute()</code> call. Building it is non-trivial — it constructs a [BridgedEnumValue] per enum value twice — and was previously repeated on each lookup (twice per 
+                          <code>execute()</code>). Caching it makes the build happen at most once per process.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
                     <div id="BridgedEnumDefinition.buildBridgedEnum" class="api-member">
                       <div class="api-member-head"><code class="api-signature">BridgedEnum buildBridgedEnum()</code></div>
-                      <div class="api-doc"><p>Builds the [BridgedEnum] object from this definition.</p></div>
+                      <div class="api-doc">
+                        <p>Builds the [BridgedEnum] object from this definition.</p>
+                        <p>The first call constructs and memoizes the enum; subsequent calls return the same cached instance.</p>
+                      </div>
                     </div>
                   </div>
                 </section>

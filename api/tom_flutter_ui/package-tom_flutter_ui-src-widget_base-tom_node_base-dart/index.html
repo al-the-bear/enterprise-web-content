@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1391,17 +1397,17 @@
                 <code class="api-import">import 'package:tom_flutter_ui/src/widget_base/tom_node_base.dart';</code>
                 <section id="TomNodeBase" class="api-declaration">
                   <h3 class="api-decl-title">class TomNodeBase</h3>
-                  <code class="api-signature">abstract class TomNodeBase extends StatelessWidget</code>
+                  <code class="api-signature">abstract class TomNodeBase extends StatelessWidget implements TomWidgetSurface</code>
                   <div class="api-doc">
                     <p>Base class for all Tom UI elements (widgets, actions, containers).</p>
                     <p>
-                      Provides: - [tomId] — unique ID within its scope. - [tomGroup] — optional group membership. - [scope] — optional explicit scope (defaults to [TomScope.current]). - [authorizer] — optional per-widget authorizer. - [authorizerStrategy] — how authorizer interacts with resource auth. - [uiStateController] — build-time state narrowing callback. - Resource path resolution via [basePath]. - Debug identity via [debugLabel].
+                      Provides: - [tomId] — unique ID within its scope. - [tomGroup] — optional group membership. - [scope] — optional explicit scope (defaults to [TomScope.current]). - [authorizer] — optional per-widget authorizer. - [uiStateController] — build-time state narrowing callback. - Resource path resolution via [basePath]. - Debug identity via [debugLabel].
                     </p>
                     <p>
-                      Resource paths are constructed as: <code>&lt;scopePath&gt;.&lt;tomId&gt;</code> where scopePath comes from either the explicit [scope] or the current [TomScope].
+                      Resource paths are constructed by [TomScopePath.resolve] from either the explicit [scope] or the current [TomScope] — the same rule every other path in the library goes through, so a node and the resources, policies and groups that address it always agree on where it lives.
                     </p>
                     <p>
-                      Implements [TomAuthorizable] for type-safe group registration and authorization system participation.
+                      Implements [TomWidgetSurface] — and through it [TomAuthorizable] — for type-safe group registration and authorization system participation. That interface is what the conformance suite enumerates against; a base that dropped [basePath] would stop compiling here rather than stop gating in production.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1409,7 +1415,7 @@
                     <div id="TomNodeBase.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomNodeBase.new({Key? key, String? tomId, InvalidType tomGroup, InvalidType scope, InvalidType authorizer, InvalidType authorizerStrategy = TomAuthorizerStrategy.authorizerNarrowsOnly, InvalidType uiStateController})
+                          TomNodeBase.new({Key? key, String? tomId, InvalidType tomGroup, InvalidType scope, InvalidType authorizer, InvalidType uiStateController})
                         </code>
                       </div>
                     </div>
@@ -1440,15 +1446,8 @@
                       <div class="api-doc">
                         <p>Optional per-widget authorizer that can modify authorization outcomes.</p>
                         <p>
-                          When set, the authorizer is consulted after resource-based authorization and can modify the effective state according to [authorizerStrategy].
+                          When set, the authorizer is consulted after resource-based authorization and combines its verdict with the resource state according to its own [TomAuthorizer.strategy].
                         </p>
-                      </div>
-                    </div>
-                    <div id="TomNodeBase.authorizerStrategy" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final InvalidType authorizerStrategy</code></div>
-                      <div class="api-doc">
-                        <p>Strategy controlling how [authorizer] interacts with resource auth.</p>
-                        <p>Defaults to [TomAuthorizerStrategy.authorizerNarrowsOnly].</p>
                       </div>
                     </div>
                     <div id="TomNodeBase.uiStateController" class="api-member">
@@ -1465,16 +1464,13 @@
                       <div class="api-doc"><p>The scope that was active when this widget was constructed.</p></div>
                     </div>
                     <div id="TomNodeBase.basePath" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final String? basePath</code></div>
+                      <div class="api-member-head">
+                        <code class="api-signature">final String? basePath</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
                       <div class="api-doc"><p>The resolved canonical resource base path for this node.</p></div>
                     </div>
                     <div id="TomNodeBase.debugLabel" class="api-member"><div class="api-member-head"><code class="api-signature">String debugLabel</code></div></div>
-                  </div>
-                  <h4 class="api-group-title">Static</h4>
-                  <div class="api-members">
-                    <div id="TomNodeBase._resolveBasePath" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static String? _resolveBasePath(String? tomId, InvalidType scope)</code></div>
-                    </div>
                   </div>
                 </section>
               </div>

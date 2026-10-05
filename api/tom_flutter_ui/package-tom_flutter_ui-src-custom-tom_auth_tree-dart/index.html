@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1397,19 +1403,36 @@
                 <h2 class="api-library-title">package:tom_flutter_ui/src/custom/tom_auth_tree.dart</h2>
                 <code class="api-import">import 'package:tom_flutter_ui/src/custom/tom_auth_tree.dart';</code>
                 <div class="api-doc">
-                  <p>Phase 6 — <code>TomAuthTreeView</code> / <code>TomAuthTreeNode</code>.</p>
+                  <p>Hierarchical tree with <strong>per-node authorization</strong>.</p>
                   <p>
-                    Hierarchical tree with <strong>per-node authorization</strong>. The framework already ships [TomTreeView] with widget-level auth (the whole tree is hidden / disabled together) and 
-                    <code>TomTreeNode</code> as a plain data model. Phase 6 adds a sibling pair where every node carries its own resource key and resolves [TomAuthState] independently — needed for nav / permissions UIs that surface partial trees per user role.
+                    Every node carries its own resource key and resolves its [TomAuthState] independently, so one tree can surface a different shape per user role — which is what nav and permissions UIs need. Contrast 
+                    <code>TomTreeView</code>, whose authorization is widget-level: the whole tree is hidden or disabled together. Pick this pair when the grant varies 
+                    <em>within</em> the tree, <code>TomTreeView</code> when it does not.
                   </p>
                   <p>Lookup rules per node:</p>
                   <ul>
                     <li><code>none</code> — node is hidden along with its subtree.</li>
-                    <li><code>disabled</code> — node is rendered, faded, and non-interactive; its</li>
+                    <li><code>disabled</code> — node is rendered behind an [IgnorePointer] and faded</li>
                   </ul>
                   <p>
-                    children inherit the parent's effective auth (i.e. cannot be widened by their own keys). <em> <code>read</code> — node is rendered, non-interactive (taps suppressed) but children remain individually evaluated. 
-                    </em> <code>full</code> — node is fully interactive and children are evaluated normally.
+                    to [TomAuthTreeView.disabledOpacity]; its children inherit the parent's effective auth (i.e. cannot be widened by their own keys). * 
+                    <code>read</code> — node is rendered behind an [IgnorePointer] (content visible, nothing in the row interactive) but children remain individually evaluated.
+                  </p>
+                  <p>
+                    <strong>Expanding and collapsing is independent of all four.</strong> The chevron is a control of its own, outside the barrier and outside the fade, so a withheld section header can still be folded away. Activation is what authorization governs here; navigating the structure a user is already allowed to see is not, and a read-only tree stuck fully expanded is a read-only tree nobody can use. * 
+                    <code>full</code> — node is fully interactive and children are evaluated normally.
+                  </p>
+                  <p>
+                    Paths compose along the branch. A node resolves <code>&lt;parentPath&gt;.&lt;ancestor ids…&gt;.&lt;own id&gt;</code>
+                     — or the same under the ambient [TomScope] when the tree is given no <code>parentPath</code> — so each branch has its own namespace and an id need only be unique among its siblings. A flat namespace would make 
+                    <code>reports/view</code> and <code>invoices/view</code> one grant, which is the distinction a permissions tree exists to draw.
+                  </p>
+                  <p>
+                    The [IgnorePointer] wraps the node's <strong>own row only</strong>, never the subtree — that is what lets a 
+                    <code>full</code> child under a <code>read</code> parent stay interactive. Contrast <code>TomAuthGuard</code>
+                     and <code>TomChoiceGroup</code>, which have one key for one subtree and so block all of it; and note that 
+                    <code>TomAuthGuard.blockPointerOnRead</code> has no counterpart here, because a tree row whose taps still fired would be indistinguishable from a 
+                    <code>full</code> one.
                   </p>
                 </div>
                 <section id="TomAuthTreeNode" class="api-declaration">
@@ -1435,8 +1458,11 @@
                     <div id="TomAuthTreeNode.tomId" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final String tomId</code></div>
                       <div class="api-doc">
+                        <p>Resource key segment for this node, unique <strong>among its siblings</strong>.</p>
                         <p>
-                          Resource key used to resolve this node's [TomAuthState]. Combined with the parent path via the active [TomScope] when the tree builds.
+                          A node's full path is its ancestors' ids joined to its own under the tree's <code>parentPath</code> (or the ambient [TomScope] when the tree has none), so a 
+                          <code>view</code> under <code>reports</code> resolves <code>app.reports.view</code> and a <code>view</code>
+                           under <code>invoices</code> resolves <code>app.invoices.view</code>. The two are separate grants, which is the reason to reach for a tree rather than a list of guards: without composition the branches share one key and cannot be granted apart.
                         </p>
                       </div>
                     </div>
@@ -1446,11 +1472,22 @@
                     </div>
                     <div id="TomAuthTreeNode.leading" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final Widget? leading</code></div>
-                      <div class="api-doc"><p>Optional leading widget (icon, avatar, …).</p></div>
+                      <div class="api-doc">
+                        <p>Optional leading widget (icon, avatar, …).</p>
+                        <p>
+                          Covered by the node's pointer block along with the rest of the row, so an interactive widget here is inert at 
+                          <code>read</code> and <code>disabled</code> rather than merely faded.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomAuthTreeNode.trailing" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final Widget? trailing</code></div>
-                      <div class="api-doc"><p>Optional trailing widget (badge, action button, …).</p></div>
+                      <div class="api-doc">
+                        <p>Optional trailing widget (badge, action button, …).</p>
+                        <p>
+                          Covered by the node's pointer block — see [leading]. An action button here is the usual reason to reach for the slot, and it must not fire on a row the user has been shown as unavailable.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomAuthTreeNode.children" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final List&lt;TomAuthTreeNode&gt; children</code></div>
@@ -1468,9 +1505,9 @@
                     <div id="TomAuthTreeNode.onTap" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final void Function()?? onTap</code></div>
                       <div class="api-doc">
+                        <p>Tap handler invoked when the node row is selected.</p>
                         <p>
-                          Tap handler invoked when the node row is selected. Suppressed by the auth resolver in <code>read</code>
-                           / <code>disabled</code> states.
+                          Suppressed at <code>read</code> and <code>disabled</code> — as is everything else in the row, including [leading] and [trailing]. Nulling this handler alone would leave those two live, which is the one failure the block exists to prevent.
                         </p>
                       </div>
                     </div>
@@ -1500,9 +1537,9 @@
                       <div class="api-member-head"><code class="api-signature">final String? parentPath</code></div>
                       <div class="api-doc">
                         <p>
-                          Optional parent path prefix. When <code>null</code>, the active [TomScope] is used to qualify each node's 
-                          <code>tomId</code>.
+                          Optional path prefix for the tree's <strong>top-level</strong> nodes. When <code>null</code> or empty, the active [TomScope] is used instead.
                         </p>
+                        <p>Deeper nodes are qualified by their own ancestors, not by this — see [TomAuthTreeNode.tomId].</p>
                       </div>
                     </div>
                     <div id="TomAuthTreeView.indentation" class="api-member">
@@ -1543,6 +1580,14 @@
                   <div class="api-members">
                     <div id="TomAuthTreeView._qualifyPath" class="api-member">
                       <div class="api-member-head"><code class="api-signature">String _qualifyPath(String tomId)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Qualifies a <strong>top-level</strong> node's [tomId] under [parentPath] when the tree was given a non-empty one, and under the ambient scope otherwise.
+                        </p>
+                        <p>
+                          Each node hands its children a qualifier built from its own resolved path, so this one is only ever used at the root.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomAuthTreeView.build" class="api-member">
                       <div class="api-member-head">
@@ -1575,6 +1620,12 @@
                     </div>
                     <div id="_AuthTreeNodeWidget.qualifyPath" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final String Function(String) qualifyPath</code></div>
+                      <div class="api-doc">
+                        <p>Qualifies this node's own [TomAuthTreeNode.tomId].</p>
+                        <p>
+                          The root's comes from the tree; every other node's is built by its parent from the path the parent itself resolved, which is what composes the branch. One field rather than a path plus a rule, so there is a single place the composition happens.
+                        </p>
+                      </div>
                     </div>
                     <div id="_AuthTreeNodeWidget.disabledOpacity" class="api-member"><div class="api-member-head"><code class="api-signature">final double disabledOpacity</code></div></div>
                     <div id="_AuthTreeNodeWidget.inheritedAuth" class="api-member">

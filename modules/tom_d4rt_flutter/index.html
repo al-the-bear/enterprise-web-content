@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1386,7 +1392,7 @@
               <span style="display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap"><span class="badge b-pub"><span class="d"></span>Published</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">role: extension</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">license: MIT</span></span>
             </div>
             <h2>tom_d4rt_flutter</h2>
-            <div class="mono" style="color: #9FB6C9">tom_d4rt_flutter · v1.0.1</div>
+            <div class="mono" style="color: #9FB6C9">tom_d4rt_flutter · v1.4.8</div>
             <p style="margin-top: 10px">
               Wraps `tom_d4rt` with the complete generated Flutter Material bridge surface, turning interpreted Dart source into live widgets. The source-based Flutter runner.
             </p>
@@ -1397,9 +1403,9 @@
           </div>
           <div class="statgrid">
             <div class="stat"><div class="k">Status</div><div class="v" style="font-size: 1.05rem; color: #0F7FB0">Published</div></div>
-            <div class="stat"><div class="k">LOC</div><div class="v">754.4k</div></div>
+            <div class="stat"><div class="k">LOC</div><div class="v">3.3M</div></div>
             <div class="stat"><div class="k">Tests</div><div class="v">2.3k</div></div>
-            <div class="stat"><div class="k">Test LOC</div><div class="v">17.0k</div></div>
+            <div class="stat"><div class="k">Test LOC</div><div class="v">18.3k</div></div>
           </div>
           <div class="dcols">
             <div>
@@ -1633,6 +1639,27 @@ class InterpretedPanel extends StatelessWidget {
               <p>
                 See the <strong>authoritative</strong> runtime walkthrough in <a href="/docs?module=tom_d4rt_flutter&amp;path=doc%2Ftom_d4rt_flutter_user_guide.md">doc/tom_d4rt_flutter_user_guide.md</a>
                  for the four execution entry points, multi-file programs, extension registration, and the performance/GC notes.
+              </p>
+              <p>---</p>
+              <h2>Warming up off the first frame</h2>
+              <p>
+                Construction registers the (process-global) bridge surface, but the per-instance <strong>warm parent</strong>
+                 — the <code>Environment</code> every build chains a fresh child off — plus stdlib registration and the analyzer parser front-end are warmed lazily on the 
+                <strong>first</strong> real build, putting that one-time cost on the first on-screen frame. Call <code>warmup()</code>
+                 once after construction to move it off-frame; the idiomatic call site is a post-first-frame callback (or a splash screen / background microtask):
+              </p>
+              <pre><code>final runner = SourceFlutterD4rt();
+
+@override
+void initState() {
+  super.initState();
+  // First frame renders immediately; the warm-up runs right after it,
+  // before the first script build, so that build renders without the stall.
+  WidgetsBinding.instance.addPostFrameCallback((_) =&gt; runner.warmup());
+}</code></pre>
+              <p>
+                <code>warmup()</code> is idempotent and script-neutral — the warm-up environment (and the throwaway <code>int main() =&gt; 0;</code>
+                 parse) is discarded, and repeat calls short-circuit.
               </p>
               <p>---</p>
               <h2>Documentation</h2>

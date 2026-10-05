@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1432,13 +1438,13 @@ runner.execute(ast: loaded.entryPoint);</code></pre>
                     <div id="AstBundle.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          AstBundle.new({required String entryPointUri, required Map&lt;String, SCompilationUnit&gt; modules, Map&lt;String, String&gt;? sources})
+                          AstBundle.new({required String entryPointUri, required Map&lt;String, SCompilationUnit&gt; modules, Map&lt;String, String&gt;? sources, String? generator})
                         </code>
                       </div>
                       <div class="api-doc">
                         <p>Creates an [AstBundle] with the given entry point and modules.</p>
                         <p>
-                          Optionally includes [sources] — a map from module URI to Dart source code. When <code>null</code> (the default), no source is bundled.
+                          Optionally includes [sources] — a map from module URI to Dart source code. When <code>null</code> (the default), no source is bundled — and [generator], the identity of the tool that built it.
                         </p>
                         <p>Throws [ArgumentD4rtException] if [entryPointUri] is not present in [modules].</p>
                       </div>
@@ -1494,6 +1500,15 @@ runner.execute(ast: loaded.entryPoint);</code></pre>
                         <p>Optional Dart source code for each module, keyed by URI.</p>
                         <p>
                           When non-null, the source code is included alongside the compiled AST in both JSON and ZIP serialization formats. This is opt-in and disabled by default (<code>null</code>).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="AstBundle.generator" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? generator</code></div>
+                      <div class="api-doc">
+                        <p>What produced this bundle, e.g. <code>tom_ast_generator 0.1.6</code>.</p>
+                        <p>
+                          <code>null</code> for a bundle written before [AstBundleFormat.keyGenerator] existed, or by a producer that does not set it. See that constant for why it is recorded. Carried through every serialization format this class offers — JSON, gzip bytes and the ZIP manifest — because a bundle is diagnosed in whichever form it arrived in.
                         </p>
                       </div>
                     </div>
@@ -1626,6 +1641,18 @@ runner.execute(ast: loaded.entryPoint);</code></pre>
                       <div class="api-member-head"><code class="api-signature">static String keySources</code></div>
                       <div class="api-doc"><p>Key for the optional source code map.</p></div>
                     </div>
+                    <div id="AstBundleFormat.keyGenerator" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String keyGenerator</code></div>
+                      <div class="api-doc">
+                        <p>Key for the optional producer identity, e.g. <code>tom_ast_generator 0.1.6</code>.</p>
+                        <p>
+                          SCE15. [version] identifies the FORMAT; it says nothing about what built the bundle. That gap matters more here than anywhere else in the ecosystem: a bundle is produced on a server and shipped to an app that cannot re-derive it, so a bundle that fails to interpret on device could not say whether it was written by a generator older than the app's model.
+                        </p>
+                        <p>
+                          Optional and additive. Every reader in this file takes known keys only, so an older reader ignores it and a bundle without it loads unchanged — which is exactly why [version] does NOT bump for this. A format stamp bumps only for a change that is not backwards compatible.
+                        </p>
+                      </div>
+                    </div>
                     <div id="AstBundleFormat.sourceDartSuffix" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static String sourceDartSuffix</code></div>
                       <div class="api-doc"><p>File extension suffix for Dart source entries within the archive.</p></div>
@@ -1663,7 +1690,7 @@ runner.execute(ast: loaded.entryPoint);</code></pre>
                     <div id="AstBundleManifest.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          const AstBundleManifest.new({required String version, required String entryPoint, required Map&lt;String, String&gt; files, Map&lt;String, String&gt;? sourceFiles})
+                          const AstBundleManifest.new({required String version, required String entryPoint, required Map&lt;String, String&gt; files, Map&lt;String, String&gt;? sourceFiles, String? generator})
                         </code>
                       </div>
                     </div>
@@ -1698,6 +1725,15 @@ runner.execute(ast: loaded.entryPoint);</code></pre>
                         <p>
                           When present, the archive contains Dart source code alongside the compiled AST modules. This is opt-in and 
                           <code>null</code> by default.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="AstBundleManifest.generator" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? generator</code></div>
+                      <div class="api-doc">
+                        <p>What produced this bundle, e.g. <code>tom_ast_generator 0.1.6</code>.</p>
+                        <p>
+                          <code>null</code> for a bundle written before [AstBundleFormat.keyGenerator] existed, or by a producer that does not set it.
                         </p>
                       </div>
                     </div>

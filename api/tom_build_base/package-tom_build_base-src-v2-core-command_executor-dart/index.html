@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1477,6 +1483,26 @@
                         <p>
                           Called for commands that don't require folder traversal (e.g., --help, --version, or commands that operate globally). Default implementation returns success.
                         </p>
+                      </div>
+                    </div>
+                    <div id="CommandExecutor.pubCachePreflight" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">ItemResult? pubCachePreflight(CommandContext context, {String? pubCachePath})</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          A failure [ItemResult] when [context]'s project locks packages the pub cache cannot supply, or null when it can supply them all.
+                        </p>
+                        <p>
+                          A locked package missing from the cache is not a resolution error — the lock is satisfiable, so <code>dart pub get</code>
+                           reports success — and the work fails much later wearing someone else's face: <code>Undefined name</code>
+                           at every use site, or <code>Bad state: Generating AOT kernel dill failed!</code> from inside the AOT compiler. One stat per dependency names the package instead.
+                        </p>
+                        <p>
+                          This is opt-in BY DESIGN and is not called from ToolRunner. Most commands read no package sources and would pay the sweep for nothing, and a check that fires everywhere is a check that gets muted. Executors whose work actually consumes resolved packages call it themselves, once they know they have work to do:
+                        </p>
+                        <pre><code>final preflight = pubCachePreflight(context);
+if (preflight != null) return preflight;</code></pre>
                       </div>
                     </div>
                   </div>

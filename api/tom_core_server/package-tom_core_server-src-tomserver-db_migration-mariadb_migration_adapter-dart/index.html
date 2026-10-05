@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1401,8 +1407,13 @@
                   <div class="api-doc">
                     <p>The MariaDB [TomDbMigrator] (registered for the <code>"mariadb"</code> type).</p>
                     <p>
-                      Per schema it maintains a <code>&lt;schema&gt;_versioning</code> table recording every applied migration (version, description, script, checksum, timing, success). [initializeMigration] creates that table if absent and loads the applied [versions]; [applyMigration] skips a version already present — but first verifies its description and script checksum are unchanged, failing if a past migration was edited — and otherwise runs the script and records the outcome. A failed script is still recorded (with 
-                      <code>success = 0</code>) before the error is rethrown.
+                      Per schema it maintains a <code>&lt;schema&gt;_versioning</code> table recording every applied migration (version, description, script, checksum, timing, success). [initializeMigration] binds the instance to one 
+                      <code>(data source, schema)</code> pair, creates that table if absent and loads the applied [versions]; [applyMigration] skips a version already present — but first verifies its description and script checksum are unchanged, failing if a past migration was edited — and otherwise runs the script and records the outcome. A failed script is still recorded (with 
+                      <code>success = 0</code>) before the error is rethrown, and that row is read back: [initializeMigration] refuses to run at all against a schema whose history holds one, because a failed script leaves a part-applied schema and MariaDB does not roll DDL back.
+                    </p>
+                    <p>
+                      One instance serves every schema of every <code>"mariadb"</code> data source in turn, so [initializeMigration] 
+                      <strong>rebinds</strong>: it replaces the loaded [versions] rather than adding to them, and [applyMigration] refuses to run against a pair the instance is not currently bound to. Both matter because "already applied" is decided from [versions]: a list still holding the previous schema's history would report that schema's version 1 as applied and skip the new schema's version 1 without a word.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1411,12 +1422,35 @@
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="MariadbMigrationAdaptor._initialized" class="api-member"><div class="api-member-head"><code class="api-signature">bool _initialized</code></div></div>
+                    <div id="MariadbMigrationAdaptor._boundTo" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String? _boundTo</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The <code>(data source, schema)</code> pair [versions] was loaded for, or <code>null</code> before the first [initializeMigration] and after [reset].
+                        </p>
+                        <p>
+                          Tracked as the pair rather than as a bare "initialised" flag because the applied-version history is per 
+                          <strong>pair</strong>, not per instance: one data source holds several schemas, each with its own history. Knowing 
+                          <em>which</em> pair is loaded is what lets [applyMigration] refuse to judge a migration against another schema's history.
+                        </p>
+                      </div>
+                    </div>
                     <div id="MariadbMigrationAdaptor.versions" class="api-member">
                       <div class="api-member-head"><code class="api-signature">List&lt;TomDbVersion&gt; versions</code></div>
                       <div class="api-doc">
                         <p>
-                          The migrations already applied to the current schema, loaded by [initializeMigration] and appended to as [applyMigration] runs.
+                          The migrations already applied to the schema this instance is bound to, as read from that schema's versioning table by [initializeMigration].
+                        </p>
+                        <p>
+                          Ordered by <strong>installation order, oldest first</strong> (by [TomDbVersion.installedRank]) — the order the migrations were actually applied, not their version order. The two differ whenever migrations were applied out of numeric order, which environment tags (C-16) make ordinary: a box switched to 
+                          <code>dev</code> applies <code>[1]@dev</code> after the untagged <code>[3]</code> it already had, leaving the history 
+                          <code>3, 1, 2</code>. Sort a copy by [TomDbVersion.version] if version order is what you need.
+                        </p>
+                        <p>
+                          It is a snapshot taken at initialisation and is <strong>not</strong> extended as [applyMigration] runs — a migration applied during this run is written to the table, not added here.
+                        </p>
+                        <p>
+                          This is the whole output of [initializeMigration]: the method returns nothing, because the history is what callers want and a single number cannot carry it.
                         </p>
                       </div>
                     </div>
@@ -1439,8 +1473,81 @@
                     </div>
                     <div id="MariadbMigrationAdaptor.initializeMigration" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">Future&lt;int&gt; initializeMigration(TomDataSourceInfo dsi, String schemaName)</code>
+                        <code class="api-signature">Future&lt;void&gt; initializeMigration(TomDataSourceInfo dsi, String schemaName)</code>
                         <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="MariadbMigrationAdaptor._refuseFailedHistory" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          void _refuseFailedHistory(TomDataSourceInfo dsi, String schemaName, List&lt;TomDbVersion&gt; history)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Throws when [history] holds a migration that was recorded as failed.</p>
+                        <p>
+                          A row with <code>success = 0</code> says a script ran and did not finish. <strong>MariaDB does not roll DDL back</strong>, so what it left behind is a schema in a state nobody wrote down: some statements applied, one raised, the rest never reached. That is not a state this module can reason about, and the two things it could do instead of stopping are both worse.
+                        </p>
+                        <p>
+                          It could re-run the script — right when the failure was environmental (a server that went away mid-run), and wrong when the script is half applied, where the re-run meets its own 
+                          <code>CREATE TABLE</code> on a table that now exists and fails again, forever. Or it could do what it did before this check existed and treat the row as applied, which is how a failed migration came to be skipped silently from then on: the version is present, and the description and checksum agree because both were written from the same script. The column recording the failure was written by this module and read by nobody in it.
+                        </p>
+                        <p>
+                          So the run stops, and stops <em>here</em> — as the history is read, before any script is offered. Two consequences follow from that placement, both intended. A failed migration blocks the migrations after it as well as its own, because a schema whose middle is unknown is not a schema later statements can be reasoned about. And it blocks on every node, including one whose environment tags mean it would never have run that migration — the damage is in the database the node is about to use, not in the tree it would have applied.
+                        </p>
+                        <p>
+                          Repair is a human's: finish or undo what the script left, then correct or delete the row. The message names the version, the description and the schema, because an operator holding only "a migration failed" has to go looking for which one.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="MariadbMigrationAdaptor._checksumPattern" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static RegExp _checksumPattern</code></div>
+                      <div class="api-doc">
+                        <p>The shape [checksumOf] produces: exactly 64 lowercase hex characters.</p>
+                        <p>
+                          Anchored deliberately — an unanchored pattern would accept a padded or prefixed value that no comparison could ever match, turning an unreadable row into a permanent mismatch.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="MariadbMigrationAdaptor.checksumOf" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String checksumOf(String sql)</code></div>
+                      <div class="api-doc">
+                        <p>The checksum recorded for a migration script: the lowercase hex SHA-256 of its UTF-8 bytes.</p>
+                        <p>
+                          This value outlives the process that wrote it — it is read back on every later startup to decide whether an already-applied migration has since been edited — so it must mean the same thing in every process that ever looks at it. A content digest does; 
+                          <code>String.hashCode</code>, which this replaced, does not: Dart guarantees it only within one run, and it varies with the SDK, the platform and the isolate's hash seed. When it changed, 
+                          <em>every</em> row already recorded became a mismatch at once, and the resulting <code>checksum_mismatch</code>
+                           is indistinguishable from a genuinely tampered migration — so the operator's first instinct would have been the wrong one.
+                        </p>
+                        <p>
+                          Public because it is the definition of the stored value: a test pins it to a constant so a change of algorithm is caught by the suite rather than by a fleet of deployed databases, and an operator repairing a row needs to be able to compute the value the adaptor expects.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="MariadbMigrationAdaptor.isWellFormedChecksum" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static bool isWellFormedChecksum(String checksum)</code></div>
+                      <div class="api-doc">
+                        <p>Whether [checksum] is a value this adaptor could have written — the counterpart of [checksumOf].</p>
+                        <p>
+                          A stored checksum that fails this test is not evidence that a migration was edited; it is evidence that the row came from somewhere else. The versioning table's own DDL makes that reachable: 
+                          <code>checksum</code> is declared <code>NOT NULL DEFAULT ''</code>, so any row inserted by anything other than [applyMigration] — a hand-written repair, an older schema, a partially applied insert — carries the empty string. A database written before the checksum became a content digest carries a decimal 
+                          <code>String.hashCode</code>.
+                        </p>
+                        <p>
+                          The two facts are kept apart because they call for opposite responses: a mismatch means "find the edit", an unreadable value means "this row was never written by this adaptor — recompute it". Reporting the second as the first sends the operator hunting for an edit that never happened.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="MariadbMigrationAdaptor._binding" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String _binding(TomDataSourceInfo dsi, String schemaName)</code></div>
+                      <div class="api-doc">
+                        <p>Identifies a <code>(data source, schema)</code> pair.</p>
+                        <p>
+                          Both halves are directory basenames, so neither can contain the separator and the key cannot be ambiguous.
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -1458,7 +1565,7 @@
                     <div id="MariadbMigrationException.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          MariadbMigrationException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, Object? stack, Object? rootException, bool autoLog = false})
+                          MariadbMigrationException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, StackTrace? stack, Object? rootException, bool autoLog = false})
                         </code>
                       </div>
                       <div class="api-doc">
@@ -1506,7 +1613,11 @@
                     </div>
                     <div id="TomDbVersion.checksum" class="api-member">
                       <div class="api-member-head"><code class="api-signature">String checksum</code></div>
-                      <div class="api-doc"><p>The script's <code>hashCode</code>, stored as a string, used to detect later edits.</p></div>
+                      <div class="api-doc">
+                        <p>
+                          The script's content digest — lowercase hex SHA-256, as produced by [MariadbMigrationAdaptor.checksumOf] — used to detect later edits.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomDbVersion.installedBy" class="api-member">
                       <div class="api-member-head"><code class="api-signature">String installedBy</code></div>
@@ -1516,9 +1627,27 @@
                       <div class="api-member-head"><code class="api-signature">DateTime installedOn</code></div>
                       <div class="api-doc"><p>When the migration was applied.</p></div>
                     </div>
+                    <div id="TomDbVersion.executionTimeMs" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">int executionTimeMs</code></div>
+                      <div class="api-doc">
+                        <p>
+                          How long the script took to run, in milliseconds, as measured by [MariadbMigrationAdaptor.applyMigration].
+                        </p>
+                        <p>
+                          Covers the script's statements only: the clock stops before this row is inserted, so the figure is comparable across runs. A row recorded for a 
+                          <em>failed</em> script carries the time spent before the failure.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomDbVersion.success" class="api-member">
                       <div class="api-member-head"><code class="api-signature">int success</code></div>
-                      <div class="api-doc"><p><code>1</code> if the migration script succeeded, <code>0</code> if it failed.</p></div>
+                      <div class="api-doc">
+                        <p><code>1</code> if the migration script succeeded, <code>0</code> if it failed.</p>
+                        <p>
+                          Read back, not merely written: [MariadbMigrationAdaptor.initializeMigration] refuses to run against a schema whose history holds a row that is not 
+                          <code>1</code>. A column this module writes and never reads is how a failed migration came to be skipped from then on.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>

@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1387,6 +1393,7 @@
             <div class="treewrap">
               <div class="treepane">
                 <div class="treenodes">
+                  <a class="leaf" href="#CertificatePermission">CertificatePermission</a>
                   <a class="leaf" href="#DangerousPermission">DangerousPermission</a>
                   <a class="leaf" href="#FilesystemPermission">FilesystemPermission</a>
                   <a class="leaf" href="#IsolatePermission">IsolatePermission</a>
@@ -1422,6 +1429,60 @@ final result = interpreter.execute(source: '''
   // within the granted permissions
 ''');</code></pre>
                 </div>
+                <section id="CertificatePermission" class="api-declaration">
+                  <h3 class="api-decl-title">class CertificatePermission</h3>
+                  <code class="api-signature">class CertificatePermission extends Permission</code>
+                  <div class="api-doc">
+                    <p>
+                      Certificate permissions govern loading X.509 certificates and private keys into a <code>SecurityContext</code>.
+                    </p>
+                    <p>
+                      WHY THIS IS NOT <code>FilesystemPermission</code>, which already covers the file read. It covers it as an ORDINARY read, and a private key is not an ordinary read: a script scoped to a directory that happens to contain one could hand it to a 
+                      <code>SecurityContext</code> and serve traffic under the host's identity, with nothing in the grant list saying that was possible. Naming the capability separately is what lets an embedder allow a script to read its own data directory without also allowing it to impersonate the host.
+                    </p>
+                    <p>
+                      IT GATES THE BYTES VARIANTS TOO, which read nothing. The capability being granted is "install key material into a TLS context", not "open a file" — 
+                      <code>usePrivateKeyBytes</code> reaches the same end with bytes the script already holds, so gating only the path variants would leave the shorter route open. The path variants are checked TWICE, here and by the filesystem gate, and that is deliberate: they genuinely do both things.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="CertificatePermission._" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">CertificatePermission._(bool _load)</code></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="CertificatePermission.type" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">final String type</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="CertificatePermission._load" class="api-member"><div class="api-member-head"><code class="api-signature">final bool _load</code></div></div>
+                    <div id="CertificatePermission.description" class="api-member"><div class="api-member-head"><code class="api-signature">String description</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="CertificatePermission.allows" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">bool allows(dynamic operation)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="CertificatePermission.load" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static CertificatePermission load</code></div>
+                      <div class="api-doc"><p>Allows loading certificates and private keys into a <code>SecurityContext</code>.</p></div>
+                    </div>
+                    <div id="CertificatePermission.any" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static CertificatePermission any</code></div>
+                      <div class="api-doc"><p>Allows all certificate operations.</p></div>
+                    </div>
+                  </div>
+                </section>
                 <section id="DangerousPermission" class="api-declaration">
                   <h3 class="api-decl-title">class DangerousPermission</h3>
                   <code class="api-signature">class DangerousPermission extends Permission</code>
@@ -1536,6 +1597,54 @@ final result = interpreter.execute(source: '''
                     <div id="FilesystemPermission.any" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static FilesystemPermission any</code></div>
                       <div class="api-doc"><p>Allows all filesystem operations on any path.</p></div>
+                    </div>
+                    <div id="FilesystemPermission._canonicalizePath" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String _canonicalizePath(String path)</code></div>
+                      <div class="api-doc">
+                        <p>Reduces [path] to the single spelling used for scope comparison.</p>
+                        <p>
+                          Absolutizes against the process working directory, switches to <code>/</code> separators, lowercases a Windows drive letter, and resolves 
+                          <code>.</code> and <code>..</code> segments away. Without the <code>..</code> resolution a grant on <code>/allowed</code>
+                           would authorize <code>/allowed/../etc/passwd</code>, which is a scope escape.
+                        </p>
+                        <p>
+                          This step is purely lexical. Symlink resolution is a separate concern and lives in [_scopeIdentity], which layers it on top.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="FilesystemPermission._absolutize" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String _absolutize(String path)</code></div>
+                      <div class="api-doc">
+                        <p>Joins [path] onto the working directory when it is relative.</p>
+                        <p>
+                          Both the grant and the operation may be spelled relatively (e.g. <code>FilesystemPermission.readPath('build')</code>), and they only compare meaningfully once both are absolute.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="FilesystemPermission._scopeIdentity" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String _scopeIdentity(String path)</code></div>
+                      <div class="api-doc">
+                        <p>The single spelling [path] is compared under: lexically canonical AND symlink-resolved.</p>
+                        <p>
+                          Both steps are needed, in this order. Canonicalizing first makes the path absolute so [resolveRealPath] has something well-formed to resolve; canonicalizing again afterwards normalizes whatever the platform's realpath handed back. Grant and request both pass through here, so they are always compared as the same kind of thing.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="FilesystemPermission._isPathWithinScope" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static bool _isPathWithinScope(String allowedPath, String requestedPath)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Whether [requestedPath] names [allowedPath] itself or something under it.</p>
+                        <p>
+                          The comparison is on a path-SEGMENT boundary, so a sibling that merely shares the string prefix (<code>/allowed_sneaky</code>
+                           against a grant on <code>/allowed</code>) is correctly outside the scope.
+                        </p>
+                        <p>
+                          It is also on the REAL path, so the two spellings of a symlinked location are the same scope. That cuts both ways by design: a grant on 
+                          <code>/private/var/x</code> admits a read of <code>/var/x/...</code>, and — the security- relevant direction — a symlink INSIDE a granted directory that points outside it no longer smuggles the location back into scope.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>

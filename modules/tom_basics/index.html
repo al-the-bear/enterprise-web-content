@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1386,7 +1392,7 @@
               <span style="display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap"><span class="badge b-pub"><span class="d"></span>Published</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">role: foundation</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">license: BSD-3-Clause</span></span>
             </div>
             <h2>tom_basics</h2>
-            <div class="mono" style="color: #9FB6C9">tom_basics · v1.0.0</div>
+            <div class="mono" style="color: #9FB6C9">tom_basics · v3.1.2</div>
             <p style="margin-top: 10px">
               The bottom of the Tom dependency stack: a UUID-tracked exception base with folded stack traces, a per-class bitwise logger, a platform-abstraction seam, and a runtime model — on just three well-known dependencies.
             </p>
@@ -1398,8 +1404,8 @@
           <div class="statgrid">
             <div class="stat"><div class="k">Status</div><div class="v" style="font-size: 1.05rem; color: #0F7FB0">Published</div></div>
             <div class="stat"><div class="k">LOC</div><div class="v">595</div></div>
-            <div class="stat"><div class="k">Tests</div><div class="v">6</div></div>
-            <div class="stat"><div class="k">Test LOC</div><div class="v">50</div></div>
+            <div class="stat"><div class="k">Tests</div><div class="v">33</div></div>
+            <div class="stat"><div class="k">Test LOC</div><div class="v">430</div></div>
           </div>
           <div class="dcols">
             <div>
@@ -1427,6 +1433,13 @@
                   <div class="linkmeta">
                     <a class="linkname" href="/docs?module=tom_basics&amp;path=README.md">README.md</a>
                     <span class="muted linkpath">README.md</span>
+                  </div>
+                </div>
+                <div class="linkrow">
+                  <span class="ic">📄</span>
+                  <div class="linkmeta">
+                    <a class="linkname" href="/docs?module=tom_basics&amp;path=doc%2Fruntime%2Fruntime.md">runtime.md</a>
+                    <span class="muted linkpath">doc/runtime/runtime.md</span>
                   </div>
                 </div>
                 <div class="licdocrow">
@@ -1457,7 +1470,7 @@
               <h1>tom_basics</h1>
               <p>
                 &gt; Part of the <strong>Tom framework</strong> by al-the-bear. &gt; © 2024–2026 Peter Nicolai Alexis Kyaw — BSD-3-Clause, see 
-                <a href="https://github.com/al-the-bear/tom_basics/blob/main/LICENSE">LICENSE</a>.
+                <a href="https://github.com/al-the-bear/tom_basics/blob/main/tom_basics/LICENSE">LICENSE</a>.
               </p>
               <p>Basic utilities for the Tom framework including exception handling with UUID tracking.</p>
               <p>
@@ -1727,7 +1740,7 @@ void main() {
   tomLog.info('Application starting...');
 
   try {
-    throw TomBaseException('EXAMPLE_ERROR', 'Something went wrong');
+    throw TomBaseException('example.run.failed', 'Something went wrong');
   } on TomBaseException catch (e) {
     tomLog.error('Caught: ${e.key} - ${e.defaultUserMessage}');
     print('Exception UUID: ${e.uuid}'); // e.g. aceec92a-90ab-4f7b-896e-...
@@ -1737,11 +1750,11 @@ void main() {
 }</code></pre>
               <p>Running it prints (timestamps and the UUID vary per run):</p>
               <pre><code>2026-06-16 21:27:22.128328 - INFO    Application starting...   [main]
-2026-06-16 21:27:22.140356 - ERROR   Caught: EXAMPLE_ERROR - Something went wrong   [main]
+2026-06-16 21:27:22.140356 - ERROR   Caught: example.run.failed - Something went wrong   [main]
 Exception UUID: aceec92a-90ab-4f7b-896e-595d7f1a94ca
 2026-06-16 21:27:22.140927 - INFO    Application finished.   [main]</code></pre>
               <p>
-                This is exactly <a href="https://github.com/al-the-bear/tom_basics/blob/main/example/tom_basics_example.dart"><code>example/tom_basics_example.dart</code></a>
+                This is exactly <a href="https://github.com/al-the-bear/tom_basics/blob/main/tom_basics/example/tom_basics_example.dart"><code>example/tom_basics_example.dart</code></a>
                  — run it with <code>dart run example/tom_basics_example.dart</code>.
               </p>
               <p>---</p>
@@ -1751,7 +1764,7 @@ Exception UUID: aceec92a-90ab-4f7b-896e-595d7f1a94ca
                 <tbody>
                   <tr>
                     <td>
-                      <a href="https://github.com/al-the-bear/tom_basics/blob/main/example/tom_basics_example.dart"><code>example/tom_basics_example.dart</code></a>
+                      <a href="https://github.com/al-the-bear/tom_basics/blob/main/tom_basics/example/tom_basics_example.dart"><code>example/tom_basics_example.dart</code></a>
                     </td>
                     <td>The 12-line quick start above: logger + tracked exception.</td>
                   </tr>
@@ -1771,18 +1784,23 @@ Exception UUID: aceec92a-90ab-4f7b-896e-595d7f1a94ca
               <h3>Exception handling with UUID tracking</h3>
               <p>
                 The constructor takes a <strong>key</strong> (a stable, machine-readable code) and a <strong>default user message</strong>
-                 (human-readable), with everything else optional:
+                 (human-readable), with everything else optional.
+              </p>
+              <p>
+                A key is dotted lowercase, <code>lower_snake_case</code> within each segment, and reads <code>&lt;area&gt;.&lt;operation&gt;.&lt;condition&gt;</code>
+                 — <code>users.fetch.not_found</code>, <code>orders.submit.no_positions</code>. The <strong>first segment names the module or subsystem</strong>, which is what keeps keys from unrelated code from colliding and lets a handler match a whole area with a prefix test. 
+                <code>tom_core_kernel</code> documents the convention in full; every key in the Tom framework follows it, and this package's base class is where it starts.
               </p>
               <pre><code>import 'package:tom_basics/tom_basics.dart';
 
 void main() {
   final ex = TomBaseException(
-    'VALIDATION_ERROR',
+    'users.validate.invalid_email',
     'The email address is not valid',
     parameters: {'field': 'email', 'value': 'not-an-email'},
   );
 
-  print(ex.key);                  // VALIDATION_ERROR
+  print(ex.key);                  // users.validate.invalid_email
   print(ex.defaultUserMessage);   // The email address is not valid
   print(ex.parameters?['field']); // email
   print(ex.uuid.length);          // 36  (a UUIDv4 string)
@@ -1795,7 +1813,7 @@ void main() {
                 <strong>Correlating an error with a request.</strong> Pass <code>requestUuid</code> so a failure deep in a handler can be matched back to the inbound call that triggered it:
               </p>
               <pre><code>TomBaseException(
-  'DB_TIMEOUT',
+  'orders.query.timeout',
   'The database did not respond in time',
   requestUuid: incomingRequestId,
   parameters: {'table': 'orders', 'timeoutMs': 5000},
@@ -1808,7 +1826,7 @@ void main() {
   await db.query(sql);
 } catch (e, s) {
   throw TomBaseException(
-    'ORDER_LOAD_FAILED',
+    'orders.load.failed',
     'Could not load the order',
     rootException: e,
     stack: s,
@@ -1819,7 +1837,7 @@ void main() {
                 <code>stackTrace</code>. Print it directly, or use <code>printStackTrace()</code>:
               </p>
               <pre><code>try {
-  throw TomBaseException('BOOM', 'demo');
+  throw TomBaseException('example.demo.failed', 'demo');
 } on TomBaseException catch (e) {
   e.printStackTrace();      // writes "&lt;uuid&gt;-&lt;requestUuid&gt; exception stacktrace:\n..."
   // or inspect the stored string:
@@ -1831,7 +1849,7 @@ void main() {
               </p>
               <h3>Logging</h3>
               <p>
-                The global <a href="https://github.com/al-the-bear/tom_basics/blob/main/lib/src/logging/logging.dart"><code>tomLog</code></a>
+                The global <a href="https://github.com/al-the-bear/tom_basics/blob/main/tom_basics/lib/src/logging/logging.dart"><code>tomLog</code></a>
                  instance is usable without any setup. Each severity has its own method:
               </p>
               <pre><code>import 'package:tom_basics/tom_basics.dart';
@@ -1850,7 +1868,7 @@ void main() {
               <pre><code>2026-06-16 21:27:22.140 - INFO    Server started on port 8080   [main]</code></pre>
               <h4>Log levels are bit patterns</h4>
               <p>
-                A <a href="https://github.com/al-the-bear/tom_basics/blob/main/lib/src/logging/logging.dart"><code>TomLogLevel</code></a>
+                A <a href="https://github.com/al-the-bear/tom_basics/blob/main/tom_basics/lib/src/logging/logging.dart"><code>TomLogLevel</code></a>
                  is a bit mask. Individual levels can be <strong>combined</strong> with <code>+</code> and <strong>removed</strong>
                  with <code>-</code>, and a logger only emits a message when its level <code>matches</code> the message level:
               </p>
@@ -1904,8 +1922,8 @@ tomLog.addNameLevel('ApiClient.sendRequest', TomLogLevel.debug);
 tomLog.setLogLevelExceptions('DatabaseService=TRACE,ApiClient=DEBUG');</code></pre>
               <h4>Redirecting output</h4>
               <p>
-                The logger writes through <code>logOutput</code>, a <a href="https://github.com/al-the-bear/tom_basics/blob/main/lib/src/logging/logging.dart"><code>TomLogOutput</code></a>. The default is 
-                <a href="https://github.com/al-the-bear/tom_basics/blob/main/lib/src/logging/logging.dart"><code>TomConsoleLogOutput</code></a>
+                The logger writes through <code>logOutput</code>, a <a href="https://github.com/al-the-bear/tom_basics/blob/main/tom_basics/lib/src/logging/logging.dart"><code>TomLogOutput</code></a>. The default is 
+                <a href="https://github.com/al-the-bear/tom_basics/blob/main/tom_basics/lib/src/logging/logging.dart"><code>TomConsoleLogOutput</code></a>
                  (errors and status to stderr, everything else to stdout). Implement <code>TomLogOutput.output</code>
                  to send logs anywhere:
               </p>
@@ -1954,8 +1972,8 @@ void main() {
 }</code></pre>
               <h3>Platform abstraction</h3>
               <p>
-                Library code that must not import <code>dart:io</code> or <code>dart:html</code> directly talks to <a href="https://github.com/al-the-bear/tom_basics/blob/main/lib/src/runtime/platform_neutral.dart"><code>TomPlatformUtils.current</code></a>. The concrete implementation is injected once at startup. Until you do that, the default 
-                <a href="https://github.com/al-the-bear/tom_basics/blob/main/lib/src/runtime/platform_neutral.dart"><code>TomFallbackPlatformUtils</code></a>
+                Library code that must not import <code>dart:io</code> or <code>dart:html</code> directly talks to <a href="https://github.com/al-the-bear/tom_basics/blob/main/tom_basics/lib/src/runtime/platform_neutral.dart"><code>TomPlatformUtils.current</code></a>. The concrete implementation is injected once at startup. Until you do that, the default 
+                <a href="https://github.com/al-the-bear/tom_basics/blob/main/tom_basics/lib/src/runtime/platform_neutral.dart"><code>TomFallbackPlatformUtils</code></a>
                  supports console output but throws <code>UnimplementedError</code> for detection — a loud, deliberate signal that the platform was never configured:
               </p>
               <pre><code>import 'package:tom_basics/tom_basics.dart';
@@ -2045,7 +2063,7 @@ print(TomRuntime.printReport());
               <p>---</p>
               <h2>Architecture</h2>
               <p>
-                <code>tom_basics</code> is four small, independent modules behind a single barrel export (<a href="https://github.com/al-the-bear/tom_basics/blob/main/lib/tom_basics.dart"><code>lib/tom_basics.dart</code></a>):
+                <code>tom_basics</code> is four small, independent modules behind a single barrel export (<a href="https://github.com/al-the-bear/tom_basics/blob/main/tom_basics/lib/tom_basics.dart"><code>lib/tom_basics.dart</code></a>):
               </p>
               <pre><code>                       package:tom_basics/tom_basics.dart
                                      │  (barrel export)
@@ -2152,17 +2170,17 @@ print(TomRuntime.printReport());
               <h2>Further documentation</h2>
               <ul>
                 <li>
-                  <a href="/doc/tom_agent_container/tom_ai/basics/README">Basics repository README</a> — the map of all ten basics packages.
-                </li>
-                <li>
-                  <a href="https://github.com/al-the-bear/tom_basics/tree/main/tom_basics_console"><code>tom_basics_console</code></a>
-                   — supplies the desktop/server
+                  <a href="/docs?module=tom_basics&amp;path=doc%2Fruntime%2Fruntime.md"><code>doc/runtime/runtime.md</code></a>
+                   — the runtime guide:
                 </li>
               </ul>
               <p>
-                <code>TomPlatformUtils</code> implementation that backs the platform seam. - <a href="https://github.com/al-the-bear/tom_crypto/tree/main"><code>tom_crypto</code></a>
-                 — a downstream consumer that logs through <code>tomLog</code>. - <code>tom_core_kernel</code> (separate repo) — provides 
-                <code>TomException</code>, the full-featured exception type that builds on this base.
+                <code>TomEnvironment</code>, <code>TomPlatform</code>, <code>TomRuntime</code> and the <code>TomPlatformUtils</code>
+                 seam, with the initialization sequence and the bean-context integration. - <a href="/doc/tom_agent_container/tom_ai/basics/README">Basics repository README</a>
+                 — the map of all ten basics packages. - <a href="https://github.com/al-the-bear/tom_basics/tree/main/tom_basics_console"><code>tom_basics_console</code></a>
+                 — supplies the desktop/server <code>TomPlatformUtils</code> implementation that backs the platform seam. - 
+                <a href="https://github.com/al-the-bear/tom_crypto/tree/main"><code>tom_crypto</code></a> — a downstream consumer that logs through 
+                <code>tomLog</code>. - <code>tom_core_kernel</code> (separate repo) — provides <code>TomException</code>, the full-featured exception type that builds on this base.
               </p>
               <p>---</p>
               <h2>Status</h2>

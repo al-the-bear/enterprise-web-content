@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1390,15 +1396,17 @@
                 <h2 class="api-library-title">package:tom_flutter_ui/src/custom/tom_auth_guard.dart</h2>
                 <code class="api-import">import 'package:tom_flutter_ui/src/custom/tom_auth_guard.dart';</code>
                 <div class="api-doc">
-                  <p>Phase 6 — <code>TomAuthGuard</code>.</p>
                   <p>
-                    Inline wrapper that hides or disables its [child] based on the authorization state resolved from a <code>tomId</code>
-                     (resource key path). Cuts the boilerplate currently hand-rolled per call-site to inspect <code>TomAuthorization.resolveAuth(...)</code>
-                     and conditionally render.
+                    Inline wrapper that hides or disables its [TomAuthGuard.child] based on the authorization state resolved from a 
+                    <code>tomId</code> (resource key path).
                   </p>
                   <p>
-                    The guard supports four [TomAuthState] outcomes: <em> <code>none</code> — child is removed from the tree (replaced by [hiddenBuilder] or <code>SizedBox.shrink()</code>). 
-                    </em> <code>disabled</code> — child is rendered behind an [IgnorePointer] and faded to [disabledOpacity]. 
+                    Reach for it wherever a subtree's visibility follows a resource key, in place of calling <code>TomAuthorization.resolveAuth(...)</code>
+                     at the call site and branching by hand.
+                  </p>
+                  <p>
+                    The guard supports four [TomAuthState] outcomes: <em> <code>none</code> — child is removed from the tree (replaced by [TomAuthGuard.hiddenBuilder] or <code>SizedBox.shrink()</code>). 
+                    </em> <code>disabled</code> — child is rendered behind an [IgnorePointer] and faded to [TomAuthGuard.disabledOpacity]. 
                     <em> <code>read</code> — child is rendered behind an [IgnorePointer] (interactive elements are blocked but content is fully visible). 
                     </em> <code>full</code> — child is rendered as-is.
                   </p>
@@ -1475,8 +1483,11 @@
                     <div id="TomAuthGuard.resolveAuthState" class="api-member">
                       <div class="api-member-head"><code class="api-signature">InvalidType resolveAuthState()</code></div>
                       <div class="api-doc">
+                        <p>Resolves the guarded auth state through [TomAuthorization].</p>
                         <p>
-                          Resolves the guarded auth state through [TomAuthorization]. Pulled out to a getter so tests can override behaviour by subclassing.
+                          Public and <code>@visibleForTesting</code> so the decision can be asserted on a constructed guard without pumping a widget — which is what 
+                          <code>custom_example_test.dart</code> does, once per state. The annotation is the tell: were the point to let tests 
+                          <em>replace</em> the resolution by subclassing, this would be <code>@visibleForOverriding</code>.
                         </p>
                       </div>
                     </div>

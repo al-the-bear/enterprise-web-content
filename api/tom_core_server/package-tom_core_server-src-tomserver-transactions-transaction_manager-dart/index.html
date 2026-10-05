@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1391,6 +1397,9 @@
                   <a class="leaf" href="#TomTransactionException">TomTransactionException</a>
                   <a class="leaf" href="#TomTransactionManager">TomTransactionManager</a>
                   <a class="leaf" href="#TomTransactionParticipant">TomTransactionParticipant</a>
+                  <a class="leaf" href="#TomTransactionResult">TomTransactionResult</a>
+                  <a class="leaf" href="#_TomTransactionScope">_TomTransactionScope</a>
+                  <a class="leaf" href="#TomTransactionOutcome">TomTransactionOutcome</a>
                 </div>
               </div>
               <div class="reader">
@@ -1409,19 +1418,35 @@
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomTransaction._" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">TomTransaction._([bool isReadOnly = false])</code></div>
+                      <div class="api-member-head">
+                        <code class="api-signature">TomTransaction._(_TomTransactionScope _scope, [bool isReadOnly = false])</code>
+                      </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
+                    <div id="TomTransaction._scope" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final _TomTransactionScope _scope</code></div>
+                      <div class="api-doc">
+                        <p>The scope this transaction is the current one of.</p>
+                        <p>
+                          Held by the transaction rather than looked up on conclusion, because <code>commitTransaction</code> may well run in a different zone from the one that opened the transaction — an 
+                          <code>await</code> inside a handler, a callback scheduled elsewhere — and clearing "whatever scope the concluding code happens to be in" would leave the opening scope pointing at a finished transaction while wiping an unrelated one.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomTransaction._participants" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final Map&lt;String, TomTransactionParticipant&gt; _participants</code></div>
                     </div>
                     <div id="TomTransaction.isReadOnly" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final bool isReadOnly</code></div>
                       <div class="api-doc">
+                        <p>Whether this transaction was opened as read-only.</p>
                         <p>
-                          Whether this transaction was opened as read-only (advisory; surfaced to participants / callers — it does not by itself prevent writes).
+                          Handed to every participant through [TomTransactionParticipant.startTransaction], which is the only path between the 
+                          <code>@TomTransactional(isReadOnly: true)</code> that declares it and the resource that can act on it. The coordinator itself enforces nothing — it has no idea what a write is — so what the flag 
+                          <em>means</em> is decided by each participant: <code>MariaDbDatasource</code> opens <code>START TRANSACTION READ ONLY</code>, and the server refuses the writes from there on; 
+                          <code>MariaDbXADatasource</code> cannot, because XA has no read-only branch, and says so rather than appearing to honour it.
                         </p>
                       </div>
                     </div>
@@ -1431,33 +1456,93 @@
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
                     <div id="TomTransaction.registerParticipant" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">void registerParticipant(TomTransactionParticipant ttp)</code></div>
+                      <div class="api-member-head">
+                        <code class="api-signature">Future&lt;void&gt; registerParticipant(TomTransactionParticipant ttp)</code>
+                      </div>
                       <div class="api-doc">
                         <p>Enlists [ttp] in this transaction, calling its <code>startTransaction()</code> once.</p>
                         <p>
-                          Participants are deduplicated by [TomTransactionParticipant.getParticipantId]; registering an already-enlisted id is a no-op, so callers may register freely without tracking membership. Throws [TomTransactionException] if the transaction is no longer running. (Declared 
-                          <code>void</code>/<code>async</code>: the participant's <code>startTransaction()</code> future is started but not surfaced to the caller.)
+                          Participants are deduplicated by [TomTransactionParticipant.getParticipantId]; registering an already-enlisted id is a no-op, so callers may register freely without tracking membership.
                         </p>
+                        <p>
+                          <strong>Enlistment is all or nothing.</strong> A participant is recorded only after its <code>startTransaction()</code>
+                           has returned <code>true</code>; one that returns <code>false</code> or throws is not enlisted, and either way this method raises a [TomTransactionException] naming the participant — 
+                          <code>…start_failed</code> for the refusal, <code>…start_threw</code> for the throw, the latter carrying the original as its 
+                          <code>rootException</code>. So a caller either has a participant in the transaction or has an exception, and never a transaction holding a resource that never opened one.
+                        </p>
+                        <p>
+                          The two failures are reported alike on purpose. <code>false</code> and a throw are the same event to the coordinator, and the two data sources that can fail here return 
+                          <code>false</code> — so a contract that only handled the throw would be documenting the path that does not occur. Leaving the participant enlisted is what made this worth stating: 
+                          <code>commitTransaction</code> would later commit a resource with nothing open, which for <code>MariaDbXADatasource</code>
+                           is <code>XA COMMIT null;</code> against the branch its failed start had already cleared — a commit-time error naming the wrong operation, arriving exactly when the coordinator is deciding whether to roll everyone back.
+                        </p>
+                        <p>
+                          <strong>An id belongs to one object.</strong> Registering the <em>same</em> participant again is the no-op above. Registering a 
+                          <em>different</em> object under an id that is already enlisted throws <code>…duplicate_id</code> — it is not a re-registration, and collapsing it to the first is the one failure here that says nothing at all: the second resource never receives 
+                          <code>startTransaction</code>, <code>prepare</code>, <code>commit</code>, <code>rollback</code> or <code>endTransaction</code>, the caller's 
+                          <code>await</code> completes normally, and the work issued against it is neither committed with the transaction nor rolled back with it. The first sign is data that should have been undone and was not.
+                        </p>
+                        <p>
+                          [TomTransactionParticipant.getParticipantId] names a <em>resource</em>, so the collision is not exotic: two 
+                          <code>MariaDbDatasource</code> instances pointing at one database answer the same id by construction, and they are two connections with two transactions of their own — which is exactly why one of them has to be refused rather than quietly dropped.
+                        </p>
+                        <p>Also throws [TomTransactionException] if the transaction is no longer running.</p>
                       </div>
                     </div>
                     <div id="TomTransaction.commitTransaction" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">Future&lt;bool&gt; commitTransaction()</code></div>
+                      <div class="api-member-head"><code class="api-signature">Future&lt;TomTransactionResult&gt; commitTransaction()</code></div>
                       <div class="api-doc">
-                        <p>Commits every participant, then ends them; clears the current transaction.</p>
+                        <p>Runs the two-phase commit, then ends every participant; clears the current transaction.</p>
+                        <p>Marks the transaction not-running, then:</p>
                         <p>
-                          Marks the transaction not-running, then calls <code>commit()</code> on each participant in registration order. If any participant vetoes (returns 
-                          <code>false</code>), the whole transaction is rolled back via [rollbackTransaction] instead. On a clean commit, 
-                          <code>endTransaction()</code> is called on every participant and the [TomTransactionManager] singleton is cleared. Returns whether the commit (and all end calls) succeeded.
+                          1. <strong>Prepare.</strong> <code>prepare()</code> on every participant in registration order. A participant that answers 
+                          <code>false</code> — or throws — vetoes, and the whole transaction becomes a [rollbackTransaction]. Nothing has been committed at that point, which is the property the phase buys. 2. 
+                          <strong>Commit.</strong> <code>commit()</code> on every participant. The transaction is decided by now, so a 
+                          <code>false</code> here is <em>not</em> a veto: it is reported as a partially committed transaction and the remaining participants are committed anyway. Rolling back instead would discard work peers have already made durable, which is the failure the prepare phase exists to prevent and would reintroduce at the worst moment. 3. 
+                          <strong>End.</strong> <code>endTransaction()</code> on every participant, and the transaction is cleared from its scope.
+                        </p>
+                        <p>
+                          Returns a [TomTransactionResult]: what became of the work, and which participants did not do what they said. A vetoed transaction returns the rollback's own result, so the answer says 
+                          <code>rolledBack</code> rather than claiming a commit that did not happen.
+                        </p>
+                        <p>
+                          Both loops run to completion rather than stopping at the first failure — a participant left uncommitted or un-ended has nothing coming back for it, because the transaction is over.
+                        </p>
+                        <p>
+                          And both are <strong>sequential</strong>, which is a decision rather than an accident. A transaction spanning 
+                          <em>n</em> resources pays <em>n</em> round trips per phase, at the point in a request where the client is waiting; what that buys is that the order is knowable. A veto's meaning depends on it — which participants have already been reached when one arrives is answerable only because they were reached one at a time — and 
+                          <code>Future.wait</code> would make "the ones already asked" an arbitrary subset. <code>test/transactions_test.dart</code>
+                           pins it with participants that suspend inside every hook; see <code>doc/transactions.md</code>, "Sequential by design".
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomTransaction._endAll" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;List&lt;String&gt;&gt; _endAll()</code></div>
+                      <div class="api-doc">
+                        <p>Calls <code>endTransaction()</code> on every participant and names the ones that did not release.</p>
+                        <p>
+                          Unconditional: stopping at the first failure would leave every participant behind it un-ended, and nothing calls back later to release what they hold, because the transaction is over. For a data source that is a pooled connection that never returns.
+                        </p>
+                        <p>
+                          A throw is a failure to release like any other. Letting it escape would skip the participants behind it and leave the scope still pointing at a concluded transaction, which is the same leak with a stack trace.
                         </p>
                       </div>
                     </div>
                     <div id="TomTransaction.rollbackTransaction" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">Future&lt;bool&gt; rollbackTransaction()</code></div>
+                      <div class="api-member-head"><code class="api-signature">Future&lt;TomTransactionResult&gt; rollbackTransaction()</code></div>
                       <div class="api-doc">
                         <p>Rolls back every participant, then ends them; clears the current transaction.</p>
                         <p>
                           Marks the transaction not-running, calls <code>rollback()</code> on every participant, then <code>endTransaction()</code>
-                           on each, and clears the [TomTransactionManager] singleton. Returns whether all end calls succeeded.
+                           on each, and clears the transaction from its scope.
+                        </p>
+                        <p>
+                          A participant that throws while rolling back is logged and the rest are rolled back anyway: an abort that stopped at the first failure would leave every participant behind it holding an open transaction, which is strictly worse than the failure that interrupted it. A throw and a 
+                          <code>false</code> are the same answer here — this participant did not undo its work — and both put it in [TomTransactionResult.failed].
+                        </p>
+                        <p>
+                          Returns [TomTransactionOutcome.rolledBack] when every participant undid its work, and [TomTransactionOutcome.rolledBackWithFailures] when one did not. That distinction is the point of the type: the second is the outcome requiring a human, because the work was neither committed nor undone, and a boolean built only from the 
+                          <code>endTransaction</code> calls reported it as success.
                         </p>
                       </div>
                     </div>
@@ -1476,7 +1561,7 @@
                     <div id="TomTransactionException.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomTransactionException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, Object? stack, Object? rootException, bool autoLog = false})
+                          TomTransactionException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, StackTrace? stack, Object? rootException, bool autoLog = false})
                         </code>
                       </div>
                     </div>
@@ -1488,11 +1573,16 @@
                   <div class="api-doc">
                     <p>Ambient access to the current [TomTransaction].</p>
                     <p>
-                      Holds a single current transaction (per isolate) so participants and the endpoint pipeline can join or conclude it without threading a handle through every call. The pipeline opens one with [startTransaction] for a 
+                      Holds the current transaction so participants and the endpoint pipeline can join or conclude it without threading a handle through every call. The pipeline opens one with [startTransaction] for a 
                       <code>@TomTransactional</code> endpoint and commits/rolls it back when the call returns; data sources enlist with the current transaction as they are used. The transaction clears itself from here on commit or rollback.
                     </p>
                     <p>
-                      The current transaction is a single static (not zone-scoped), so this models one active transaction per isolate at a time.
+                      *<em>"Current" means current </em>to this flow<em>, not to this isolate.</em>* The transaction lives in a [Zone] value, exactly as the request principal does — so two requests interleaving in one isolate have two independent current transactions and neither can enlist in, commit, or roll back the other's work. A scope is established by [runInTransactionScope]; the server's authentication middleware opens one per request, and the endpoint pipeline opens one for a 
+                      <code>@TomTransactional</code> endpoint whose request has none.
+                    </p>
+                    <p>
+                      Code running outside any scope — a script, a test, a <code>main()</code> — shares one process-wide fallback scope, which is the pre-zone behaviour and is correct for a program with a single flow of work. Anything that runs 
+                      <em>concurrent</em> flows outside the request path (a scheduler running two jobs, a batch tool fanning out) must wrap each flow in [runInTransactionScope] to get the same isolation a request gets for free.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1501,10 +1591,83 @@
                   </div>
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
-                    <div id="TomTransactionManager._currentTransaction" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static TomTransaction? _currentTransaction</code></div>
+                    <div id="TomTransactionManager._fallbackScope" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static _TomTransactionScope _fallbackScope</code></div>
+                      <div class="api-doc">
+                        <p>The scope used by code that is not inside any [runInTransactionScope].</p>
+                        <p>
+                          Deliberately shared rather than per-call: a single-flow program has exactly one flow of work, and giving each 
+                          <code>startTransaction()</code> its own scope would silently break the nesting contract (a nested call returning the enclosing transaction with 
+                          <code>false</code>) that the pipeline and every existing caller rely on.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomTransactionManager._scope" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static _TomTransactionScope _scope</code></div>
+                    </div>
+                    <div id="TomTransactionManager.hasTransactionScope" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static bool hasTransactionScope</code></div>
                     </div>
                     <div id="TomTransactionManager.transactional" class="api-member"><div class="api-member-head"><code class="api-signature">static bool transactional</code></div></div>
+                    <div id="TomTransactionManager.runInTransactionScope" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static R runInTransactionScope&lt;R&gt;(R Function() body)</code></div>
+                      <div class="api-doc">
+                        <p>Runs [body] with its own current transaction, isolated from every other flow in this isolate.</p>
+                        <p>
+                          The transaction opened inside [body] — including inside anything it <code>await</code>s — is invisible outside, and a transaction opened outside is invisible within. Returns whatever [body] returns, so an asynchronous body is awaited by the caller rather than here.
+                        </p>
+                        <p>
+                          This establishes the <em>scope</em>; it opens no transaction and concludes none. Use it where the two are genuinely separate — the server's authentication middleware opens a scope per request whether or not the endpoint turns out to be transactional. To open a transaction and have it concluded on both the normal and the failing path, use [runInTransaction], which is this plus the 
+                          <code>try</code>/<code>catch</code> a caller otherwise has to remember.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomTransactionManager.runInTransaction" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static Future&lt;R&gt; runInTransaction&lt;R&gt;(FutureOr&lt;R&gt; Function(TomTransaction) body, {bool isReadOnly = false})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Runs [body] in a transaction, committing it on a normal return and rolling it back on a throw.</p>
+                        <pre><code>await TomTransactionManager.runInTransaction((txn) async {
+  await repository.save(order);
+  await ledger.record(order);
+});</code></pre>
+                        <p>
+                          The conclusion is the point. Written by hand the same flow is [runInTransactionScope], [startTransaction], the work, 
+                          <code>commitTransaction</code> <strong>and</strong> a <code>catch</code> that rolls back and rethrows — and the version without the last part is shorter, reads correctly, and leaks: the participants that enlisted are never rolled back, never ended, and their connections never return to the pool, while the transaction stays current in its scope until the scope is discarded. Off the request path that scope is the process-wide fallback, so one throwing body poisons the flow that follows it. A protocol whose correct use is four lines longer than its natural use gets used the short way.
+                        </p>
+                        <h2>What it does</h2>
+                        <ul><li><strong>Joins a transaction that is already running</strong>, passing it to [body]</li></ul>
+                        <p>
+                          and concluding nothing — the caller that opened it owns its conclusion, which is the same contract the 
+                          <code>isNew</code> half of [startTransaction] states. [isReadOnly] is then ignored, exactly as it is there. 
+                          <em> Otherwise </em><em>establishes a scope if the flow has none</em>* (as a transactional endpoint does rather than trusting the chain in front of it), opens a transaction, and owns it: 
+                          <code>commitTransaction</code> after [body] returns, <code>rollbackTransaction</code> if it throws, and the throw is rethrown so the caller sees its own failure rather than a transaction error.
+                        </p>
+                        <h2>When the commit does not succeed</h2>
+                        <p>
+                          It throws [TomTransactionException] (<code>transaction_manager.run_in_transaction.commit_failed</code>) when the work is not durable — the transaction was vetoed and rolled back, rolled back with failures, or partially committed. The message and 
+                          <code>parameters</code> carry the [TomTransactionOutcome] and the participants that failed, because handing back [body]'s return value would be handing back a result for work that did not happen.
+                        </p>
+                        <p>
+                          A participant that failed to <strong>release</strong> is not that. The work committed; a connection leaked. That is logged at warning level and the body's result is returned, because throwing would tell a caller its work did not happen when it did — and for a non-idempotent operation that invites a retry which applies it twice.
+                        </p>
+                        <p>
+                          A caller that needs to decide commit-or-rollback on something other than a throw drives [startTransaction] and the conclusion directly, reading the [TomTransactionResult] itself; that form stays documented in 
+                          <code>doc/transactions.md</code>.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomTransactionManager._runOwnedTransaction" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static Future&lt;R&gt; _runOwnedTransaction&lt;R&gt;(FutureOr&lt;R&gt; Function(TomTransaction) body, bool isReadOnly)
+                        </code>
+                      </div>
+                      <div class="api-doc"><p>[runInTransaction]'s owning half: opens the transaction and concludes it.</p></div>
+                    </div>
                     <div id="TomTransactionManager.startTransaction" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">static (TomTransaction, bool) startTransaction([bool isReadOnly = false])</code>
@@ -1516,9 +1679,6 @@
                         </p>
                       </div>
                     </div>
-                    <div id="TomTransactionManager._clearTransaction" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static void _clearTransaction()</code></div>
-                    </div>
                     <div id="TomTransactionManager.getCurrentTransaction" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static TomTransaction? getCurrentTransaction()</code></div>
                       <div class="api-doc"><p>The current transaction, or <code>null</code> if none is active.</p></div>
@@ -1529,10 +1689,31 @@
                   <h3 class="api-decl-title">class TomTransactionParticipant</h3>
                   <code class="api-signature">abstract class TomTransactionParticipant</code>
                   <div class="api-doc">
-                    <p>A resource that can enlist in a [TomTransaction] (two-phase style).</p>
+                    <p>A resource that can enlist in a [TomTransaction].</p>
                     <p>
-                      Implemented by <code>TomDataSource</code>, so any data source used during a transaction joins it. Participants are keyed by [getParticipantId] — registering the same id twice enlists once. The coordinator drives the lifecycle: [startTransaction] on enlistment, then either [commit] followed by [endTransaction] on success, or [rollback] followed by [endTransaction] on failure. [commit] returns 
-                      <code>false</code> to veto the commit (which turns the whole transaction into a rollback); [endTransaction] releases any per-transaction resources (e.g. returning a connection to the pool).
+                      Implemented by <code>TomDataSource</code>, so any data source used during a transaction joins it. Participants are keyed by [getParticipantId] — registering the same id twice enlists once.
+                    </p>
+                    <h2>The lifecycle</h2>
+                    <p>
+                      [startTransaction] on enlistment, and then one of two endings. On the happy path the coordinator runs 
+                      <strong>two phases</strong>: [prepare] on every participant, and — only if all of them answered <code>true</code>
+                       — [commit] on every participant. On failure, [rollback] on every participant. Either ending is followed by [endTransaction] on every participant, which releases per-transaction resources (a pooled connection, typically) and decides nothing.
+                    </p>
+                    <h2>What the prepare phase is for</h2>
+                    <p>
+                      [prepare] is where a participant does everything that can still fail, and its <code>false</code> is the veto. A veto therefore arrives while 
+                      <strong>nothing has been committed</strong>, so the coordinator can abort by rolling everyone back and the transaction is genuinely atomic across resources — which is the property the phase exists to buy and the reason [commit] is not a veto.
+                    </p>
+                    <p>
+                      [commit] runs after the decision. Every participant has already promised it can commit, so a <code>false</code>
+                       from one of them is not a refusal the coordinator can act on: peers may have committed already, and rolling 
+                      <em>them</em> back would undo work the transaction decided to keep. It is reported, loudly, as a partially committed transaction — the classic in-doubt outcome — and a participant that wants to be able to refuse has to refuse in [prepare].
+                    </p>
+                    <p>
+                      A participant with nothing to prepare returns <code>true</code> from [prepare] and does its work in [commit]; that is what a one-phase resource like a plain 
+                      <code>MariaDbDatasource</code> does, and it is why enlisting one alongside a two-phase resource weakens the guarantee to "atomic unless the one-phase participant's commit fails". 
+                      <code>MariaDbXADatasource</code> is the two-phase one: [prepare] issues <code>XA END</code> + <code>XA PREPARE</code>
+                       and [commit] issues <code>XA COMMIT</code>.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1545,23 +1726,220 @@
                   <div class="api-members">
                     <div id="TomTransactionParticipant.getParticipantId" class="api-member">
                       <div class="api-member-head"><code class="api-signature">String getParticipantId()</code></div>
-                      <div class="api-doc"><p>A stable id used to deduplicate this participant within a transaction.</p></div>
+                      <div class="api-doc">
+                        <p>A stable id naming the <strong>resource</strong> this participant speaks for.</p>
+                        <p>
+                          It identifies the resource, not the object: <code>MariaDbDatasource</code> answers <code>"MariaDb-&lt;database&gt;@&lt;host&gt;:@&lt;port&gt;"</code>, so two instances pointing at one database share it by construction. That is what makes registering the same participant twice a no-op the caller need not track — and what makes two 
+                          <em>different</em> objects claiming one id a refusal rather than a silent collapse; see [TomTransaction.registerParticipant].
+                        </p>
+                        <p>A participant that needs an enlistment of its own returns an id nothing else answers.</p>
+                      </div>
                     </div>
                     <div id="TomTransactionParticipant.startTransaction" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">Future&lt;bool&gt; startTransaction()</code></div>
-                      <div class="api-doc"><p>Begins the participant's part of the transaction; called once on enlist.</p></div>
+                      <div class="api-member-head"><code class="api-signature">Future&lt;bool&gt; startTransaction(TomTransaction transaction)</code></div>
+                      <div class="api-doc">
+                        <p>Begins the participant's part of [transaction]; called once on enlist.</p>
+                        <p>
+                          [transaction] is the one being joined, handed over rather than looked up. The lookup is the reason: an ambient 
+                          <code>TomTransactionManager.getCurrentTransaction()</code> asks the participant to re-derive, from inside a call the coordinator has just made, which transaction made it — and it answers from whatever zone the call happens to be running in, which is the case the scoping exists to separate.
+                        </p>
+                        <p>
+                          What a participant reads from it today is [TomTransaction.isReadOnly]: <code>MariaDbDatasource</code>
+                           opens <code>START TRANSACTION READ ONLY</code> for one, which is what turns the flag from a statement of intent into something the server enforces.
+                        </p>
+                      </div>
                     </div>
-                    <div id="TomTransactionParticipant.endTransaction" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">Future&lt;bool&gt; endTransaction()</code></div>
-                      <div class="api-doc"><p>Releases per-transaction resources after commit or rollback.</p></div>
+                    <div id="TomTransactionParticipant.prepare" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;bool&gt; prepare()</code></div>
+                      <div class="api-doc">
+                        <p>Phase one: promises that [commit] will succeed. <code>false</code> vetoes.</p>
+                        <p>
+                          Everything that can still fail belongs here, because this is the last point at which failing is free: the coordinator answers a 
+                          <code>false</code> — or a throw — by rolling every participant back, and no participant has committed yet.
+                        </p>
+                        <p>
+                          The promise is the point. A participant that returns <code>true</code> and then fails in [commit] has broken the contract the phase exists to enforce, and the coordinator has no way to repair it.
+                        </p>
+                        <p>A participant with nothing to prepare returns <code>true</code>.</p>
+                      </div>
                     </div>
                     <div id="TomTransactionParticipant.commit" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Future&lt;bool&gt; commit()</code></div>
-                      <div class="api-doc"><p>Commits the participant's work; returning <code>false</code> vetoes the transaction.</p></div>
+                      <div class="api-doc">
+                        <p>Phase two: makes the work durable.</p>
+                        <p>
+                          Reached only after <strong>every</strong> participant's [prepare] returned <code>true</code>, so the transaction is already decided. A 
+                          <code>false</code> is not a veto — see the class documentation — it reports that this participant failed to honour its promise, leaving the transaction partially committed. The coordinator logs that and commits the remaining participants anyway, because the alternative is to abandon work peers have already made durable.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomTransactionParticipant.rollback" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">Future&lt;void&gt; rollback()</code></div>
-                      <div class="api-doc"><p>Undoes the participant's work when the transaction is rolled back.</p></div>
+                      <div class="api-member-head"><code class="api-signature">Future&lt;bool&gt; rollback()</code></div>
+                      <div class="api-doc">
+                        <p>Undoes the participant's work when the transaction is rolled back.</p>
+                        <p>
+                          Reachable after a successful [prepare] — that is the ordinary abort, when a later participant vetoed — and before one, when the veto came earlier. It is 
+                          <strong>not</strong> reachable after this participant's [commit].
+                        </p>
+                        <p>
+                          Returns whether the work was undone. <code>false</code> is the one outcome that needs a human: the work was neither committed nor rolled back, and the coordinator reports the transaction as [TomTransactionOutcome.rolledBackWithFailures] naming this participant. A participant with nothing to undo returns 
+                          <code>true</code>.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomTransactionParticipant.endTransaction" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;bool&gt; endTransaction()</code></div>
+                      <div class="api-doc">
+                        <p>Releases per-transaction resources after commit or rollback.</p>
+                        <p>
+                          Called on every participant only once <em>all</em> of them have committed or rolled back, so nothing the outcome depends on belongs here: work placed in this method runs after the decision it would have informed. Returning 
+                          <code>false</code> reports a failure to release, not a veto — the transaction has already happened.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="TomTransactionResult" class="api-declaration">
+                  <h3 class="api-decl-title">class TomTransactionResult</h3>
+                  <code class="api-signature">class TomTransactionResult</code>
+                  <div class="api-doc">
+                    <p>What a transaction's conclusion did, and to whom.</p>
+                    <p>
+                      Returned by [TomTransaction.commitTransaction] and [TomTransaction.rollbackTransaction] in place of a boolean. The boolean could not say which of four things had happened — committed, partially committed, rolled back, rolled back badly — and it merged them further with a fifth, unrelated fact: whether every participant released its per-transaction resources. A caller reading 
+                      <code>false</code> could not tell "your work is gone" from "your work is durable and a connection leaked".
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomTransactionResult.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          const TomTransactionResult.new(TomTransactionOutcome outcome, {List&lt;String&gt; failed = const [], List&lt;String&gt; notReleased = const []})
+                        </code>
+                      </div>
+                      <div class="api-doc"><p>Creates a result.</p></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="TomTransactionResult.outcome" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final TomTransactionOutcome outcome</code></div>
+                      <div class="api-doc"><p>What became of the work.</p></div>
+                    </div>
+                    <div id="TomTransactionResult.failed" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final List&lt;String&gt; failed</code></div>
+                      <div class="api-doc">
+                        <p>The participants whose commit or rollback did not do what it said.</p>
+                        <p>
+                          Names rather than a count, because repairing a partial commit or a failed rollback means going to those resources.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomTransactionResult.notReleased" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final List&lt;String&gt; notReleased</code></div>
+                      <div class="api-doc">
+                        <p>The participants whose <code>endTransaction()</code> did not release.</p>
+                        <p>
+                          A separate list because it is a separate fact: the work may be perfectly durable and a pooled connection still lost. For a data source that is a connection that never returns to the pool, and nothing calls back to release it — the transaction is over.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomTransactionResult.isCommitted" class="api-member"><div class="api-member-head"><code class="api-signature">bool isCommitted</code></div></div>
+                    <div id="TomTransactionResult.isClean" class="api-member"><div class="api-member-head"><code class="api-signature">bool isClean</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="TomTransactionResult.toString" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">String toString()</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="_TomTransactionScope" class="api-declaration">
+                  <h3 class="api-decl-title">class _TomTransactionScope</h3>
+                  <code class="api-signature">class _TomTransactionScope</code>
+                  <div class="api-doc">
+                    <p>The mutable holder of one flow's current transaction.</p>
+                    <p>
+                      A zone value cannot be reassigned once the zone is forked, so what the zone carries is this cell rather than the transaction itself: forking installs a fresh, empty cell, and everything inside that zone reads and writes 
+                      <em>that</em> cell. Two zones therefore have two independent current transactions, which is the whole point.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="_TomTransactionScope.new" class="api-member"><div class="api-member-head"><code class="api-signature">_TomTransactionScope.new()</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="_TomTransactionScope.current" class="api-member"><div class="api-member-head"><code class="api-signature">TomTransaction? current</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="_TomTransactionScope._clear" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void _clear(TomTransaction transaction)</code></div>
+                      <div class="api-doc">
+                        <p>Clears [transaction] if it is still the current one.</p>
+                        <p>
+                          Guarded by identity because a transaction concludes at a point in time when the scope may already have moved on — nothing opens a second transaction in a scope whose first is still running, but a concluded transaction must not be able to wipe a successor either.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="TomTransactionOutcome" class="api-declaration">
+                  <h3 class="api-decl-title">enum TomTransactionOutcome</h3>
+                  <code class="api-signature">enum TomTransactionOutcome</code>
+                  <div class="api-doc">
+                    <p>What became of a transaction's <strong>work</strong>.</p>
+                    <p>
+                      The four are distinguished because three of them need different things done about them, and a boolean merged all four into "did something go wrong".
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Values</h4>
+                  <div class="api-members">
+                    <div id="TomTransactionOutcome.committed" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">committed</code></div>
+                      <div class="api-doc"><p>Every participant committed. The work is durable.</p></div>
+                    </div>
+                    <div id="TomTransactionOutcome.partiallyCommitted" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">partiallyCommitted</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Every participant promised in [TomTransactionParticipant.prepare] and at least one then failed to commit. Some of the work is durable and some is not, and no coordinator can repair that — see [TomTransaction.commitTransaction].
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomTransactionOutcome.rolledBack" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">rolledBack</code></div>
+                      <div class="api-doc">
+                        <p>The transaction was rolled back and every participant undid its work.</p>
+                        <p>
+                          The ordinary abort: a veto during prepare, or an explicit [TomTransaction.rollbackTransaction]. Nothing is durable and nothing is outstanding.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomTransactionOutcome.rolledBackWithFailures" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">rolledBackWithFailures</code></div>
+                      <div class="api-doc">
+                        <p>The transaction was rolled back and at least one participant could not undo its work.</p>
+                        <p>
+                          The outcome a caller most needs told, because it is the one that requires a human: the work was neither committed nor undone.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomTransactionOutcome.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">const TomTransactionOutcome.new()</code></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="TomTransactionOutcome.values" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static List&lt;TomTransactionOutcome&gt; values</code></div>
                     </div>
                   </div>
                 </section>

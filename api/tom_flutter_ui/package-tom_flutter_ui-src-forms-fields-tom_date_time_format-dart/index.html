@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1436,11 +1442,23 @@
                   <div class="api-members">
                     <div id="TomDateTimeFormat.formatDate" class="api-member">
                       <div class="api-member-head"><code class="api-signature">String formatDate(DateTime d)</code></div>
-                      <div class="api-doc"><p>Formats [d] using the date tokens in [pattern].</p></div>
+                      <div class="api-doc">
+                        <p>Formats [d] using the date tokens in [pattern].</p>
+                        <p>
+                          The clock components are supplied as well even though the method is named for dates: a [DateTime] genuinely carries them, and a pattern that mixes in 
+                          <code>HH:mm</code> — which a <code>dateFormat</code> resource is free to do — would otherwise render the token names as literal text and produce output that cannot be parsed back. A pure date pattern is unaffected.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomDateTimeFormat.formatTime" class="api-member">
                       <div class="api-member-head"><code class="api-signature">String formatTime(TimeOfDay t)</code></div>
-                      <div class="api-doc"><p>Formats [t] using the time tokens in [pattern].</p></div>
+                      <div class="api-doc">
+                        <p>Formats [t] using the time tokens in [pattern].</p>
+                        <p>
+                          Seconds are zero rather than absent: a [TimeOfDay] is a whole-minute value, so its second <em>is</em>
+                           known to be <code>0</code>. Leaving it unset made the shipped [time24WithSeconds] preset render <code>09:03:ss</code>. Date tokens stay unfilled because a time carries no date to fill them with.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomDateTimeFormat.formatDateTime" class="api-member">
                       <div class="api-member-head"><code class="api-signature">String formatDateTime(DateTime d)</code></div>

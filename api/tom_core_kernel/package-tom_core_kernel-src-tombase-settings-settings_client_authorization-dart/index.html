@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1403,14 +1409,33 @@
                     The settings system allows clients to: - Request configuration and text resources from the server - Receive authorization context (groups, roles, entitlements) - Obtain localization preferences (country, language, timezone)
                   </p>
                   <h2>Example</h2>
-                  <pre><code>// Create a settings request with authorization token
+                  <p>
+                    This library declares only the two DTOs; the exchange itself runs over <code>TomServerEndpoint</code>
+                     from the <code>http_connection</code> module — settings is an ordinary bearer-authenticated endpoint of the API server, not part of the authentication exchange. Building an endpoint opens no connection.
+                  </p>
+                  <pre><code>final endpoint =
+    TomServerEndpoint&lt;TomGetSettingsMessage, TomGetSettingsResult&gt;(
+      TomServerChannel('api.example.com', 443),
+      TomServerCallSpecs(
+        'POST',
+        Uri.parse('https://api.example.com/settings'),
+        includeBearerAuthentication: true,
+      ),
+    );
+
+// Create a settings request with authorization token
 final message = TomGetSettingsMessage()
-  ..authorizationToken = 'Bearer xyz123';
+  ..authorizationToken = TomBearerAuthentication.authorizationToken;
 
 // Process the result
-final result = await settingsService.getSettings(message);
+final (result, error) = await endpoint.send(message);
+if (error?.hasError ?? false) return;
+
 print('User roles: ${result.roles}');
 print('Config: ${result.config}');</code></pre>
+                  <p>
+                    A real client takes the host and URI from <code>TomClientRemoteContext.current!.baseUri</code> rather than spelling them out.
+                  </p>
                 </div>
                 <section id="TomGetSettingsMessage" class="api-declaration">
                   <h3 class="api-decl-title">class TomGetSettingsMessage</h3>
@@ -1436,7 +1461,8 @@ print('Config: ${result.config}');</code></pre>
                       <div class="api-doc">
                         <p>The authorization token for authenticating the settings request.</p>
                         <p>
-                          Typically a JWT bearer token obtained from the authentication process. If null or empty, the server may return default/anonymous settings.
+                          Typically a JWT bearer token obtained from the authentication process. <code>null</code> when the client sent none — however the message was built, since the field has no initializer, exactly like every string on [TomGetSettingsResult]. A server treats 
+                          <code>null</code> and an empty string alike, as an anonymous request, and may answer with default settings.
                         </p>
                       </div>
                     </div>
@@ -1464,7 +1490,7 @@ print('Config: ${result.config}');</code></pre>
                         <tr><td>Context</td><td>[organization], [process], [application]</td></tr>
                         <tr>
                           <td>Localization</td>
-                          <td>[country], [language], [clientCountry], [clientLanguage], [clientTimeZone]</td>
+                          <td>[country], [language], [timezone], [clientCountry], [clientLanguage], [clientTimezone]</td>
                         </tr>
                       </tbody>
                     </table>
@@ -1488,19 +1514,28 @@ final welcomeText = result.texts['welcome'];
 if (result.roles.contains('admin')) {
   // Show admin features
 }</code></pre>
+                    <h2>Mutable on the client too, by design</h2>
+                    <p>
+                      Every field is public and assignable, and the collections are plain <code>Set</code> and <code>Map</code>, on the client as on the server. The reflected deserializer needs assignable fields, and the authorization lists here decide only what a client 
+                      <em>shows</em>: the server judges every call against the principal in the bearer token, so a client editing its copy changes its own screen and grants itself nothing. Code that wants to protect itself from editing the answer takes an unmodifiable snapshot where it receives it.
+                    </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomGetSettingsResult.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomGetSettingsResult.new({Map&lt;String, Object?&gt; texts = const &lt;String, Object?&gt;{}, Map&lt;String, Object?&gt; config = const &lt;String, Object?&gt;{}, List&lt;String&gt; groups = const &lt;String&gt;[], List&lt;String&gt; roles = const &lt;String&gt;[], List&lt;String&gt; entitlements = const &lt;String&gt;[], List&lt;String&gt; resourceKeys = const &lt;String&gt;[], String? organization, String? process, String? application, String? country, String? language, String? clientLanguage, String? clientCountry, String? clientTimeZone})
+                          TomGetSettingsResult.new({Map&lt;String, Object?&gt;? texts, Map&lt;String, Object?&gt;? config, Iterable&lt;String&gt;? groups, Iterable&lt;String&gt;? roles, Iterable&lt;String&gt;? entitlements, Iterable&lt;String&gt;? resourceKeys, String? organization, String? process, String? application, String? country, String? language, String? timezone, String? clientLanguage, String? clientCountry, String? clientTimezone})
                         </code>
                       </div>
                       <div class="api-doc">
                         <p>Creates a new [TomGetSettingsResult] instance.</p>
                         <p>
-                          All collection parameters default to empty collections, and string parameters default to null or empty strings.
+                          All collection parameters default to fresh, empty <strong>mutable</strong> collections (a new instance per result), so callers can mutate them in place — e.g. 
+                          <code>result.roles.add(...)</code> or <code>result.config['k'] = v</code>. All string parameters default to null.
+                        </p>
+                        <p>
+                          The four authorization parameters take any <code>Iterable&lt;String&gt;</code> — a principal's ACI lists, say — and copy it into a new set, so a duplicate is dropped and the result never aliases the caller's collection.
                         </p>
                       </div>
                     </div>
@@ -1526,7 +1561,7 @@ if (result.roles.contains('admin')) {
                       </div>
                     </div>
                     <div id="TomGetSettingsResult.groups" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">List&lt;String&gt; groups</code></div>
+                      <div class="api-member-head"><code class="api-signature">Set&lt;String&gt; groups</code></div>
                       <div class="api-doc">
                         <p>Security groups the user belongs to.</p>
                         <p>
@@ -1535,7 +1570,7 @@ if (result.roles.contains('admin')) {
                       </div>
                     </div>
                     <div id="TomGetSettingsResult.roles" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">List&lt;String&gt; roles</code></div>
+                      <div class="api-member-head"><code class="api-signature">Set&lt;String&gt; roles</code></div>
                       <div class="api-doc">
                         <p>Roles assigned to the user.</p>
                         <p>
@@ -1544,7 +1579,7 @@ if (result.roles.contains('admin')) {
                       </div>
                     </div>
                     <div id="TomGetSettingsResult.entitlements" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">List&lt;String&gt; entitlements</code></div>
+                      <div class="api-member-head"><code class="api-signature">Set&lt;String&gt; entitlements</code></div>
                       <div class="api-doc">
                         <p>Specific entitlements granted to the user.</p>
                         <p>
@@ -1553,7 +1588,7 @@ if (result.roles.contains('admin')) {
                       </div>
                     </div>
                     <div id="TomGetSettingsResult.resourceKeys" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">List&lt;String&gt; resourceKeys</code></div>
+                      <div class="api-member-head"><code class="api-signature">Set&lt;String&gt; resourceKeys</code></div>
                       <div class="api-doc">
                         <p>Resource keys the user has access to.</p>
                         <p>Identifies specific resources (screens, modules, data sets) that the user is permitted to access.</p>
@@ -1564,6 +1599,9 @@ if (result.roles.contains('admin')) {
                       <div class="api-doc">
                         <p>The organization context for this session.</p>
                         <p>May differ from the requested organization if the server applies defaults or overrides.</p>
+                        <p>
+                          Defaults to null (the constructor's initializing formal supplies the value; there is no field-level default).
+                        </p>
                       </div>
                     </div>
                     <div id="TomGetSettingsResult.process" class="api-member">
@@ -1579,7 +1617,8 @@ if (result.roles.contains('admin')) {
                       <div class="api-doc">
                         <p>Server-determined country setting.</p>
                         <p>
-                          The country code used for server-side localization decisions. May differ from [clientCountry] based on server configuration.
+                          The country the server resolved for server-side localization decisions. Conventionally an ISO 3166-1 alpha-2 code (<code>'US'</code>, 
+                          <code>'GB'</code>, <code>'DE'</code>), but a plain string: nothing validates it, and a deployment may use another scheme. May differ from [clientCountry] based on server configuration.
                         </p>
                       </div>
                     </div>
@@ -1588,7 +1627,27 @@ if (result.roles.contains('admin')) {
                       <div class="api-doc">
                         <p>Server-determined language setting.</p>
                         <p>
-                          The language code used for server-side localization. May differ from [clientLanguage] based on server configuration.
+                          The language the server resolved for server-side localization. Conventionally an ISO 639-1 code (<code>'en'</code>, 
+                          <code>'de'</code>, <code>'fr'</code>), but a plain string: nothing validates it, and a deployment may need a regional tag such as 
+                          <code>'de-CH'</code>. May differ from [clientLanguage] based on server configuration.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomGetSettingsResult.timezone" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String? timezone</code></div>
+                      <div class="api-doc">
+                        <p>Server-determined timezone setting.</p>
+                        <p>
+                          The timezone identifier the server resolved for this session — conventionally an IANA identifier, not validated — set when the deployment pins a timezone (a tenant fixed to one, say) or when it declines the client's request. May differ from [clientTimezone] based on server configuration.
+                        </p>
+                        <p>
+                          This completes the server/client pairing the other two localization concepts already had. Without it a client could not tell whether the timezone it got back was its own preference echoed or a server decision, because there was only ever one field to read. Compare the two to detect an override:
+                        </p>
+                        <pre><code>final effective = result.timezone ?? result.clientTimezone;
+final overridden =
+    result.timezone != null &amp;&amp; result.timezone != result.clientTimezone;</code></pre>
+                        <p>
+                          <code>null</code> means the server expressed no opinion, which is not the same as agreeing with the client — see [country] and [language] for the same convention.
                         </p>
                       </div>
                     </div>
@@ -1597,7 +1656,8 @@ if (result.roles.contains('admin')) {
                       <div class="api-doc">
                         <p>Client's preferred country code.</p>
                         <p>
-                          The country setting as determined by or requested from the client. Follows ISO 3166-1 alpha-2 format (e.g., 'US', 'GB', 'DE').
+                          The country setting as determined by or requested from the client. Conventionally an ISO 3166-1 alpha-2 code (<code>'US'</code>, 
+                          <code>'GB'</code>, <code>'DE'</code>); not validated.
                         </p>
                       </div>
                     </div>
@@ -1606,16 +1666,18 @@ if (result.roles.contains('admin')) {
                       <div class="api-doc">
                         <p>Client's preferred language code.</p>
                         <p>
-                          The language setting as determined by or requested from the client. Follows ISO 639-1 format (e.g., 'en', 'de', 'fr').
+                          The language setting as determined by or requested from the client. Conventionally an ISO 639-1 code (<code>'en'</code>, 
+                          <code>'de'</code>, <code>'fr'</code>); not validated, so a regional tag such as <code>'de-CH'</code> passes through unchanged.
                         </p>
                       </div>
                     </div>
-                    <div id="TomGetSettingsResult.clientTimeZone" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">String? clientTimeZone</code></div>
+                    <div id="TomGetSettingsResult.clientTimezone" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String? clientTimezone</code></div>
                       <div class="api-doc">
                         <p>Client's timezone identifier.</p>
                         <p>
-                          The timezone used for date/time display and calculations. Uses IANA timezone database identifiers (e.g., 'America/New_York').
+                          The timezone used for date/time display and calculations. Conventionally an IANA timezone database identifier (<code>'America/New_York'</code>); not validated, so a consumer that resolves the zone checks it there — 
+                          <code>TomTimezone.fromName</code> answers <code>null</code> for an identifier the database does not know.
                         </p>
                       </div>
                     </div>

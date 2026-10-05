@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1397,7 +1403,7 @@
                   <h2>Example</h2>
                   <pre><code>// Create and throw a tracked exception
 throw TomBaseException(
-  'USER_NOT_FOUND',
+  'users.fetch.not_found',
   'The requested user could not be found',
   parameters: {'userId': userId},
 );
@@ -1429,11 +1435,11 @@ try {
                     </p>
                     <h2>Example</h2>
                     <pre><code>// Basic exception
-throw TomBaseException('ERROR_CODE', 'Something went wrong');
+throw TomBaseException('orders.submit.no_positions', 'The order is empty');
 
 // Exception with parameters for context
 throw TomBaseException(
-  'VALIDATION_ERROR',
+  'users.validate.invalid_email',
   'Invalid email format',
   parameters: {'field': 'email', 'value': userInput},
 );</code></pre>
@@ -1443,7 +1449,7 @@ throw TomBaseException(
                     <div id="TomBaseException.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomBaseException.new(String key, String defaultUserMessage, {String? requestUuid, Map&lt;String, Object?&gt;? parameters, Object? rootException, Object? stack, String? uuid})
+                          TomBaseException.new(String key, String defaultUserMessage, {String? requestUuid, Map&lt;String, Object?&gt;? parameters, Object? rootException, StackTrace? stack, String? uuid})
                         </code>
                       </div>
                       <div class="api-doc">
@@ -1477,8 +1483,15 @@ throw TomBaseException(
                     <div id="TomBaseException.key" class="api-member">
                       <div class="api-member-head"><code class="api-signature">String key</code></div>
                       <div class="api-doc">
-                        <p>Error key/code for programmatic error handling.</p>
-                        <p>Use consistent keys like 'USER_NOT_FOUND', 'VALIDATION_ERROR', etc.</p>
+                        <p>Error key for programmatic error handling.</p>
+                        <p>
+                          Dotted lowercase, <code>lower_snake_case</code> within each segment, reading <code>&lt;area&gt;.&lt;operation&gt;.&lt;condition&gt;</code>
+                           — <code>users.fetch.not_found</code>, <code>orders.submit.no_positions</code>. The <strong>first segment names the module or subsystem</strong>, which is what keeps keys from unrelated code from colliding and lets a handler match a whole area with a prefix test.
+                        </p>
+                        <p>
+                          The key is not a message: it is the value callers switch on and the natural lookup key for a translated message, so it should stay stable even when the wording it accompanies changes. 
+                          <code>tom_core_kernel</code> documents the convention in full, and every key in the Tom framework follows it.
+                        </p>
                       </div>
                     </div>
                     <div id="TomBaseException.defaultUserMessage" class="api-member">
@@ -1493,8 +1506,15 @@ throw TomBaseException(
                       </div>
                     </div>
                     <div id="TomBaseException.stack" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">Object? stack</code></div>
-                      <div class="api-doc"><p>Original stack trace object for processing.</p></div>
+                      <div class="api-member-head"><code class="api-signature">StackTrace? stack</code></div>
+                      <div class="api-doc">
+                        <p>The trace captured where this exception was created, if there is one.</p>
+                        <p>
+                          <code>StackTrace?</code> rather than <code>Object?</code>, which is what the very next thing to touch it always required: the constructor hands this straight to [_getStackTrace], and 
+                          <code>Chain.forTrace</code> takes a <code>StackTrace</code>. A wider field promised a width nothing downstream accepted, and — being public and mutable — let an unformattable value be assigned after construction, where it surfaced as a 
+                          <code>TypeError</code> thrown <em>while reporting some other failure</em>.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomBaseException.rootException" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Object? rootException</code></div>
@@ -1516,16 +1536,43 @@ throw TomBaseException(
                     <div id="TomBaseException.printStackTrace" class="api-member">
                       <div class="api-member-head"><code class="api-signature">void printStackTrace([int depth = -1])</code></div>
                       <div class="api-doc">
-                        <p>Prints the stack trace to stderr.</p>
-                        <p>The [depth] parameter limits how many stack frames to print. Use -1 (default) to print all frames.</p>
+                        <p>Prints the stack trace to stdout.</p>
+                        <p>
+                          [depth] bounds the frames printed, counting from the throw site, so a bounded trace keeps the frames nearest the failure. Any negative value means all of them — -1 is the default and the conventional spelling, not a required sentinel, so a computed -2 is unbounded too. A [depth] of 0 is a genuine request for no frames and prints none.
+                        </p>
+                        <p>
+                          The bound is applied to the string [stackTrace] already holds rather than by formatting the trace again. Re-formatting would have to decide what to do about a null [stack] — falling back to 
+                          <code>StackTrace.current</code> would report the call path of the <em>report</em>, naming none of the code that failed, and a wrong trace is worse than none because it looks right. The stored string was captured where the exception was created, which is the moment worth reporting.
+                        </p>
+                        <p>
+                          One frame per line is the contract every renderer here keeps, and is what makes counting lines the same as counting frames.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBaseException.renderStackTrace" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String renderStackTrace(StackTrace? stack, int depth)</code></div>
+                      <div class="api-doc">
+                        <p>Renders [stack] into the string form [stackTrace] carries.</p>
+                        <p>
+                          <strong>The seam that lets one renderer serve a whole framework.</strong> This class ships a deliberately narrow default — core frames folded, each remaining frame rendered with 
+                          <code>Frame.toString()</code> — because tom_basics sits at the bottom and has no view of what else counts as noise in the layers above it. A framework that does have one overrides this, and then the string stored here at construction and whatever that framework formats later are produced by the same code rather than by two algorithms that quietly disagree. 
+                          <code>tom_core_kernel</code>'s <code>TomException</code> overrides it with <code>tomGetStackTrace</code>.
+                        </p>
+                        <p>
+                          Called from the constructor body, so an override must not read state its own class has not initialised yet. It needs none: [stack] and [depth] are both arguments, and a renderer is a pure function of them.
+                        </p>
+                        <p>[depth] bounds the frames, counting from the throw site; any negative value means all of them.</p>
                       </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
-                    <div id="TomBaseException._getStackTrace" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static String _getStackTrace([Object? s, int depth = -1])</code></div>
-                      <div class="api-doc"><p>Core implementation for processing stack trace frames.</p></div>
+                    <div id="TomBaseException._limitFrames" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String _limitFrames(String trace, int depth)</code></div>
+                      <div class="api-doc">
+                        <p>The first [depth] lines of [trace], or all of it when [depth] is negative.</p>
+                        <p>One frame per line, so a line count is a frame count.</p>
+                      </div>
                     </div>
                   </div>
                 </section>

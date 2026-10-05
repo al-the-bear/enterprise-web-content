@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1387,88 +1393,48 @@
             <div class="treewrap">
               <div class="treepane">
                 <div class="treenodes">
-                  <a class="leaf" href="#FileRef">FileRef</a>
                   <a class="leaf" href="#TomFormFileDropzone">TomFormFileDropzone</a>
                   <a class="leaf" href="#TomFormFileField">TomFormFileField</a>
+                  <a class="leaf" href="#TomFormFileThumbnail">TomFormFileThumbnail</a>
                   <a class="leaf" href="#TomFormFileUpload">TomFormFileUpload</a>
                   <a class="leaf" href="#_FileDropzoneWidget">_FileDropzoneWidget</a>
                   <a class="leaf" href="#_FileDropzoneWidgetState">_FileDropzoneWidgetState</a>
+                  <a class="leaf" href="#_FileThumbnailWidget">_FileThumbnailWidget</a>
+                  <a class="leaf" href="#_FileThumbnailWidgetState">_FileThumbnailWidgetState</a>
                   <a class="leaf" href="#_FileUploadWidget">_FileUploadWidget</a>
                   <a class="leaf" href="#_FileUploadWidgetState">_FileUploadWidgetState</a>
-                  <a class="leaf" href="#_FileFieldStateMixin">_FileFieldStateMixin</a>
-                  <a class="leaf" href="#FilePicker">FilePicker</a>
+                  <a class="leaf" href="#TomFileFieldStateMixin">TomFileFieldStateMixin</a>
+                  <a class="leaf" href="#TomFileThumbnailStateMixin">TomFileThumbnailStateMixin</a>
                   <a class="leaf" href="#_fileExtensionValidator">_fileExtensionValidator</a>
                   <a class="leaf" href="#_fileSizeValidator">_fileSizeValidator</a>
+                  <a class="leaf" href="#tomFileIsRenderableImage">tomFileIsRenderableImage</a>
+                  <a class="leaf" href="#tomHumanFileSize">tomHumanFileSize</a>
                 </div>
               </div>
               <div class="reader">
                 <h2 class="api-library-title">package:tom_flutter_ui/src/forms/fields/tom_form_file_field.dart</h2>
                 <code class="api-import">import 'package:tom_flutter_ui/src/forms/fields/tom_form_file_field.dart';</code>
                 <div class="api-doc">
-                  <p>Phase 4 — File upload field.</p>
+                  <p>File fields — choosing a file, and moving it to and from a file store.</p>
                   <p>
-                    <code>FileRef</code> is a minimal value type — name + size + mime + optional in-memory bytes — chosen so the field works without dragging a file picker package into 
-                    <code>tom_flutter_ui</code>. Apps wire a concrete <code>picker</code> callback when constructing the field; the framework calls it on user action and stores whatever 
-                    <code>FileRef</code> it returns.
+                    The value type [FileRef] and the [TomFilePicker] contract live in <code>../files/file_ref.dart</code>
+                     and are re-exported here, so importing this file still gives you everything a file field deals in.
+                  </p>
+                  <h2>Picking</h2>
+                  <p>
+                    <code>picker</code> is <strong>optional</strong>. A field without one uses the application's registered picker (see 
+                    <code>TomFilePickerRegistry</code>), which is how these fields work out of the box without <code>tom_flutter_ui</code>
+                     depending on a picker package. Passing a <code>picker</code> explicitly still wins, for the field that needs something else.
+                  </p>
+                  <h2>Transferring</h2>
+                  <p>
+                    Give a field a [TomFileTransferClient] and a <code>storageSlot</code> and it uploads what the user picked, showing progress and offering cancel and retry; the picked [FileRef] is replaced by a stored one carrying the server's key. A field re-opened later describes its slot and shows the stored file without downloading it.
                   </p>
                   <p>
-                    Two concretes ship: <em> [TomFormFileUpload] — compact "Choose file…" button + selected file caption. </em>
-                     [TomFormFileDropzone] — large dashed drop-target surface that also opens the picker on tap.
+                    Three Material concretes ship: <em> [TomFormFileUpload] — compact "Choose file…" button + selected file caption. </em>
+                     [TomFormFileDropzone] — large drop-target surface that also opens the picker on tap. * [TomFormFileThumbnail] — square preview that paints the file's own content when it can, and the file-kind icon when it cannot.
                   </p>
                 </div>
-                <section id="FileRef" class="api-declaration">
-                  <h3 class="api-decl-title">class FileRef</h3>
-                  <code class="api-signature">class FileRef</code>
-                  <div class="api-doc">
-                    <p>
-                      Lightweight, framework-agnostic file reference. Apps may extend or adapt to richer types (e.g. wrap a 
-                      <code>PlatformFile</code> from <code>file_picker</code>).
-                    </p>
-                  </div>
-                  <h4 class="api-group-title">Constructors</h4>
-                  <div class="api-members">
-                    <div id="FileRef.new" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">
-                          const FileRef.new({required String name, required int sizeBytes, String? mimeType, Uint8List? bytes})
-                        </code>
-                      </div>
-                    </div>
-                  </div>
-                  <h4 class="api-group-title">Properties</h4>
-                  <div class="api-members">
-                    <div id="FileRef.name" class="api-member"><div class="api-member-head"><code class="api-signature">final String name</code></div></div>
-                    <div id="FileRef.sizeBytes" class="api-member"><div class="api-member-head"><code class="api-signature">final int sizeBytes</code></div></div>
-                    <div id="FileRef.mimeType" class="api-member"><div class="api-member-head"><code class="api-signature">final String? mimeType</code></div></div>
-                    <div id="FileRef.bytes" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final Uint8List? bytes</code></div>
-                      <div class="api-doc">
-                        <p>
-                          Optional in-memory bytes (small uploads). Larger files should keep <code>bytes</code> null and stream from disk via a separate channel.
-                        </p>
-                      </div>
-                    </div>
-                    <div id="FileRef.hashCode" class="api-member"><div class="api-member-head"><code class="api-signature">int hashCode</code></div></div>
-                  </div>
-                  <h4 class="api-group-title">Methods</h4>
-                  <div class="api-members">
-                    <div id="FileRef.toString" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">String toString()</code>
-                        <span class="api-badge api-badge--override">override</span>
-                      </div>
-                    </div>
-                  </div>
-                  <h4 class="api-group-title">Operators</h4>
-                  <div class="api-members">
-                    <div id="FileRef.==" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">bool operator ==(Object other)</code>
-                        <span class="api-badge api-badge--override">override</span>
-                      </div>
-                    </div>
-                  </div>
-                </section>
                 <section id="TomFormFileDropzone" class="api-declaration">
                   <h3 class="api-decl-title">class TomFormFileDropzone</h3>
                   <code class="api-signature">
@@ -1479,7 +1445,7 @@
                     <div id="TomFormFileDropzone.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomFormFileDropzone.new(String tomId, FileRef? initialValue, {required Future&lt;FileRef?&gt; Function(BuildContext) picker, double height = 120.0, String? labelTextOverride, String? descriptionTextOverride, List&lt;String&gt;? allowedExtensions, int? maxSizeBytes, TomForm&lt;InvalidType&gt;? form, List&lt;Object&gt; validators = const [], bool autoValidate = false, InvalidType tomGroup, InvalidType authorizer, InvalidType uiStateController, Widget? actionIcon, String? actionIconTooltip, void Function()?? onActionIconPressed})
+                          TomFormFileDropzone.new(String tomId, FileRef? initialValue, {Future&lt;FileRef?&gt; Function(BuildContext)?? picker, TomFilePickKind pickKind = TomFilePickKind.any, InvalidType transferClient, String? storageSlot, bool autoUpload = true, void Function(FileRef, Uint8List)?? onDownload, double height = 120.0, String? labelTextOverride, String? descriptionTextOverride, List&lt;String&gt;? allowedExtensions, int? maxSizeBytes, TomForm&lt;InvalidType&gt;? form, List&lt;Object&gt; validators = const [], bool autoValidate = false, InvalidType tomGroup, InvalidType authorizer, InvalidType uiStateController, Widget? actionIcon, String? actionIconTooltip, void Function()?? onActionIconPressed})
                         </code>
                       </div>
                     </div>
@@ -1490,6 +1456,8 @@
                       <div class="api-member-head"><code class="api-signature">final double height</code></div>
                       <div class="api-doc"><p>Height of the drop-zone surface.</p></div>
                     </div>
+                    <div id="TomFormFileDropzone.labelText" class="api-member"><div class="api-member-head"><code class="api-signature">String? labelText</code></div></div>
+                    <div id="TomFormFileDropzone.descriptionText" class="api-member"><div class="api-member-head"><code class="api-signature">String? descriptionText</code></div></div>
                     <div id="TomFormFileDropzone.widget" class="api-member"><div class="api-member-head"><code class="api-signature">Widget widget</code></div></div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
@@ -1510,7 +1478,7 @@
                     <div id="TomFormFileField.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomFormFileField.new(String tomId, FileRef? initialValue, {required Future&lt;FileRef?&gt; Function(BuildContext) picker, String? labelTextOverride, String? descriptionTextOverride, List&lt;String&gt;? allowedExtensions, int? maxSizeBytes, TomForm&lt;InvalidType&gt;? form, List&lt;Object&gt; validators = const [], bool autoValidate = false, InvalidType tomGroup, InvalidType authorizer, InvalidType uiStateController, Widget? actionIcon, String? actionIconTooltip, void Function()?? onActionIconPressed})
+                          TomFormFileField.new(String tomId, FileRef? initialValue, {Future&lt;FileRef?&gt; Function(BuildContext)?? picker, TomFilePickKind pickKind = TomFilePickKind.any, InvalidType transferClient, String? storageSlot, bool autoUpload = true, void Function(FileRef, Uint8List)?? onDownload, String? labelTextOverride, String? descriptionTextOverride, List&lt;String&gt;? allowedExtensions, int? maxSizeBytes, TomForm&lt;InvalidType&gt;? form, List&lt;Object&gt; validators = const [], bool autoValidate = false, InvalidType tomGroup, InvalidType authorizer, InvalidType uiStateController, Widget? actionIcon, String? actionIconTooltip, void Function()?? onActionIconPressed})
                         </code>
                       </div>
                     </div>
@@ -1528,7 +1496,7 @@
                       <div class="api-doc">
                         <p>
                           Optional list of allowed file extensions (without dot, lowercase). Surfaced to the picker callback and used to auto-prepend a built-in 
-                          <code>Validator&lt;FileRef?&gt;</code> so that programmatic <code>setValue</code> paths flow through the same validation pipeline as picker-driven selections.
+                          <code>TomValidator&lt;FileRef?&gt;</code> so that programmatic <code>setValue</code> paths flow through the same validation pipeline as picker-driven selections.
                         </p>
                       </div>
                     </div>
@@ -1541,14 +1509,86 @@
                       </div>
                     </div>
                     <div id="TomFormFileField.picker" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final Future&lt;FileRef?&gt; Function(BuildContext) picker</code></div>
-                      <div class="api-doc"><p>Required picker callback. Called when the user activates the "Choose file…" affordance.</p></div>
+                      <div class="api-member-head"><code class="api-signature">final Future&lt;FileRef?&gt; Function(BuildContext)?? picker</code></div>
+                      <div class="api-doc">
+                        <p>Optional picker callback, overriding the application's registered picker.</p>
+                        <p>
+                          Leave it <code>null</code> in the ordinary case: the field then uses whatever <code>TomFilePickerRegistry.register</code>
+                           installed, so an application wires its picker package once instead of at every field.
+                        </p>
+                      </div>
                     </div>
-                    <div id="TomFormFileField.labelText" class="api-member"><div class="api-member-head"><code class="api-signature">String? labelText</code></div></div>
-                    <div id="TomFormFileField.descriptionText" class="api-member"><div class="api-member-head"><code class="api-signature">String? descriptionText</code></div></div>
+                    <div id="TomFormFileField.pickKind" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final TomFilePickKind pickKind</code></div>
+                      <div class="api-doc">
+                        <p>
+                          What kind of file this field is after, passed to the registered picker so it can open the right dialog.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomFormFileField.transferClient" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final InvalidType transferClient</code></div>
+                      <div class="api-doc">
+                        <p>The transport used to upload and download this field's file.</p>
+                        <p>
+                          Without one the field is picker-only: it holds whatever was chosen and leaves storing it to the form's own save path.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomFormFileField.storageSlot" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? storageSlot</code></div>
+                      <div class="api-doc">
+                        <p>The application-owned slot this field's file is stored in.</p>
+                        <p>
+                          A path such as <code>invoices/4711/scan</code>. Storage <em>keys</em> are generated by the server and never chosen here — a client that named its own key would turn the upload endpoint into an open write surface.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomFormFileField.autoUpload" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final bool autoUpload</code></div>
+                      <div class="api-doc">
+                        <p>Whether picking a file immediately uploads it.</p>
+                        <p>
+                          On by default because it is what makes progress and cancel meaningful; a form that would rather upload on save sets this to 
+                          <code>false</code> and calls [TomFileTransferController.upload] itself.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomFormFileField.onDownload" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final void Function(FileRef, Uint8List)?? onDownload</code></div>
+                      <div class="api-doc">
+                        <p>Called with the bytes of a stored file when the user downloads it.</p>
+                        <p>
+                          The field offers the download affordance and runs the transfer; what a downloaded file <em>is</em> — a preview, a share sheet, a save dialog — is the application's decision, so it gets the bytes and nothing more.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomFormFileField.resolvedLabelText" class="api-member"><div class="api-member-head"><code class="api-signature">String? resolvedLabelText</code></div></div>
+                    <div id="TomFormFileField.resolvedDescriptionText" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String? resolvedDescriptionText</code></div>
+                    </div>
+                    <div id="TomFormFileField.canPick" class="api-member"><div class="api-member-head"><code class="api-signature">bool canPick</code></div></div>
+                    <div id="TomFormFileField.canTransfer" class="api-member"><div class="api-member-head"><code class="api-signature">bool canTransfer</code></div></div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
+                    <div id="TomFormFileField.runPicker" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;FileRef?&gt; runPicker(BuildContext context)</code></div>
+                      <div class="api-doc">
+                        <p>Opens the picker, honouring this field's constraints.</p>
+                        <p>
+                          Delegates to [picker] when one was given, otherwise to the registered application picker with this field's extensions and size limit — so a user is offered only files the field would accept.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomFormFileField.createTransferController" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomFileTransferController? createTransferController()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Creates the controller for this field's slot, or <code>null</code> when the field is not wired for transfer.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomFormFileField.checkFile" class="api-member">
                       <div class="api-member-head"><code class="api-signature">String? checkFile(FileRef ref)</code></div>
                       <div class="api-doc">
@@ -1556,9 +1596,53 @@
                           Validate the picked file against <code>allowedExtensions</code> / <code>maxSizeBytes</code>. Returns an error key string on failure, null on success.
                         </p>
                         <p>
-                          Used by the picker shim to show an immediate snackbar and reject the file before it ever reaches <code>setValue</code>. The same constraints are also auto-prepended as 
-                          <code>Validator&lt;FileRef?&gt;</code>s, so any programmatic <code>setValue(invalidFile)</code> will be caught by the framework pipeline.
+                          Used by the picker shim to show an immediate message and reject the file before it ever reaches <code>setValue</code>. The same constraints are also auto-prepended as 
+                          <code>TomValidator&lt;FileRef?&gt;</code>s, so any programmatic <code>setValue(invalidFile)</code> will be caught by the framework pipeline.
                         </p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="TomFormFileThumbnail" class="api-declaration">
+                  <h3 class="api-decl-title">class TomFormFileThumbnail</h3>
+                  <code class="api-signature">
+                    class TomFormFileThumbnail extends TomFormFileField with TomGenericFieldDecorationMixin&lt;FileRef?&gt;
+                  </code>
+                  <div class="api-doc">
+                    <p>A file field that shows the file rather than describing it.</p>
+                    <p>
+                      The third of <code>presentation</code>'s values, beside [TomFormFileUpload] (<em>link</em>) and [TomFormFileDropzone] (<em>dropzone</em>). It differs from those two in paint only: every constraint, picker, transfer and download behaviour is inherited from [TomFormFileField] unchanged.
+                    </p>
+                    <p>
+                      "Shows the file" is a promise it can only sometimes keep, so it degrades rather than fails: a file Flutter has no codec for renders as the same file-kind icon the other presentations use. See [tomFileIsRenderableImage] for how that is decided.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomFormFileThumbnail.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          TomFormFileThumbnail.new(String tomId, FileRef? initialValue, {Future&lt;FileRef?&gt; Function(BuildContext)?? picker, TomFilePickKind pickKind = TomFilePickKind.any, InvalidType transferClient, String? storageSlot, bool autoUpload = true, void Function(FileRef, Uint8List)?? onDownload, double thumbnailSize = 96.0, String? labelTextOverride, String? descriptionTextOverride, List&lt;String&gt;? allowedExtensions, int? maxSizeBytes, TomForm&lt;InvalidType&gt;? form, List&lt;Object&gt; validators = const [], bool autoValidate = false, InvalidType tomGroup, InvalidType authorizer, InvalidType uiStateController, Widget? actionIcon, String? actionIconTooltip, void Function()?? onActionIconPressed})
+                        </code>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="TomFormFileThumbnail.thumbnailSize" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final double thumbnailSize</code></div>
+                      <div class="api-doc"><p>Edge length of the square preview surface.</p></div>
+                    </div>
+                    <div id="TomFormFileThumbnail.labelText" class="api-member"><div class="api-member-head"><code class="api-signature">String? labelText</code></div></div>
+                    <div id="TomFormFileThumbnail.descriptionText" class="api-member"><div class="api-member-head"><code class="api-signature">String? descriptionText</code></div></div>
+                    <div id="TomFormFileThumbnail.widget" class="api-member"><div class="api-member-head"><code class="api-signature">Widget widget</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="TomFormFileThumbnail.resolveStyle" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">TomFieldStyle resolveStyle(BuildContext context)</code>
+                        <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
                   </div>
@@ -1571,13 +1655,15 @@
                     <div id="TomFormFileUpload.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomFormFileUpload.new(String tomId, FileRef? initialValue, {required Future&lt;FileRef?&gt; Function(BuildContext) picker, String? labelTextOverride, String? descriptionTextOverride, List&lt;String&gt;? allowedExtensions, int? maxSizeBytes, TomForm&lt;InvalidType&gt;? form, List&lt;Object&gt; validators = const [], bool autoValidate = false, InvalidType tomGroup, InvalidType authorizer, InvalidType uiStateController, Widget? actionIcon, String? actionIconTooltip, void Function()?? onActionIconPressed})
+                          TomFormFileUpload.new(String tomId, FileRef? initialValue, {Future&lt;FileRef?&gt; Function(BuildContext)?? picker, TomFilePickKind pickKind = TomFilePickKind.any, InvalidType transferClient, String? storageSlot, bool autoUpload = true, void Function(FileRef, Uint8List)?? onDownload, String? labelTextOverride, String? descriptionTextOverride, List&lt;String&gt;? allowedExtensions, int? maxSizeBytes, TomForm&lt;InvalidType&gt;? form, List&lt;Object&gt; validators = const [], bool autoValidate = false, InvalidType tomGroup, InvalidType authorizer, InvalidType uiStateController, Widget? actionIcon, String? actionIconTooltip, void Function()?? onActionIconPressed})
                         </code>
                       </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
+                    <div id="TomFormFileUpload.labelText" class="api-member"><div class="api-member-head"><code class="api-signature">String? labelText</code></div></div>
+                    <div id="TomFormFileUpload.descriptionText" class="api-member"><div class="api-member-head"><code class="api-signature">String? descriptionText</code></div></div>
                     <div id="TomFormFileUpload.widget" class="api-member"><div class="api-member-head"><code class="api-signature">Widget widget</code></div></div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
@@ -1620,7 +1706,7 @@
                 <section id="_FileDropzoneWidgetState" class="api-declaration">
                   <h3 class="api-decl-title">class _FileDropzoneWidgetState</h3>
                   <code class="api-signature">
-                    class _FileDropzoneWidgetState extends State&lt;_FileDropzoneWidget&gt; with _FileFieldStateMixin&lt;_FileDropzoneWidget&gt;
+                    class _FileDropzoneWidgetState extends State&lt;_FileDropzoneWidget&gt; with TomFileFieldStateMixin&lt;_FileDropzoneWidget&gt;
                   </code>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
@@ -1632,7 +1718,71 @@
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
+                    <div id="_FileDropzoneWidgetState.showFileRejected" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Future&lt;void&gt; showFileRejected(String errorKey)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
                     <div id="_FileDropzoneWidgetState.build" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Widget build(BuildContext context)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="_FileThumbnailWidget" class="api-declaration">
+                  <h3 class="api-decl-title">class _FileThumbnailWidget</h3>
+                  <code class="api-signature">class _FileThumbnailWidget extends StatefulWidget</code>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="_FileThumbnailWidget.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">const _FileThumbnailWidget.new({required TomFormFileThumbnail field})</code>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="_FileThumbnailWidget.field" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final TomFormFileThumbnail field</code></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="_FileThumbnailWidget.createState" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">State&lt;_FileThumbnailWidget&gt; createState()</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="_FileThumbnailWidgetState" class="api-declaration">
+                  <h3 class="api-decl-title">class _FileThumbnailWidgetState</h3>
+                  <code class="api-signature">
+                    class _FileThumbnailWidgetState extends State&lt;_FileThumbnailWidget&gt; with TomFileFieldStateMixin&lt;_FileThumbnailWidget&gt;, TomFileThumbnailStateMixin&lt;_FileThumbnailWidget&gt;
+                  </code>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="_FileThumbnailWidgetState.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">_FileThumbnailWidgetState.new()</code></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="_FileThumbnailWidgetState.field" class="api-member"><div class="api-member-head"><code class="api-signature">TomFormFileThumbnail field</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="_FileThumbnailWidgetState.showFileRejected" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Future&lt;void&gt; showFileRejected(String errorKey)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="_FileThumbnailWidgetState.build" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">Widget build(BuildContext context)</code>
                         <span class="api-badge api-badge--override">override</span>
@@ -1666,7 +1816,7 @@
                 <section id="_FileUploadWidgetState" class="api-declaration">
                   <h3 class="api-decl-title">class _FileUploadWidgetState</h3>
                   <code class="api-signature">
-                    class _FileUploadWidgetState extends State&lt;_FileUploadWidget&gt; with _FileFieldStateMixin&lt;_FileUploadWidget&gt;
+                    class _FileUploadWidgetState extends State&lt;_FileUploadWidget&gt; with TomFileFieldStateMixin&lt;_FileUploadWidget&gt;
                   </code>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
@@ -1678,6 +1828,12 @@
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
+                    <div id="_FileUploadWidgetState.showFileRejected" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Future&lt;void&gt; showFileRejected(String errorKey)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
                     <div id="_FileUploadWidgetState.build" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">Widget build(BuildContext context)</code>
@@ -1686,41 +1842,183 @@
                     </div>
                   </div>
                 </section>
-                <section id="_FileFieldStateMixin" class="api-declaration">
-                  <h3 class="api-decl-title">mixin _FileFieldStateMixin</h3>
-                  <code class="api-signature">mixin _FileFieldStateMixin&lt;TWidget extends StatefulWidget&gt; on State&lt;TWidget&gt;</code>
+                <section id="TomFileFieldStateMixin" class="api-declaration">
+                  <h3 class="api-decl-title">mixin TomFileFieldStateMixin</h3>
+                  <code class="api-signature">mixin TomFileFieldStateMixin&lt;TWidget extends StatefulWidget&gt; on State&lt;TWidget&gt;</code>
+                  <div class="api-doc">
+                    <p>
+                      The pick → validate → store → upload sequence and the transfer state that goes with it, shared by every file-field widget in both families.
+                    </p>
+                    <p>
+                      A mixin rather than a base class because the Material and Cupertino widgets have nothing else in common: they share this behaviour and no chrome at all.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="_FileFieldStateMixin._observer" class="api-member"><div class="api-member-head"><code class="api-signature">final InvalidType _observer</code></div></div>
-                    <div id="_FileFieldStateMixin.field" class="api-member"><div class="api-member-head"><code class="api-signature">TomFormFileField field</code></div></div>
+                    <div id="TomFileFieldStateMixin._observer" class="api-member"><div class="api-member-head"><code class="api-signature">final InvalidType _observer</code></div></div>
+                    <div id="TomFileFieldStateMixin.transferController" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomFileTransferController? transferController</code></div>
+                      <div class="api-doc"><p>The controller for this field's slot, or <code>null</code> when the field is picker-only.</p></div>
+                    </div>
+                    <div id="TomFileFieldStateMixin.field" class="api-member"><div class="api-member-head"><code class="api-signature">TomFormFileField field</code></div></div>
+                    <div id="TomFileFieldStateMixin.canDownload" class="api-member"><div class="api-member-head"><code class="api-signature">bool canDownload</code></div></div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
-                    <div id="_FileFieldStateMixin.initState" class="api-member">
+                    <div id="TomFileFieldStateMixin.initState" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">void initState()</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
-                    <div id="_FileFieldStateMixin._onValidationChanged" class="api-member"><div class="api-member-head"><code class="api-signature">void _onValidationChanged()</code></div></div>
-                    <div id="_FileFieldStateMixin.dispose" class="api-member">
+                    <div id="TomFileFieldStateMixin.onFieldValueChanged" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void onFieldValueChanged()</code></div>
+                      <div class="api-doc">
+                        <p>Called after the field's value changed and the rebuild was scheduled.</p>
+                        <p>
+                          A hook rather than a second observer because the work it exists for — fetching a preview — is asynchronous and so cannot happen inside the 
+                          <code>setState</code> callback. Empty by default; only the thumbnail overrides it.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomFileFieldStateMixin._describeQuietly" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;void&gt; _describeQuietly()</code></div>
+                    </div>
+                    <div id="TomFileFieldStateMixin._onValidationChanged" class="api-member"><div class="api-member-head"><code class="api-signature">void _onValidationChanged()</code></div></div>
+                    <div id="TomFileFieldStateMixin._onTransferChanged" class="api-member"><div class="api-member-head"><code class="api-signature">void _onTransferChanged()</code></div></div>
+                    <div id="TomFileFieldStateMixin.dispose" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">void dispose()</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
-                    <div id="_FileFieldStateMixin.pick" class="api-member"><div class="api-member-head"><code class="api-signature">Future&lt;void&gt; pick()</code></div></div>
-                    <div id="_FileFieldStateMixin._humanSize" class="api-member"><div class="api-member-head"><code class="api-signature">String _humanSize(int bytes)</code></div></div>
+                    <div id="TomFileFieldStateMixin.showFileRejected" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;void&gt; showFileRejected(String errorKey)</code></div>
+                      <div class="api-doc">
+                        <p>Reports a rejected file to the user.</p>
+                        <p>
+                          Overridden per family — Material has a <code>ScaffoldMessenger</code>, Cupertino has a dialog — which is the only reason 
+                          <code>pick</code> is not fully generic. The <em>wording</em> is not per-family: resolve [errorKey] through [rejectionMessage] rather than showing the key.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomFileFieldStateMixin.rejectionMessage" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String rejectionMessage(String errorKey)</code></div>
+                      <div class="api-doc">
+                        <p>The sentence to show for a file [TomFormFileField.checkFile] refused.</p>
+                        <p>
+                          Here rather than at each override because every family owes the user the same explanation for the same refusal, and because the key itself ("error.fileTooLarge") is a thing to look up, not a thing to read.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomFileFieldStateMixin.pick" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;void&gt; pick()</code></div>
+                      <div class="api-doc"><p>Opens the picker, validates the result, stores it and (when configured) uploads it.</p></div>
+                    </div>
+                    <div id="TomFileFieldStateMixin.upload" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;void&gt; upload(FileRef ref)</code></div>
+                      <div class="api-doc">
+                        <p>Uploads [ref], replacing the field's value with the stored reference.</p>
+                        <p>
+                          The replacement is what makes the upload visible to the rest of the form: a value carrying a storage key is a value the form can save.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomFileFieldStateMixin.retryTransfer" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;void&gt; retryTransfer()</code></div>
+                      <div class="api-doc"><p>Retries the last failed or cancelled transfer.</p></div>
+                    </div>
+                    <div id="TomFileFieldStateMixin.cancelTransfer" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void cancelTransfer()</code></div>
+                      <div class="api-doc"><p>Cancels the transfer in flight.</p></div>
+                    </div>
+                    <div id="TomFileFieldStateMixin.download" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;void&gt; download()</code></div>
+                      <div class="api-doc">
+                        <p>Downloads the stored file and hands its bytes to the field's <code>onDownload</code> callback.</p>
+                      </div>
+                    </div>
+                    <div id="TomFileFieldStateMixin.clear" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;void&gt; clear()</code></div>
+                      <div class="api-doc">
+                        <p>Clears the field, and the stored file with it when there is one.</p>
+                        <p>
+                          Deleting the stored file is the point: leaving an orphan blob behind every time a user changes their mind is how a store fills up.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomFileFieldStateMixin.humanSize" class="api-member"><div class="api-member-head"><code class="api-signature">String humanSize(int bytes)</code></div></div>
+                    <div id="TomFileFieldStateMixin.selectedCaption" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String selectedCaption(FileRef ref)</code></div>
+                      <div class="api-doc">
+                        <p>The caption naming [ref] and its size, resolved from resources.</p>
+                        <p>
+                          Shared because both concretes show the same thing for a chosen file; they differ only in what they say when there is 
+                          <em>no</em> file, which is a different sentence in each ("— no file selected" vs. an invitation to tap).
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </section>
-                <section id="FilePicker" class="api-declaration">
-                  <h3 class="api-decl-title">typedef FilePicker</h3>
-                  <code class="api-signature">typedef FilePicker = Future&lt;FileRef?&gt; Function(BuildContext)</code>
+                <section id="TomFileThumbnailStateMixin" class="api-declaration">
+                  <h3 class="api-decl-title">mixin TomFileThumbnailStateMixin</h3>
+                  <code class="api-signature">
+                    mixin TomFileThumbnailStateMixin&lt;TWidget extends StatefulWidget&gt; on TomFileFieldStateMixin&lt;TWidget&gt;
+                  </code>
                   <div class="api-doc">
+                    <p>The preview bytes behind a thumbnail, and the one fetch that gets them.</p>
                     <p>
-                      Picker callback contract. Returns the chosen file (or <code>null</code> if the user cancels). Implementations can wrap 
-                      <code>file_picker</code>, <code>image_picker</code>, or any platform-specific picker.
+                      Layered on [TomFileFieldStateMixin] rather than folded into it: only the thumbnail presentation needs a file's 
+                      <em>content</em>, and the other two would pay for a download they never paint.
                     </p>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="TomFileThumbnailStateMixin._fetchedPreview" class="api-member"><div class="api-member-head"><code class="api-signature">Uint8List? _fetchedPreview</code></div></div>
+                    <div id="TomFileThumbnailStateMixin._attemptedForKey" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String? _attemptedForKey</code></div>
+                      <div class="api-doc">
+                        <p>The storage key a fetch was already attempted for.</p>
+                        <p>Attempted, not succeeded — a slot that failed once must not be retried on every rebuild.</p>
+                      </div>
+                    </div>
+                    <div id="TomFileThumbnailStateMixin.previewBytes" class="api-member"><div class="api-member-head"><code class="api-signature">Uint8List? previewBytes</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="TomFileThumbnailStateMixin.initState" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">void initState()</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="TomFileThumbnailStateMixin.onFieldValueChanged" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">void onFieldValueChanged()</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="TomFileThumbnailStateMixin.ensurePreview" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;void&gt; ensurePreview()</code></div>
+                      <div class="api-doc">
+                        <p>Reads the bytes of a stored, renderable file that carries none locally.</p>
+                        <p>
+                          Straight through the transfer <em>client</em>, not the controller: a preview is the widget's own read, and a controller download publishes 
+                          <code>running</code> and <code>succeeded</code>, so the status row would announce "Downloading…" and "Downloaded." for something the user never asked for.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomFileThumbnailStateMixin.previewOrFallback" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Widget previewOrFallback({required double size, required Widget fallback})</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>The inline preview, or [fallback] when there is nothing to paint.</p>
+                        <p>
+                          [fallback] is also the codec's error branch: bytes that turn out not to be an image after all land in the same place as a file that never claimed to be one.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </section>
                 <section id="_fileExtensionValidator" class="api-declaration">
@@ -1730,7 +2028,8 @@
                   </code>
                   <div class="api-doc">
                     <p>
-                      Returns a [Validator] that checks the file's extension against [allowed]. Pristine <code>null</code> values pass. Files without an extension fail when an allow-list is configured.
+                      Returns a [TomValidator] that checks the file's extension against [allowed]. Pristine <code>null</code>
+                       values pass. Files without an extension fail when an allow-list is configured.
                     </p>
                   </div>
                 </section>
@@ -1739,8 +2038,34 @@
                   <code class="api-signature">FutureOr&lt;ValidationResult&gt; Function(FileRef?) _fileSizeValidator(int maxBytes)</code>
                   <div class="api-doc">
                     <p>
-                      Returns a [Validator] that checks the file's size against [maxBytes]. Pristine <code>null</code> values pass.
+                      Returns a [TomValidator] that checks the file's size against [maxBytes]. Pristine <code>null</code> values pass.
                     </p>
+                  </div>
+                </section>
+                <section id="tomFileIsRenderableImage" class="api-declaration">
+                  <h3 class="api-decl-title">function tomFileIsRenderableImage</h3>
+                  <code class="api-signature">bool tomFileIsRenderableImage(FileRef ref, TomFilePickKind pickKind)</code>
+                  <div class="api-doc">
+                    <p>Whether [ref] names a file [TomFormFileThumbnail] can paint inline.</p>
+                    <p>Three sources, consulted in order of how much they actually know:</p>
+                    <p>
+                      1. the reported media type, when the picker or the server gave one; 2. the file's extension, when the name carries one; 3. [pickKind] — the last thing left to go on.
+                    </p>
+                    <p>
+                      The order matters more than the sources do. <code>pickKind</code> states what the field <em>asked for</em>, not what the value 
+                      <em>is</em>, so it must never overrule a media type or an extension: an <code>image</code> field holding a PDF would otherwise hand PDF bytes to an image codec.
+                    </p>
+                    <p>
+                      A free function for the same reason as [tomHumanFileSize] — both widget families need it and neither owns it.
+                    </p>
+                  </div>
+                </section>
+                <section id="tomHumanFileSize" class="api-declaration">
+                  <h3 class="api-decl-title">function tomHumanFileSize</h3>
+                  <code class="api-signature">String tomHumanFileSize(int bytes)</code>
+                  <div class="api-doc">
+                    <p>A human-readable rendering of a byte count.</p>
+                    <p>Free function because three widgets and an example need it and none of them owns it.</p>
                   </div>
                 </section>
               </div>

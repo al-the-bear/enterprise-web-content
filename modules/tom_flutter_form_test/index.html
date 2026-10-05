@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1383,7 +1389,7 @@
           <div class="dhead" style="margin-top: 24px">
             <a class="back" href="/components/core">← Core</a>
             <div style="margin-top: 12px">
-              <span style="display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap"><span class="badge b-works"><span class="d"></span>In the works</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">license: proprietary</span></span>
+              <span style="display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap"><span class="badge b-works"><span class="d"></span>In the works</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">license: BSD-3-Clause</span></span>
             </div>
             <h2>tom_flutter_form_test</h2>
             <div class="mono" style="color: #9FB6C9">tom_flutter_form_test · v1.0.0+1</div>
@@ -1397,9 +1403,9 @@
               <div class="k">Status</div>
               <div class="v" style="font-size: 1.05rem; color: #D85F23">In the works</div>
             </div>
-            <div class="stat"><div class="k">LOC</div><div class="v">342.0k</div></div>
-            <div class="stat"><div class="k">Tests</div><div class="v">363</div></div>
-            <div class="stat"><div class="k">Test LOC</div><div class="v">8.2k</div></div>
+            <div class="stat"><div class="k">LOC</div><div class="v">353.5k</div></div>
+            <div class="stat"><div class="k">Tests</div><div class="v">449</div></div>
+            <div class="stat"><div class="k">Test LOC</div><div class="v">11.0k</div></div>
           </div>
           <div class="dcols">
             <div>
@@ -1458,18 +1464,21 @@
               <h1>Tom Flutter Form Test</h1>
               <p>
                 A Flutter demo application for the <strong>Tom Form Framework</strong> — the form widgets and field system from 
-                <a href="../tom_flutter_ui"><code>tom_flutter_ui</code></a>, driven by the resource, security, and reflection facilities of 
-                <a href="../tom_core_kernel"><code>tom_core_kernel</code></a>.
+                <a href="https://github.com/al-the-bear/tom_core/tree/main/tom_flutter_ui"><code>tom_flutter_ui</code></a>, driven by the resource, security, and reflection facilities of 
+                <a href="https://github.com/al-the-bear/tom_core/tree/main/tom_core_kernel"><code>tom_core_kernel</code></a>.
               </p>
               <p>
-                It is a manual, runnable showcase (not a published package — <code>publish_to: none</code>) used to exercise and visually validate the form stack end to end.
+                It is a runnable showcase (not a published package — <code>publish_to: none</code>) used to exercise the form stack end to end. The showcase is the visible half; the other half is the gate under 
+                <a href="https://github.com/al-the-bear/tom_core/tree/main/tom_flutter_form_test/test"><code>test/</code></a>, which drives the same screens and is where a regression in the stack is actually caught. See 
+                <a href="#tests">Tests</a>.
               </p>
               <h2>What it demonstrates</h2>
               <p>The app opens on a two-tab shell (<code>RootScreen</code>):</p>
               <h3>Demos tab</h3>
               <p>
-                A catalogue of 33 demos, grouped into three sections (each mapped to the upstream feature it validates in 
-                <a href="/docs?module=tom_flutter_form_test&amp;path=doc%2Fdemo_catalogue.md"><code>doc/demo_catalogue.md</code></a>):
+                The Demos tab lists 33 demos in ten sections. <a href="/docs?module=tom_flutter_form_test&amp;path=doc%2Fdemo_catalogue.md"><code>doc/demo_catalogue.md</code></a>
+                 uses the same ten headings and maps each demo to the <code>tom_flutter_ui</code> or kernel feature it validates; 
+                <code>test/demo_catalogue_sections_test.dart</code> holds the two to the same headings and the same demos under each.
               </p>
               <ul>
                 <li>
@@ -1478,25 +1487,136 @@
               </ul>
               <p>
                 (bind / save / discard, pristine behaviour) with sync / async / cross-field validation and error banners, authorization &amp; events, nested forms &amp; theming, and hide-on-authorization. - 
-                <strong>Phase 2 — Extended field flavours</strong> (<code>Demo E</code>–<code>Demo R</code>): selection and boolean variants, complex breakpoint and authorization scenarios, the master-detail / expandable-row / editable-table / customer-form patterns (<code>Demo H-A</code>–<code>H-E</code>), numeric and date/time/duration forms, enum / object / lookup, files &amp; nullable variants, Material-vs-Cupertino fields (basics, numeric &amp; date/time, search / lookup / file), family-swap-on-breakpoint, auth / empty / overlay, and tree / radio / infinite-scroll selection. - 
+                <strong>Phase 2 — Extended field flavours</strong> (<code>Demo E</code>–<code>Demo H</code>): selection and boolean variants, complex breakpoint and authorization scenarios. - 
+                <strong>Phase 2a — Collections &amp; master-detail</strong> (<code>Demo H-A</code>–<code>H-E</code>): the master-detail, expandable-row, editable-table and customer-form patterns. - 
+                <strong>Phase 3 — Numeric, date/time &amp; duration fields</strong> (<code>Demo I</code>, <code>Demo J</code>). - 
+                <strong>Phase 4 — Enum, object, file &amp; nullable fields</strong> (<code>Demo K</code>, <code>Demo L</code>): enum / object / lookup, files and nullable variants. - 
+                <strong>Phase 5a — Cupertino string + bool + selection</strong> (<code>Demo M</code>): Material and Cupertino fields side by side. - 
+                <strong>Phase 5b — Cupertino numeric + date/time</strong> (<code>Demo N</code>). - <strong>Phase 5c — Cupertino search/lookup/file + family swap</strong>
+                 (<code>Demo O</code>, <code>Demo P</code>): Cupertino search, lookup and file fields, and the family swap on a breakpoint. - 
+                <strong>Phase 6 — Non-form custom widgets</strong> (<code>Demo Q</code>, <code>Demo R</code>): auth / empty / overlay, and tree / radio / infinite-scroll selection. - 
                 <strong>Supporting reference demos</strong> (<code>Demo 1</code>–<code>Demo 10</code>): basic and nested forms, authorization, validation, settings, field-layout options, error placement, breakpoints, the preset showcase, and central JSON-driven styling.
               </p>
               <h3>Examples tab</h3>
               <p>
-                Stripped-down, copy-friendly sample code under <a href="lib/examples/"><code>lib/examples/</code></a>
+                Stripped-down, copy-friendly sample code under <a href="https://github.com/al-the-bear/tom_core/tree/main/tom_flutter_form_test/lib/examples"><code>lib/examples/</code></a>
                  — the same patterns as the demos but reduced to the minimum needed to read and reuse (customer forms, master-detail, expandable rows, editable tables, read-only variants, plus shared scaffolding/resources/authorization helpers).
+              </p>
+              <p>
+                <strong>This tab is the package's examples; there is no <code>example/</code> directory and no <code>doc/api/</code>.</strong>
+                 The package is an application with no importable surface: an <code>example/</code> program would have nothing to import, and an API summary would have no API to describe. The workspace examples and API-summary guidelines exempt such packages. The five samples, each in a Material and a Cupertino flavour, are documented one by one in 
+                <a href="/docs?module=tom_flutter_form_test&amp;path=doc%2Fdemo_catalogue.md"><code>doc/demo_catalogue.md</code></a>
+                 and driven by <code>example_smoke_test.dart</code>, <code>example_interaction_test.dart</code> and <code>example_screenshot_test.dart</code>.
               </p>
               <h2>How to run</h2>
               <pre><code>flutter pub get
 
 # Reflection glue (lib/main.reflection.dart) is generated and committed.
 # Only regenerate it when reflected type signatures change:
-./reflection_generation.sh   # wraps `dart run tom_reflection_generator build`
+./reflection_generation.sh   # wraps `dart run tom_reflection_generator --nested`
+                             # set DART=/path/to/dart if dart is not on PATH
 
-flutter run                  # on any configured device/emulator</code></pre>
+flutter run                  # on any configured device/emulator
+flutter test                 # the gate — see Tests below</code></pre>
               <p>
                 On startup the app loads <code>assets/demo_resources.json</code>, merges in the Examples section's resource keys, registers them with 
                 <code>TomTextResourceProvider</code>, and initializes reflection before <code>runApp</code>.
+              </p>
+              <h2>Tests</h2>
+              <pre><code>flutter test</code></pre>
+              <p>
+                <code>flutter test</code> runs <strong>66</strong> gating suites, every one of them a <code>*_test.dart</code>
+                 file under <a href="https://github.com/al-the-bear/tom_core/tree/main/tom_flutter_form_test/test"><code>test/</code></a>:
+              </p>
+              <table class="mdtable">
+                <thead><tr><th>Kind</th><th>Suites</th><th>What they cover</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>Demo interaction tests</td>
+                    <td>24</td>
+                    <td>
+                      Mount one demo or example screen and drive it, asserting that screen's own behaviour — including validator and debounce behaviour, and overflow-free layout at several viewport sizes
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Smoke tests</td>
+                    <td>10</td>
+                    <td>
+                      That every screen of a phase — and, for 
+                      <code>widget_test.dart</code>
+                      , the demo list itself — builds and reaches a settled frame. No behaviour beyond "it mounts"
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Blanket exception sweep</td>
+                    <td>1</td>
+                    <td>
+                      One case per demo tile: boot the app, scroll the tile into view, tap it, and fail if any framework error fired
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Regression guards</td>
+                    <td>13</td>
+                    <td>
+                      One reported defect each, pinned so it cannot come back. The file's opening dartdoc names the report it belongs to
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Behaviour matrices</td>
+                    <td>2</td>
+                    <td>
+                      One case per cell of a matrix documented elsewhere, so the table and the behaviour cannot drift apart
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Widget-family coverage</td>
+                    <td>1</td>
+                    <td>The list-form widgets driven directly rather than through a demo screen</td>
+                  </tr>
+                  <tr>
+                    <td>Golden screenshots</td>
+                    <td>3</td>
+                    <td>
+                      Rendered pixels against the committed baselines under 
+                      <code>test/goldens/</code>
+                       — the five numbered demos, the Examples section, and the ≥1600 px bordered band. These are why 
+                      <code>test/fonts/</code>
+                       is checked in
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Source invariants</td>
+                    <td>4</td>
+                    <td>
+                      That the committed 
+                      <code>lib/main.reflection.dart</code>
+                       still covers the sources it mirrors, that every 
+                      <code>formId</code>
+                       / 
+                      <code>listId</code>
+                       literal in 
+                      <code>lib/</code>
+                       is a usable scope id, and that the demo catalogue and this README group the demos exactly as the Demos tab does
+                    </td>
+                  </tr>
+                  <tr><td>Unit tests</td><td>8</td><td>Arithmetic and mapping, with no widget tree</td></tr>
+                </tbody>
+              </table>
+              <p>
+                Those figures are gated by <code>tom_ai/core/tool/check_test_inventories.py</code>, which holds every kind, their sum, and the total against the directory itself — so a suite added or deleted without touching this table fails the build. The table names no filenames on purpose: sixty-six of them would be the longest section of this README and still a worse list than 
+                <code>test/</code>, which is exact by construction. What the counts buy is the one thing the directory cannot say about itself, which is that its population is the one somebody wrote down.
+              </p>
+              <p>
+                <strong>Every file under <code>test/</code> ends in <code>_test.dart</code>, singular.</strong> <code>flutter test</code>
+                 discovers <code>**_test.dart</code> only, so a plural <code>_tests.dart</code> name is matched by nothing and reported by nothing — that is not hypothetical here, and it is why the gate above exists. Three files under 
+                <code>test/</code> are helpers rather than suites and are excluded by that same rule: <code>flutter_test_config.dart</code>
+                 (the per-suite harness config Flutter loads automatically), <code>support/test_fonts.dart</code> and 
+                <code>support/form_id_sites.dart</code>. A test whose golden is compared must <code>await loadTestFonts()</code>
+                 in <code>setUpAll</code>, after reflection is initialized and the resource provider registered.
+              </p>
+              <p>
+                <strong>The run is deliberately parallel — do not add <code>-j 1</code>.</strong> Serial runs were once required here on the ground that parallel isolates would corrupt process-global state: the resource bundle, the authorization adapter, the reflection registry the forms build. They cannot. 
+                <code>flutter test</code> gives every suite file its own <code>flutter_tester</code> process, so each file's registrations are its own, and no suite here opens a socket, writes a file or reaches a database, so there is nothing outside the process to contend for either. Dropping the flag runs the whole suite green in about half the time.
               </p>
               <h2>Project layout</h2>
               <table class="mdtable">
@@ -1505,9 +1625,8 @@ flutter run                  # on any configured device/emulator</code></pre>
                   <tr><td><code>lib/main.dart</code></td><td>App entry point, resource bootstrap, two-tab shell</td></tr>
                   <tr>
                     <td><code>lib/main.reflection.dart</code></td>
-                    <td>Generated reflection registration (do not hand-edit)</td>
+                    <td>Generated reflection registration, seeded from <code>lib/main.dart</code> (do not hand-edit)</td>
                   </tr>
-                  <tr><td><code>lib/reflection_init.dart</code></td><td>Reflection initialization wiring</td></tr>
                   <tr><td><code>lib/demos/</code></td><td>The Demos-tab catalogue (one file per demo)</td></tr>
                   <tr><td><code>lib/examples/</code></td><td>The Examples-tab stripped-down samples</td></tr>
                   <tr><td><code>lib/forms/</code></td><td>Form definitions shared across demos</td></tr>
@@ -1517,23 +1636,60 @@ flutter run                  # on any configured device/emulator</code></pre>
                   <tr><td><code>lib/common/</code></td><td>Shared helpers</td></tr>
                   <tr><td><code>assets/demo_resources.json</code></td><td>Text resources consumed by the demos</td></tr>
                   <tr>
+                    <td><code>test/</code></td>
+                    <td>
+                      The gating suites, plus the 
+                      <code>goldens/</code>
+                      , 
+                      <code>fonts/</code>
+                       and 
+                      <code>support/</code>
+                       they need
+                    </td>
+                  </tr>
+                  <tr>
                     <td><code>doc/demo_catalogue.md</code></td>
                     <td>Demo/example → upstream feature map and launch guide</td>
                   </tr>
                 </tbody>
               </table>
               <h2>License</h2>
-              <p>Proprietary and confidential — see <a href="LICENSE"><code>LICENSE</code></a>.</p>
+              <p>
+                BSD 3-Clause licensed — see <a href="https://github.com/al-the-bear/tom_core/blob/main/tom_flutter_form_test/LICENSE"><code>LICENSE</code></a>.
+              </p>
             </div>
           </section>
           <details class="licbox">
             <summary>License</summary>
-            <pre id="license" class="lictext">Copyright (c) 2024-2026 Peter Nicolai Alexis Kyaw. All rights reserved.
+            <pre id="license" class="lictext">BSD 3-Clause License
 
-This code is proprietary and confidential. Unauthorized copying, modification,
-distribution, or use of this software, via any medium, is strictly prohibited.
+Copyright (c) 2024-2026, Peter Nicolai Alexis Kyaw
+All rights reserved.
 
-For licensing inquiries, find me on LinkedIn under "Alexis Kyaw".
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its
+   contributors may be used to endorse or promote products derived from
+   this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 </pre>
           </details>
         </div>

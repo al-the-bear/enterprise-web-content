@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1455,6 +1461,27 @@
                     <p>
                       For example for a constructor Foo(x, {y: 3}): returns "(x, {y: 3}) =&gt; prefix1.Foo(x, y)", and records an import of the library of 
                       <code>Foo</code> associated with prefix1 in [importCollector].
+                    </p>
+                  </div>
+                </div>
+                <div id="_ReflectorDomain._withBoundTypeArguments" class="api-member">
+                  <div class="api-member-head">
+                    <code class="api-signature">
+                      Future&lt;String&gt; _withBoundTypeArguments(String constructorName, ConstructorElement constructor, _ImportCollector importCollector)
+                    </code>
+                  </div>
+                  <div class="api-doc">
+                    <p>
+                      [constructorName] instantiated at its class's type-parameter bounds, when any parameter is bounded: <code>NumRange</code>
+                       becomes <code>NumRange&lt;num&gt;</code>, and a named constructor <code>Numbers.of</code> becomes <code>Numbers&lt;List&lt;num&gt;&gt;.of</code>.
+                    </p>
+                    <p>
+                      The closure a constructor is emitted as has untyped parameters, so every argument is <code>dynamic</code>. Below Dart 3.7 inference then picks 
+                      <code>dynamic</code> for a bounded type parameter, which violates the bound, and the generated library does not compile (TYPE_ARGUMENT_NOT_MATCHING_BOUNDS, COULD_NOT_INFER). A generated library is analyzed at its 
+                      <em>consumer's</em> language version, so it cannot rely on 3.7's inference using bounds. Naming the bounds explicitly compiles on every version, and the dynamic arguments are implicitly downcast to them — which is what inference using bounds would have chosen anyway.
+                    </p>
+                    <p>
+                      An unbounded parameter is given <code>dynamic</code>, as inference would. A class with no bounded parameter is left as it was. A bound that names one of the class's own type parameters (<code>T extends Comparable&lt;T&gt;</code>) has no closed instantiation to spell, so such a class is left to inference too.
                     </p>
                   </div>
                 </div>

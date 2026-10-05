@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1391,11 +1397,14 @@
                   <a class="leaf" href="#EventSinkAsync">EventSinkAsync</a>
                   <a class="leaf" href="#MultiStreamControllerAsync">MultiStreamControllerAsync</a>
                   <a class="leaf" href="#StreamAsync">StreamAsync</a>
+                  <a class="leaf" href="#StreamConsumerAsync">StreamConsumerAsync</a>
                   <a class="leaf" href="#StreamIteratorAsync">StreamIteratorAsync</a>
                   <a class="leaf" href="#StreamSinkAsync">StreamSinkAsync</a>
                   <a class="leaf" href="#StreamSubscriptionAsync">StreamSubscriptionAsync</a>
                   <a class="leaf" href="#StreamTransformerAsync">StreamTransformerAsync</a>
-                  <a class="leaf" href="#_runAction">_runAction</a>
+                  <a class="leaf" href="#StreamTransformerBaseAsync">StreamTransformerBaseAsync</a>
+                  <a class="leaf" href="#StreamViewAsync">StreamViewAsync</a>
+                  <a class="leaf" href="#_bindTransformer">_bindTransformer</a>
                 </div>
               </div>
               <div class="reader">
@@ -1453,6 +1462,31 @@
                     <div id="StreamAsync.definition" class="api-member"><div class="api-member-head"><code class="api-signature">static BridgedClass definition</code></div></div>
                   </div>
                 </section>
+                <section id="StreamConsumerAsync" class="api-declaration">
+                  <h3 class="api-decl-title">class StreamConsumerAsync</h3>
+                  <code class="api-signature">class StreamConsumerAsync</code>
+                  <div class="api-doc">
+                    <p>The <code>StreamConsumer</code> half of the sink hierarchy.</p>
+                    <p>
+                      Abstract interface — no constructor. Scripts never build one; they receive one (a <code>StreamController</code>, its 
+                      <code>sink</code>, or an <code>IOSink</code>) and either annotate against it or type-test it.
+                    </p>
+                    <p>
+                      Deliberately carries <strong>no <code>isAssignable</code></strong>. That closure is consulted by [Environment.toBridgedInstance] when deciding which bridge owns a native object, and 
+                      <code>StreamConsumer</code> is a supertype of both <code>StreamController</code> and <code>StreamSink</code>. Claiming assignability here would have entered this bridge into that contest as an equally-ranked match — every hand-written stdlib bridge has 
+                      <code>hierarchyDepth == 0</code>, so the tie breaks on registration order — and could have quietly stolen dispatch from the two concrete bridges. Instead the hierarchy is declared via [BridgedClass.registerSupertypes] in [AsyncStreamStdlib.register], which feeds 
+                      <code>isSubtypeOf</code> (so <code>is</code> answers correctly) without touching dispatch.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="StreamConsumerAsync.new" class="api-member"><div class="api-member-head"><code class="api-signature">StreamConsumerAsync.new()</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="StreamConsumerAsync.definition" class="api-member"><div class="api-member-head"><code class="api-signature">static BridgedClass definition</code></div></div>
+                  </div>
+                </section>
                 <section id="StreamIteratorAsync" class="api-declaration">
                   <h3 class="api-decl-title">class StreamIteratorAsync</h3>
                   <code class="api-signature">class StreamIteratorAsync</code>
@@ -1501,11 +1535,96 @@
                     <div id="StreamTransformerAsync.definition" class="api-member"><div class="api-member-head"><code class="api-signature">static BridgedClass definition</code></div></div>
                   </div>
                 </section>
-                <section id="_runAction" class="api-declaration">
-                  <h3 class="api-decl-title">function _runAction</h3>
+                <section id="StreamTransformerBaseAsync" class="api-declaration">
+                  <h3 class="api-decl-title">class StreamTransformerBaseAsync</h3>
+                  <code class="api-signature">class StreamTransformerBaseAsync</code>
+                  <div class="api-doc">
+                    <p>
+                      <code>StreamTransformerBase&lt;S, T&gt;</code> — the SDK's base class for user-written transformers. Abstract and constructor-only in the SDK (<code>const StreamTransformerBase()</code>), its entire purpose is to be extended, so the bridge exists to make 
+                      <code>class X extends StreamTransformerBase&lt;S, T&gt;</code> legal rather than to wrap native instances.
+                    </p>
+                    <p>
+                      No <code>isAssignable</code>: nothing native is ever a bare <code>StreamTransformerBase</code> (it is abstract), and claiming assignability would put this bridge into the dispatch contest against 
+                      <code>StreamTransformer</code> for every native transformer. The <code>StreamTransformer</code> edge is declared in the supertype registry instead, which is what makes 
+                      <code>x is StreamTransformer</code> answer correctly.
+                    </p>
+                    <p>
+                      <code>cast</code> is the one member the SDK actually implements on this class; <code>bind</code> is left abstract for the subclass, which is why it is absent here.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="StreamTransformerBaseAsync.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">StreamTransformerBaseAsync.new()</code></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="StreamTransformerBaseAsync.definition" class="api-member"><div class="api-member-head"><code class="api-signature">static BridgedClass definition</code></div></div>
+                  </div>
+                </section>
+                <section id="StreamViewAsync" class="api-declaration">
+                  <h3 class="api-decl-title">class StreamViewAsync</h3>
+                  <code class="api-signature">class StreamViewAsync</code>
+                  <div class="api-doc">
+                    <p>
+                      <code>StreamView&lt;T&gt;</code> — the SDK's canonical way to hand out a stream while keeping its controller private.
+                    </p>
+                    <p>
+                      Deliberately carries <strong>no <code>isAssignable</code></strong>, and instead registers its native name on the 
+                      <code>Stream</code> bridge (see [StreamAsync]'s <code>nativeNames</code>). The reason is dispatch: bridge member lookup is per-bridge, not hierarchical, so a 
+                      <code>StreamView</code> that resolved to <em>this</em> bridge would expose only the members declared here and lose the ~60-method 
+                      <code>Stream</code> surface it inherits. Routing the native object to the <code>Stream</code> bridge gives it that surface for free, which is what a script wrapping a stream actually wants.
+                    </p>
+                    <p>
+                      <code>v is StreamView</code> survives this anyway: the value's bridge is <code>Stream</code>, which is not a subtype of 
+                      <code>StreamView</code>, but <code>visitIsExpression</code> then falls back to resolving the <em>native</em>
+                       object's runtime type by name and finds this bridge. Both directions are pinned by F-SC6-5, because the answer depends on that fallback rather than on anything declared here.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="StreamViewAsync.new" class="api-member"><div class="api-member-head"><code class="api-signature">StreamViewAsync.new()</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="StreamViewAsync.definition" class="api-member"><div class="api-member-head"><code class="api-signature">static BridgedClass definition</code></div></div>
+                  </div>
+                </section>
+                <section id="_bindTransformer" class="api-declaration">
+                  <h3 class="api-decl-title">function _bindTransformer</h3>
                   <code class="api-signature">
-                    FutureOr&lt;T&gt; _runAction&lt;T&gt;(InterpreterVisitor visitor, InterpretedFunction? func, List&lt;dynamic&gt; args)
+                    Stream&lt;Object?&gt; _bindTransformer(Stream&lt;dynamic&gt; source, StreamTransformer&lt;dynamic, dynamic&gt; transformer, String member)
                   </code>
+                  <div class="api-doc">
+                    <p>
+                      Hand [source] to [transformer], coercing the stream's ELEMENT type when the transformer needs one the interpreter never produces.
+                    </p>
+                    <p>
+                      A script's streams are natively <code>Stream&lt;dynamic&gt;</code> carrying <code>List&lt;Object?&gt;</code>
+                       chunks: the interpreter's values are dynamically typed and each bridge coerces at its own boundary. So 
+                      <code>utf8.decoder</code> — a <code>StreamTransformer&lt;List&lt;int&gt;, String&gt;</code> — rejects a stream a script built, and the rejection arrives as a host 
+                      <code>_TypeError</code> naming the internal <code>_MultiStream</code> class, which a script author cannot act on.
+                    </p>
+                    <p>
+                      WHY NOT <code>transformer.cast()</code>, which is what the two <code>Socket.transform</code> adapters use. Those know their target's element type statically (<code>Stream&lt;Uint8List&gt;</code>), so the cast is computed against it. Here the target is a bare 
+                      <code>Stream</code>, and a blanket <code>.cast()</code> inverts the problem: a genuinely typed stream — 
+                      <code>File.openRead()</code>, an <code>HttpClientResponse</code> — then rejects the <code>CastConverter&lt;List&lt;int&gt;, String, dynamic, dynamic&gt;</code>
+                       it is handed, because <code>Stream&lt;List&lt;int&gt;&gt;.transform</code> wants a transformer whose input really is 
+                      <code>List&lt;int&gt;</code>. Measured both ways round.
+                    </p>
+                    <p>
+                      Coercing the SOURCE has neither failure: [D4.coerceByteStream] returns an already-correct stream untouched and maps a script's chunks element-wise, which the cast could not do either — a 
+                      <code>List&lt;Object?&gt;</code> holding ints is not a <code>List&lt;int&gt;</code> and <code>cast</code>
+                       fails per chunk at the first event.
+                    </p>
+                    <p>
+                      The two element types tested are the two the bridged transformers take: <code>dart:convert</code>'s codecs are 
+                      <code>List&lt;int&gt;</code> &lt;-&gt; <code>String</code> in both directions. Anything else — a script transformer built from 
+                      <code>bind</code>, <code>StreamTransformer.fromHandlers</code>, <code>WebSocketTransformer</code> over an 
+                      <code>HttpServer</code> — has an input type the interpreter's own values already satisfy, and goes through untouched.
+                    </p>
+                  </div>
                 </section>
               </div>
             </div>

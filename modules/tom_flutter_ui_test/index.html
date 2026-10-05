@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1383,7 +1389,7 @@
           <div class="dhead" style="margin-top: 24px">
             <a class="back" href="/components/core">← Core</a>
             <div style="margin-top: 12px">
-              <span style="display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap"><span class="badge b-works"><span class="d"></span>In the works</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">license: proprietary</span></span>
+              <span style="display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap"><span class="badge b-works"><span class="d"></span>In the works</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">license: BSD-3-Clause</span></span>
             </div>
             <h2>tom_flutter_ui_test</h2>
             <div class="mono" style="color: #9FB6C9">tom_flutter_ui_test · v1.0.0+1</div>
@@ -1397,9 +1403,9 @@
               <div class="k">Status</div>
               <div class="v" style="font-size: 1.05rem; color: #D85F23">In the works</div>
             </div>
-            <div class="stat"><div class="k">LOC</div><div class="v">34.3k</div></div>
-            <div class="stat"><div class="k">Tests</div><div class="v">7</div></div>
-            <div class="stat"><div class="k">Test LOC</div><div class="v">390</div></div>
+            <div class="stat"><div class="k">LOC</div><div class="v">34.6k</div></div>
+            <div class="stat"><div class="k">Tests</div><div class="v">57</div></div>
+            <div class="stat"><div class="k">Test LOC</div><div class="v">1.6k</div></div>
           </div>
           <div class="dcols">
             <div>
@@ -1501,9 +1507,11 @@
                   </tr>
                   <tr>
                     <td><strong>Widget Demos</strong></td>
-                    <td><code>lib/widget_demos/</code></td>
+                    <td><code>lib/widget_demos/demo_01…demo_27</code></td>
                     <td>
-                      27 widget showcases grouped into Input &amp; Actions, Layout &amp; Structure, Display &amp; Info, Advanced, and Scope &amp; Architecture — the Tom wrappers over buttons, inputs, selection, toggles, sliders, cards, tables, navigation, slivers, animation, effects, plus resource resolution and scoped element providers.
+                      27 of the 28 screens in 
+                      <code>lib/widget_demos/</code>
+                      , grouped into Input &amp; Actions, Layout &amp; Structure, Display &amp; Info, Advanced, and Scope &amp; Architecture — the Tom wrappers over buttons, inputs, selection, toggles, sliders, cards, tables, navigation, slivers, animation, effects, plus resource resolution and scoped element providers.
                     </td>
                   </tr>
                   <tr>
@@ -1526,12 +1534,42 @@
                       Resource resolution (labels/icons/tooltips by 
                       <code>tomId</code>
                       ) and widget authorization (visibility, readonly, 
-                      <code>TomUIGroup</code>
+                      <code>TomAuthorizationGroup</code>
                       ).
                     </td>
                   </tr>
                 </tbody>
               </table>
+              <p>
+                <strong>28 widget screens, 29 widget tiles.</strong> <code>lib/widget_demos/</code> holds <code>demo_01…demo_28</code>, but the Widget Demos tab lists only 
+                <code>demo_01…demo_27</code>: <code>demo_28_authorization.dart</code> is surfaced from Authorization/Resources instead, which also repeats 
+                <code>demo_21_resource_resolution.dart</code> because that screen is the resource half of the same tab's subject. So the file count (28) and the tab counts (27 + 2) are both right, and differ by the one screen that appears twice. 
+                <code>demo_coverage_test.dart</code> compares tiles to harness entries by runtime type, not by name, for exactly this reason.
+              </p>
+              <p>
+                Because a demo can be counted two ways that are both correct, the counts are given as a pair — screens declared in 
+                <code>lib/</code>, tiles offered by <code>lib/main.dart</code> — and checked against the source by <code>tool/check_demo_counts.py</code>. A tile is attributed to the folder that declares its screen class, so the two Authorization/Resources tiles appear in the Widget Demos row rather than in a row of their own:
+              </p>
+              <table class="mdtable">
+                <thead><tr><th>Group</th><th>Screens</th><th>Tiles</th><th>Declared in</th></tr></thead>
+                <tbody>
+                  <tr><td>ACL Demos</td><td>26</td><td>26</td><td><code>lib/acl_demos/</code></td></tr>
+                  <tr><td>Widget Demos</td><td>28</td><td>29</td><td><code>lib/widget_demos/</code></td></tr>
+                  <tr><td>Forms/Actions</td><td>5</td><td>5</td><td><code>lib/forms_demos/</code></td></tr>
+                </tbody>
+              </table>
+              <p>
+                That is <strong>59 demo screens and 60 demo tiles</strong>. A screen is a top-level class whose name ends in 
+                <code>Demo</code>; counting files instead gets the Forms/Actions row wrong, because <code>lib/forms_demos/</code>
+                 packs its five demos into two files.
+              </p>
+              <p>
+                <strong>There is no <code>example/</code> directory and no <code>doc/api/</code>.</strong> The package is an application with no importable surface: an 
+                <code>example/</code> program would have nothing to import, and an API summary would have no API to describe. The workspace examples and API-summary guidelines exempt such packages. The app itself is the example set — every screen above is a worked example of one part of 
+                <code>tom_flutter_ui</code>, and an <code>example/</code> folder beside them would only be a second, weaker gallery. See 
+                <a href="#running-it">Running it</a> to run them; <a href="/docs?module=tom_flutter_ui_test&amp;path=doc%2Fdemo_catalogue.md"><code>doc/demo_catalogue.md</code></a>
+                 is the map.
+              </p>
               <h2>Running it</h2>
               <pre><code>flutter pub get
 flutter run            # pick a device/emulator</code></pre>
@@ -1543,12 +1581,134 @@ flutter run            # pick a device/emulator</code></pre>
                 <code>AppBar</code> language selector.
               </p>
               <h2>Tests</h2>
-              <pre><code>flutter test                       # default gate (serial; never run in parallel)
+              <pre><code>flutter test                       # default gate
 flutter test test/screenshots.dart # on-demand visual-capture harness (not a gate)</code></pre>
               <p>
-                <code>test/screenshots.dart</code> is a manual "rerun and diff the PNGs" tool, deliberately excluded from the default gate (no 
-                <code>_test.dart</code> suffix). The remaining <code>*_test.dart</code> files (<code>widget_test.dart</code>, 
-                <code>debug_form_test.dart</code>, <code>debug_heights_test.dart</code>, <code>debug_shrink_test.dart</code>) are the automated suite.
+                Two files under <code>test/</code> deliberately lack the <code>_test.dart</code> suffix, which is how 
+                <code>flutter test</code> discovers suites, and so are not part of the gate: <code>screenshots.dart</code>
+                 is a manual "rerun and diff the PNGs" tool that asserts nothing, and <code>demo_harness.dart</code> is the shared demo mount both it and the overflow gate build on. Everything else is a gate, and this is all of it:
+              </p>
+              <table class="mdtable">
+                <thead><tr><th>Suite</th><th>What it asserts</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><code>package_compiles_test.dart</code></td>
+                    <td>
+                      <code>dart analyze</code>
+                       reports no errors under 
+                      <code>lib/</code>
+                       or 
+                      <code>test/</code>
+                       — the one check that still runs when the package does not compile, because it shells out instead of importing.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>demo_overflow_test.dart</code></td>
+                    <td>
+                      Every demo mounts in a 1280×2400 viewport without overflowing — one test per slug in 
+                      <code>demos</code>
+                      .
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>demo_coverage_test.dart</code></td>
+                    <td>
+                      The harness can construct every screen the app actually offers, compared by runtime type across all four tabs.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>demo_icon_names_test.dart</code></td>
+                    <td>
+                      Every 
+                      <code>*.icon</code>
+                       name in 
+                      <code>demo_resources.dart</code>
+                       resolves through 
+                      <code>TomUIIcons</code>
+                       — an unknown name renders nothing and reports nothing, so only a gate catches it.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>demo_04_radio_group_test.dart</code></td>
+                    <td>
+                      The five radio groups in 
+                      <code>demo_04_toggles.dart</code>
+                       start on their seed and move independently — wiring a missing 
+                      <code>RadioGroup</code>
+                       ancestor would break silently.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>demo_scaffold_test.dart</code></td>
+                    <td>
+                      <code>DemoTile.onTap</code>
+                       pushes a 
+                      <code>DemoScaffold</code>
+                       route, and the RTL switch re-wraps the body in 
+                      <code>Directionality</code>
+                       + 
+                      <code>AclDirectionScope</code>
+                      .
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>forms_demos_logic_test.dart</code></td>
+                    <td>
+                      The validate → save → commit gate, the shared-source item swap, the boolean lock-step guard, and the 600 px breakpoint branching.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>forms_dispose_test.dart</code></td>
+                    <td>
+                      Each of the five demo 
+                      <code>State</code>
+                       classes releases what it owns on unmount — fields, observers, and the shared broadcast controller.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>locale_settings_test.dart</code></td>
+                    <td>
+                      <code>AppLocales.find()</code>
+                      's three-tier fallback, 
+                      <code>initialize()</code>
+                       idempotency, the corrupt-prefs guard, and notify-before-write persistence.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>resizable_box_test.dart</code></td>
+                    <td>
+                      1:1 drag deltas on the right / bottom / corner handles, the 100 px minimum clamps, and first-drag intrinsic-height seeding.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>widget_demos_logic_test.dart</code></td>
+                    <td>
+                      <code>DemoAuthorizationAdapter.resolveAuth</code>
+                      's exact-then-parent-walk resolution, and 
+                      <code>createPlaceholderBytes</code>
+                       as a pure PNG generator.
+                    </td>
+                  </tr>
+                  <tr><td><code>widget_test.dart</code></td><td>The app builds and the tab shell renders.</td></tr>
+                  <tr>
+                    <td><code>debug_shrink_test.dart</code></td>
+                    <td>
+                      Panel 4 of 
+                      <code>size_constraints</code>
+                       from 800 px down to 300 px: the fixed components sit at their preferred size while there is room, every component shrinks and none grows, none goes below its minimum, all pin to their minimum below the 328 px floor, and the only exception on the way is the by-design overflow there.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>
+                That table is checked against the directory by <code>tom_ai/core/tool/check_test_inventories.py</code>, which fails on a suite that runs but is unlisted and on a name listed here that no longer exists. It is gated because the untrue version of this section was worse than none: it named five suites as though they were all of them, and the six it left out were the whole of the coverage the last cleanup pass added.
+              </p>
+              <p>
+                <code>demo_overflow_test.dart</code> mounts every demo and fails if any of them overflows the 1280x2400 viewport — an overflow hides a control the demo exists to show, so in a gallery of worked examples it is a documentation fault. It shares its mount with the screenshot harness (<code>test/demo_harness.dart</code>) and differs in exactly one respect: 
+                <strong>the gate measures the Ahem placeholder font, the screenshots use the real SDK fonts.</strong>
+                 Ahem's glyphs are full em squares and therefore wider than Roboto's, which makes the gate the stricter of the two and keeps it reproducible on machines that have not downloaded the 
+                <code>material_fonts</code> artifact. A failure's pixel count is Ahem's, so it overstates what the running app shows; the fault it points at is real either way. To see it, run the screenshot harness and look for the striped banner in 
+                <code>test/screenshots/&lt;demo&gt;.png</code>.
               </p>
               <h2>Project layout</h2>
               <table class="mdtable">
@@ -1564,7 +1724,14 @@ flutter test test/screenshots.dart # on-demand visual-capture harness (not a gat
                   </tr>
                   <tr>
                     <td><code>lib/locale_settings.dart</code></td>
-                    <td>Persisted-locale service + <code>AppBar</code> language selector.</td>
+                    <td>
+                      <code>LocaleSettingsService</code>
+                       (persisted locale) and the 
+                      <code>LanguageSelectorButton</code>
+                       that 
+                      <code>lib/main.dart</code>
+                       mounts in the app bar.
+                    </td>
                   </tr>
                   <tr><td><code>lib/acl_demos/</code></td><td>ACL-engine demos and their scaffolding helpers.</td></tr>
                   <tr>
@@ -1580,7 +1747,14 @@ flutter test test/screenshots.dart # on-demand visual-capture harness (not a gat
                        (navigation map of every demo) plus developer notes on widget resource parameters and discovery.
                     </td>
                   </tr>
-                  <tr><td><code>test/</code></td><td>Automated widget suite plus the on-demand screenshot harness.</td></tr>
+                  <tr>
+                    <td><code>test/</code></td>
+                    <td>
+                      The twelve gating suites inventoried under 
+                      <a href="#tests">Tests</a>
+                      , plus the shared demo mount and the on-demand screenshot harness, neither of which the runner picks up.
+                    </td>
+                  </tr>
                 </tbody>
               </table>
               <h2>Dependencies</h2>
@@ -1593,12 +1767,35 @@ flutter test test/screenshots.dart # on-demand visual-capture harness (not a gat
           </section>
           <details class="licbox">
             <summary>License</summary>
-            <pre id="license" class="lictext">Copyright (c) 2024-2026 Peter Nicolai Alexis Kyaw. All rights reserved.
+            <pre id="license" class="lictext">BSD 3-Clause License
 
-This code is proprietary and confidential. Unauthorized copying, modification,
-distribution, or use of this software, via any medium, is strictly prohibited.
+Copyright (c) 2024-2026, Peter Nicolai Alexis Kyaw
+All rights reserved.
 
-For licensing inquiries, find me on LinkedIn under "Alexis Kyaw".
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its
+   contributors may be used to endorse or promote products derived from
+   this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 </pre>
           </details>
         </div>

@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1394,6 +1400,9 @@
                   <a class="leaf" href="#TomEndpointRouting">TomEndpointRouting</a>
                   <a class="leaf" href="#TomEndpointRoutingInfo">TomEndpointRoutingInfo</a>
                   <a class="leaf" href="#TomMethodMetadata">TomMethodMetadata</a>
+                  <a class="leaf" href="#_UnboundParameter">_UnboundParameter</a>
+                  <a class="leaf" href="#TomEndpointRouteKey">TomEndpointRouteKey</a>
+                  <a class="leaf" href="#_typeOf">_typeOf</a>
                 </div>
               </div>
               <div class="reader">
@@ -1473,7 +1482,12 @@
                     </div>
                     <div id="TomEndpointHandler.interface" class="api-member">
                       <div class="api-member-head"><code class="api-signature">ClassMirror&lt;dynamic&gt;? interface</code></div>
-                      <div class="api-doc"><p>The service interface/annotation type, when routed via an interface.</p></div>
+                      <div class="api-doc">
+                        <p>The service interface/annotation type, when routed via an interface.</p>
+                        <p>
+                          <code>null</code> for a registry-backed method, which is identified by its contract instead — see [automaticProtectionKeys], the one thing this is read for.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomEndpointHandler.implementation" class="api-member">
                       <div class="api-member-head"><code class="api-signature">ClassMirror&lt;dynamic&gt; implementation</code></div>
@@ -1481,15 +1495,60 @@
                     </div>
                     <div id="TomEndpointHandler.methodName" class="api-member">
                       <div class="api-member-head"><code class="api-signature">String methodName</code></div>
-                      <div class="api-doc"><p>The qualified name of the method to invoke.</p></div>
+                      <div class="api-doc">
+                        <p>
+                          The method's own name, unqualified, as it appears in a resource key (<code>&lt;Interface&gt;.&lt;methodName&gt;</code>).
+                        </p>
+                      </div>
                     </div>
                     <div id="TomEndpointHandler.metadata" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomMethodMetadata metadata</code></div>
                       <div class="api-doc"><p>The collected annotation metadata (endpoint, access, transaction, API).</p></div>
                     </div>
+                    <div id="TomEndpointHandler.declaresNoResult" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final bool declaresNoResult</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Whether this endpoint's declaration promises the caller no result, so that the response body is empty whatever the invocation completes with.
+                        </p>
+                        <p>
+                          <code>Future&lt;void&gt;</code> does not erase the value it completes with, and Dart lets an implementation narrow the return type: a method declared 
+                          <code>Future&lt;void&gt;</code> whose body tail-calls one returning <code>Future&lt;int&gt;</code> — every delete endpoint forwarding to [TomRepository.deleteById] does — hands the pipeline an 
+                          <code>int</code> while every static type between the two says there is nothing there. The value cannot be recognised once it arrives, so the declaration is asked instead.
+                        </p>
+                        <p>
+                          Read off [TomMethodMetadata.methodMirror] — the declaration the <code>@TomEndpoint</code> annotation sits on — rather than off [method], the implementation's. They differ exactly when the implementation narrows, and the annotated one is both the wider of the two and the contract: the client's typed proxy is generated from it and has nowhere to put a body.
+                        </p>
+                        <p>
+                          A reflector without <code>reflectedTypeCapability</code> cannot answer, and then the endpoint keeps the ordinary treatment — an unrenderable result is a failure there, which is the right answer for a 
+                          <em>genuinely</em> unrenderable one.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomEndpointHandler.shouldLogRequests" class="api-member"><div class="api-member-head"><code class="api-signature">bool shouldLogRequests</code></div></div>
+                    <div id="TomEndpointHandler.automaticProtectionKeys" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">(String, String) automaticProtectionKeys</code></div>
+                    </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
+                    <div id="TomEndpointHandler._requirePrimitive" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Object _requirePrimitive(Type type, String raw, {required String parameter, required String source})</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Binds [raw] — a URL value from [source] — to the primitive [type] of the parameter called [parameter], or refuses the request.
+                        </p>
+                        <p>
+                          Reached only when [isBindablePrimitive] has already answered <code>true</code>, so a <code>null</code>
+                           from the coercion means exactly one thing: the caller sent a value this parameter cannot take. That is a statement about the 
+                          <em>request</em>, and the client is the party who can fix it — which is why it leaves as a named exception carrying the parameter, the type and the offending value rather than falling through to the remaining strategies. Falling through ends with the parameter unbound and the request refused by 
+                          <code>unbindable_parameter</code>, a message that names neither the value nor the fact that it was <em>nearly</em>
+                           right.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomEndpointHandler.handlePreflight" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Response handlePreflight(Request req)</code></div>
                       <div class="api-doc">
@@ -1498,12 +1557,105 @@
                         </p>
                       </div>
                     </div>
+                    <div id="TomEndpointHandler._recordInvocationAudit" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Future&lt;void&gt; _recordInvocationAudit(TomAuditOutcome outcome, {String? detail})</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Records this endpoint's invocation in the audit trail, when the method declared <code>@TomAudited</code>
+                           (CE-LG).
+                        </p>
+                        <p>
+                          Endpoint invocation auditing is <em>declared</em>, not automatic: the pipeline cannot tell a read from a mutation, and auditing every call would bury the entries that matter under routine traffic. What is automatic here is the 
+                          <strong>denial</strong> path — see [handleMethodCall] — and, at the other chokepoint, every repository mutation.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomEndpointHandler.enforceAccess" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;void&gt; enforceAccess()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Enforces this endpoint's access rule for the principal in the current zone, auditing and throwing on a denial.
+                        </p>
+                        <p>
+                          Shared by every endpoint kind — the HTTP pipeline and the WebSocket handshake alike — because "may this caller reach this endpoint?" is the same question regardless of what happens after the answer is yes. A socket that authorized itself separately would be one place for the policy to drift out of step.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomEndpointHandler.bindParameters" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          Future&lt;List&lt;Object&gt;&gt; bindParameters(Request req, {Map&lt;Type, Object&gt; extraByType = const {}})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Materialises the endpoint method's positional arguments from [req].</p>
+                        <p>
+                          Each parameter is resolved by the first binding strategy that succeeds: a value supplied by the caller in [extraByType], the zone's [TomPrincipal] / [TomClientJwtToken], the request object itself, the request context (by type or by name), a primitive path or query value, the execution context, the decoded 
+                          <code>multipart/form-data</code> body (whole form or a single file part), and finally the request DTO built from the JSON or form body folded together with the URL parameters.
+                        </p>
+                        <p>
+                          [extraByType] is how an endpoint <em>kind</em> contributes a value the generic strategies cannot know about — a WebSocket endpoint passes the [TomWebSocketConnection] this way. It is consulted first, so a kind-owned value is never shadowed.
+                        </p>
+                        <p>
+                          Shared by [handleMethodCall] and [handleWebSocketCall]: the two differ in what they do with the invocation, not in how the handler's parameters are found.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomEndpointHandler._toPositionalArguments" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">List&lt;Object&gt; _toPositionalArguments(List&lt;Object&gt; slots)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Turns the one-slot-per-parameter list built by [bindParameters] into the argument list [InstanceMirror.invoke] is called with, or throws naming the parameter that makes the call impossible.
+                        </p>
+                        <p>
+                          Exactly one shortening is legitimate: dropping <em>trailing</em> optionals, which is how Dart applies their defaults. Every other unfilled slot is refused, because there is no way to express it — an omission anywhere else silently moves later arguments into earlier parameters, and where the types happen to line up the method is invoked successfully with the wrong values in it. A named exception identifying the parameter is the alternative to that: "wrong number of arguments" points at the generated call site, this points at the declaration that cannot be satisfied.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomEndpointHandler.handleMethodCall" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Future&lt;Response&gt; handleMethodCall(Request req)</code></div>
                       <div class="api-doc">
                         <p>Runs the full request pipeline for this endpoint and returns the response.</p>
                         <p>
-                          Handles preflight, access control, reflection-based parameter binding, optional transaction wrapping, method invocation, and result/error conversion (see the class doc). WebSocket transport, richer role/group/entitlement authorization, and stream/file upload binding are tracked follow-ups (see the quest completion steps).
+                          Handles preflight, access control ([enforceAccess]), reflection-based parameter binding ([bindParameters]), optional transaction wrapping, method invocation, and result/error conversion (see the class doc).
+                        </p>
+                        <p>
+                          A WebSocket endpoint takes the sibling path, [handleWebSocketCall], which shares the first two stages and replaces the rest with a socket lifetime.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomEndpointHandler._handleMethodCallInScope" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;Response&gt; _handleMethodCallInScope(Request req)</code></div>
+                    </div>
+                    <div id="TomEndpointHandler.handleWebSocketCall" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;Response&gt; handleWebSocketCall(Request req)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Serves a WebSocket handshake for this endpoint and runs the handler for the lifetime of the accepted connection.
+                        </p>
+                        <p>
+                          The first two stages are the HTTP pipeline's own — [enforceAccess] and [bindParameters] — and run <em>before</em>
+                           the upgrade, so an unauthorized or unbindable call is refused as an ordinary HTTP error rather than as a socket that opens and immediately dies. What replaces the rest of the pipeline is the socket's lifetime: the handler is invoked once, with the live [TomWebSocketConnection] among its arguments, and the socket is closed when it returns.
+                        </p>
+                        <p>
+                          A transaction is deliberately not offered here — see the mounting check in <code>createRoutesForEndpoint</code>.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomEndpointHandler._serveSocket" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          Future&lt;void&gt; _serveSocket(String reqId, Request req, String callName, TomWebSocketConnection connection, List&lt;Object&gt; positionalArguments)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Invokes the socket handler and closes the connection when it returns.</p>
+                        <p>
+                          Runs inside the captured request zone (see [handleWebSocketCall]), so the handler sees the same principal and execution context an HTTP handler would.
                         </p>
                       </div>
                     </div>
@@ -1511,7 +1663,7 @@
                       <div class="api-member-head"><code class="api-signature">bool checkAccess(TomPrincipal? principal)</code></div>
                       <div class="api-doc">
                         <p>
-                          Decides whether [principal] may call this endpoint from its declared [TomAccessControl], falling back to the global protection default when the endpoint declares no access rule.
+                          Decides whether [principal] may call this endpoint from its resolved [TomAccessControl] — the handler-side override if present, otherwise the contract-declared policy (G-API-3) — falling back to the global protection default when neither declares an access rule.
                         </p>
                       </div>
                     </div>
@@ -1519,14 +1671,48 @@
                       <div class="api-member-head"><code class="api-signature">bool checkAutomaticAccess(bool accessCheck)</code></div>
                       <div class="api-doc">
                         <p>
-                          Second-chance access check via resource-key protection: grants access when the interface/API (and not the specific method/endpoint) is unprotected, honouring per-method 
-                          <code>-Interface.method</code> exceptions. Takes the prior [accessCheck] and returns the possibly-upgraded decision.
+                          Second-chance access check via resource-key protection, over the pair of keys [automaticProtectionKeys] names. Takes the prior [accessCheck] and returns the possibly-upgraded decision.
+                        </p>
+                        <p>
+                          The rule is: <strong>holding the container key grants every member of it, unless the principal also holds the negated member key 
+                            <code>-&lt;member&gt;</code>; otherwise only the member key itself grants.</strong>
+                           A principal holding neither is left with the decision it arrived with — <code>enforceAccess</code> only consults this after the ordinary check has already refused, so this can raise a refusal to a grant but never invents one of its own.
+                        </p>
+                        <p>
+                          Note the polarity of [TomResourceKeyProtection.isProtected]: it answers "the principal <em>lacks</em>
+                           this key". Every key in the list, <code>-&lt;member&gt;</code> included, is something the principal 
+                          <strong>holds</strong> — the minus is part of the name of a revocation, not a negation of the test. Which is why a 
+                          <code>*</code> grant never covers a <code>-</code> key ([TomAccessControlInformation.holdsResourceKey]): a principal granted every container is not thereby issued every revocation.
+                        </p>
+                        <p>
+                          <strong>Nothing is granted while resource keys are not enforced</strong> ([TomResourceKeyProtection.globalSettingProtectionDefault] off). There, 
+                          <code>isProtected</code> answers "held" for every key there is, so a second chance taken from it would overturn every refusal the ordinary check made — a role requirement included — and asking about 
+                          <code>-&lt;member&gt;</code> would report every revocation as issued. With no grants in force there is nothing to grant from, and the prior decision stands.
                         </p>
                       </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
+                    <div id="TomEndpointHandler._trueSpellings" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Set&lt;String&gt; _trueSpellings</code></div>
+                      <div class="api-doc">
+                        <p>The URL spellings of <code>true</code>, lower-cased.</p>
+                        <p>
+                          Four rather than one, because four is what clients send: <code>true</code> from a JSON-shaped caller, 
+                          <code>1</code> from a form and from most hand-written query strings, <code>on</code> from an HTML checkbox, 
+                          <code>yes</code> from a human. The set is closed and shared with [_falseSpellings] so that every spelling is either recognised or refused, never quietly read as the opposite.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomEndpointHandler._falseSpellings" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Set&lt;String&gt; _falseSpellings</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The URL spellings of <code>false</code>, lower-cased — the mirror of [_trueSpellings], one per shape.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomEndpointHandler.globalSettingLogRequestsDefault" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static bool globalSettingLogRequestsDefault</code></div>
                       <div class="api-doc"><p>Whether requests are logged when an endpoint does not specify <code>logRequests</code>.</p></div>
@@ -1551,6 +1737,200 @@
                       <div class="api-member-head"><code class="api-signature">static bool debugPrintAuthentication</code></div>
                       <div class="api-doc"><p>When true, logs the resolved principal/token for each call (debugging aid).</p></div>
                     </div>
+                    <div id="TomEndpointHandler.isBindablePrimitive" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static bool isBindablePrimitive(Type type)</code></div>
+                      <div class="api-doc">
+                        <p>Whether [type] is a primitive this module binds from a raw URL string.</p>
+                        <p>
+                          The question [coercePrimitiveParameter]'s answer cannot carry. That method returns <code>null</code> for two conditions that are different answers — a 
+                          <code>Request</code> parameter, which is not a primitive at all and should fall through to the next binding strategy, and 
+                          <code>?count=abc</code> on an <code>int</code>, which is a client error — and a single <code>null</code>
+                           cannot express both. Asked <em>first</em>, this separates them: past it, a <code>null</code> means the value did not parse.
+                        </p>
+                        <p>
+                          Kept as a predicate rather than folded into the coercion's return type because the coercion is a pure function with other callers and tests of its own, and the binding loop is the one place that has to tell the two cases apart.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomEndpointHandler._coerceBool" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static bool? _coerceBool(String raw)</code></div>
+                      <div class="api-doc">
+                        <p>[raw] as a <code>bool</code>, or <code>null</code> when it is no spelling of either.</p>
+                        <p>
+                          Case-insensitive: <code>TRUE</code>, <code>True</code> and <code>true</code> are one word written three ways, and a caller who capitalises is not making a different statement.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomEndpointHandler.coercePrimitiveParameter" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Object? coercePrimitiveParameter(Type type, String raw)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Coerces a raw URL string (a matched path variable <em>or</em> a query-string value) into the method parameter's primitive [type], or returns 
+                          <code>null</code> when [type] is not a bindable primitive (so the caller falls through to the other binding strategies).
+                        </p>
+                        <p>
+                          Such values always arrive as strings, so the numeric and boolean forms are parsed; a value that will not parse also yields 
+                          <code>null</code>. The two <code>null</code>s mean different things and are told apart by asking [isBindablePrimitive] first — which is what the binding loop does, and what makes a malformed value a named refusal rather than a parameter that quietly goes unbound.
+                        </p>
+                        <p>
+                          <strong><code>bool</code> is the reason that matters.</strong> It was <code>raw == 'true'</code>, which is total: every other spelling — 
+                          <code>1</code>, <code>yes</code>, <code>on</code>, <code>TRUE</code> — produced <code>false</code>, so 
+                          <code>?active=TRUE</code> meant the opposite of what the caller wrote and nothing could notice. A number at least answers 
+                          <code>null</code> for nonsense. So the accepted spellings are a closed, case-insensitive set ([_trueSpellings] / [_falseSpellings]) and anything outside it is unparsable, which is now a refusal the caller is told about.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomEndpointHandler.injectPathParameters" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static void injectPathParameters(Map&lt;String, dynamic&gt; jsonBodyData, Request req, TomEndpoint&lt;Object, Object&gt; endpoint)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Folds the request's URL path parameters into [jsonBodyData] under the request-DTO field names declared by [endpoint].<code>urlParameterMapping</code>.
+                        </p>
+                        <p>
+                          Each captured path parameter (shelf route capture, e.g. <code>id</code> from <code>/items/{id}</code>) is written under its mapped field name — or, when the mapping has no entry for it, under its own capture name (identity). This is what lets a typed request DTO receive 
+                          <code>/items/{id}</code> as <code>request.id</code> (or <code>request.itemId</code> with a <code>{'id': 'itemId'}</code>
+                           mapping) without a bare-<code>String</code> handler parameter (G-API-2). Called immediately before the DTO is instantiated from the folded map.
+                        </p>
+                        <p>
+                          Pure and side-effect-free apart from mutating [jsonBodyData], so it is unit-testable without a live router (like [coercePrimitiveParameter]).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomEndpointHandler.injectQueryParameters" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static void injectQueryParameters(Map&lt;String, dynamic&gt; jsonBodyData, Request req, TomEndpoint&lt;Object, Object&gt; endpoint, {Set&lt;String&gt; declaredParameterNames = const {}})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Folds the request's <em>query-string</em> parameters into [jsonBodyData] under the request-DTO field names declared by [endpoint].<code>urlParameterMapping</code>.
+                        </p>
+                        <p>
+                          Only query parameters that the mapping <strong>names explicitly</strong> are folded — unlike [injectPathParameters], there is no identity fallback. A path capture is part of the route and therefore part of the endpoint's own declaration, so binding it by its own name is safe; a query string is whatever a caller chose to append, so an identity fallback would let any caller write any field of the request DTO of any endpoint. Requiring the mapping makes query binding opt-in per contract and per parameter, and leaves every existing endpoint's behaviour unchanged.
+                        </p>
+                        <p>
+                          This is what lets a redirect target — <code>GET /oauth/callback?code=…&amp;state=…</code>, which a browser navigates to with no body at all — arrive as a typed DTO rather than a handful of bare 
+                          <code>String</code> parameters (G-API-2). It is also where a provider's snake_cased spelling (<code>error_description</code>) is translated into the Dart field name, so the wire convention stops at the contract.
+                        </p>
+                        <p>
+                          Called <em>before</em> [injectPathParameters], so a path capture of the same mapped name still wins: the route is the stronger statement.
+                        </p>
+                        <p>
+                          <strong>A parameter the mapping does not name is dropped, and the drop is logged at debug.</strong> Dropping is the opt-in working as designed; the silence was a separate choice, and the expensive one. A client sending 
+                          <code>?status=open</code> to an endpoint that never mapped <code>status</code> gets a <code>200</code>
+                           computed as though it had not been sent, and nothing anywhere says so — the endpoint author sees a working request and the caller sees an ignored filter. Debug is the level the decision names: it is findable by someone who goes looking, without failing a request or filling an ordinary log with the tracking parameters (<code>utm_source</code>, 
+                          <code>gclid</code>) that every public URL collects.
+                        </p>
+                        <p>
+                          <strong>The names are logged; the values never are.</strong> A query string is where <code>?code=…&amp;state=…</code>
+                           arrives on an OAuth callback, and a log at a level people leave on in development is the last place a credential should reach. The name alone is the whole diagnosis anyway: what the author needs is that 
+                          <code>status</code> was sent and not bound.
+                        </p>
+                        <p>
+                          [declaredParameterNames] are the handler method's own parameter names, and they are excluded from the report. The mapping is not the only way a query value reaches a handler: a 
+                          <em>bare primitive</em> parameter binds from the query string by its own name (<code>GET /projects?workspaceId=</code>
+                           → <code>String workspaceId</code>), several strategies earlier. An endpoint that declares one <strong>and</strong>
+                           takes a request DTO would otherwise have the bound parameter reported as dropped on every request — a diagnostic that cries wolf on the documented case is worse than none, because it teaches its reader to skip the line that matters.
+                        </p>
+                        <p>
+                          Pure and side-effect-free apart from mutating [jsonBodyData] and that log line, so it is unit-testable without a live router (like [coercePrimitiveParameter]).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomEndpointHandler.injectFormFields" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static void injectFormFields(Map&lt;String, dynamic&gt; jsonBodyData, TomMultipartForm form, TomEndpoint&lt;Object, Object&gt; endpoint)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Folds the <em>text</em> parts of a decoded <code>multipart/form-data</code> body into [jsonBodyData], so the request DTO is built from a form exactly as it is built from a JSON body.
+                        </p>
+                        <p>
+                          [TomEndpoint.formFields] decides which parts are folded, and its two states mean genuinely different things:
+                        </p>
+                        <ul><li><strong>empty</strong> — fold every text part. A request body is the endpoint's own</li></ul>
+                        <p>
+                          contract, just as a JSON body is, and a JSON body is not filtered field-by-field either. Nothing is gained by making the ordinary case restate the DTO's field list. 
+                          <em> </em><em>non-empty</em>* — an allow-list: only the named parts are folded. This is for the endpoint whose form is filled in by something it does not control (a payment provider's callback, a third-party webhook posting a form), where the sender may add fields at will and only the declared ones should reach the DTO.
+                        </p>
+                        <p>
+                          Note the asymmetry with [injectQueryParameters], which binds <em>only</em> what the mapping names. It is the same reasoning read in the other direction: a query string is appended by whoever typed the URL, whereas a body is what the endpoint asked for. Where that stops being true, 
+                          <code>formFields</code> is the way to say so.
+                        </p>
+                        <p>
+                          File parts are not folded — see [TomFormFile], which binds as a method parameter, because an arbitrary object cannot travel through a JSON map into a reflected DTO.
+                        </p>
+                        <p>
+                          Called <em>before</em> [injectQueryParameters] and [injectPathParameters], so a URL value of the same name still wins: the route is the stronger statement, and a form field cannot override the row it is posted to.
+                        </p>
+                        <p>
+                          Pure and side-effect-free apart from mutating [jsonBodyData], so it is unit-testable without a live router (like [coercePrimitiveParameter]).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomEndpointHandler.decodeJsonObjectBody" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static Map&lt;String, dynamic&gt; decodeJsonObjectBody(String body, ClassMirror&lt;dynamic&gt; parameterMirror)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Decodes a request body that is required to be a JSON <strong>object</strong>, or throws a named endpoint exception.
+                        </p>
+                        <p>
+                          Both failure modes are one answer to the client — <em>send a JSON object</em> — so both carry the same key rather than the bare 
+                          <code>FormatException</code> / <code>TypeError</code> a raw <code>jsonDecode(...) as Map</code> produced. That key is worth distinguishing from the neighbouring 
+                          <code>parameter_instantiation_failed</code>: this one says the bytes never were a field map, that one says they were and the DTO refused a value inside them. A client can act differently on each, which is the whole reason for naming them separately.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomEndpointHandler.accessDeniedResponse" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Response accessDeniedResponse()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The response a denied caller receives: a bare <code>404</code>, indistinguishable from a route that does not exist.
+                        </p>
+                        <p>
+                          <strong>A denial says nothing.</strong> The alternative — <code>403</code>, which says "this exists and you may not have it" — hands an unauthorized caller a working oracle: walk the id space, read the statuses, and the ids that answer 
+                          <code>403</code> are the rows that exist. That is a disclosure the caller was refused the data for, delivered by the refusal itself. The resource-key arm makes it concrete, because there the id 
+                          <em>is</em> the thing being protected, but the contract arm leaks the same way at the level of the route: a 
+                          <code>403</code> on <code>/admin/users</code> tells an anonymous prober that this deployment has an admin API and that the endpoint is spelled that way.
+                        </p>
+                        <p>
+                          So the body carries no [tomErrorEnvelope] and no error key either. An envelope naming <code>access_denied</code>
+                           on a <code>404</code> would undo the whole of it in one header — the status would say "nothing here" and the body would say "something here, and you may not have it".
+                        </p>
+                        <p>
+                          The diagnosis is not lost, it moves to where it belongs. The denial is audited unconditionally just above, with the principal, the endpoint and the outcome, and the exception's message reaches the server log. An operator asking "why did this caller get a 404" has a record; the caller does not.
+                        </p>
+                        <p>
+                          Not routed through [TomEndpoint.errorHandler], and that is deliberate. Those hooks exist for errors <em>of the invocation</em>, and a handler written for one — mapping a domain exception to a 
+                          <code>409</code>, say — would be handed a security decision it was not written for. A deployment that genuinely wants 
+                          <code>403</code> states it by returning one, not by inheriting a handler.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomEndpointHandler._socketShape" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static String _socketShape(String lead, Stopwatch open, TomWebSocketConnection connection)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>[lead], followed by how long the socket was open and what crossed it.</p>
+                        <p>
+                          One renderer for both closing entries, so the success and failure records of a conversation are read the same way. Seconds to one decimal rather than a 
+                          <code>Duration</code>: an auditor scans these, and <code>3.4s</code> and <code>3600.0s</code> sort and compare by eye where 
+                          <code>0:00:03.412000</code> does not.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </section>
                 <section id="TomEndpointHandlerException" class="api-declaration">
@@ -1566,7 +1946,7 @@
                     <div id="TomEndpointHandlerException.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomEndpointHandlerException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, Object? stack, Object? rootException, bool autoLog = false})
+                          TomEndpointHandlerException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, StackTrace? stack, Object? rootException, bool autoLog = false})
                         </code>
                       </div>
                       <div class="api-doc">
@@ -1590,7 +1970,7 @@
                     <div id="TomEndpointPipelineException.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomEndpointPipelineException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, Object? stack, Object? rootException, bool autoLog = false})
+                          TomEndpointPipelineException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, StackTrace? stack, Object? rootException, bool autoLog = false})
                         </code>
                       </div>
                       <div class="api-doc">
@@ -1609,7 +1989,7 @@
                       Builds the shelf [Router] for the application by reflecting over annotated service/API classes and mounting one route per endpoint method.
                     </p>
                     <p>
-                      [scanClasses] partitions the reflected classes into service interfaces, API implementations, and components; [initializeRouter] resolves each service's instance (via [TomComponentReference], bean lookup, or a matching component class) and mounts its endpoint methods. The mounted handlers and a uri→[TomEndpointRoutingInfo] map are exposed statically for diagnostics.
+                      [scanClasses] partitions the reflected classes into service interfaces, API implementations, and components; [initializeRouter] resolves each service's instance (via [TomComponentReference], bean lookup, or a matching component class) and mounts its endpoint methods. The mounted handlers and a [TomEndpointRouteKey]→[TomEndpointRoutingInfo] map are exposed statically, read-only, for diagnostics.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1624,6 +2004,21 @@
                         <p>
                           Reflects over the annotated classes and partitions them into service interfaces, API implementations, and components. Throws if a class carries both 
                           <code>@TomApiImplementation</code> and <code>@tomService</code>.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomEndpointRouting.registerFrameworkApis" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void registerFrameworkApis()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Registers the API contracts the framework itself ships an implementation of, so the router can resolve them without the application registering anything.
+                        </p>
+                        <p>
+                          A registry-based handler is mounted by looking its contract up in [tomRemoteApis], and the lookup throws when the contract is absent. For an 
+                          <em>application's</em> API that is right: the contract and the handler are both the application's, and a handler whose contract was never registered is a bootstrap the application got wrong. For the framework's own it would not be: [TomUserPreferencesServer] is exported from the barrel, so it is reflected — and therefore scanned — in every deployment, whether or not that deployment has any interest in preferences. Leaving the registration to the application would mean every server that forgot one line failed to start, for an endpoint it never asked for.
+                        </p>
+                        <p>
+                          Registering is idempotent (the registry is keyed by API id), so repeated router initialisations — which the test suite does per case — cost nothing and cannot double-mount.
                         </p>
                       </div>
                     </div>
@@ -1679,6 +2074,10 @@
                           Collects, for each endpoint-annotated method of [classMirror], the merged [TomMethodMetadata] (endpoint, access control, transaction, and remote-API tags). Throws on conflicting/duplicate tags or a missing 
                           <code>@TomApiImplementation</code> for an API-endpoint method.
                         </p>
+                        <p>
+                          Access control follows G-API-3 (C-12): a handler-side <code>TomAccessControl</code> annotation is a local override and wins; when the handler declares none, the endpoint's 
+                          <strong>contract-declared</strong> policy (<code>TomApiEndpoint.access</code> from the registry) is extracted, so a registry-based handler is gated without restating the policy inline.
+                        </p>
                       </div>
                     </div>
                     <div id="TomEndpointRouting.findServiceInstance" class="api-member">
@@ -1691,32 +2090,118 @@
                         <p>
                           Fallback resolution for an interface-based service: finds a component class that extends or implements [serviceType] and returns its bean, otherwise returns the passed-in [serviceInstance].
                         </p>
+                        <p>
+                          A component with no registered bean is constructed here (see [instantiateComponent]) rather than left unresolved, and a resolved instance is never overwritten by a later, unresolvable candidate.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomEndpointRouting.instantiateComponent" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Object? instantiateComponent(ClassMirror&lt;dynamic&gt; componentType)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Constructs [componentType] through its no-argument constructor and registers it as the bean for its type, or returns 
+                          <code>null</code> when it cannot be built that way.
+                        </p>
+                        <p>
+                          The framework ships services of its own — the health check, the file endpoint — and a library that adds one must not force every existing application to register a bean it has never heard of. A 
+                          <code>@tomComponent</code> that needs no arguments is fully described by its own declaration, so building it is not a guess. Anything with a real constructor still belongs to the application, and stays unresolved here.
+                        </p>
+                        <p>
+                          The instance is registered so that the router and any later <code>TomBean.getBeanByType</code> see the same object; an application that registers its own bean first is never overridden, because this only runs when the lookup came back empty.
+                        </p>
                       </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
+                    <div id="TomEndpointRouting._handlers" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static List&lt;TomEndpointHandler&gt; _handlers</code></div>
+                      <div class="api-doc"><p>The mounted handlers, written only by [createRoutesForEndpoint].</p></div>
+                    </div>
+                    <div id="TomEndpointRouting._routingInfo" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static Map&lt;({String method, String uri}), TomEndpointRoutingInfo&gt; _routingInfo</code>
+                      </div>
+                      <div class="api-doc"><p>The mounted routes, written only by [createRoutesForEndpoint].</p></div>
+                    </div>
                     <div id="TomEndpointRouting.handlers" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static List&lt;TomEndpointHandler&gt; handlers</code></div>
-                      <div class="api-doc"><p>Every endpoint handler mounted during the last [initializeRouter] run.</p></div>
+                      <div class="api-doc">
+                        <p>Every endpoint handler mounted during the last [initializeRouter] run.</p>
+                        <p>
+                          A <strong>read-only view</strong> of the live list, not a copy: a diagnostics caller reading it after a later mount sees that mount, and reading it costs nothing. 
+                          <code>add</code>, <code>clear</code> and the rest throw [UnsupportedError].
+                        </p>
+                        <p>
+                          The mutation path is deliberately not here. What is served is decided by what the reflector holds and what [initializeRouter] mounts from it, and a caller that could append to this list would be describing a route nothing serves, or — worse — removing the record of one that is still being served. Both make the table's readers wrong about the process they are reporting on. A test that needs an empty table calls [resetRoutes].
+                        </p>
+                      </div>
                     </div>
                     <div id="TomEndpointRouting.routingInfo" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static Map&lt;String, TomEndpointRoutingInfo&gt; routingInfo</code></div>
-                      <div class="api-doc"><p>Mounted routes keyed by URI, for diagnostics.</p></div>
+                      <div class="api-member-head">
+                        <code class="api-signature">static Map&lt;({String method, String uri}), TomEndpointRoutingInfo&gt; routingInfo</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Mounted routes for diagnostics, one entry per route <em>and</em> HTTP method.</p>
+                        <p>A read-only view, for the reason [handlers] is one.</p>
+                        <p>
+                          See [TomEndpointRouteKey] for why the method is part of the key. An endpoint declaring three methods contributes three entries sharing one handler; two endpoints splitting a path between them contribute one entry each, and remain distinguishable.
+                        </p>
+                        <p>
+                          Only the methods an endpoint <em>declares</em> are listed. Every route also gets an automatic <code>OPTIONS</code>
+                           registration for CORS preflight, which is framework plumbing rather than part of the endpoint's surface: recording it would double the table with entries that say nothing an operator does not already know holds for every route.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomEndpointRouting.resetRoutes" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static void resetRoutes()</code></div>
+                      <div class="api-doc">
+                        <p>Forgets every mounted route, so the next mount starts from an empty table.</p>
+                        <p>
+                          [initializeRouter] calls it, which is what makes [handlers] answer for the <em>last</em> run rather than for every run since the process started — it builds a fresh [Router], so the table describing that router is fresh too.
+                        </p>
+                        <p>
+                          It is public because a test that mounts routes directly, without a router, needs the same fresh start; there is no other caller. The table is process-wide rather than per-router, which is what lets a diagnostics endpoint report on a server it does not hold, and is the reason two routers in one process would share one table — a shape nothing in this framework builds.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomEndpointRouting.shelfRoutePath" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String shelfRoutePath(String uri)</code></div>
+                      <div class="api-doc">
+                        <p>Translates a Tom route template into the <code>shelf_router</code> path syntax.</p>
+                        <p>
+                          Tom (and OpenAPI) write path variables as <code>{name}</code>; <code>shelf_router</code> matches them as 
+                          <code>&lt;name&gt;</code> and treats <code>{name}</code> as a <em>literal</em> path segment. So a route mounted with the raw template (<code>/items/{id}/field-states</code>) silently never matches a real request (<code>/items/1/field-states</code>) — the only symptom is a 404 "Route not found". Every 
+                          <code>{name}</code> is rewritten to <code>&lt;name&gt;</code>; a route with no variables is returned unchanged. The captured variable keeps its name, so the pipeline binds it from 
+                          <code>Request.params</code> by that name.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>
                 <section id="TomEndpointRoutingInfo" class="api-declaration">
                   <h3 class="api-decl-title">class TomEndpointRoutingInfo</h3>
                   <code class="api-signature">class TomEndpointRoutingInfo</code>
-                  <div class="api-doc"><p>Pairs a mounted route's [handler] with the [endpoint] it was built from.</p></div>
+                  <div class="api-doc">
+                    <p>
+                      Pairs a mounted route's [handler] with the [endpoint] it was built from and the HTTP [method] this particular mount answers.
+                    </p>
+                    <p>
+                      [endpoint] lists every method the endpoint <em>declares</em>; [method] is the one this entry stands for. Both are needed: enumerating 
+                      <code>routingInfo.values</code> then yields a complete picture without having to consult the keys.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomEndpointRoutingInfo.new" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">TomEndpointRoutingInfo.new(TomEndpointHandler handler, TomEndpoint&lt;Object, Object&gt; endpoint)</code>
+                        <code class="api-signature">
+                          TomEndpointRoutingInfo.new(TomEndpointHandler handler, TomEndpoint&lt;Object, Object&gt; endpoint, TomHttpMethod method)
+                        </code>
                       </div>
-                      <div class="api-doc"><p>Pairs [handler] with its [endpoint].</p></div>
+                      <div class="api-doc"><p>Pairs [handler] with its [endpoint] for one mounted [method].</p></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
@@ -1728,6 +2213,15 @@
                     <div id="TomEndpointRoutingInfo.endpoint" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomEndpoint&lt;Object, Object&gt; endpoint</code></div>
                       <div class="api-doc"><p>The endpoint definition the route was built from.</p></div>
+                    </div>
+                    <div id="TomEndpointRoutingInfo.method" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomHttpMethod method</code></div>
+                      <div class="api-doc">
+                        <p>The single HTTP method this entry was mounted for.</p>
+                        <p>
+                          A WebSocket endpoint records [TomHttpMethod.get]: a handshake is a GET, and that is the method its route is registered under.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>
@@ -1744,7 +2238,7 @@
                     <div id="TomMethodMetadata.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomMethodMetadata.new({required TomEndpoint&lt;Object, Object&gt; endpoint, required MethodMirror methodMirror, TomAccessControl? access, TomTransactional? transactionInfo, TomApiEndpointImplementation&lt;Object, Object&gt;? apiEndpointImplementation, TomApiImplementation? apiImplementation, TomApi? api, TomApiEndpoint&lt;dynamic, dynamic&gt;? apiEndpoint})
+                          TomMethodMetadata.new({required TomEndpoint&lt;Object, Object&gt; endpoint, required MethodMirror methodMirror, TomAccessControl? access, TomTransactional? transactionInfo, TomAudited? audited, TomWebSocketEndpoint&lt;Object, Object&gt;? webSocket, TomApiEndpointImplementation&lt;Object, Object&gt;? apiEndpointImplementation, TomApiImplementation? apiImplementation, TomApi? api, TomApiEndpoint&lt;dynamic, dynamic&gt;? apiEndpoint})
                         </code>
                       </div>
                       <div class="api-doc"><p>Bundles the metadata for one endpoint method.</p></div>
@@ -1768,6 +2262,28 @@
                       <div class="api-member-head"><code class="api-signature">TomTransactional? transactionInfo</code></div>
                       <div class="api-doc"><p>The transaction directive, if the method declared one.</p></div>
                     </div>
+                    <div id="TomMethodMetadata.audited" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomAudited? audited</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The <code>@TomAudited</code> declaration, if the method opted its invocation into the audit trail (CE-LG).
+                        </p>
+                        <p>
+                          Null for the great majority of endpoints, and that is the intended state: endpoint auditing is <em>declared</em>, because most endpoint calls are reads whose auditing would drown the trail. Mutation auditing needs no declaration — it happens at the repository.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomMethodMetadata.webSocket" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomWebSocketEndpoint&lt;Object, Object&gt;? webSocket</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The <code>@TomWebSocketEndpoint</code> declaration, when the method is a socket endpoint rather than a request/response one.
+                        </p>
+                        <p>
+                          Kept alongside the [endpoint] it converts to, not instead of it: the scan, the access resolution and the routing table all work on the [TomEndpoint], and this field is what tells the mounting step to give the route a socket handler rather than an HTTP one.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomMethodMetadata.apiEndpointImplementation" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">TomApiEndpointImplementation&lt;Object, Object&gt;? apiEndpointImplementation</code>
@@ -1786,6 +2302,56 @@
                       <div class="api-member-head"><code class="api-signature">TomApiEndpoint&lt;dynamic, dynamic&gt;? apiEndpoint</code></div>
                       <div class="api-doc"><p>The resolved remote-API endpoint, for registry-based endpoints.</p></div>
                     </div>
+                  </div>
+                </section>
+                <section id="_UnboundParameter" class="api-declaration">
+                  <h3 class="api-decl-title">class _UnboundParameter</h3>
+                  <code class="api-signature">class _UnboundParameter</code>
+                  <div class="api-doc">
+                    <p>Occupies the slot of a parameter no binding strategy could fill.</p>
+                    <p>
+                      A positional argument list cannot express "absent" — leaving a parameter out does not leave it unset, it shortens the list and moves everything after it one place to the left. So binding fills one slot per declared parameter and marks the ones it could not resolve, and the shape of the call is decided afterwards, when the whole picture is visible. Only then is it knowable whether an unfilled slot is a trailing optional (droppable) or a hole (not).
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="_UnboundParameter.new" class="api-member"><div class="api-member-head"><code class="api-signature">const _UnboundParameter.new()</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="_UnboundParameter.toString" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">String toString()</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="TomEndpointRouteKey" class="api-declaration">
+                  <h3 class="api-decl-title">typedef TomEndpointRouteKey</h3>
+                  <code class="api-signature">typedef TomEndpointRouteKey = ({String method, String uri})</code>
+                  <div class="api-doc">
+                    <p>Identifies one mounted route: a path template <em>and</em> the HTTP method it was mounted for.</p>
+                    <p>
+                      The method belongs in the key because a path alone does not identify a route. One endpoint may answer several methods, and — legally — two endpoints may divide the methods of a single path between them, so a table keyed by path holds one entry where several routes are mounted and silently reports whichever was written last.
+                    </p>
+                    <p>
+                      [uri] is the route as <em>declared</em> (<code>/items/{id}</code>), not the <code>shelf_router</code>
+                       translation of it, so a caller can look an entry up with the string it wrote in the annotation. [method] is the HTTP method's uppercase wire name (<code>TomHttpMethod.name</code>) rather than the [TomHttpMethod] instance, because 
+                      <code>TomHttpMethod</code> does not define value equality — two instances naming the same method are only interchangeable as map keys while both are the canonical constants, which is a precondition a diagnostic API should not impose on its callers.
+                    </p>
+                  </div>
+                </section>
+                <section id="_typeOf" class="api-declaration">
+                  <h3 class="api-decl-title">function _typeOf</h3>
+                  <code class="api-signature">Type _typeOf&lt;T&gt;()</code>
+                  <div class="api-doc">
+                    <p>The [Type] object for [T].</p>
+                    <p>
+                      The detour through a type parameter exists for one member of [_noResultReturnTypes]: <code>void</code>
+                       is not writable in a value position, so <code>void</code> alone is a syntax error while <code>_typeOf&lt;void&gt;()</code>
+                       is not.
+                    </p>
                   </div>
                 </section>
               </div>

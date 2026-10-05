@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1389,6 +1395,8 @@
                 <div class="treenodes">
                   <a class="leaf" href="#InterpreterVisitor">InterpreterVisitor</a>
                   <a class="leaf" href="#_BridgedConstructorTearOff">_BridgedConstructorTearOff</a>
+                  <a class="leaf" href="#_CastFailure">_CastFailure</a>
+                  <a class="leaf" href="#_CollectionForReplay">_CollectionForReplay</a>
                   <a class="leaf" href="#_NamedConstructorTearOff">_NamedConstructorTearOff</a>
                 </div>
               </div>
@@ -1398,11 +1406,6 @@
                 <section id="InterpreterVisitor" class="api-declaration">
                   <h3 class="api-decl-title">class InterpreterVisitor</h3>
                   <code class="api-signature">class InterpreterVisitor extends GeneralizingAstVisitor&lt;Object?&gt;</code>
-                  <div class="api-doc">
-                    <p>
-                      Main visitor that walks the AST and interprets the code. Uses a two-pass approach (DeclarationVisitor first).
-                    </p>
-                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="InterpreterVisitor.new" class="api-member">
@@ -1428,8 +1431,16 @@
                     <div id="InterpreterVisitor.currentAsyncState" class="api-member">
                       <div class="api-member-head"><code class="api-signature">AsyncExecutionState? currentAsyncState</code></div>
                     </div>
-                    <div id="InterpreterVisitor._currentStatementLabels" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">Set&lt;String&gt; _currentStatementLabels</code></div>
+                    <div id="InterpreterVisitor._labelledStatement" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">AstNode? _labelledStatement</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The statement [visitLabeledStatement] is about to run, and the labels written on it. A loop or switch reads its labels from here once, on entry — see [_labelsOf] — so a label reaches the statement it is written on and nothing nested inside it.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpreterVisitor._labelledStatementLabels" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Set&lt;String&gt; _labelledStatementLabels</code></div>
                     </div>
                     <div id="InterpreterVisitor.syncGeneratorValues" class="api-member">
                       <div class="api-member-head"><code class="api-signature">List&lt;Object?&gt;? syncGeneratorValues</code></div>
@@ -1467,15 +1478,19 @@
                         </p>
                       </div>
                     </div>
-                    <div id="InterpreterVisitor._constCollectionCache" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final Map&lt;SetOrMapLiteral, Object&gt; _constCollectionCache</code></div>
+                    <div id="InterpreterVisitor._collectionForAwaitScopes" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final List&lt;Set&lt;Object&gt;&gt; _collectionForAwaitScopes</code></div>
                       <div class="api-doc">
                         <p>
                           T3 (perf, plan_2 §6 / F4): canonicalization cache for <code>const</code> set/map literals. A const collection literal is a compile-time constant whose value is environment-independent and immutable, so re-visiting the same node must yield the identical canonical instance (matching real Dart's const canonicalization). Without this, every evaluation re-ran the full type-inference + element walk and allocated a fresh 
                           <code>UnmodifiableSetView</code> / <code>UnmodifiableMapView</code> — surfacing as the F4 <code>UnmodifiableSetView.UnmodifiableSetView</code>
-                           constructor hotspot. The cache is keyed by AST node identity and is only populated for const literals; non-const literals must still allocate fresh each time. The returned views are unmodifiable, so sharing one instance across hits is safe.
+                           constructor hotspot. The cache is keyed by AST node identity and is only populated for const literals; non-const literals must still allocate fresh each time. The returned views are unmodifiable, so sharing one instance across hits is safe. The await sites each collection-literal 
+                          <code>for</code> body in flight has reached, innermost last (SCF43). See [_CollectionForReplay].
                         </p>
                       </div>
+                    </div>
+                    <div id="InterpreterVisitor._constCollectionCache" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Map&lt;SetOrMapLiteral, Object&gt; _constCollectionCache</code></div>
                     </div>
                     <div id="InterpreterVisitor.staticCoords" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final Expando&lt;StaticCoord&gt; staticCoords</code></div>
@@ -1504,6 +1519,7 @@
                         </p>
                       </div>
                     </div>
+                    <div id="InterpreterVisitor.callStack" class="api-member"><div class="api-member-head"><code class="api-signature">D4rtCallStack callStack</code></div></div>
                     <div id="InterpreterVisitor._classicForHasClosure" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final Expando&lt;bool&gt; _classicForHasClosure</code></div>
                     </div>
@@ -1516,6 +1532,98 @@
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
+                    <div id="InterpreterVisitor.visitNode" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Object? visitNode(AstNode node)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                      <div class="api-doc">
+                        <p>SCC33 — the dispatch backstop.</p>
+                        <p>
+                          <code>GeneralizingAstVisitor.visitNode</code> walks the node's children and answers <code>null</code>. For a visitor that 
+                          <em>traverses</em>, that is the right default; for one that <em>evaluates</em>, it is a trapdoor. A node with no handler did not fail — it quietly produced 
+                          <code>null</code>, and the program carried that <code>null</code> until it hit something that could not take it, several frames away and in unrelated code. 
+                          <code>#foo</code> evaluated to <code>null</code> for the entire life of the project this way (SCB11); the error it eventually raised accused a bridge.
+                        </p>
+                        <p>
+                          Raising here converts that class of defect from "wrong answer, blamed elsewhere" into "named diagnostic, at the offset". Everything the inherited default was legitimately doing now has an explicit handler — see [visitNamedExpression], [visitFunctionDeclarationStatement] and [visitTypeAlias], each of which was found by instrumenting this method and running the suite rather than by reading the code.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpreterVisitor.visitNamedExpression" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Object? visitNamedExpression(NamedExpression node)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                      <div class="api-doc">
+                        <p>A named argument evaluates to its expression — the label is a name, not a value.</p>
+                        <p>
+                          Without this, the generalizing default recursed into the children, which walked the [Label] and tried to 
+                          <em>resolve its identifier as a variable</em>. That is why <code>super(a: 7)</code> failed with "Undefined variable: a" while 
+                          <code>super(a: a)</code> appeared to work: in the second form a variable of that name happened to be in scope, so the accidental lookup succeeded and the real value arrived by a different route. Every existing test wrote the forwarding form, which is why the suite never caught it.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpreterVisitor.visitFunctionDeclarationStatement" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Object? visitFunctionDeclarationStatement(FunctionDeclarationStatement node)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                      <div class="api-doc">
+                        <p>A local function declaration is executed by evaluating the declaration it wraps.</p>
+                        <p>
+                          This worked before only as a side effect of the inherited default's child recursion. It is spelled out because the behaviour is intended, and because 
+                          <code>tom_d4rt_ast</code> already had the explicit handler — this realigns the twins.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpreterVisitor.visitTypeAlias" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Object? visitTypeAlias(TypeAlias node)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                      <div class="api-doc">
+                        <p>A type alias binds its NAME to the type it names, and evaluates to nothing itself.</p>
+                        <p>
+                          SCC33 gave this an explicit handler that returned null, which stopped seven further node types reaching the dispatch backstop but left the alias with no runtime representation at all. SCD100 measured what that cost: 
+                          <code>1 is I</code> through <code>typedef I = int</code> did not answer "no", it THREW (<code>Type check failed: Undefined variable: I</code>), and so did a generic bound and a return type written through an alias — legal programs that would not run. Three more shapes went the other way and accepted silently what Dart rejects, because a parameter, a local and an 
+                          <code>as</code> whose annotation cannot be resolved all stay lenient by design.
+                        </p>
+                        <p>
+                          <strong>One registration fixes all of them.</strong> Every type-resolution path funnels through <code>environment.get(typeName)</code>
+                           — <code>is</code>/<code>as</code>, parameter binding, return checks, generic bounds and a collection literal's type argument — so defining the alias name to the RuntimeType its target resolves to makes each of them behave exactly as if the script had written the target.
+                        </p>
+                        <p>
+                          <strong>Still does not recurse</strong>, which is the part SCC33 cares about: the target is resolved by [_resolveTypeAnnotationWithEnvironment], which reads the annotation directly. No child is ever 
+                          <code>accept</code>ed, so no type-level syntax reaches the backstop.
+                        </p>
+                        <p>
+                          <strong>Lenient when the target cannot be resolved</strong> — the alias simply goes unregistered and the old behaviour stands. That covers a forward reference on the first pass (see the fixpoint in 
+                          <code>d4rt_base.dart</code>, which is what makes declaration order not matter) and a target this resolver does not model.
+                        </p>
+                        <p>
+                          <strong>A GENERIC alias is deliberately skipped.</strong> <code>typedef L&lt;T&gt; = List&lt;T&gt;</code>
+                           needs its type argument substituted at each use site; binding it here would bind <code>T</code> to nothing and answer confidently wrong, which is worse than the leniency it replaces. Tracked as sce130.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpreterVisitor.registerTypeAlias" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool registerTypeAlias(TypeAlias node)</code></div>
+                      <div class="api-doc">
+                        <p>Bind [node]'s name to its target type, if the target resolves now.</p>
+                        <p>
+                          Returns true when a binding was made, so the caller can run this to a fixpoint and resolve alias chains written in any order.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpreterVisitor._labelsOf" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Set&lt;String&gt; _labelsOf(AstNode statement)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The labels written on [statement]: empty unless it is the statement a [LabeledStatement] is running right now. Read once, on entry — a nested labelled statement replaces the record while the body runs.
+                        </p>
+                      </div>
+                    </div>
                     <div id="InterpreterVisitor.resolveStaticCoordinates" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">void resolveStaticCoordinates(Iterable&lt;AstNode&gt; declarations)</code>
@@ -1611,6 +1719,56 @@
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
+                    <div id="InterpreterVisitor._castTypeDescription" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String _castTypeDescription(TypeAnnotation typeNode)</code></div>
+                      <div class="api-doc">
+                        <p>SCE104: how a cast's target type is spelled in a failure message.</p>
+                        <p>
+                          The ONE architectural divergence the shared cast carries. The analyzer's <code>TypeAnnotation</code> can print itself; the mirror AST cannot, so the twin rebuilds the name from the node. Confined to this method on purpose — both call sites (the 
+                          <code>as</code> expression and the cast pattern) go through it, so the difference is one recorded member rather than four inline copies.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpreterVisitor._tryCast" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Object? _tryCast(Object? value, TypeAnnotation typeNode)</code></div>
+                      <div class="api-doc">
+                        <p>[value] cast to [typeNode], or [_castFailed] when the cast cannot succeed.</p>
+                        <p>
+                          SCE104: ONE cast, for the two constructs that perform one. <code>v as T</code> and <code>case var x as T</code>
+                           are the same operation written twice, and they were implemented twice — an eleven-name ladder here and a nine-name ladder in the 
+                          <code>CastPattern</code> branch of [_matchAndBind]. Measured before the merge, the two disagreed on eight inputs, and each knew something the other did not:
+                        </p>
+                        <table class="mdtable">
+                          <thead><tr><th>input</th><th>expression</th><th>pattern</th><th>Dart</th></tr></thead>
+                          <tbody>
+                            <tr><td><code>'s' as int</code></td><td>throws</td><td>MISS</td><td>throws</td></tr>
+                            <tr><td><code>1 as double</code></td><td>1.0</td><td>MISS</td><td>1.0</td></tr>
+                            <tr><td><code>1 as Null</code></td><td>throws</td><td>HIT</td><td>throws</td></tr>
+                            <tr><td><code>'s' as I</code> (=int)</td><td>throws</td><td>HIT</td><td>throws</td></tr>
+                            <tr><td><code>'s' as Map</code></td><td>RETURNS 's'</td><td>miss</td><td>throws</td></tr>
+                            <tr><td><code>'s' as Set</code></td><td>RETURNS 's'</td><td>miss</td><td>throws</td></tr>
+                          </tbody>
+                        </table>
+                        <p>
+                          The pattern lacked <code>Null</code>, alias resolution and the <code>int</code>→<code>double</code> promotion; the expression lacked 
+                          <code>Map</code> and <code>Set</code> entirely, so those fell to the permissive <code>default</code> and a failing cast returned its operand. One body ends both, and the two rows the pattern was right about are why the merge is not simply "call the expression's version".
+                        </p>
+                        <p>
+                          Returning a sentinel rather than throwing is what lets each construct keep its own message: the SDK words a failed 
+                          <code>as</code> and a failed cast PATTERN differently, and matching it per construct is the point of [D4rtTypeError] — the same discipline 
+                          <code>ResolvedBinding</code> applies with its <code>of 'name'</code> suffix.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpreterVisitor._aliasTargetName" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String _aliasTargetName(String written)</code></div>
+                      <div class="api-doc">
+                        <p>SCD100: the name [written] ultimately stands for, following a type alias.</p>
+                        <p>
+                          Returns [written] unchanged for anything that is not an alias — including a name that does not resolve at all, which keeps every existing cast on the branch it already took.
+                        </p>
+                      </div>
+                    </div>
                     <div id="InterpreterVisitor._interpretedClassChainHasName" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">bool _interpretedClassChainHasName(InterpretedClass? klass, String typeName)</code>
@@ -1656,6 +1814,12 @@
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
+                    <div id="InterpreterVisitor.visitSymbolLiteral" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Object? visitSymbolLiteral(SymbolLiteral node)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
                     <div id="InterpreterVisitor.visitSimpleIdentifier" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">Object? visitSimpleIdentifier(SimpleIdentifier node)</code>
@@ -1688,6 +1852,41 @@
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
+                    <div id="InterpreterVisitor._nativeBinaryFallback" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Object? _nativeBinaryFallback(String operator, Object? left, Object? right)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          SCD93: hand <code>left &lt;operator&gt; right</code> to the SDK when the typed fast paths above could not dispatch it themselves.
+                        </p>
+                        <p>
+                          The six bitwise and shift arms used to throw <code>RuntimeD4rtException('Unsupported binary operator "…"')</code>
+                           here — a d4rt-only type no <code>on</code> clause can name, carrying a message that printed the TokenType (<code>AMPERSAND</code>) rather than the operator. But 
+                          <code>left</code> and <code>right</code> are already NATIVE at this point (a <code>BridgedInstance</code>
+                           was unwrapped to its <code>nativeObject</code> two hundred lines up), so the SDK operator is right there and knows the answer exactly:
+                        </p>
+                        <ul>
+                          <li><code>1 &amp; 2.0</code>      -&gt; TypeError, 'double' is not a subtype of 'int' of 'other'</li>
+                          <li><code>true &amp; 1</code>     -&gt; TypeError, naming 'bool' -- the parameter type</li>
+                        </ul>
+                        <p>
+                          follows the RECEIVER's own operator - <code>BigInt &lt;&lt; 1.0</code>-&gt; TypeError, naming the parameter 'shiftAmount' - 
+                          <code>'x' &amp; 1</code>      -&gt; NoSuchMethodError, Class 'String' has no '&amp;' - <code>null &amp; 1</code>
+                               -&gt; NoSuchMethodError, The method '&amp;' was called on null
+                        </p>
+                        <p>
+                          Tabulating that here would be a second implementation of a rule the SDK already applies, which is the shape SCC30 removed from 
+                          <code>~/</code> and <code>%</code>. The comparison arms (<code>&lt;</code>, <code>&lt;=</code>, <code>&gt;</code>, 
+                          <code>&gt;=</code>) have delegated since they were written; these six were simply the ones nobody converted.
+                        </p>
+                        <p>
+                          <strong>The interpreter's own runtime objects are the exception, and it is the legitimate kind.</strong>
+                           An <code>InterpretedInstance</code> has no SDK operator to delegate to — its class operators and extension-type operators were already given their chance above — so there is nothing to hand the question to and the d4rt exception stays. Handing it over anyway would name 
+                          <code>InterpretedInstance</code> in a NoSuchMethodError, leaking an internal class into a script's diagnostics.
+                        </p>
+                      </div>
+                    </div>
                     <div id="InterpreterVisitor.visitIndexExpression" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">Object? visitIndexExpression(IndexExpression node)</code>
@@ -1708,6 +1907,47 @@
                         </p>
                         <p>
                           Shadow-safe: a local that shadows a static field lives in a different (unmarked) environment, so [definingEnv] is not the snapshot scope and no propagation occurs.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpreterVisitor._staticFieldOwner" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">InterpretedClass? _staticFieldOwner(InterpretedClass? klass, String name)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>The class in [klass]'s chain that declares a STATIC FIELD named [name].</p>
+                        <p>
+                          SCE125. A bare name written from inside an instance method used to land on the INSTANCE — <code>thisInstance.set(name, …)</code>
+                           creates a field when none exists — so <code>class Box { static int v = 1; void go() { v += 1; } }</code>
+                           left <code>Box.v</code> at 1 and gave the instance a private <code>v</code> of 2. The method could read its own write back, which is what made it silent: a test that checks the value INSIDE the method passes, and only a reader outside the instance sees the static unchanged. Two instances did not even agree with each other.
+                        </p>
+                        <p>
+                          The READ path was always right — [InterpretedInstance.get] walks the class chain and finds the static when no instance field shadows it — which is why the two halves disagreed rather than both being wrong. This mirrors that walk so a bare write resolves exactly where a bare read does.
+                        </p>
+                        <p>
+                          In Dart a class cannot declare a static and an instance member with the same name, so finding a static means there is no instance member to prefer; the check can come first.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpreterVisitor._bareSetterFor" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Callable? _bareSetterFor(String name)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The setter a bare write to [name] reaches through the lexical scope, or null when there is none or a closer binding of the plain name shadows it.
+                        </p>
+                        <p>
+                          SCF25. A setter is bound under <code>v=</code> ([Environment.setterKey]) — top-level ones by the declaration passes, a class's static ones by the static snapshot a static member runs in. A binding of 
+                          <code>v</code> itself that sits strictly INSIDE the setter's scope (a local, a parameter) is what the bare name means, as in Dart; one in the same scope is the getter of the pair, and does not shadow its own setter.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpreterVisitor._staticSetterFor" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">InterpretedFunction? _staticSetterFor(InterpretedClass? klass, String name)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          The STATIC SETTER named [name] in [klass]'s chain, or null — the setter counterpart of [_staticFieldOwner] (SCF25).
                         </p>
                       </div>
                     </div>
@@ -1780,38 +2020,65 @@
                     <div id="InterpreterVisitor._executeClassicFor" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          void _executeClassicFor(AstNode? initialization, Expression? condition, List&lt;Expression&gt;? updaters, Statement body)
+                          void _executeClassicFor(AstNode? initialization, Expression? condition, List&lt;Expression&gt;? updaters, Statement body, Set&lt;String&gt; labels)
                         </code>
+                      </div>
+                    </div>
+                    <div id="InterpreterVisitor._forEachBinding" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">ResolvedBinding? _forEachBinding(AstNode? loopVariable)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          SCD63: the per-element check a typed for-each loop variable needs, or null when the loop needs none — resolved ONCE, before iterating.
+                        </p>
+                        <p>
+                          A typed for-each variable used to bind whatever the iterable produced: <code>for (final int x in [1, 'two', 3])</code>
+                           ran its body with a String in a variable its own declaration rules out, and the body then computed a wrong value rather than failing — 
+                          <code>x + 1</code> concatenated to <code>'two1'</code>. Real Dart raises <code>TypeError</code> on the offending element, after the earlier iterations have run, which is what [ResolvedBinding.bind] reproduces.
+                        </p>
+                        <p>
+                          The check is a BINDING check, deliberately not this visitor's own <code>_valueHasType</code>. <code>is</code>
+                           is a question, and a question must answer "no" to a type it cannot resolve; a binding check must wave that same type through, and it widens an 
+                          <code>int</code> to a <code>double</code> where <code>is</code> must not. Using the <code>is</code> predicate here would reject 
+                          <code>for (final double d in [1, 2.5])</code>, which real Dart accepts, and would turn a for-in over a type from an unbridged library into a lookup failure.
+                        </p>
+                        <p>
+                          [InterpretedFunction.resolveForEachBinding] owns the rule; the async state machine's and sync generator's own for-each paths share it, because whether a given loop runs on this path or on one of theirs depends on nothing more visible than whether its enclosing function is 
+                          <code>async</code>.
+                        </p>
                       </div>
                     </div>
                     <div id="InterpreterVisitor._executeForIn" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">void _executeForIn(AstNode loopVariableOrIdentifier, Expression iterableExpression, Statement body)</code>
+                        <code class="api-signature">
+                          void _executeForIn(AstNode loopVariableOrIdentifier, Expression iterableExpression, Statement body, Set&lt;String&gt; labels)
+                        </code>
                       </div>
                     </div>
                     <div id="InterpreterVisitor._executeForInWithPattern" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">void _executeForInWithPattern(DartPattern pattern, Expression iterableExpression, Statement body)</code>
+                        <code class="api-signature">
+                          void _executeForInWithPattern(DartPattern pattern, Expression iterableExpression, Statement body, Set&lt;String&gt; labels)
+                        </code>
                       </div>
                     </div>
                     <div id="InterpreterVisitor._executeAwaitForIn" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          Object? _executeAwaitForIn(AstNode loopVariableOrIdentifier, Expression iterableExpression, Statement body)
+                          Object? _executeAwaitForIn(AstNode loopVariableOrIdentifier, Expression iterableExpression, Statement body, Set&lt;String&gt; labels)
                         </code>
                       </div>
                     </div>
                     <div id="InterpreterVisitor._convertStreamAndProcessForIn" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          Future&lt;Object?&gt; _convertStreamAndProcessForIn(AstNode loopVariableOrIdentifier, Stream&lt;Object?&gt; stream, Statement body)
+                          Future&lt;Object?&gt; _convertStreamAndProcessForIn(AstNode loopVariableOrIdentifier, Stream&lt;Object?&gt; stream, Statement body, Set&lt;String&gt; labels)
                         </code>
                       </div>
                     </div>
                     <div id="InterpreterVisitor._executeForInWithItems" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          void _executeForInWithItems(AstNode loopVariableOrIdentifier, List&lt;Object?&gt; items, Statement body)
+                          void _executeForInWithItems(AstNode loopVariableOrIdentifier, List&lt;Object?&gt; items, Statement body, Set&lt;String&gt; labels)
                         </code>
                       </div>
                     </div>
@@ -1842,7 +2109,7 @@
                     <div id="InterpreterVisitor._handleYieldStarAsync" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          Future&lt;Object?&gt; _handleYieldStarAsync(Object? value, StreamController&lt;Object?&gt; controller)
+                          Future&lt;Object?&gt; _handleYieldStarAsync(Object? value, StreamController&lt;Object?&gt; controller, [AsyncGeneratorGate? gate])
                         </code>
                       </div>
                     </div>
@@ -1866,7 +2133,15 @@
                     </div>
                     <div id="InterpreterVisitor._executeCascadeMethodInvocation" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">void _executeCascadeMethodInvocation(Object? targetValue, MethodInvocation node)</code>
+                        <code class="api-signature">Object? _executeCascadeMethodInvocation(Object? targetValue, MethodInvocation node)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Runs one <code>..method(...)</code> section, or returns the suspension it hit.</p>
+                        <p>
+                          SCE81: this returned <code>void</code> because a cascade section's VALUE is deliberately discarded — the cascade evaluates to its target. But a discarded value and an unfinished one are not the same thing, and 
+                          <code>_evaluateArguments</code> signals the second by returning the suspension sentinel through a <code>as dynamic</code>. With nowhere to put it, the record destructuring below failed and the script author saw an internal cast error naming 
+                          <code>AsyncSuspensionRequest</code> and the argument-record type.
+                        </p>
                       </div>
                     </div>
                     <div id="InterpreterVisitor._invokeListMethod" class="api-member">
@@ -1921,12 +2196,50 @@
                     </div>
                     <div id="InterpreterVisitor._executeCascadeAssignment" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">void _executeCascadeAssignment(Object? targetValue, AssignmentExpression node)</code>
+                        <code class="api-signature">Object? _executeCascadeAssignment(Object? targetValue, AssignmentExpression node)</code>
+                      </div>
+                      <div class="api-doc"><p>Runs one <code>..x = v</code> section, or returns the suspension it hit.</p></div>
+                    </div>
+                    <div id="InterpreterVisitor._unwrapHashKey" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Object? _unwrapHashKey(Object? key)</code></div>
+                      <div class="api-doc">
+                        <p>A bridged value used as a hash key is stored as its wrapped native.</p>
+                        <p>
+                          SCC32, generalizing RC-7. That rule already existed for [BridgedEnumValue] and for exactly this reason; the same argument covers every bridged wrapper, so this replaces the enum-only special case rather than sitting beside it.
+                        </p>
+                        <p>
+                          Storing the native is what makes the two lookup spellings agree. d4rt reaches a map by two different routes: 
+                          <code>m[k]</code> passes <code>k</code> through untouched, while <code>m.containsKey(k)</code> is a bridge method call whose arguments are unwrapped on the way in. So the lookup key arrives as a wrapper down one path and as a native down the other, and no equality definition on the wrapper can satisfy both — Dart's hash lookup asks 
+                          <code>lookupKey == storedKey</code>, and when the lookup key is a bare native its own <code>==</code>
+                           rejects a wrapper, which is not something this code can override. Normalizing the <em>stored</em> key removes the choice: a native compares equal to a native directly, and to a wrapper through [BridgedInstance.operator ==].
+                        </p>
+                        <p>
+                          Only values that are already wrappers are unwrapped. <code>toBridgedInstance</code> is deliberately not used here — it 
+                          <em>wraps</em> bare natives rather than reporting on them, so asking it would allocate a wrapper for every native key just to take it apart again.
+                        </p>
                       </div>
                     </div>
                     <div id="InterpreterVisitor._processCollectionElement" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">void _processCollectionElement(CollectionElement element, Object collection, {required bool isMap})</code>
+                        <code class="api-signature">
+                          Object? _processCollectionElement(CollectionElement element, Object collection, {required bool isMap})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Adds [element] to [collection], or returns the suspension it hit.</p>
+                        <p>
+                          SCE80. This returned <code>void</code>, and so had no way to say "the element I was evaluating has not finished". 
+                          <code>await</code> inside a collection literal therefore STORED the interpreter's own <code>AsyncSuspensionRequest</code>
+                           sentinel as the element: <code>[await Future.value(1)]</code> evaluated to a list containing one of those, silently, and the damage surfaced wherever the value was next used. Only the spread case reported anything, and only because a sentinel is not an 
+                          <code>Iterable</code>.
+                        </p>
+                        <p>
+                          Returning <code>Object?</code> lets the suspension propagate the way it does through every other visitor — there are about fifty 
+                          <code>if (x is AsyncSuspensionRequest) return x;</code> sites — so the state machine suspends, and on replay the literal is rebuilt with the resolved value in place.
+                        </p>
+                        <p>
+                          Null means the element completed. A non-null result is always the suspension, and every caller must propagate it.
+                        </p>
                       </div>
                     </div>
                     <div id="InterpreterVisitor.visitFunctionDeclaration" class="api-member">
@@ -2007,6 +2320,22 @@
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
+                    <div id="InterpreterVisitor._stepBridgedProperty" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          (Object?, Object?)? _stepBridgedProperty(Object? target, String propertyName, TokenType operatorType)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          <code>obj.p++</code> / <code>++obj.p</code> (and <code>--</code>) on a BRIDGED receiver, or null when [target] is not one (SCF37).
+                        </p>
+                        <p>
+                          Reads through the getter adapter and writes through the setter adapter, as <code>obj.p += 1</code> does, with the step computed by [computeCompoundValue]. Both adapters come from the reachable walk (SCF19), so a property the bridged class inherits steps too. Returns 
+                          <code>(old, new)</code>: postfix yields the first, prefix the second.
+                        </p>
+                      </div>
+                    </div>
                     <div id="InterpreterVisitor.computeCompoundValue" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">Object? computeCompoundValue(Object? currentValue, Object? rhsValue, TokenType operatorType)</code>
@@ -2029,16 +2358,63 @@
                       </div>
                       <div class="api-doc"><p>Check if a Map matches the expected generic type arguments</p></div>
                     </div>
-                    <div id="InterpreterVisitor._checkValueMatchesType" class="api-member">
+                    <div id="InterpreterVisitor._nativeOrBridgedMatches" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">bool _checkValueMatchesType(Object? value, TypeAnnotation typeNode)</code>
+                        <code class="api-signature">bool _nativeOrBridgedMatches(Object? value, BridgedClass targetType)</code>
                       </div>
-                      <div class="api-doc"><p>Check if a value matches a type annotation</p></div>
+                      <div class="api-doc">
+                        <p>
+                          Whether [value] satisfies [targetType] — [_valueHasType]'s answer for a bridged type, for an operand in ANY of the forms a bridged value arrives in:
+                        </p>
+                        <ul><li>a <code>BridgedInstance</code> — the registered supertype walk first, then the</li></ul>
+                        <p>
+                          native checks below against the object it wraps; <em> a raw native object — as ordinary as a wrapped one: <code>dart:collection</code> constructors return the native, and a Flutter callback passes its native argument unwrapped (e.g. 
+                            <code>KeyEvent</code> on <code>KeyboardListener.onKeyEvent</code>); </em>
+                           an <code>InterpretedInstance</code> — a script class may extend or implement a bridged one, so its class answers (RC-7 walks the 
+                          <code>bridgedSuperclass</code> / <code>bridgedInterfaces</code> chains). Short-circuiting it to <code>false</code>
+                           made <code>Doubler() is StreamTransformer</code> false for <code>class Doubler extends StreamTransformerBase</code>
+                           (SC6); * <code>null</code> — never a bridged type.
+                        </p>
+                        <p>
+                          For a native operand, <code>isAssignable</code> (the host's own <code>v is X</code>) is authoritative when the bridge-name walk misses. A bridge that declares no 
+                          <code>isAssignable</code> falls back to resolving the operand's own bridge the way dispatch does and re-running the subtype walk (SC4: 
+                          <code>StreamController.sink</code> resolves to the <code>StreamSink</code> bridge, so <code>sink is StreamSink</code>
+                           must be true). That fallback adds no <code>isAssignable</code> closure, so bridge selection in <code>Environment.toBridgedInstance</code>
+                           is untouched.
+                        </p>
+                      </div>
                     </div>
                     <div id="InterpreterVisitor.visitIdentifier" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">dynamic visitIdentifier(Identifier node)</code>
                         <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="InterpreterVisitor.catchClauseMatches" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool catchClauseMatches(CatchClause clause, Object? thrownValue)</code></div>
+                      <div class="api-doc">
+                        <p>Whether [clause] handles [thrownValue].</p>
+                        <p>
+                          SCD41: extracted so the ASYNC path can ask the same question. It used to take <code>catchClauses.first</code>
+                           regardless of type, so <code>on StateError catch</code> ran for an <code>ArgumentError</code> and a clause that must not match caught anyway — the same script behaving differently depending only on whether the enclosing function is 
+                          <code>async</code>. Two implementations of catch matching is how that divergence arose; there is now one.
+                        </p>
+                        <p>
+                          The WRAPPER is passed, not an unwrapped native view: [_valueHasType] does its own unwrapping where the host 
+                          <code>is</code> needs it, and its bridged path prefers the wrapper's own bridge.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpreterVisitor.selectCatchClause" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">CatchClause? selectCatchClause(TryStatement node, Object? thrownValue)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>The clause of [node] that handles [thrownValue], or null when none does.</p>
+                        <p>
+                          SCC31: an undefined name is a defect in the program text, not a runtime condition, so no clause may claim it — not 
+                          <code>on Object</code>, not a bare <code>catch (e)</code>. Real Dart rejects such a program at compile time, where no handler exists to run.
+                        </p>
                       </div>
                     </div>
                     <div id="InterpreterVisitor.visitTryStatement" class="api-member">
@@ -2065,6 +2441,26 @@
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
+                    <div id="InterpreterVisitor._valueHasType" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">bool _valueHasType(TypeAnnotation typeNode, Object? expressionValue)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Whether [expressionValue] satisfies the type written as [typeNode] — the predicate behind the <code>is</code>
+                           operator.
+                        </p>
+                        <p>
+                          SCC18 lifted this out of [visitIsExpression] so that typed <em>patterns</em> could ask the same question. They previously did not ask at all, and the two shapes that did (the object pattern's name heuristic, the catch clause's 
+                          <code>isAssignable</code> probe) each answered differently — which is how SCB7's unwrap fix reached one copy and not the others. Anything that needs "does this value have this type" belongs here; do not grow a private switch beside it. The catch-clause copy is the last one still outstanding (SCC20).
+                        </p>
+                        <p>
+                          That includes the ELEMENTS of a generic collection: [_checkGenericListType] and [_checkGenericMapType] ask this predicate of each element, key and value, so 
+                          <code>[x] is List&lt;T&gt;</code> answers exactly as <code>x is T</code> does — a type name the interpreter cannot resolve throws in both positions, a function or record type is checked structurally in both, and 
+                          <code>void</code> is false in both.
+                        </p>
+                      </div>
+                    </div>
                     <div id="InterpreterVisitor._isMapLiteralElement" class="api-member">
                       <div class="api-member-head"><code class="api-signature">bool _isMapLiteralElement(CollectionElement element)</code></div>
                       <div class="api-doc">
@@ -2089,6 +2485,49 @@
                         <code class="api-signature">
                           RuntimeType _resolveTypeAnnotationWithEnvironment(TypeAnnotation? typeNode, Environment env, {bool isAsync = false})
                         </code>
+                      </div>
+                    </div>
+                    <div id="InterpreterVisitor._functionRuntimeTypeFromParts" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          FunctionRuntimeType _functionRuntimeTypeFromParts(TypeAnnotation? returnTypeNode, FormalParameterList? parameters, Environment env)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          DFUB5: build a [FunctionRuntimeType] from a return-type node and a formal parameter list, splitting required-positional / optional-positional / named parameters and resolving each parameter type through the shared resolver. Used for 
+                          <code>GenericFunctionType</code> annotations.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpreterVisitor._resolveFormalParameterRuntimeType" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">RuntimeType _resolveFormalParameterRuntimeType(FormalParameter param, Environment env)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          DFUB5: resolve the declared type of a single formal parameter to a [RuntimeType], falling back to <code>dynamic</code>
+                           when the parameter has no annotation or the annotation cannot be resolved.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpreterVisitor._checkAppliedGenericReturn" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          void _checkAppliedGenericReturn(Object? returnValue, AstNode? eDecl, String functionName, bool isNullable)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>DFUB6: enforce applied generic type arguments on a function return.</p>
+                        <p>
+                          The base subtype check treats <code>Box&lt;String&gt;</code> and <code>Box&lt;int&gt;</code> as the same raw 
+                          <code>Box</code>, so <code>Box&lt;String&gt; f() =&gt; Box&lt;int&gt;(...)</code> and <code>List&lt;String&gt; f() =&gt; [1,2,3]</code>
+                           slip through. This compares the value's applied runtime type against the declared applied return type, throwing the standard "can't be returned" error when the arguments are incompatible.
+                        </p>
+                        <p>
+                          Scope is deliberately narrow: it only fires when the declared return type is a generic <code>NamedType</code>
+                           and the value's applied arguments can be determined (an interpreted instance carrying type arguments, or a homogeneous native List/Set/Map). Empty/heterogeneous collections and unresolvable annotations stay permissive so nothing regresses.
+                        </p>
                       </div>
                     </div>
                     <div id="InterpreterVisitor.visitInstanceCreationExpression" class="api-member">
@@ -2159,6 +2598,21 @@
                       <div class="api-member-head">
                         <code class="api-signature">Object? visitAwaitExpression(AwaitExpression node)</code>
                         <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="InterpreterVisitor._requireDeclaredType" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">void _requireDeclaredType(TypeAnnotation? typeNode, Object? value)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Signals a non-match when [typeNode] is written and [value] does not have that type. A null [typeNode] is an untyped 
+                          <code>var x</code> / <code>_</code>, which is irrefutable and must keep matching anything.
+                        </p>
+                        <p>
+                          SCC18: the two branches that call this — <code>DeclaredVariablePattern</code> and <code>WildcardPattern</code>
+                           — used to read only the pattern's <em>name</em>, so <code>case int _</code> accepted a String and the first arm of every switch won regardless of the scrutinee. Neither branch had any path that could throw, which is why a corpus of ~2270 green tests never noticed: every one of them exercised an arm that was meant to match.
+                        </p>
                       </div>
                     </div>
                     <div id="InterpreterVisitor._matchAndBind" class="api-member">
@@ -2244,6 +2698,32 @@
                       </div>
                     </div>
                   </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="InterpreterVisitor._nodeExcerpt" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String _nodeExcerpt(AstNode node)</code></div>
+                      <div class="api-doc">
+                        <p>A short, single-line, quoted excerpt of [node]'s source, for the diagnostic.</p>
+                        <p>
+                          Truncated because an unhandled node can be an entire declaration, and a multi-line dump buries the node type that is the actual message. The twin has no 
+                          <code>toSource()</code> and quotes the bundle's source instead (SCE236); the two <code>visitNode</code>
+                           bodies are identical, and only this helper differs.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpreterVisitor._isSdkOperand" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static bool _isSdkOperand(Object? value)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          SCD93: whether [value] is something the SDK can answer an operator question about — that is, NOT one of the interpreter's own runtime objects.
+                        </p>
+                        <p>
+                          <code>null</code> is deliberately included: <code>null &amp; 1</code> raises <code>NoSuchMethodError: The method '&amp;' was called on null</code>
+                           in real Dart, and delegating reproduces it exactly.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </section>
                 <section id="_BridgedConstructorTearOff" class="api-declaration">
                   <h3 class="api-decl-title">class _BridgedConstructorTearOff</h3>
@@ -2292,6 +2772,100 @@
                       <div class="api-member-head">
                         <code class="api-signature">String toString()</code>
                         <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="_CastFailure" class="api-declaration">
+                  <h3 class="api-decl-title">class _CastFailure</h3>
+                  <code class="api-signature">class _CastFailure</code>
+                  <div class="api-doc">
+                    <p>
+                      Main visitor that walks the AST and interprets the code. Uses a two-pass approach (DeclarationVisitor first). SCE104: the answer [InterpreterVisitor._tryCast] gives when a cast cannot succeed.
+                    </p>
+                    <p>
+                      A sentinel rather than an exception because the two constructs that perform a cast word their failure differently, and rather than 
+                      <code>null</code> because <code>null</code> is a perfectly good cast result — <code>null as int?</code>
+                       succeeds and yields it.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="_CastFailure.new" class="api-member"><div class="api-member-head"><code class="api-signature">const _CastFailure.new()</code></div></div>
+                  </div>
+                </section>
+                <section id="_CollectionForReplay" class="api-declaration">
+                  <h3 class="api-decl-title">class _CollectionForReplay</h3>
+                  <code class="api-signature">class _CollectionForReplay</code>
+                  <div class="api-doc">
+                    <p>
+                      One evaluation of a collection-literal <code>for</code> element in an async body, and what makes an <code>await</code>
+                       in its BODY replayable (SCF43).
+                    </p>
+                    <p>
+                      The interpreter drives <code>await</code> by replay: a suspension re-evaluates the whole literal once the future completes. Two things go wrong for a loop body, and this answers both.
+                    </p>
+                    <ul><li>EARLIER ITERATIONS WOULD RUN AGAIN. Each iteration evaluates into a</li></ul>
+                    <p>
+                      fresh buffer. A completed buffer is kept, and merged into the literal only then, so a suspended iteration leaves nothing behind. When an iteration suspends, the completed buffers are filed in [AsyncExecutionState.collectionForReplay], and the replay emits them instead of re-running those bodies. * THE NODE CACHE WOULD REPLAY THE WRONG VALUE. 
+                      <code>resolvedAwaitResults</code> is keyed by the await NODE, which every iteration shares. The await sites an iteration reached leave that cache when it completes, so the next iteration suspends for its own value.
+                    </p>
+                    <p>
+                      The record exists only between a suspension and the literal's completion. A <code>for</code> element that never suspends allocates a buffer per iteration and records nothing, so evaluating the same node twice in one statement (a sync helper called twice) cannot read another evaluation's record.
+                    </p>
+                    <p>
+                      A replayed iteration skips its body. The loop variable is still bound and a classic loop's updaters still run; only the body's own side effects, and any body-side write to the loop variable, are not repeated, which is the point.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="_CollectionForReplay.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">_CollectionForReplay.new(InterpreterVisitor _visitor, AstNode _element)</code>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="_CollectionForReplay._visitor" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final InterpreterVisitor _visitor</code></div>
+                    </div>
+                    <div id="_CollectionForReplay._element" class="api-member"><div class="api-member-head"><code class="api-signature">final AstNode _element</code></div></div>
+                    <div id="_CollectionForReplay._state" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final AsyncExecutionState? _state</code></div>
+                    </div>
+                    <div id="_CollectionForReplay._recorded" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final List&lt;Object&gt; _recorded</code></div>
+                    </div>
+                    <div id="_CollectionForReplay._completed" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final List&lt;Object&gt; _completed</code></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="_CollectionForReplay.runIteration" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Object? runIteration(int index, CollectionElement body, Object collection, {required bool isMap})</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Runs iteration [index] of [body] into [collection]. Returns the suspension that must propagate, or null when the iteration completed.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="_CollectionForReplay.finish" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void finish()</code></div>
+                      <div class="api-doc"><p>The literal's loop is done: its record, if any, has served its replay.</p></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="_CollectionForReplay._merge" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static void _merge(Object collection, Object output)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Adds one element at a time, so a typed target (<code>&lt;int&gt;[...]</code>) checks each, as the direct path did.
+                        </p>
                       </div>
                     </div>
                   </div>

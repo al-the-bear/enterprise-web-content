@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1391,6 +1397,7 @@
                   <a class="leaf" href="#TomDoubleProperty">TomDoubleProperty</a>
                   <a class="leaf" href="#TomIntProperty">TomIntProperty</a>
                   <a class="leaf" href="#TomProperty">TomProperty</a>
+                  <a class="leaf" href="#TomPropertyException">TomPropertyException</a>
                   <a class="leaf" href="#TomStringProperty">TomStringProperty</a>
                 </div>
               </div>
@@ -1416,7 +1423,12 @@
                 <section id="TomDoubleProperty" class="api-declaration">
                   <h3 class="api-decl-title">class TomDoubleProperty</h3>
                   <code class="api-signature">class TomDoubleProperty extends TomProperty&lt;double&gt;</code>
-                  <div class="api-doc"><p>A [TomProperty] holding a [double] config value.</p></div>
+                  <div class="api-doc">
+                    <p>A [TomProperty] holding a [double] config value.</p>
+                    <p>
+                      A configured whole number is widened rather than refused — see [TomProperty] for why, and for the two conversions this is not.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomDoubleProperty.new" class="api-member">
@@ -1453,19 +1465,66 @@
                     <p>
                       <code>TomProperty&lt;T&gt;</code> reads the value for [key] from the application [TomConfigResourceProvider] 
                       <strong>once, at construction</strong>, and caches it. Read the cached value with [get] or the <code>~</code>
-                       operator. Use the typed subclasses ([TomStringProperty], [TomIntProperty], [TomDoubleProperty], [TomBoolProperty]) rather than instantiating the generic directly.
+                       operator. Use the typed subclasses ([TomStringProperty], [TomIntProperty], [TomDoubleProperty], [TomBoolProperty]) for the four non-nullable value types they name, rather than instantiating the generic over those types. 
+                      <strong>When [T] is nullable the generic is the intended form</strong> — each subclass closes over a non-nullable type, so none of them can express an optional value.
                     </p>
                     <pre><code>// resolves "app.title" from config at construction:
 final title = TomStringProperty('app.title');
 final text = ~title; // or title.get()
 
 // fall back to a default when the key is absent:
-final retries = TomIntProperty.withDefault('app.retries', 3);</code></pre>
+final retries = TomIntProperty.withDefault('app.retries', 3);
+
+// an optional value: no subclass has a nullable T, so use the generic:
+final region = TomProperty&lt;String?&gt;.withDefault('app.region', null);</code></pre>
                     <p>
-                      <strong>Resolution rules (at construction):</strong> if the config key exists its value is cast to [T]; otherwise the [TomProperty.withDefault] default is used; a key that is both absent and has no default throws.
+                      <strong>Resolution rules (at construction):</strong> a single config lookup answers both whether the key is present and what it holds. A resolved value is cast to [T]; otherwise the [TomProperty.withDefault] default is used; a key that is both absent and has no default throws. Both failures raise [TomPropertyException] — see it for the two 
+                      <code>key</code> codes.
+                    </p>
+                    <p>
+                      <strong>A configured whole number fills a <code>double</code>.</strong> No configuration file can say "double" — 
+                      <code>rate: 2</code> in YAML and <code>"rate": 2</code> in JSON both decode to an <code>int</code> — so a cast that fails on an 
+                      <code>int</code> where [T] accepts a <code>double</code> widens instead of throwing, matching the server's 
+                      <code>TomConfig</code> and the reflected path that fills a declared <code>double</code> field. It does not narrow (<code>2.5</code>
+                       under [TomIntProperty] is still a mismatch, because narrowing needs a rounding policy) and it does not parse (<code>'2'</code>
+                       is still a mismatch). It is reached only <em>after</em> a cast has failed, so <code>TomProperty&lt;num&gt;</code>
+                       over a configured <code>2</code> still holds an <code>int</code>.
+                    </p>
+                    <p>
+                      <strong>Key resolution:</strong> [key] reaches the provider unchanged, so a property inherits its dot notation over nested maps. 
+                      <code>'app.db.host'</code> resolves either through nested <code>app</code> / <code>db</code> maps or as a flat entry of that literal name; the nested walk runs first and the flat lookup is its fallback, so a config carrying both spellings answers with the nested one. Descent stops at the last segment, which makes an interior node a value in its own right — a 
+                      <code>TomProperty&lt;Map&lt;String, dynamic&gt;&gt;</code> holds a subtree, and is the second place the generic is the intended form. A key configured with no value counts as absent, so a configured 
+                      <code>null</code> never overrides a non-null default; where that distinction matters, read the provider's public 
+                      <code>resources</code> map directly.
+                    </p>
+                    <p>
+                      <strong>Structured values: the generic, with the dynamic element type.</strong> The four typed subclasses are scalar, and there is deliberately no 
+                      <code>TomListProperty</code> or <code>TomMapProperty</code> — a list is <code>TomProperty&lt;List&lt;dynamic&gt;&gt;</code>
+                       and a map <code>TomProperty&lt;Map&lt;String, dynamic&gt;&gt;</code>. The element type has to be <code>dynamic</code>: every configuration format arrives through a decoder and no decoder produces a narrower one, so 
+                      <code>TomProperty&lt;List&lt;String&gt;&gt;</code> fails the cast on a configured <code>hosts: [a, b]</code>. It is worth knowing that it fails 
+                      <em>selectively</em> — a hand-written config map in a test does yield <code>List&lt;String&gt;</code>
+                       and the construction passes there — so the narrow form is a property that works until it is loaded from a file. Narrow at the call site instead, with 
+                      <code>.cast&lt;String&gt;()</code> or <code>List&lt;String&gt;.from(...)</code>.
+                    </p>
+                    <p>
+                      <strong>A structured value is held by reference.</strong> A scalar is copied, so every other property here is a snapshot in the strong sense; a list or map is the provider's own object, cached. Mutating what one was handed edits the application's configuration for every later reader of that key. Copy it if it is going to be modified — 
+                      <code>List.from</code> / <code>Map.of</code> — which is the same <code>cast</code> or <code>from</code>
+                       call the element type already wanted.
                     </p>
                     <p>
                       <strong>Eager and immutable:</strong> the value is captured at construction and never re-read, so later config changes are not reflected. Construct the property after the config providers are populated.
+                    </p>
+                    <p>
+                      The ordering is a contract, and it is enforced on one side only. With no provider installed there is nothing to resolve and the construction throws the kernel's 
+                      <code>resources.config_provider.not_installed</code> — at the declaration, which is where a bootstrap-order mistake is cheapest to find. A provider 
+                      <em>replaced</em> after a property is built is silent, and the property keeps what it resolved; nothing reports that and nothing can, because 
+                      <code>TomConfigResourceProvider.setAppConfigProvider</code> announces nothing by design — configuration is captured by its consumers when they are built, so a revision counter would notify values that have already been taken. A default follows the same rule: one taken because the key was absent 
+                      <em>is</em> the resolution, and a later provider carrying the key does not displace it.
+                    </p>
+                    <p>
+                      An application that replaces configuration at a session boundary rebuilds what depends on it, so the properties constructed afterwards are the new ones. A value that has to be live is not a property: read it from 
+                      <code>TomConfigResourceProvider.getAppConfig()</code> at the point of use, and pay the lookup each time. A value a 
+                      <em>user</em> changes is not configuration — see <code>TomClientConfiguration</code>, which layers a user or device preference over an install's value.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1481,17 +1540,30 @@ final retries = TomIntProperty.withDefault('app.retries', 3);</code></pre>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="TomProperty.t" class="api-member"><div class="api-member-head"><code class="api-signature">String Function(String) t</code></div></div>
-                    <div id="TomProperty.translationExists" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">bool Function(String) translationExists</code></div>
+                    <div id="TomProperty._config" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomConfigResourceProvider _config</code></div>
                     </div>
-                    <div id="TomProperty.c" class="api-member"><div class="api-member-head"><code class="api-signature">Object Function(String) c</code></div></div>
-                    <div id="TomProperty.configExists" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">bool Function(String) configExists</code></div>
+                    <div id="TomProperty._value" class="api-member"><div class="api-member-head"><code class="api-signature">final T _value</code></div></div>
+                    <div id="TomProperty._propertyKey" class="api-member"><div class="api-member-head"><code class="api-signature">final String _propertyKey</code></div></div>
+                    <div id="TomProperty._defaultValue" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final T _defaultValue</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The fallback value, assigned only by [TomProperty.withDefault]. Guarded by [_hasDefault] — never read unless a default was actually supplied, so a nullable 
+                          <code>T</code> default of <code>null</code> is honoured rather than mistaken for "no default".
+                        </p>
+                      </div>
                     </div>
-                    <div id="TomProperty._value" class="api-member"><div class="api-member-head"><code class="api-signature">T _value</code></div></div>
-                    <div id="TomProperty._propertyKey" class="api-member"><div class="api-member-head"><code class="api-signature">String _propertyKey</code></div></div>
-                    <div id="TomProperty._defaultValue" class="api-member"><div class="api-member-head"><code class="api-signature">T _defaultValue</code></div></div>
+                    <div id="TomProperty._hasDefault" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final bool _hasDefault</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Whether a default was supplied. This — not <code>_defaultValue != null</code> — drives the fallback branch, so a no-default construction reaches the descriptive obligatory-key error instead of reading the unassigned 
+                          <code>late</code> default field (which threw <code>LateInitializationError</code>), and an explicit <code>null</code>
+                           default over a nullable <code>T</code> is used as given.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
@@ -1506,6 +1578,50 @@ final retries = TomIntProperty.withDefault('app.retries', 3);</code></pre>
                     <div id="TomProperty.~" class="api-member">
                       <div class="api-member-head"><code class="api-signature">T operator ~()</code></div>
                       <div class="api-doc"><p>Returns the resolved, cached value (operator form of [get]).</p></div>
+                    </div>
+                  </div>
+                </section>
+                <section id="TomPropertyException" class="api-declaration">
+                  <h3 class="api-decl-title">class TomPropertyException</h3>
+                  <code class="api-signature">class TomPropertyException extends TomClientException</code>
+                  <div class="api-doc">
+                    <p>Thrown when a [TomProperty] cannot resolve its configuration key.</p>
+                    <p>
+                      One type, two conditions, told apart by <code>key</code> — the same shape the kernel's own resources module uses for its providers. The two call for different repairs, so the distinction is worth matching on:
+                    </p>
+                    <table class="mdtable">
+                      <thead><tr><th><code>key</code></th><th>Condition</th></tr></thead>
+                      <tbody>
+                        <tr>
+                          <td><code>resources.property.not_configured</code></td>
+                          <td>The key is absent and the property declared no default.</td>
+                        </tr>
+                        <tr>
+                          <td><code>resources.property.type_mismatch</code></td>
+                          <td>The key holds a value that cannot be cast to the property's <code>T</code>.</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <p>
+                      Both are raised during construction, so catching them means wrapping the declaration, not the read. <code>parameters</code>
+                       carries the key — and, for a type mismatch, the value and the type it was wanted as — for a log formatter to render; 
+                      <code>rootException</code> carries the <code>TypeError</code> the cast raised, which is the only record of the value's 
+                      <em>actual</em> type, since the message names only the type that was expected.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomPropertyException.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          TomPropertyException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, StackTrace? stack, Object? rootException, bool autoLog = false})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Creates a property-resolution failure. See <code>TomException</code> for the meaning of each argument.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>

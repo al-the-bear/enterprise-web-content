@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1442,9 +1448,13 @@
                   <div class="api-doc">
                     <p>Abstract base for multi-select string form fields.</p>
                     <p>
-                      Binds to a <code>TomList&lt;TomString&gt;</code> for ordered, observable collections. Concrete implementations render the selection as: 
-                      <em> [TomFormStringFilterChips] — horizontal <code>FilterChip</code> row. </em> [TomFormStringMultiCheckbox] — vertical 
-                      <code>CheckboxListTile</code> column.
+                      The field <em>is</em> the observable — <code>TomField&lt;List&lt;String&gt;&gt;</code> — so the bound value is a plain 
+                      <code>List&lt;String&gt;</code> in selection order, not a collection of nested observables. [toggleItem] always publishes a fresh list, which is what lets 
+                      <code>setValue</code> see the change.
+                    </p>
+                    <p>
+                      Concrete implementations render the selection as: <em> [TomFormStringFilterChips] — a <code>Wrap</code> of <code>FilterChip</code>s. </em>
+                       [TomFormStringMultiCheckbox] — a column of tappable <code>Checkbox</code> rows.
                     </p>
                     <p>
                       Both widgets share the same anatomy via [TomGenericFieldDecorationMixin] and pull the item set from the supplied [TomSelectableSource] — the subclasses only differ in how they render each option.

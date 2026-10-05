@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1397,6 +1403,7 @@
                   <a class="leaf" href="#InterpretedFunction">InterpretedFunction</a>
                   <a class="leaf" href="#NativeExtensionCallable">NativeExtensionCallable</a>
                   <a class="leaf" href="#NativeFunction">NativeFunction</a>
+                  <a class="leaf" href="#ResolvedBinding">ResolvedBinding</a>
                   <a class="leaf" href="#SyncGeneratorYieldSuspension">SyncGeneratorYieldSuspension</a>
                   <a class="leaf" href="#YieldValue">YieldValue</a>
                   <a class="leaf" href="#_ExecutionPreparationResult">_ExecutionPreparationResult</a>
@@ -1672,8 +1679,13 @@
                     <div id="InterpretedFunction.declaration" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          InterpretedFunction.declaration(FunctionDeclaration declaration, Environment closure, RuntimeType? declaredReturnType, bool isNullable)
+                          InterpretedFunction.declaration(FunctionDeclaration declaration, Environment closure, RuntimeType? declaredReturnType, bool isNullable, {bool lenientBounds = false})
                         </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          SCE130: [lenientBounds] is passed by PASS 1 only — see [_extractTypeParameterBounds] for why the two passes differ.
+                        </p>
                       </div>
                     </div>
                     <div id="InterpretedFunction.expression" class="api-member">
@@ -1730,8 +1742,14 @@
                       <div class="api-member-head"><code class="api-signature">final Map&lt;String, RuntimeType?&gt; typeParameterBounds</code></div>
                     </div>
                     <div id="InterpretedFunction.closure" class="api-member"><div class="api-member-head"><code class="api-signature">Environment closure</code></div></div>
+                    <div id="InterpretedFunction._cachedCallableRuntimeType" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">FunctionRuntimeType? _cachedCallableRuntimeType</code></div>
+                    </div>
+                    <div id="InterpretedFunction.callableRuntimeType" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">RuntimeType callableRuntimeType</code></div>
+                    </div>
                     <div id="InterpretedFunction.arity" class="api-member"><div class="api-member-head"><code class="api-signature">int arity</code></div></div>
-                    <div id="InterpretedFunction._totalPositionalArity" class="api-member"><div class="api-member-head"><code class="api-signature">int _totalPositionalArity</code></div></div>
+                    <div id="InterpretedFunction.maxPositionalArity" class="api-member"><div class="api-member-head"><code class="api-signature">int maxPositionalArity</code></div></div>
                     <div id="InterpretedFunction.canCallWithoutArgs" class="api-member"><div class="api-member-head"><code class="api-signature">bool canCallWithoutArgs</code></div></div>
                     <div id="InterpretedFunction.positionalParameterNames" class="api-member">
                       <div class="api-member-head"><code class="api-signature">List&lt;String&gt; positionalParameterNames</code></div>
@@ -1842,7 +1860,7 @@
                     <div id="InterpretedFunction._runAsyncGenerator" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          Future&lt;void&gt; _runAsyncGenerator(InterpreterVisitor visitor, BlockFunctionBody body, StreamController&lt;Object?&gt; controller, Environment executionEnvironment)
+                          Future&lt;void&gt; _runAsyncGenerator(InterpreterVisitor visitor, BlockFunctionBody body, StreamController&lt;Object?&gt; controller, Environment executionEnvironment, AsyncGeneratorGate gate)
                         </code>
                       </div>
                     </div>
@@ -1869,13 +1887,171 @@
                     <div id="InterpretedFunction._extractTypeParameterBounds" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          static Map&lt;String, RuntimeType?&gt; _extractTypeParameterBounds(TypeParameterList? typeParameters, Environment? resolveEnvironment)
+                          static Map&lt;String, RuntimeType?&gt; _extractTypeParameterBounds(TypeParameterList? typeParameters, Environment? resolveEnvironment, {bool lenient = false})
                         </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Extract type parameter bounds from a [TypeParameterList].</p>
+                        <p>
+                          SCE130: [lenient] records an unresolvable bound as <code>null</code> instead of rethrowing. PASS 1 passes it; pass 2 does not, and the asymmetry is the fix rather than a softening of it.
+                        </p>
+                        <p>
+                          Pass 1 ([DeclarationVisitor]) runs before type aliases are registered — it must, because an alias may name a class whose placeholder pass 1 is still creating — so 
+                          <code>typedef N = num; T pick&lt;T extends N&gt;(T v)</code> asked the environment for <code>N</code>
+                           before anything had defined it and the rethrow turned a legal program into a hard failure. Pass 1 ALREADY substitutes a placeholder for an unresolvable RETURN type on the very same declaration, with a log line saying so; the bound was the one strict thing in an otherwise lenient pass.
+                        </p>
+                        <p>
+                          Nothing is lost by being lenient there, because pass 2 REBUILDS the function from its declaration after the alias fixpoint has run, and that build is authoritative and strict. So an alias bound resolves and is enforced, while a genuinely undefined bound still throws before 
+                          <code>main</code> runs — both measured, not assumed.
+                        </p>
                       </div>
                     </div>
                     <div id="InterpretedFunction._resolveTypeAnnotationDynamic" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">static RuntimeType _resolveTypeAnnotationDynamic(TypeAnnotation typeNode, Environment env)</code>
+                      </div>
+                    </div>
+                    <div id="InterpretedFunction._paramRuntimeType" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static RuntimeType _paramRuntimeType(FormalParameter param, Environment env)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          DFUB5: resolve a single formal parameter's declared type, falling back to <code>dynamic</code> when unannotated or unresolvable.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpretedFunction._checkArgumentType" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static Object? _checkArgumentType(Environment env, NormalFormalParameter param, String paramName, Object? value)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          The value to bind to [paramName], after checking it against the declared type of [param]. Picks the annotation off whichever parameter shape this is and defers to [checkBindingType], which owns the check itself.
+                        </p>
+                        <p>
+                          Call this only for arguments the <em>caller</em> supplied. A value the declaration produced — an omitted optional's implicit 
+                          <code>null</code>, an evaluated default — is a case real Dart rejects at compile time, so checking it here can only fire on programs the analyzer already refuses, while breaking the interpreted scripts that rely on 
+                          <code>[String s]</code> meaning "may be absent". That restriction belongs to the CALLER of this method, not to [checkBindingType]: a for-in loop variable is always a value the iterable supplied, so it has no equivalent exemption.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpretedFunction.checkForEachBinding" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static Object? checkForEachBinding(Environment env, AstNode? loopVariable, Object? element)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          The value to bind to a for-each loop variable for one iteration, checked against the variable's written type.
+                        </p>
+                        <p>
+                          SCD63: a typed for-each variable used to bind whatever the iterable produced — <code>for (final int x in [1, 'two', 3])</code>
+                           ran its body with a String in a variable its own declaration rules out, and the body then computed a wrong value rather than failing (<code>x + 1</code>
+                           concatenated). Real Dart raises <code>TypeError</code> on the offending element, after the earlier iterations have run, which is what this reproduces.
+                        </p>
+                        <p>
+                          [loopVariable] is the loop's own variable node. A <code>SimpleIdentifier</code> (<code>for (x in xs)</code>) carries no annotation here — its type was written at its own declaration, which this node does not reach — so it binds unchecked.
+                        </p>
+                        <p>
+                          Every for-each execution path calls this: the visitor's three (statement, collection-literal element, await-for item list) and the async state machine's and sync generator's own copies in this file. They are separate implementations of one construct, so a check added to any subset of them would hold only for the loops that happen to run on that path — and whether a given loop runs on the state machine's path depends on nothing more visible than whether its enclosing function is 
+                          <code>async</code>.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpretedFunction.resolveForEachBinding" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static ResolvedBinding? resolveForEachBinding(Environment env, AstNode? loopVariable)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>[resolveBinding] for a for-each loop variable: the resolved check, or null when the loop needs none.</p>
+                        <p>
+                          A path with a real loop to hoist out of calls this ONCE before iterating and then [ResolvedBinding.bind] per element. The async state machine and the sync generator re-enter per item and have no such place to stand, so they call [checkForEachBinding] and pay the resolution each time.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpretedFunction.checkBindingType" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static Object? checkBindingType(Environment env, TypeAnnotation? typeNode, Object? value, {String? describedAs})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          The value to bind to a written type [typeNode], after checking it and applying the one conversion Dart applies here.
+                        </p>
+                        <p>
+                          Returns the value to bind — normally [value] unchanged, or its <code>double</code> widening — and throws [D4rtTypeError] when the value cannot inhabit the annotation. A null [typeNode] is an unannotated binding (<code>var x</code>), which admits anything.
+                        </p>
+                        <p>
+                          [describedAs] names the binding in the message. The SDK spells a failed PARAMETER bind <code>type 'X' is not a subtype of type 'Y' of 'p'</code>
+                           but a failed for-in bind just <code>type 'X' is not a subtype of type 'Y'</code>, so the clause is appended only when a name is supplied. Matching the SDK wording per construct is the point of [D4rtTypeError]: an 
+                          <code>on TypeError</code> clause in a script ported from Dart should see what Dart would have shown it.
+                        </p>
+                        <p>
+                          SCC29 wrote this for parameter binding; SCD63 made the for-each loop variable the second caller. It is deliberately NOT the 
+                          <code>is</code> predicate (<code>_valueHasType</code> in the visitor): <code>is</code> is a QUESTION, which must answer "no" when it cannot resolve the type, while this is a BINDING CHECK, which must wave through what it cannot resolve — and which has a conversion in it that 
+                          <code>is</code> has no business performing.
+                        </p>
+                        <p>
+                          <strong>Permissive wherever it cannot be sure.</strong> A false positive rejects a correct program, which is worse than the silent pass this replaces, so every case the resolver cannot answer confidently is waved through: unannotated and 
+                          <code>dynamic</code> bindings, annotations that fail to resolve, type parameters (which resolve to a placeholder rather than to the type actually supplied), and the structural function/record annotations whose comparison is a larger question than this check.
+                        </p>
+                        <p>
+                          The predicate is [RuntimeType.isSubtypeOf] — the same one the return-type check uses. Only the presentation differs.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpretedFunction.resolveBinding" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static ResolvedBinding? resolveBinding(Environment env, TypeAnnotation? typeNode, {String? describedAs})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>The value-independent half of a binding check, resolved once.</p>
+                        <p>
+                          Returns null when the annotation admits everything, so the caller can skip the check entirely rather than call a predicate that always says yes.
+                        </p>
+                        <p>
+                          <strong>Permissive wherever it cannot be sure.</strong> A false positive rejects a correct program, which is worse than the silent pass these checks replace, so every case the resolver cannot answer confidently returns null here: unannotated bindings, 
+                          <code>dynamic</code> / <code>void</code>, annotations that fail to resolve, type parameters (which resolve to a placeholder rather than to the type actually supplied), and the structural function/record annotations whose comparison is a larger question than this check.
+                        </p>
+                        <p>
+                          Split out from [checkBindingType] by SCD63 so a for-each loop can resolve its annotation once and check every element against the result. That is not a micro-optimisation: on a 200 000-element typed loop the resolution measured ~86% of the check's total cost (+16% over an unchecked loop, of which the subtype test itself was ~2%), because resolving a name walks the environment chain while comparing two resolved types does not.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpretedFunction._appliedDeclaredType" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static AppliedRuntimeType? _appliedDeclaredType(Environment env, NamedType typeNode, RuntimeType declaredType)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          SCD92: the declared type with its WRITTEN type arguments resolved, or null when the annotation carries none the check can act on.
+                        </p>
+                        <p>
+                          [resolveBinding]'s own resolution goes through [_resolveTypeAnnotationDynamic], which reads a <code>NamedType</code>'s name and ignores its 
+                          <code>typeArguments</code> — so <code>List&lt;String&gt;</code> resolves to the bare <code>List</code>
+                           bridge. Rather than change that resolver, whose result is also a type parameter's bound and a callable's structural type, the arguments are resolved here and paired with the base type it already produced.
+                        </p>
+                        <p>
+                          Null — no applied check — wherever the arguments carry nothing to compare: an argument that fails to resolve, a type parameter (which stands for a type not bound at this point, the same reason a bare 
+                          <code>T</code> annotation is skipped), and an argument list that is entirely top types, where the applied check could only repeat the base one.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpretedFunction._isUncheckableTypeName" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static bool _isUncheckableTypeName(String name)</code></div>
+                      <div class="api-doc">
+                        <p>Type names that carry no information the argument check can act on.</p>
+                        <p>
+                          <code>Object</code> is absent on purpose: it admits every non-null value but still rejects <code>null</code>
+                           when spelled without <code>?</code>, so it needs the null branch rather than an early exit.
+                        </p>
                       </div>
                     </div>
                     <div id="InterpretedFunction._runStateMachine" class="api-member">
@@ -1897,14 +2073,262 @@
                         </code>
                       </div>
                     </div>
+                    <div id="InterpretedFunction._jumpTarget" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static AstNode? _jumpTarget(AstNode from, String? label, {required bool isContinue})</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          The statement a <code>break</code> (or, with [isContinue], a <code>continue</code>) raised while running [from] jumps to, or null when no enclosing statement of the current function qualifies.
+                        </p>
+                        <p>
+                          Without a label that is the innermost enclosing loop — or <code>switch</code>, for a break. With one it is the statement the label is written on, which for a continue must be a loop.
+                        </p>
+                        <p>
+                          SCD4: this used to be "whatever loop is on top of <code>loopNodeStack</code>". Only <code>for</code> loops are pushed there, so 
+                          <code>while</code> and <code>do</code> could not be left at all, a break in a <code>while</code> nested in a 
+                          <code>for</code> left the <code>for</code>, and labels were ignored. The AST says which statement a jump targets; asking it makes the answer independent of what the loops happened to push.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpretedFunction._startJump" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static AstNode? _startJump(InterpreterVisitor visitor, AsyncExecutionState state, PendingJump jump)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>The next node after a <code>break</code> / <code>continue</code> [jump] has been raised.</p>
+                        <p>
+                          SCF6: a jump that leaves a try with a non-empty finally runs that finally first, as Dart does — innermost first, and only the finallys between the jump and its target. The jump is parked on [AsyncExecutionState.pendingJump] and resumed by [_completeOrContinueJump] where each finally ends. It used to go straight to its target, so 
+                          <code>for (..) { try { break; } finally { log.add('f'); } }</code> never logged.
+                        </p>
+                        <p>
+                          A new jump replaces a pending one only when it LEAVES the finally that is running; a jump whose target sits inside that finally — a loop written in it — is local to it and leaves the pending jump alone.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpretedFunction._completeOrContinueJump" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static AstNode? _completeOrContinueJump(InterpreterVisitor visitor, AsyncExecutionState state, TryStatement endedTry)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Where a finally that a pending jump crossed has ended: run the next crossed finally, or complete the jump.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpretedFunction._finishJump" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static AstNode? _finishJump(InterpreterVisitor visitor, AsyncExecutionState state, PendingJump jump)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Complete [jump]: leave the loops it crosses and go to the node after its target (<code>break</code>) or back to the target (<code>continue</code>).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpretedFunction._nextFinallyTryBefore" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static TryStatement? _nextFinallyTryBefore(AstNode from, AstNode target)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          The innermost <code>try</code> with a non-empty finally that [from] leaves on its way to [target], or null when [target] is reached first.
+                        </p>
+                        <p>
+                          [_nextEnclosingFinallyTry] with the walk bounded by the jump's target rather than the function: a <code>return</code>
+                           crosses every finally up to the function boundary, a jump only those inside the statement it leaves. A try whose finally contains [from] is skipped, as there: that finally is the one running.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpretedFunction._isWithin" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static bool _isWithin(AstNode node, AstNode ancestor)</code></div>
+                      <div class="api-doc"><p>Whether [node] is [ancestor] or lies inside it.</p></div>
+                    </div>
+                    <div id="InterpretedFunction._leaveLoopsFor" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static void _leaveLoopsFor(AsyncExecutionState state, AstNode from, AstNode target, {required bool leaveTarget})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Unwinds the loop stacks for a jump from [from] to [target]: every loop between the two is left, and [target] as well when [leaveTarget].
+                        </p>
+                        <p>
+                          Only loops that pushed onto the stacks have entry depths, so a <code>while</code> on the way costs nothing; the outermost loop that did is the one the stacks are restored to, which removes everything nested inside it too.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpretedFunction._tryOwningFinallyBlockOf" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static TryStatement? _tryOwningFinallyBlockOf(AstNode? node)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The <code>try</code> whose FINALLY BLOCK lexically contains [node], or null when [node] is not inside one.
+                        </p>
+                        <p>
+                          SCD43: a finally block is not protected by its own try, so an error raised inside one must be offered to the try ENCLOSING that try. 
+                          <code>_findEnclosingTryStatement</code> returns the owner itself, which has a finally, so the machine scheduled that finally again -- and it threw again, for ever.
+                        </p>
+                        <p>
+                          Structural for the same reason as [_tryOwningCatchClauseOf]: whether a node sits inside a given finally block is a fact about the AST that no amount of prior execution can change, so it needs no flag on the state. And like that one it stops at the FIRST enclosing finally, so a 
+                          <code>try</code> written inside a finally block is found by [_findEnclosingTryStatement] first and handles its own errors normally.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpretedFunction._isInsideCatchClauseOf" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static bool _isInsideCatchClauseOf(AstNode? node, TryStatement owner)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          The <code>try</code> whose CATCH CLAUSE lexically contains [node], or null when [node] is not inside one.
+                        </p>
+                        <p>
+                          SCD41: this is how a <code>rethrow</code> learns which try it is already inside and must therefore skip. Note what it does NOT do: it stops at the first enclosing catch clause, so a 
+                          <code>try</code> written <em>inside</em> a catch block is found by [_findEnclosingTryStatement] first and handles its own errors normally. Skipping to the owner unconditionally would make such a try unable to catch anything a rethrow passed through it. Whether [node] sits inside a catch clause belonging to [owner].
+                        </p>
+                        <p>
+                          SCD169: an exception raised in a catch block of <code>T</code> is not catchable by <code>T</code> — the handler that would claim it is the one already running. The async machine had no such rule, so 
+                          <code>_findEnclosingTryStatement</code> returned <code>T</code>, <code>selectCatchClause</code> matched the same clause again, the clause threw again, and the state machine looped. Measured before the fix: the catch block of a four-line script ran 135,239 times in six seconds. That is why the symptom is a HANG rather than an unresolved future, and why no Dart-level timeout contains it — a spinning isolate never runs the Timer.
+                        </p>
+                        <p>
+                          Structural for the same reason as [_tryOwningCatchClauseOf] and [_tryOwningFinallyBlockOf]: whether a throw is lexically inside a given try's catch block is a property of the AST, not of what else has run. Unlike [_tryOwningCatchClauseOf] this answers about a SPECIFIC try rather than the nearest one, because the rule has to hold at every level — a try nested inside another try's catch block is not catchable by either.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpretedFunction._isInsideFinallyBlockOf" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static bool _isInsideFinallyBlockOf(AstNode? node, TryStatement owner)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Whether [node] sits inside the finally block belonging to [owner].</p>
+                        <p>
+                          SCE78. The companion to [_isInsideCatchClauseOf], and it answers about a SPECIFIC try for the same reason: the question is not "is this inside some finally" but "is this inside the finally of the try that is currently holding a return". A try nested inside a finally legitimately holds its own returns for its own finally, so the nearest-enclosing form would confuse the two.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpretedFunction._catchEnvironmentFor" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static Environment? _catchEnvironmentFor(AsyncExecutionState state, AstNode? node)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          The environment for the innermost catch clause [node] sits inside, or null when it is in none that has one.
+                        </p>
+                        <p>
+                          SCE79. The lookup is structural — the AST says which clause a node is in — which is why the binding needs no stack and no popping. Stops at a 
+                          <code>FunctionBody</code> so a closure written inside a catch block does not inherit the clause's scope by accident.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpretedFunction._chainReaches" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static bool _chainReaches(Environment? from, Environment target)</code></div>
+                      <div class="api-doc"><p>Whether [target] is [from] or one of its enclosing environments.</p></div>
+                    </div>
+                    <div id="InterpretedFunction._enclosingCascadeOf" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static CascadeExpression? _enclosingCascadeOf(AstNode? node)</code></div>
+                      <div class="api-doc">
+                        <p>The <code>CascadeExpression</code> whose SECTION list contains [node], or null.</p>
+                        <p>
+                          SCE81. Structural, like the try/catch walkers below: whether a node is a cascade section is a property of the AST. Stops at a 
+                          <code>FunctionBody</code> so a closure written inside a section is not mistaken for one.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpretedFunction._tryOwningCatchClauseOf" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static TryStatement? _tryOwningCatchClauseOf(AstNode? node)</code></div>
+                    </div>
                     <div id="InterpretedFunction._findEnclosingTryStatement" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static TryStatement? _findEnclosingTryStatement(AstNode? node)</code></div>
+                    </div>
+                    <div id="InterpretedFunction._resumableNodeFor" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static AstNode? _resumableNodeFor(AstNode node)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The node the state machine can re-execute to finish evaluating [node], or null when re-entering it would restart a construct.
+                        </p>
+                        <p>
+                          SCE139: a variable declaration, an expression statement and a return each evaluate their expression once and then complete, so re-entering one replays the await sites already resolved and finishes the statement.
+                        </p>
+                        <p>SCF29 added the rest of what the machine can safely re-enter:</p>
+                        <ul><li>an <code>=&gt;</code> body, whose unit of re-execution is its EXPRESSION — the same</li></ul>
+                        <p>
+                          node the expression-body tail of [_determineNextNodeAfterAwait] hands back when no invocation is involved; * an 
+                          <code>if</code>, a <code>while</code> or a <code>do</code> reached from its CONDITION. Reaching one of these before any other statement means the await sits in the condition — a body's statements are statements of their own and are met first. The machine's branch for each is stateless on re-entry: an 
+                          <code>if</code> and a <code>while</code> just evaluate the condition, and a <code>do</code> whose body has started (<code>doBodiesStarted</code>) evaluates it rather than restarting the body. Each clears the replay cache when the condition completes.
+                        </p>
+                        <p>A <code>for</code> is not re-entered: its node initialises the loop on arrival.</p>
+                      </div>
+                    </div>
+                    <div id="InterpretedFunction._isTheAwait" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static bool _isTheAwait(Expression expression)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Whether [expression] is an <code>await</code> and nothing more, parentheses aside — the one shape whose value 
+                          <code>lastAwaitResult</code> already is (SCF29).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpretedFunction._endReplayedEvaluation" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static void _endReplayedEvaluation(AsyncExecutionState state)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          SCF29: ends a replayed evaluation that finished without suspending, so its per-site cache (SCC40) cannot leak into the next evaluation of the same node — a loop condition re-evaluates the identical AST every iteration.
+                        </p>
+                      </div>
                     </div>
                     <div id="InterpretedFunction._determineNextNodeAfterAwait" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
                           static AstNode? _determineNextNodeAfterAwait(InterpreterVisitor visitor, AsyncExecutionState state, AstNode nodeThatCausedSuspension)
                         </code>
+                      </div>
+                    </div>
+                    <div id="InterpretedFunction._nextEnclosingFinallyTry" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static TryStatement? _nextEnclosingFinallyTry(AstNode from)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The next enclosing <code>try</code> with a non-empty <code>finally</code> that [from] is unwinding out of, or null when the function boundary is reached first.
+                        </p>
+                        <p>
+                          SCE18. Used while an abrupt completion is pending, to find the finally blocks that still have to run. Two things it deliberately does NOT match:
+                        </p>
+                        <ul><li>a try whose FINALLY (rather than body or catch) contains [from] — that</li></ul>
+                        <p>
+                          finally is the one already running, and re-entering it would loop; * a try whose finally block is empty — there is nothing to run, so the walk continues past it rather than scheduling a no-op.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpretedFunction._enclosingExpressionFunctionBody" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static ExpressionFunctionBody? _enclosingExpressionFunctionBody(AstNode node)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>The [ExpressionFunctionBody] that [node] sits inside, or null.</p>
+                        <p>
+                          Stops at the FIRST function body reached, so an await in a nested block body does not find an outer <code>=&gt;</code>
+                           body and re-run the wrong unit. A block body answers null on purpose: its statements are already the machine's unit of re-execution.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpretedFunction._beginAwaitForIteration" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static void _beginAwaitForIteration(AsyncExecutionState state, ForStatement forNode)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Give the <code>await for</code> [forNode] its environment and its place on the loop stack, before its first element arrives.
+                        </p>
+                        <p>
+                          SCD4: the loop used to be put on <code>loopNodeStack</code> only on a path that the resumption never took, so 
+                          <code>break</code> and <code>continue</code> in the body found no loop and failed with "outside of a loop". Both loop-variable forms get an environment: a declared variable lives in it, and an existing one is assigned through it to the scope that owns it.
+                        </p>
+                        <p>
+                          SCE16: called once on entry rather than once the stream had been read, because there is no longer a moment when the whole stream is in hand — and 
+                          <code>break</code> must work from the first element, which arrives after this.
+                        </p>
                       </div>
                     </div>
                     <div id="InterpretedFunction._findNextSequentialNode" class="api-member">
@@ -2034,6 +2458,138 @@
                       <div class="api-member-head">
                         <code class="api-signature">bool isSubtypeOf(RuntimeType other, {Object? value})</code>
                         <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="ResolvedBinding" class="api-declaration">
+                  <h3 class="api-decl-title">class ResolvedBinding</h3>
+                  <code class="api-signature">class ResolvedBinding</code>
+                  <div class="api-doc">
+                    <p>
+                      A binding check with everything that does not depend on the value already resolved — the product of [InterpretedFunction.resolveBinding].
+                    </p>
+                    <p>
+                      Exists so a loop can resolve its annotation once and check many values against it; see [InterpretedFunction.resolveBinding] for the measurement that motivated the split.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="ResolvedBinding._" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          const ResolvedBinding._(RuntimeType _declaredType, String _declaredName, bool _isNullable, String _suffix, AppliedRuntimeType? _appliedDeclared)
+                        </code>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="ResolvedBinding._declaredType" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final RuntimeType _declaredType</code></div>
+                    </div>
+                    <div id="ResolvedBinding._declaredName" class="api-member"><div class="api-member-head"><code class="api-signature">final String _declaredName</code></div></div>
+                    <div id="ResolvedBinding._isNullable" class="api-member"><div class="api-member-head"><code class="api-signature">final bool _isNullable</code></div></div>
+                    <div id="ResolvedBinding._appliedDeclared" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final AppliedRuntimeType? _appliedDeclared</code></div>
+                      <div class="api-doc">
+                        <p>
+                          SCD92: the declared type with its written type arguments, when they are checkable. Null means the annotation is raw, or carries only arguments the check cannot act on — see [InterpretedFunction._appliedDeclaredType].
+                        </p>
+                      </div>
+                    </div>
+                    <div id="ResolvedBinding._suffix" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String _suffix</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The <code>of 'name'</code> clause, or empty. The SDK spells a failed PARAMETER bind <code>type 'X' is not a subtype of type 'Y' of 'p'</code>
+                           but a failed for-in bind just <code>type 'X' is not a subtype of type 'Y'</code>, and matching the SDK per construct is the point of [D4rtTypeError]: an 
+                          <code>on TypeError</code> clause in a script ported from Dart should see what Dart would have shown it.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="ResolvedBinding._displayName" class="api-member"><div class="api-member-head"><code class="api-signature">String _displayName</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="ResolvedBinding.bind" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Object? bind(Environment env, Object? value)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The value to bind — [value] unchanged, or its <code>double</code> widening — or throws [D4rtTypeError] when [value] cannot inhabit the declared type.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="ResolvedBinding._checkTypeArguments" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Object? _checkTypeArguments(Environment env, Object? value)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          SCD92: [value], once its own type arguments are known to satisfy the declared ones — or throws when they do not.
+                        </p>
+                        <p>
+                          Runs only after the base check has already passed, so it can add a rejection but never remove one. Both sides must carry arguments the check can read: a raw annotation, or a value whose arguments are not derivable (an empty or heterogeneous collection, every bridged instance), passes untouched. That permissiveness is the point — a binding check runs on every argument of every call, and a false positive rejects a correct program, which is worse than the silent pass it replaces.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="ResolvedBinding._interpretedBehind" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Object? _interpretedBehind(Object? value)</code></div>
+                      <div class="api-doc">
+                        <p>SCD119: the interpreted instance [value] is a native proxy for, or null when it is not one.</p>
+                        <p>
+                          Both carriers are accepted because both reach a binding: the bare proxy object, and a [BridgedInstance] wrapping it — which of the two arrives depends on the path the value took out of native code, and the unwrap sites in the visitor already handle the pair the same way.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="ResolvedBinding._nativeOf" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Object? _nativeOf(Object? value)</code></div>
+                      <div class="api-doc"><p>[value] itself, or the native object a [BridgedInstance] wraps.</p></div>
+                    </div>
+                    <div id="ResolvedBinding._bottomOutNullArguments" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static AppliedRuntimeType _bottomOutNullArguments(AppliedRuntimeType actual, AppliedRuntimeType declared)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          SCE129: [actual] with each <code>Null</code> type argument replaced by its declared counterpart — or [actual] unchanged when none is 
+                          <code>Null</code>.
+                        </p>
+                        <p>
+                          An ALL-NULL collection tells this check nothing, for the same reason an EMPTY one does not — and [Environment.appliedRuntimeTypeOf] already reports the empty case as unknown, because its element type is derived from CONTENTS. 
+                          <code>null</code> inhabits every nullable type, so <code>List&lt;String?&gt;.filled(3, null)</code> and 
+                          <code>&lt;Widget?&gt;[null, null]</code> derive <code>Null</code> and were refused against the very annotation that produced them. That is a false positive on correct code, which is the one outcome [_checkTypeArguments] is written to avoid.
+                        </p>
+                        <p>
+                          It is a WIDENING rather than a subtype rule, and the distinction is the whole of it: <code>Null</code>
+                           is NOT a subtype of <code>String</code>, only of <code>String?</code>, and [InterpretedFunction._appliedDeclaredType] resolves an argument node by name — so a declared 
+                          <code>List&lt;String?&gt;</code> arrives here as <code>List&lt;String&gt;</code> with the nullability already gone, and no subtype rule could recover it. d4rt cannot read a reified type argument off a native collection either, so it cannot tell 
+                          <code>&lt;String?&gt;[null]</code> from a <code>List&lt;String&gt;</code> holding nulls. Refusing on that ambiguity costs a working program; accepting it costs a mistyping this check never claimed to catch.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="ResolvedBinding._widenNumericArguments" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static AppliedRuntimeType _widenNumericArguments(AppliedRuntimeType actual, AppliedRuntimeType declared)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          SCD92: [actual] with each <code>int</code> type argument whose declared counterpart is <code>double</code>
+                           replaced by it — or [actual] unchanged when none applies.
+                        </p>
+                        <p>
+                          Dart widens an int literal to a double from its surrounding context, so <code>fromJson({'x': 3, 'y': 4})</code>
+                           against a <code>Map&lt;String, double&gt;</code> parameter really does pass a map of doubles. d4rt's map holds the ints it was written with, so the argument derived from its CONTENTS is 
+                          <code>int</code> and a literal comparison rejects a correct program — which is how this was found, on two class tests that had passed since February.
+                        </p>
+                        <p>
+                          This is the allowance [bind] already makes for a <code>double</code> binding one level out (F-SCC29-22), reaching the type arguments. It widens the type used for the COMPARISON only: the collection is passed through untouched, still holding its ints, exactly as before this check existed.
+                        </p>
                       </div>
                     </div>
                   </div>

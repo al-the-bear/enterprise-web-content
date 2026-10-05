@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1387,11 +1393,28 @@
             <div class="treewrap">
               <div class="treepane">
                 <div class="treenodes">
-                  <a class="leaf" href="#_MergeArrays">_MergeArrays</a>
+                  <a class="leaf" href="#TomJsonCycleException">TomJsonCycleException</a>
+                  <a class="leaf" href="#TomJsonDirectiveException">TomJsonDirectiveException</a>
+                  <a class="leaf" href="#TomJsonPathException">TomJsonPathException</a>
+                  <a class="leaf" href="#_AncestorPath">_AncestorPath</a>
+                  <a class="leaf" href="#_NotJsonEncodable">_NotJsonEncodable</a>
                   <a class="leaf" href="#_TreeModification">_TreeModification</a>
+                  <a class="leaf" href="#_asStringKeyedMap">_asStringKeyedMap</a>
+                  <a class="leaf" href="#_cleanJsonValue">_cleanJsonValue</a>
                   <a class="leaf" href="#_cleanList">_cleanList</a>
+                  <a class="leaf" href="#_cleanMap">_cleanMap</a>
+                  <a class="leaf" href="#_createInList">_createInList</a>
+                  <a class="leaf" href="#_deepCopyJsonValue">_deepCopyJsonValue</a>
+                  <a class="leaf" href="#_describeProviderKeys">_describeProviderKeys</a>
+                  <a class="leaf" href="#_mergeListsOneSided">_mergeListsOneSided</a>
+                  <a class="leaf" href="#_mergeMapsOneSided">_mergeMapsOneSided</a>
                   <a class="leaf" href="#_modifyTree">_modifyTree</a>
+                  <a class="leaf" href="#_processList">_processList</a>
+                  <a class="leaf" href="#_readSegment">_readSegment</a>
                   <a class="leaf" href="#_substituteEnvVarsInString">_substituteEnvVarsInString</a>
+                  <a class="leaf" href="#_traverseAndCreate">_traverseAndCreate</a>
+                  <a class="leaf" href="#_traverseAndProcess">_traverseAndProcess</a>
+                  <a class="leaf" href="#deepCopyJsonTree">deepCopyJsonTree</a>
                   <a class="leaf" href="#getObjectFromTree">getObjectFromTree</a>
                   <a class="leaf" href="#getPathFromTree">getPathFromTree</a>
                   <a class="leaf" href="#makeCleanJsonMap">makeCleanJsonMap</a>
@@ -1415,36 +1438,215 @@
                   <p>
                     These utilities are particularly useful for configuration management, where base configurations need to be merged with environment-specific overrides while preserving nested structure.
                   </p>
+                  <h2>What counts as a subtree</h2>
+                  <p>
+                    Every function here that walks a tree treats <strong>any map whose keys are all <code>String</code></strong>
+                     as a subtree, whatever its reified type: <code>Map&lt;dynamic, dynamic&gt;</code>, <code>Map&lt;String, String&gt;</code>
+                     and <code>Map&lt;String, dynamic&gt;</code> are descended into alike. The reified type is not under the caller's control as often as it looks — 
+                    <code>jsonDecode</code> always yields <code>Map&lt;String, dynamic&gt;</code>, but <code>TomYaml</code>, a hand-written literal and anything round-tripped through an untyped container do not. Testing for a reified 
+                    <code>Map&lt;String, dynamic&gt;</code> would skip all of those silently, so the test here is on the keys.
+                  </p>
+                  <p>
+                    A map with a non-<code>String</code> key is <em>not</em> a subtree: it cannot be a JSON object and every callback here takes a 
+                    <code>String key</code>, so it is skipped whole rather than walked halfway. The in-place traversals still edit in place — the string-keyed view they walk writes through to the caller's map.
+                  </p>
+                  <h2>Cycles</h2>
+                  <p>
+                    A JSON document is a tree, but the Dart maps and lists these functions are handed are a general object graph: nothing stops a value from referring back to one of its own ancestors. Every function here that walks a tree therefore keeps the containers on its current path and recognises such a reference instead of following it, because following it recurses until the stack is exhausted — and a 
+                    <code>StackOverflowError</code> is an <code>Error</code> rather than an <code>Exception</code>, so no documented handling catches it.
+                  </p>
+                  <p>
+                    The walkers raise [TomJsonCycleException]. [makeCleanJsonMap] does not: it exists to make a value safe to encode or log, so a back-reference is 
+                    <em>dropped</em> there like any other value with no JSON form.
+                  </p>
+                  <p>
+                    A container that appears twice at <em>different</em> places is not a cycle. That is a directed acyclic graph, it encodes and copies perfectly well, and only a container that encloses itself is refused.
+                  </p>
                   <h2>Example: Merging configurations</h2>
                   <pre><code>final base = {'database': {'host': 'localhost', 'port': 5432}};
 final override = {'database': {'host': 'production.db.com'}};
 mergeMapsOneSided(base, override);
 // base is now {'database': {'host': 'production.db.com', 'port': 5432}}</code></pre>
                 </div>
-                <section id="_MergeArrays" class="api-declaration">
-                  <h3 class="api-decl-title">class _MergeArrays</h3>
-                  <code class="api-signature">class _MergeArrays&lt;T&gt;</code>
+                <section id="TomJsonCycleException" class="api-declaration">
+                  <h3 class="api-decl-title">class TomJsonCycleException</h3>
+                  <code class="api-signature">class TomJsonCycleException extends TomException</code>
                   <div class="api-doc">
-                    <p>Internal helper class for merging arrays.</p>
+                    <p>Raised when a tree walk meets a value that refers back to one of its own ancestors.</p>
                     <p>
-                      When merging two arrays, keeps all elements from [array1] and appends any additional elements from [array2] that extend beyond [array1]'s length.
+                      Raised by [deepCopyJsonTree], [mergeMapsOneSided], [traverseAndProcess], [traverseAndCreate], [substituteEnvVars] and [processTree] — every function here that descends into a tree, except [makeCleanJsonMap], which drops the back-reference rather than raising because it exists to produce something encodable.
+                    </p>
+                    <p>
+                      Distinct from [TomJsonPathException] and [TomJsonDirectiveException] because it says something about the 
+                      <em>input document</em> rather than about a path or a directive in it: whatever the caller passed is a graph, not a tree, and no walk of it can terminate. A caller that wants to tolerate that will want to catch exactly this and nothing else.
+                    </p>
+                    <p>Error key:</p>
+                    <ul><li><code>json.tree.cycle</code> — a container on the current path was reached again.</li></ul>
+                    <p>
+                      The <code>parameters</code> carry <code>path</code> (the dotted path to the offending value, with list indices as 
+                      <code>[i]</code>) and <code>segment</code> (its last step).
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
-                    <div id="_MergeArrays.new" class="api-member"><div class="api-member-head"><code class="api-signature">_MergeArrays.new()</code></div></div>
+                    <div id="TomJsonCycleException.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          TomJsonCycleException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, StackTrace? stack, Object? rootException, bool autoLog = false, String? requestUuid, String? uuid})
+                        </code>
+                      </div>
+                      <div class="api-doc"><p>Creates a cycle failure.</p></div>
+                    </div>
+                  </div>
+                </section>
+                <section id="TomJsonDirectiveException" class="api-declaration">
+                  <h3 class="api-decl-title">class TomJsonDirectiveException</h3>
+                  <code class="api-signature">class TomJsonDirectiveException extends TomException</code>
+                  <div class="api-doc">
+                    <p>Raised when a profile directive cannot be resolved by [processTree].</p>
+                    <p>
+                      Distinct from [TomJsonPathException] because the two are answered differently: a path failure is usually a typo in a caller's path, while a directive failure is usually a provider that looked in the wrong place. A caller that could only catch 
+                      <code>Exception</code> had to read the message to tell them apart.
+                    </p>
+                    <p>
+                      This does <strong>not</strong> cover a failure raised by the provider itself. Those propagate unaltered, by design — see [processTree].
+                    </p>
+                    <p>Error keys:</p>
+                    <ul>
+                      <li><code>json.directive.malformed_key</code> — a key carries three or more <code>@</code> and so</li>
+                    </ul>
+                    <p>
+                      cannot be an ordinary key, but is not the three-part directive shape either. The <code>parameters</code>
+                       carry <code>key</code>. - <code>json.directive.unresolved_key</code> — a <code>"@"</code> directive's provider returned no entry under the directive's own key. The 
+                      <code>parameters</code> carry <code>key</code>, <code>path</code>, <code>profile</code> and <code>providerKeys</code>.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomJsonDirectiveException.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          TomJsonDirectiveException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, StackTrace? stack, Object? rootException, bool autoLog = false, String? requestUuid, String? uuid})
+                        </code>
+                      </div>
+                      <div class="api-doc"><p>Creates a directive-resolution failure.</p></div>
+                    </div>
+                  </div>
+                </section>
+                <section id="TomJsonPathException" class="api-declaration">
+                  <h3 class="api-decl-title">class TomJsonPathException</h3>
+                  <code class="api-signature">class TomJsonPathException extends TomException</code>
+                  <div class="api-doc">
+                    <p>Raised when a dot-separated path cannot be resolved against a tree.</p>
+                    <p>
+                      Both [getObjectFromTree] and [getPathFromTree] raise it, and only for a path that does not lead anywhere. A terminal key that is 
+                      <em>present and holds null</em> is a value, not a failure, and is returned — that distinction is the reason this is an exception rather than a 
+                      <code>null</code> return.
+                    </p>
+                    <p>Error keys, each naming a condition a running system can meet:</p>
+                    <ul><li><code>json.path.missing_key</code> — no key of that name at that position. The</li></ul>
+                    <p>
+                      <code>parameters</code> carry <code>path</code>, <code>key</code> and <code>position</code>. - <code>json.path.not_a_subtree</code>
+                       — a segment before the last holds a scalar or <code>null</code>, so there is nothing to descend into. The 
+                      <code>parameters</code> carry <code>path</code>, <code>key</code>, <code>position</code> and <code>holds</code>.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomJsonPathException.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          TomJsonPathException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, StackTrace? stack, Object? rootException, bool autoLog = false, String? requestUuid, String? uuid})
+                        </code>
+                      </div>
+                      <div class="api-doc"><p>Creates a path-resolution failure.</p></div>
+                    </div>
+                  </div>
+                </section>
+                <section id="_AncestorPath" class="api-declaration">
+                  <h3 class="api-decl-title">class _AncestorPath</h3>
+                  <code class="api-signature">class _AncestorPath</code>
+                  <div class="api-doc">
+                    <p>
+                      The chain of containers the current walk has descended through, so a value that refers back to one of its own ancestors can be recognised rather than followed forever.
+                    </p>
+                    <p>
+                      Membership is by <strong>identity</strong>, and covers only the current path rather than every container already visited. A document may legitimately hold the same subtree at two places — that is a directed acyclic graph, it copies and encodes perfectly well, and an all-visited set would refuse it. Only a container that is its own ancestor closes a cycle.
+                    </p>
+                    <p>
+                      Guard on the value a container was <em>reached through</em>, never on a view of it: [_asStringKeyedMap] returns a fresh 
+                      <code>cast</code> wrapper on every call for a map that is not already <code>Map&lt;String, dynamic&gt;</code>, so a view is a different object each time and could never be recognised as its own ancestor.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="_AncestorPath.new" class="api-member"><div class="api-member-head"><code class="api-signature">_AncestorPath.new()</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="_AncestorPath._onPath" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Set&lt;Object&gt; _onPath</code></div>
+                    </div>
+                    <div id="_AncestorPath._segments" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final List&lt;String&gt; _segments</code></div>
+                    </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
-                    <div id="_MergeArrays.merge" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">List&lt;T&gt; merge(List&lt;T&gt; array1, List&lt;T&gt; array2)</code></div>
+                    <div id="_AncestorPath.holds" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool holds(Object container)</code></div>
                       <div class="api-doc">
-                        <p>Merges two arrays, preserving [array1] elements and appending extras from [array2].</p>
+                        <p>Whether [container] already encloses the position being walked.</p>
                         <p>
-                          Returns [array1] unchanged if [array2] is not longer. Otherwise, returns a new list with [array1] elements plus the additional elements from [array2].
+                          For callers that answer a cycle with something other than an exception; [enter] makes the same test and raises.
                         </p>
                       </div>
                     </div>
+                    <div id="_AncestorPath.enter" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void enter(Object container, String segment)</code></div>
+                      <div class="api-doc">
+                        <p>Descends into [container], reached through [segment].</p>
+                        <p>Raises [TomJsonCycleException] when [container] is already on the path.</p>
+                      </div>
+                    </div>
+                    <div id="_AncestorPath.leave" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void leave(Object container)</code></div>
+                      <div class="api-doc"><p>Leaves [container], undoing the matching [enter].</p></div>
+                    </div>
+                    <div id="_AncestorPath.descend" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">void descend(Object container, String segment, void Function() body)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Runs [body] with [container] on the path.</p>
+                        <p>
+                          No <code>finally</code>: the only way out other than returning is the cycle exception, which abandons the whole walk, so there is no half-unwound path left for anyone to observe.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="_AncestorPath._pathTo" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String _pathTo(String segment)</code></div>
+                      <div class="api-doc">
+                        <p>The dotted path from the root down to [segment].</p>
+                        <p>
+                          List indices are written <code>[i]</code> and joined without a separating dot, so <code>servers[0].host</code>
+                           reads the way a caller would write it.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="_NotJsonEncodable" class="api-declaration">
+                  <h3 class="api-decl-title">class _NotJsonEncodable</h3>
+                  <code class="api-signature">class _NotJsonEncodable</code>
+                  <div class="api-doc">
+                    <p>
+                      The type of [_notJsonEncodable]. Private, and never instantiated elsewhere, so no caller-supplied value can be mistaken for the sentinel.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="_NotJsonEncodable.new" class="api-member"><div class="api-member-head"><code class="api-signature">const _NotJsonEncodable.new()</code></div></div>
                   </div>
                 </section>
                 <section id="_TreeModification" class="api-declaration">
@@ -1455,17 +1657,17 @@ mergeMapsOneSided(base, override);
                     <p>
                       Encapsulates a deferred modification to be applied to a tree structure. Modifications are collected during traversal and applied afterward to avoid modifying the tree while iterating.
                     </p>
+                    <p>
+                      Every field is <code>final</code> and non-nullable, so an instance that exists is always applicable. Nullable fields that [apply] cleared on its way out would create a half-applied state describable only by a defensive throw — one that could not say whether the modification had already been applied or the tree was null, guarding a state the module has no path to. A non-directive key is represented by returning 
+                      <code>null</code> from [_modifyTree] rather than by a mutable singleton standing in for "nothing to do".
+                    </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="_TreeModification.new" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">_TreeModification.new()</code></div>
-                      <div class="api-doc"><p>Creates an empty (no-op) modification.</p></div>
-                    </div>
-                    <div id="_TreeModification.of" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          _TreeModification.of(String? value, Map&lt;String, dynamic&gt;? tree, String? keyName, Map&lt;String, dynamic&gt;? insertTree)
+                          const _TreeModification.new(String value, Map&lt;String, dynamic&gt; tree, String directiveKey, String keyName, Map&lt;String, dynamic&gt; insertTree)
                         </code>
                       </div>
                       <div class="api-doc">
@@ -1473,6 +1675,7 @@ mergeMapsOneSided(base, override);
                         <ul>
                           <li>[value]: The directive value ("...", "@", or other)</li>
                           <li>[tree]: The parent map where modification will be applied</li>
+                          <li>[directiveKey]: The <code>keyName@path@profileName</code> key that asked for this</li>
                           <li>[keyName]: The key to modify or insert</li>
                           <li>[insertTree]: The data to insert</li>
                         </ul>
@@ -1481,24 +1684,29 @@ mergeMapsOneSided(base, override);
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="_TreeModification.empty" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">bool empty</code></div>
-                      <div class="api-doc"><p>Whether this modification is a no-op.</p></div>
-                    </div>
                     <div id="_TreeModification.value" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">String? value</code></div>
+                      <div class="api-member-head"><code class="api-signature">final String value</code></div>
                       <div class="api-doc"><p>The directive value determining how to apply the modification.</p></div>
                     </div>
                     <div id="_TreeModification.tree" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">Map&lt;String, dynamic&gt;? tree</code></div>
+                      <div class="api-member-head"><code class="api-signature">final Map&lt;String, dynamic&gt; tree</code></div>
                       <div class="api-doc"><p>The parent map to modify.</p></div>
                     </div>
+                    <div id="_TreeModification.directiveKey" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String directiveKey</code></div>
+                      <div class="api-doc">
+                        <p>The <code>keyName@path@profileName</code> key that asked for this modification.</p>
+                        <p>
+                          Kept so [apply] can remove it: a directive is an instruction, and one that has been carried out is not part of the configuration it produced.
+                        </p>
+                      </div>
+                    </div>
                     <div id="_TreeModification.keyName" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">String? keyName</code></div>
+                      <div class="api-member-head"><code class="api-signature">final String keyName</code></div>
                       <div class="api-doc"><p>The key name for the modification.</p></div>
                     </div>
                     <div id="_TreeModification.insertTree" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">Map&lt;String, dynamic&gt;? insertTree</code></div>
+                      <div class="api-member-head"><code class="api-signature">final Map&lt;String, dynamic&gt; insertTree</code></div>
                       <div class="api-doc"><p>The data to insert into the tree.</p></div>
                     </div>
                   </div>
@@ -1507,39 +1715,213 @@ mergeMapsOneSided(base, override);
                     <div id="_TreeModification.apply" class="api-member">
                       <div class="api-member-head"><code class="api-signature">void apply()</code></div>
                       <div class="api-doc">
-                        <p>Applies this modification to the tree.</p>
+                        <p>Applies this modification to the tree, and consumes the directive.</p>
                         <p>
                           Behavior depends on [value]: - <code>"..."</code>: Spreads [insertTree] entries into [tree] (non-overwriting) - 
                           <code>"@"</code>: Replaces the value at [keyName] with the corresponding value from [insertTree] - Other: Sets [keyName] to the entire [insertTree]
                         </p>
+                        <p>
+                          The <code>"@"</code> directive assumes [insertTree] contains [keyName]; that is checked in [_modifyTree], before any modification is applied.
+                        </p>
+                        <p>
+                          [directiveKey] is then removed. Removal comes <em>after</em> the write so the spread's non-overwrite check sees the tree the directive found; the two keys cannot collide in any case, since a directive key contains 
+                          <code>@</code> and [keyName] is the part before the first one.
+                        </p>
                       </div>
                     </div>
                   </div>
-                  <h4 class="api-group-title">Static</h4>
-                  <div class="api-members">
-                    <div id="_TreeModification.emptyModification" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static _TreeModification emptyModification</code></div>
-                      <div class="api-doc"><p>Singleton empty modification for no-op cases.</p></div>
-                    </div>
+                </section>
+                <section id="_asStringKeyedMap" class="api-declaration">
+                  <h3 class="api-decl-title">function _asStringKeyedMap</h3>
+                  <code class="api-signature">Map&lt;String, dynamic&gt;? _asStringKeyedMap(Object? value)</code>
+                  <div class="api-doc">
+                    <p>
+                      A <code>Map&lt;String, dynamic&gt;</code> view of [value], or <code>null</code> if it is not a map this module can walk.
+                    </p>
+                    <p>
+                      Testing a child with <code>is Map&lt;String, dynamic&gt;</code> directly would be a <em>reified</em> test: a 
+                      <code>Map&lt;dynamic, dynamic&gt;</code> fails it, and would be walked past without an error or a log line, leaving its contents silently untransformed. 
+                      <code>jsonDecode</code> never produces such a map, so the common path would look correct, but <code>TomYaml.loadYamlFile</code>, hand-built maps and anything round-tripped through an untyped container all do — which is why the check is on the keys rather than the reified type.
+                    </p>
+                    <p>
+                      The returned view <strong>writes through</strong> to [value], which is what lets the in-place traversals keep their contract: a caller holding the original map sees the edits. Callers that need to store the result in a tree should prefer a real copy, because a 
+                      <code>cast</code> view revalidates on every write.
+                    </p>
+                    <p>
+                      A map with a non-String key returns <code>null</code> and is skipped. It cannot be a JSON object, and every callback here takes a 
+                      <code>String key</code>, so there is nothing meaningful to hand them; walking it halfway would be worse than not walking it. The scan that establishes this is O(keys), paid only for a map that is not already 
+                      <code>Map&lt;String, dynamic&gt;</code>.
+                    </p>
+                  </div>
+                </section>
+                <section id="_cleanJsonValue" class="api-declaration">
+                  <h3 class="api-decl-title">function _cleanJsonValue</h3>
+                  <code class="api-signature">Object? _cleanJsonValue(Object? value, _AncestorPath path, String segment)</code>
+                  <div class="api-doc">
+                    <p>
+                      Returns a JSON-clean copy of [value], or [_notJsonEncodable] when it is not a JSON-compatible type (in which case the caller filters it out).
+                    </p>
+                    <p>
+                      A <code>null</code> [value] returns <code>null</code> — it is a JSON value, not a failure — which is why the "no JSON form" answer needs its own sentinel.
+                    </p>
+                    <p>
+                      Shared by [makeCleanJsonMap] and [_cleanList] so the type dispatch — scalars and <code>null</code> pass through, [TomJsonSerializable] converts, maps and lists recurse, everything else is dropped — is defined in exactly one place.
+                    </p>
+                    <p>
+                      This is the only function in the module that knows [TomJsonSerializable] exists, and deliberately so. The tree functions ([traverseAndProcess], [traverseAndCreate], [substituteEnvVars]) rewrite strings 
+                      <em>in place</em> inside mutable maps and lists; a value object is immutable and opaque, so there is nothing for them to step into. They also operate on decoded JSON, which never contains a Dart object in the first place. Sanitisation is the one point where a live object tree meets JSON, so it is the one place the interface belongs.
+                    </p>
                   </div>
                 </section>
                 <section id="_cleanList" class="api-declaration">
                   <h3 class="api-decl-title">function _cleanList</h3>
-                  <code class="api-signature">List&lt;dynamic&gt; _cleanList(List&lt;dynamic&gt; list)</code>
+                  <code class="api-signature">List&lt;Object?&gt; _cleanList(List&lt;dynamic&gt; list, _AncestorPath path)</code>
                   <div class="api-doc">
                     <p>Recursively cleans a list to ensure it contains only JSON-compatible types.</p>
-                    <p>Internal helper for [makeCleanJsonMap].</p>
+                    <p>
+                      Internal helper for [makeCleanJsonMap]. <code>null</code> elements are kept — a JSON array may hold them, and dropping them would silently shift every later element's index.
+                    </p>
+                  </div>
+                </section>
+                <section id="_cleanMap" class="api-declaration">
+                  <h3 class="api-decl-title">function _cleanMap</h3>
+                  <code class="api-signature">Map&lt;String, Object?&gt; _cleanMap(Map&lt;dynamic, dynamic&gt; map, _AncestorPath path)</code>
+                  <div class="api-doc">
+                    <p>The recursive body of [makeCleanJsonMap].</p>
+                    <p>
+                      Separate so the ancestor path is allocated exactly once, at the outermost call, and so the public entry point cannot be re-entered with a path that already holds the map it is about to clean.
+                    </p>
+                  </div>
+                </section>
+                <section id="_createInList" class="api-declaration">
+                  <h3 class="api-decl-title">function _createInList</h3>
+                  <code class="api-signature">
+                    void _createInList(List&lt;dynamic&gt; list, bool Function(String) nameTest, void Function(String, String, Map&lt;String, dynamic&gt;) creator, _AncestorPath path)
+                  </code>
+                  <div class="api-doc">
+                    <p>Applies [traverseAndCreate]'s rules to the elements of [list], in place.</p>
+                    <p>
+                      Dispatch is per element rather than on the list's own type, so mixed lists from <code>jsonDecode</code>
+                       — <code>List&lt;dynamic&gt;</code> holding maps, strings and further lists side by side — are handled. A typed check on the list itself (<code>List&lt;Map&lt;String, dynamic&gt;&gt;</code>) never matches a decoded JSON list at all and skips its contents in silence, which is a worse answer than not descending: a directive inside an array read from disk stays in the tree looking exactly like one that was resolved.
+                    </p>
+                    <p>
+                      A list element recurses through this same function, so a list nested inside a list is reached at any depth.
+                    </p>
+                    <p>
+                      Unlike [traverseAndProcess]'s list walk there is no string branch, and the asymmetry is the point rather than an omission: this traversal selects on 
+                      <em>key names</em>, and an element of a list has no key to test. A string only reaches [creator] as the value of a matching key.
+                    </p>
+                  </div>
+                </section>
+                <section id="_deepCopyJsonValue" class="api-declaration">
+                  <h3 class="api-decl-title">function _deepCopyJsonValue</h3>
+                  <code class="api-signature">dynamic _deepCopyJsonValue(dynamic value, _AncestorPath path, String segment)</code>
+                  <div class="api-doc">
+                    <p>Deep-copies one value of a JSON tree. See [deepCopyJsonTree].</p>
+                    <p>
+                      [path] carries the containers this value is nested inside, and [segment] is the key or index it was reached through — together they recognise a back-reference and name where it sits.
+                    </p>
+                  </div>
+                </section>
+                <section id="_describeProviderKeys" class="api-declaration">
+                  <h3 class="api-decl-title">function _describeProviderKeys</h3>
+                  <code class="api-signature">String _describeProviderKeys(Map&lt;String, dynamic&gt; insertTree)</code>
+                  <div class="api-doc">
+                    <p>Names a provider result's keys for an error message.</p>
+                    <p>
+                      An empty map is spelled out rather than rendered as an empty list, so the message reads as a sentence in both cases.
+                    </p>
+                  </div>
+                </section>
+                <section id="_mergeListsOneSided" class="api-declaration">
+                  <h3 class="api-decl-title">function _mergeListsOneSided</h3>
+                  <code class="api-signature">
+                    List&lt;dynamic&gt; _mergeListsOneSided(List&lt;dynamic&gt; base, List&lt;dynamic&gt; override, String name)
+                  </code>
+                  <div class="api-doc">
+                    <p>Merges [override] into [base] positionally and returns the merged list.</p>
+                    <p>
+                      Each overlapping element pair is combined by the same rules [mergeMapsOneSided] applies to a key/value pair, so "merged element-by- element" means the same thing at every depth:
+                    </p>
+                    <ul>
+                      <li>two maps merge recursively;</li>
+                      <li>two lists merge positionally, through this function;</li>
+                      <li>a map or list override landing on a base element of another shape is a</li>
+                    </ul>
+                    <p>
+                      structural mismatch: it is refused with an error and the base element stays, exactly as a subtree override onto a scalar key does; - anything else — every scalar — is replaced by the override element.
+                    </p>
+                    <p>
+                      Base elements past the override's length are kept; override elements past the base's length are appended. [name] only labels error messages.
+                    </p>
+                    <p>
+                      The result is always a fresh <code>List&lt;dynamic&gt;</code> rather than [base] mutated in place. [base] may be reified narrowly — a literal like 
+                      <code>[&lt;String, Object&gt;{'a': 1}]</code> is a <code>List&lt;Map&lt;String, Object&gt;&gt;</code>
+                       at runtime, and writing a scalar override element into it would throw — so a list that accepts every element type has to be allocated for the result.
+                    </p>
+                  </div>
+                </section>
+                <section id="_mergeMapsOneSided" class="api-declaration">
+                  <h3 class="api-decl-title">function _mergeMapsOneSided</h3>
+                  <code class="api-signature">void _mergeMapsOneSided(Map&lt;String, dynamic&gt; base, Map&lt;String, dynamic&gt; override)</code>
+                  <div class="api-doc">
+                    <p>The recursive body of [mergeMapsOneSided].</p>
+                    <p>
+                      Separate so the deep copy happens exactly once, at the outermost call: recursing through [mergeMapsOneSided] would re-copy every subtree at every level.
+                    </p>
                   </div>
                 </section>
                 <section id="_modifyTree" class="api-declaration">
                   <h3 class="api-decl-title">function _modifyTree</h3>
                   <code class="api-signature">
-                    _TreeModification _modifyTree(String name, String value, Map&lt;String, dynamic&gt; tree, Map&lt;String, dynamic&gt; Function(String, String, String) provider)
+                    _TreeModification? _modifyTree(String name, String value, Map&lt;String, dynamic&gt; tree, Map&lt;String, dynamic&gt; Function(String, String, String) provider)
                   </code>
                   <div class="api-doc">
                     <p>Creates a tree modification from a profile-based key pattern.</p>
                     <p>
                       Parses keys matching the pattern <code>keyName@path@profileName</code> and creates a modification that will inject data from the specified profile.
+                    </p>
+                    <p>
+                      A key that does not match is an ordinary key and yields no modification — an email address is not a directive.
+                    </p>
+                    <p>
+                      Throws [Exception] if the key carries enough <code>@</code> to be a directive but is not a well-formed one, or if the 
+                      <code>"@"</code> directive is used and the provider's result has no entry named <code>keyName</code> — the value that directive exists to take.
+                    </p>
+                    <p>
+                      Whatever the provider throws is not caught: it reaches the caller with its own type and its own stack trace.
+                    </p>
+                  </div>
+                </section>
+                <section id="_processList" class="api-declaration">
+                  <h3 class="api-decl-title">function _processList</h3>
+                  <code class="api-signature">
+                    void _processList(List&lt;dynamic&gt; list, bool Function(String) test, String Function(String) processor, _AncestorPath path)
+                  </code>
+                  <div class="api-doc">
+                    <p>Applies [traverseAndProcess]'s rules to the elements of [list], in place.</p>
+                    <p>
+                      Dispatch is per element rather than on the list's own type, so mixed lists from <code>jsonDecode</code>
+                       — <code>List&lt;dynamic&gt;</code> holding maps, strings and further lists side by side — are handled. A typed check on the list itself (<code>List&lt;Map&lt;String, Object&gt;&gt;</code>
+                       / <code>List&lt;String&gt;</code>) would never match a decoded JSON list at all, and would skip its contents silently.
+                    </p>
+                    <p>
+                      A list element recurses through this same function, so a list nested inside a list is reached at any depth. Handling only the outermost array would leave every ordinary nested shape — a matrix, a list of coordinate pairs, a list of tag groups — untransformed and unreported.
+                    </p>
+                  </div>
+                </section>
+                <section id="_readSegment" class="api-declaration">
+                  <h3 class="api-decl-title">function _readSegment</h3>
+                  <code class="api-signature">Object? _readSegment(Map&lt;String, dynamic&gt; tree, String key, String path, int position)</code>
+                  <div class="api-doc">
+                    <p>Reads [key] from [tree], throwing when the key is genuinely absent.</p>
+                    <p>
+                      Absence is decided by <code>containsKey</code>, not by the value being <code>null</code>: a key present with a 
+                      <code>null</code> value is a value, and is returned as one. Collapsing the two would contradict [makeCleanJsonMap], which deliberately keeps a present 
+                      <code>null</code> so that an absent field stays distinguishable from a field that is present and null.
+                    </p>
+                    <p>
+                      [path] and [position] are carried only to report where in the original dotted path the failure happened.
                     </p>
                   </div>
                 </section>
@@ -1551,9 +1933,60 @@ mergeMapsOneSided(base, override);
                     <p>Internal helper for [substituteEnvVars].</p>
                   </div>
                 </section>
+                <section id="_traverseAndCreate" class="api-declaration">
+                  <h3 class="api-decl-title">function _traverseAndCreate</h3>
+                  <code class="api-signature">
+                    void _traverseAndCreate(Map&lt;String, dynamic&gt; tree, bool Function(String) nameTest, void Function(String, String, Map&lt;String, dynamic&gt;) creator, _AncestorPath path)
+                  </code>
+                  <div class="api-doc">
+                    <p>The recursive body of [traverseAndCreate].</p>
+                    <p>
+                      Separate so the ancestor path is allocated exactly once, at the outermost call, and so the public entry point cannot be re-entered with a path that already holds the tree it is about to walk.
+                    </p>
+                  </div>
+                </section>
+                <section id="_traverseAndProcess" class="api-declaration">
+                  <h3 class="api-decl-title">function _traverseAndProcess</h3>
+                  <code class="api-signature">
+                    void _traverseAndProcess(Map&lt;String, dynamic&gt; tree, bool Function(String) test, String Function(String) processor, _AncestorPath path)
+                  </code>
+                  <div class="api-doc">
+                    <p>The recursive body of [traverseAndProcess].</p>
+                    <p>
+                      Separate so the ancestor path is allocated exactly once, at the outermost call, and so the public entry point cannot be re-entered with a path that already holds the tree it is about to walk.
+                    </p>
+                  </div>
+                </section>
+                <section id="deepCopyJsonTree" class="api-declaration">
+                  <h3 class="api-decl-title">function deepCopyJsonTree</h3>
+                  <code class="api-signature">Map&lt;String, dynamic&gt; deepCopyJsonTree(Map&lt;String, dynamic&gt; source)</code>
+                  <div class="api-doc">
+                    <p>Returns a deep copy of [source] that shares no map or list with it.</p>
+                    <p>
+                      Every nested map and list is rebuilt, so writing anywhere in the copy — including deep inside it — cannot reach [source]. This is what 
+                      <code>Map&lt;String, dynamic&gt;.from</code> does <em>not</em> give you: that copies only the top level, leaving every nested subtree shared, so an in-place merge into the "copy" writes straight through into the original.
+                    </p>
+                    <p>Use it to keep a document intact across a [mergeMapsOneSided], which mutates its first argument:</p>
+                    <pre><code>final merged = deepCopyJsonTree(baseConfig);
+mergeMapsOneSided(merged, overrides);
+// baseConfig is untouched</code></pre>
+                    <p>
+                      Maps are normalised to <code>Map&lt;String, dynamic&gt;</code> and lists to <code>List&lt;dynamic&gt;</code>, because a copy exists to be written into and a narrowly reified container would throw on the first value of another type. Non-String keys are converted with 
+                      <code>toString()</code>; a JSON object's keys are strings by definition.
+                    </p>
+                    <p>
+                      Scalar leaves are shared rather than copied. That is correct for the JSON scalars — <code>String</code>, 
+                      <code>num</code>, <code>bool</code>, <code>null</code> are immutable — and is the only option for any other object a tree happens to carry, which cannot be cloned generically.
+                    </p>
+                    <p>
+                      Throws [TomJsonCycleException] when a container refers back to one of its own ancestors. A copy of such a graph is not expressible here anyway: every container is rebuilt, so a shared subtree becomes two independent copies, and a self-reference has no copy to point at. See the library doc's 
+                      <em>Cycles</em>.
+                    </p>
+                  </div>
+                </section>
                 <section id="getObjectFromTree" class="api-declaration">
                   <h3 class="api-decl-title">function getObjectFromTree</h3>
-                  <code class="api-signature">Object getObjectFromTree(Map&lt;String, dynamic&gt; baseTree, String path)</code>
+                  <code class="api-signature">Object? getObjectFromTree(Map&lt;String, dynamic&gt; baseTree, String path)</code>
                   <div class="api-doc">
                     <p>Retrieves any object from a nested map using a dot-separated path.</p>
                     <p>
@@ -1565,13 +1998,25 @@ mergeMapsOneSided(base, override);
                       <li>[path]: Dot-separated path string (e.g., "database.port")</li>
                     </ul>
                     <h2>Returns</h2>
-                    <p>The object found at the specified path (may be a Map, List, String, int, etc.)</p>
+                    <p>
+                      The value found at the specified path — a Map, List, String, int, or <code>null</code>. A <code>null</code>
+                       return means the terminal key is <strong>present and holds null</strong>, which is a value; a path that cannot be resolved throws instead. Absence is decided by 
+                      <code>containsKey</code>, matching [makeCleanJsonMap], which keeps a present <code>null</code> for the same reason: an absent field and a field that is present and null mean different things.
+                    </p>
                     <h2>Throws</h2>
-                    <ul><li>[Exception] if the path cannot be resolved</li></ul>
+                    <ul>
+                      <li>[Exception] if a segment names a key that is not there.</li>
+                      <li>[Exception] if an interior segment resolves to something with no subtree</li>
+                    </ul>
+                    <p>
+                      to descend into — including <code>null</code>, which is a fine terminal value but cannot be walked through. The message distinguishes the two cases. An interior map is walked through whatever its reified type, as long as its keys are all 
+                      <code>String</code>; see the library doc's <em>What counts as a subtree</em>.
+                    </p>
                     <h2>Example</h2>
-                    <pre><code>final config = {'db': {'port': 5432}};
-final port = getObjectFromTree(config, 'db.port');
-// Returns 5432</code></pre>
+                    <pre><code>final config = {'db': {'port': 5432, 'replica': null}};
+getObjectFromTree(config, 'db.port');     // 5432
+getObjectFromTree(config, 'db.replica');  // null — present, deliberately
+getObjectFromTree(config, 'db.absent');   // throws</code></pre>
                   </div>
                 </section>
                 <section id="getPathFromTree" class="api-declaration">
@@ -1590,6 +2035,16 @@ final port = getObjectFromTree(config, 'db.port');
                       <li>[path]: Dot-separated path string (e.g., "level1.level2.level3")</li>
                       <li>[name]: Key name to use when wrapping non-map terminal values</li>
                     </ul>
+                    <p>
+                      A terminal <code>null</code> is a non-map value and is wrapped like any other, giving <code>{name: null}</code>. That keeps it distinguishable from an absent path, which throws — see [getObjectFromTree] for why the two are not collapsed.
+                    </p>
+                    <p>
+                      A map at the path is a subtree, and so returned rather than wrapped, whatever its reified type, as long as its keys are all 
+                      <code>String</code>; see the library doc's <em>What counts as a subtree</em>.
+                    </p>
+                    <p>
+                      Wrapping is silent: it is what this function exists to do, and the returned map says which branch was taken. A caller that wants the raw value, or wants to decide for itself, calls [getObjectFromTree].
+                    </p>
                     <h2>Throws</h2>
                     <ul><li>[Exception] if the path cannot be resolved or contains invalid segments</li></ul>
                     <h2>Example</h2>
@@ -1600,23 +2055,53 @@ final settings = getPathFromTree(config, 'db.settings', 'result');
                 </section>
                 <section id="makeCleanJsonMap" class="api-declaration">
                   <h3 class="api-decl-title">function makeCleanJsonMap</h3>
-                  <code class="api-signature">Map&lt;String, Object&gt; makeCleanJsonMap(Map&lt;dynamic, dynamic&gt; map)</code>
+                  <code class="api-signature">Map&lt;String, Object?&gt; makeCleanJsonMap(Map&lt;dynamic, dynamic&gt; map)</code>
                   <div class="api-doc">
                     <p>Recursively cleans a map to ensure it contains only JSON-compatible types.</p>
                     <p>
-                      Creates a new map containing only valid JSON types (String, int, double, bool, Map, List). Filters out entries with non-String keys or unsupported value types.
+                      Creates a new map containing valid JSON values (String, int, double, bool, <code>null</code>, Map, List). Entries with non-String keys, and values of any other type, are filtered out.
                     </p>
                     <p>
-                      This is useful when working with maps that may contain non-serializable types (e.g., DateTime, custom objects) and need to be converted to pure JSON.
+                      <code>null</code> is a JSON value and is <strong>kept</strong>. An absent field and a field that is present and null mean different things — to a PATCH-style partial update, to a settings map where null means "explicitly cleared", to a DTO whose schema declares the field nullable — and the sanitiser preserves that distinction rather than collapsing it.
                     </p>
+                    <p>
+                      The one exception to the type filter is [TomJsonSerializable]: a value implementing it is converted through its 
+                      <code>toJson()</code> and the result cleaned in turn, wherever it appears in the tree — at the top level, nested in a sub-map, or inside a list. That is the interface's whole purpose, and dropping such a value would discard state the object was explicitly written to expose.
+                    </p>
+                    <p>
+                      This is useful when working with maps that may contain non-serializable types (e.g. <code>DateTime</code>, custom objects) and need to be converted to pure JSON. Note that filtering is silent: a 
+                      <code>DateTime</code> disappears without an error, so give a type a <code>toJson()</code> via [TomJsonSerializable] when its value must survive.
+                    </p>
+                    <h2>A cycle is dropped, not raised</h2>
+                    <p>
+                      A value that refers back to a container already enclosing it is filtered out like any other value with no JSON form — a cyclic reference has none, and 
+                      <code>jsonEncode</code> refuses one. This function is the module's one walker that does not raise [TomJsonCycleException], because it exists to hand back something encodable and loggable: turning a log call into an exception would be as poor a trade as turning it into a stack overflow.
+                    </p>
+                    <p>
+                      The test is on the <em>enclosing</em> containers only, so the same subtree appearing at two places is emitted twice rather than refused. A [TomJsonSerializable] is tracked as well as the maps and lists, because its 
+                      <code>toJson()</code> builds a fresh map at every call and a parent re-serialised at each level would otherwise never repeat.
+                    </p>
+                    <pre><code>final m = &lt;String, dynamic&gt;{'name': 'x'};
+m['self'] = m;
+makeCleanJsonMap(m);   // {'name': 'x'} — the back-reference is dropped</code></pre>
                     <h2>Parameters</h2>
                     <ul><li>[map]: The source map to clean (not modified)</li></ul>
                     <h2>Returns</h2>
-                    <p>A new <code>Map&lt;String, Object&gt;</code> containing only JSON-compatible entries.</p>
+                    <p>A new <code>Map&lt;String, Object?&gt;</code> containing only JSON-compatible entries.</p>
                     <h2>Example</h2>
                     <pre><code>final dirty = {'name': 'App', 'created': DateTime.now(), 'port': 8080};
 final clean = makeCleanJsonMap(dirty);
-// clean = {'name': 'App', 'port': 8080}  (DateTime filtered out)</code></pre>
+// clean = {'name': 'App', 'port': 8080}  (DateTime filtered out)
+
+// A deliberate null survives; only what cannot be encoded is dropped.
+final patch = {'discount': null, 'when': DateTime.now()};
+makeCleanJsonMap(patch);
+// {'discount': null}
+
+// A TomJsonSerializable is converted rather than dropped.
+final withValue = {'name': 'App', 'price': Money(12, 'EUR')};
+final cleaned = makeCleanJsonMap(withValue);
+// cleaned = {'name': 'App', 'price': {'amount': 12, 'currency': 'EUR'}}</code></pre>
                   </div>
                 </section>
                 <section id="mergeMapsOneSided" class="api-declaration">
@@ -1625,9 +2110,27 @@ final clean = makeCleanJsonMap(dirty);
                   <div class="api-doc">
                     <p>Recursively merges [override] map into [base] map (one-sided deep merge).</p>
                     <p>
-                      This function performs a deep merge where: - Nested maps are merged recursively - Arrays are merged element-by-element (nested maps within arrays are also merged) - Primitive values from [override] replace values in [base] - Keys in [override] that don't exist in [base] are added
+                      This function performs a deep merge where: - Nested maps are merged recursively - Arrays are merged element-by-element over the overlapping prefix, then take [override]'s tail; base elements past [override]'s length are kept. Each element pair follows the same rules as a key/value pair: maps merge recursively, lists merge positionally, and any other override element replaces the base element. - Primitive values from [override] replace values in [base] - Keys in [override] that don't exist in [base] are added
                     </p>
-                    <p><strong>Important</strong>: This modifies [base] in-place.</p>
+                    <p>
+                      A structural mismatch — an [override] map or list landing on a base value of another shape, at a key or at a list index — is refused with a logged error, and the base value is kept.
+                    </p>
+                    <p>
+                      <strong>Important</strong>: This modifies [base] in-place. To keep the original intact, copy it with [deepCopyJsonTree] first — 
+                      <code>Map&lt;String, dynamic&gt;.from</code> is shallow and leaves every nested subtree shared, so the merge would write through into the map you meant to protect.
+                    </p>
+                    <p>
+                      [override] is deep-copied before the merge, so it is never modified and the merged tree shares no map or list with it. The two documents therefore stay independent: a later edit to either cannot reach the other. This matters in the layered-config flow the function exists for — without it, 
+                      <code>mergeMapsOneSided(base, env); mergeMapsOneSided(base, local);</code> would leave <code>base</code>
+                       holding live references into both documents, and the second merge would write back into the first. Scalar leaves are shared rather than copied, which is safe because JSON scalars are immutable.
+                    </p>
+                    <p>
+                      A base subtree counts whatever its reified type, as long as its keys are all <code>String</code>; see the library doc's 
+                      <em>What counts as a subtree</em>.
+                    </p>
+                    <p>
+                      Throws [TomJsonCycleException] when [override] contains a cycle — raised by the deep copy, before any of [base] is touched. [base] needs no guard of its own: the merge descends only where [override] descends, and [override] has by then been rebuilt as a tree, so the recursion is bounded by its depth however the base tree is shaped.
+                    </p>
                     <h2>Parameters</h2>
                     <ul>
                       <li>[base]: The target map that will be modified with merged values</li>
@@ -1640,12 +2143,13 @@ final clean = makeCleanJsonMap(dirty);
 };
 final override = {
   'server': {'host': 'api.example.com'},
-  'features': ['auth', 'logging', 'metrics']
+  'features': ['oauth', 'logging', 'metrics']
 };
 mergeMapsOneSided(base, override);
 // Result: base['server']['host'] == 'api.example.com'
 // Result: base['server']['port'] == 8080 (preserved)
-// Result: base['features'] includes 'metrics' (appended)</code></pre>
+// Result: base['features'] == ['oauth', 'logging', 'metrics']
+//   index 0 replaced, index 1 unchanged, index 2 appended</code></pre>
                   </div>
                 </section>
                 <section id="processTree" class="api-declaration">
@@ -1666,8 +2170,13 @@ mergeMapsOneSided(base, override);
                     <p>Takes (keyName, path, profileName) and returns the data to inject.</p>
                     <h2>Key Pattern Format</h2>
                     <p>
-                      Keys should match: <code>keyName@path@profileName</code> - <code>keyName</code>: The resulting key name after resolution - 
+                      Keys must match <code>keyName@path@profileName</code> <em>in full</em>: - <code>keyName</code>: The resulting key name after resolution - 
                       <code>path</code>: The path within the profile to extract - <code>profileName</code>: The name of the profile to use
+                    </p>
+                    <p>
+                      All three parts are non-empty and the match covers the whole key, so a key with a fourth part is not resolved against its first three. A key that does not match is an ordinary key and is left untouched — 
+                      <code>user@example.com</code> and <code>@scope/package@1.0.0</code> are keys, not directives. Only a key carrying three or more 
+                      <code>@</code>, which no ordinary string in this framework does, is reported as a malformed directive rather than ignored.
                     </p>
                     <h2>Value Directives</h2>
                     <ul>
@@ -1675,16 +2184,49 @@ mergeMapsOneSided(base, override);
                       <li><code>"@"</code>: Replace with the value at the same key from resolved data</li>
                       <li>Other: Replace with the entire resolved data structure</li>
                     </ul>
+                    <p>
+                      The <code>"@"</code> directive takes the value the provider returned <em>under the same key</em>, so 
+                      <code>wanted@path@profile: "@"</code> needs a provider result containing <code>wanted</code>. A result containing the key with a 
+                      <code>null</code> value is a value like any other and is assigned; only an absent key is a failure.
+                    </p>
+                    <h2>The directive key is consumed</h2>
+                    <p>
+                      A resolved directive's own key is removed from its map. A directive is an instruction, and one that has been carried out is not part of the configuration it produced — so the resolved tree is ordinary data that can be encoded, diffed or merged without carrying work still to do beside its result.
+                    </p>
+                    <p>
+                      The consequence worth naming is idempotence: running this again over an already-resolved tree calls the [provider] for nothing, because there is no directive left to resolve. A provider is typically a vault read or a file load, and may have side effects.
+                    </p>
+                    <p>
+                      Removal happens with the write, not with the resolution, so the collect-before-apply guarantee below covers it: a failure leaves every directive key exactly where it was.
+                    </p>
+                    <h2>Failures</h2>
+                    <p>
+                      Throws [TomJsonDirectiveException] if: - a key carries three or more <code>@</code> but is not a well-formed directive (<code>json.directive.malformed_key</code>) — the message names the key and restates the expected form; - a 
+                      <code>"@"</code> directive's provider result has no entry under the directive's key (<code>json.directive.unresolved_key</code>) — the message names the key, the resolved path, the profile and the keys the provider did return.
+                    </p>
+                    <p>
+                      Throws [TomJsonCycleException] when [tree] contains a container that refers back to one of its own ancestors, through the [traverseAndCreate] this is built on. It is raised during collection, so no directive has been applied.
+                    </p>
+                    <p>
+                      Anything the [provider] throws propagates <strong>unaltered</strong> — same type, same message, same stack trace — so a caller can 
+                      <code>catch</code> on the provider's own failure type instead of recovering it from a string. Nothing is wrapped around it, because the only context a wrapper could add is the directive key, and that is just the three arguments the provider was called with. A provider whose own errors need to name the profile it was resolving should say so itself; this function will not paraphrase it.
+                    </p>
+                    <p>
+                      Every directive is resolved before any is applied, so a failure leaves [tree] exactly as it was passed: the operation does not half-complete. That holds for a provider failure too — a directive resolved earlier in the same call is discarded rather than written.
+                    </p>
                   </div>
                 </section>
                 <section id="substituteEnvVars" class="api-declaration">
                   <h3 class="api-decl-title">function substituteEnvVars</h3>
-                  <code class="api-signature">void substituteEnvVars(Map&lt;String, Object&gt; tree, Map&lt;String, String&gt; environment)</code>
+                  <code class="api-signature">void substituteEnvVars(Map&lt;String, dynamic&gt; tree, Map&lt;String, String&gt; environment)</code>
                   <div class="api-doc">
                     <p>Substitutes environment variable placeholders in all string values of a map tree.</p>
                     <p>
                       Processes the entire [tree] in-place, replacing placeholders like <code>${VAR_NAME}</code> with values from the provided [environment] map. Supports default values using the syntax 
                       <code>${VAR_NAME:default}</code>.
+                    </p>
+                    <p>
+                      Throws [TomJsonCycleException] when a container refers back to one of its own ancestors, through the [traverseAndProcess] this is built on.
                     </p>
                     <h2>Parameters</h2>
                     <ul>
@@ -1692,12 +2234,36 @@ mergeMapsOneSided(base, override);
                       <li>[environment]: Map of environment variable names to values</li>
                     </ul>
                     <h2>Placeholder Syntax</h2>
-                    <ul>
-                      <li><code>${VAR_NAME}</code> - Replaced with environment value, or left unchanged if not found</li>
-                      <li>
-                        <code>${VAR_NAME:default}</code> - Replaced with environment value, or <code>default</code> if not found
-                      </li>
-                    </ul>
+                    <ul><li><code>${VAR_NAME}</code> — replaced with the environment value, or left unchanged if</li></ul>
+                    <p>
+                      there is none - <code>${VAR_NAME:default}</code> — replaced with the environment value, or <code>default</code>
+                       if there is none
+                    </p>
+                    <h2>An empty value counts as unset</h2>
+                    <p>
+                      A variable present in [environment] with an empty value is treated exactly as an absent one: <code>{'VAR': ''}</code>
+                       and <code>{}</code> produce the same result. This follows the shell's <code>${VAR:-default}</code> convention, which the 
+                      <code>:</code> in <code>${VAR:default}</code> mirrors — the colon form is precisely the one that folds empty into unset.
+                    </p>
+                    <p>The consequence is worth stating plainly, because it looks asymmetric until the convention is named:</p>
+                    <pre><code>substituteEnvVars({'a': r'${V:fallback}'}, {'V': ''});  // 'fallback'
+substituteEnvVars({'a': r'${V}'},          {'V': ''});  // '${V}' survives
+substituteEnvVars({'a': r'${V:}'},         {});         // '' — empty default</code></pre>
+                    <p>
+                      An empty <em>default</em> is a default that happens to be empty, and resolves; an empty <em>value</em>
+                       does not. So a caller passing <code>Platform.environment</code> cannot express "this variable is deliberately empty" — a 
+                      <code>VAR=</code> in the environment leaves a literal <code>${VAR}</code> in the tree unless a default is supplied. Give the placeholder an explicit empty default, 
+                      <code>${VAR:}</code>, when empty is the intended resolution.
+                    </p>
+                    <p>
+                      That limit is the shell's too, and is left standing deliberately. A shell script written with <code>${VAR:-default}</code>
+                       cannot be handed an empty value either; the shell's escape is a <em>second</em> form, <code>${VAR-default}</code>, which this module has no counterpart to. Adding one would not help the operator the limit is about, because either form lives in the config file rather than in the environment they set — so the choice would still be the config author's, exactly as it is today.
+                    </p>
+                    <p>
+                      And the author already has it. The gap bites in one combination only: the placeholder is <code>${VAR}</code>
+                       with no default <em>and</em> the operator wants empty. Writing no default is how an author says the value is mandatory, so the surviving placeholder there is the loud failure it is meant to be. Where empty is a legitimate value the author writes 
+                      <code>${VAR:}</code>, and then <code>VAR=</code> and an unset <code>VAR</code> both resolve to empty — which is what the operator wanted.
+                    </p>
                     <h2>Example</h2>
                     <pre><code>final config = {'host': '${DB_HOST:localhost}', 'port': '${DB_PORT}'};
 final env = {'DB_HOST': 'production.db.com', 'DB_PORT': '5432'};
@@ -1713,7 +2279,14 @@ substituteEnvVars(config, env);
                   <div class="api-doc">
                     <p>Traverses a nested map tree and creates new entries based on key names.</p>
                     <p>
-                      Similar to [traverseAndProcess], but focuses on key names rather than values. When a key name matches [nameTest], the [creator] callback is invoked with the key, value, and parent map location, allowing insertion of new nodes.
+                      Similar to [traverseAndProcess], but selects on key names rather than value contents. When a key name matches [nameTest] 
+                      <em>and its value is a <code>String</code></em>, the [creator] callback is invoked with the key, that string, and the parent map location, allowing insertion of new nodes.
+                    </p>
+                    <h2>Which keys reach the creator</h2>
+                    <p>
+                      The value's shape is part of the match, not just the name. A matching key whose value is a map is recursed into instead of being reported, and one whose value is a list is taken by the list branch and likewise never reported — the branches are mutually exclusive. A matching key whose value is an 
+                      <code>int</code>, <code>bool</code> or <code>null</code> is skipped outright. This is not incidental: [creator] takes a 
+                      <code>String value</code>, so no other shape could be handed to it.
                     </p>
                     <p>
                       This is particularly useful for expanding shorthand notations or creating links/references in configuration trees.
@@ -1722,29 +2295,61 @@ substituteEnvVars(config, env);
                     <ul>
                       <li>[tree]: The nested map structure to traverse</li>
                       <li>[nameTest]: Predicate function that tests key names</li>
-                      <li>[creator]: Callback invoked for matching keys; can modify [location] map</li>
+                      <li>[creator]: Callback invoked for each matching key, receiving the key, its</li>
                     </ul>
+                    <p>
+                      string value, and the map that contains it. It may insert into, remove from, or overwrite that map directly — the walk iterates a snapshot of each map's keys, so mutating during the callback is safe at every depth, including a map an outer recursion level is still walking.
+                    </p>
+                    <h2>What a creator's edits are visited by</h2>
+                    <p>
+                      Keys the creator adds are <strong>not</strong> traversed: the snapshot for a map is taken before its entries are visited. That is deliberate — a creator that inserts a key its own [nameTest] matches would otherwise call itself forever. Run the traversal again if newly created nodes must themselves be expanded.
+                    </p>
+                    <p>An entry the creator removes is simply skipped when the walk reaches it.</p>
+                    <p>
+                      A map child counts whatever its reified type, as long as its keys are all <code>String</code>; see the library doc's 
+                      <em>What counts as a subtree</em>.
+                    </p>
+                    <p>
+                      Lists are walked per element, so a map inside a list, a list inside a list, and any deeper combination are all descended into. Dispatch is on each value's runtime shape rather than on a container's declared type, which is what makes a document straight out of 
+                      <code>jsonDecode</code> — <code>Map&lt;String, dynamic&gt;</code> and <code>List&lt;dynamic&gt;</code>
+                       throughout — behave the same as one built in Dart code.
+                    </p>
+                    <p>
+                      Throws [TomJsonCycleException] when a container refers back to one of its own ancestors; see the library doc's 
+                      <em>Cycles</em>. A creator that <em>inserts</em> a cycle is not caught by this — the keys it adds are never traversed — but the next walk of the tree will refuse it.
+                    </p>
                     <h2>Example</h2>
-                    <pre><code>final config = {'ref@profiles@dev': '...'};
+                    <pre><code>final config = {'ref@profiles@dev': 'value'};
 traverseAndCreate(
   config,
   (name) =&gt; name.contains('@'),
   (key, value, location) {
-    // Process the reference pattern and insert resolved values
+    location['resolved'] = value.toUpperCase(); // inserting is supported
   },
-);</code></pre>
+);
+// config = {'ref@profiles@dev': 'value', 'resolved': 'VALUE'}</code></pre>
                   </div>
                 </section>
                 <section id="traverseAndProcess" class="api-declaration">
                   <h3 class="api-decl-title">function traverseAndProcess</h3>
                   <code class="api-signature">
-                    void traverseAndProcess(Map&lt;String, Object&gt; tree, bool Function(String) test, String Function(String) processor)
+                    void traverseAndProcess(Map&lt;String, dynamic&gt; tree, bool Function(String) test, String Function(String) processor)
                   </code>
                   <div class="api-doc">
                     <p>Traverses a nested map tree and processes all String values matching a condition.</p>
                     <p>
                       Recursively walks through the [tree] structure, applying [processor] to any String value where [test] returns 
                       <code>true</code>. This modifies the tree in-place.
+                    </p>
+                    <p>
+                      Every string in the tree is reached, whatever holds it: nested maps recurse, and lists are walked per element, so a map inside a list, a list inside a list, and any deeper combination are all descended into. Dispatch is on each value's runtime shape rather than on a container's declared type, which is what makes a document straight out of 
+                      <code>jsonDecode</code> — <code>Map&lt;String, dynamic&gt;</code> and <code>List&lt;dynamic&gt;</code>
+                       throughout — behave the same as one built in Dart code. A map child counts whatever its reified type, as long as its keys are all 
+                      <code>String</code>; see the library doc's <em>What counts as a subtree</em>.
+                    </p>
+                    <p>
+                      Throws [TomJsonCycleException] when a container refers back to one of its own ancestors; see the library doc's 
+                      <em>Cycles</em>.
                     </p>
                     <h2>Parameters</h2>
                     <ul>

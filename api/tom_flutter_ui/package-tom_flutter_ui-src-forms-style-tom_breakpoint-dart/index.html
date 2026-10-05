@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1394,13 +1400,15 @@
                   <code class="api-signature">class TomBreakpoint</code>
                   <div class="api-doc">
                     <p>
-                      Named breakpoint values shared across the form system (and the rest of the app, if you want). The three fields are mutable so app authors can retune the breakpoint ladder once, early at startup, and have every 
+                      Named breakpoint values shared across the form system (and the rest of the app, if you want). App authors can retune the breakpoint ladder once, early at startup, and have every 
                       <code>@bp.mobile</code> / <code>@bp.tablet</code> / <code>@bp.desktop</code> resource key and every programmatic reference follow that retuning.
                     </p>
+                    <p>
+                      The thresholds are exposed as <strong>read-only getters</strong> and mutated only through [configure] — a single, named entry point — rather than as free-floating public mutable statics. This keeps the "retune at startup" capability while making every change go through one obvious channel (no accidental 
+                      <code>TomBreakpoint.mobile = …</code> reassignment scattered across the codebase).
+                    </p>
                     <pre><code>void main() {
-  TomBreakpoint.mobile = 560;   // optional retune
-  TomBreakpoint.tablet = 960;
-  TomBreakpoint.desktop = 1280;
+  TomBreakpoint.configure(mobile: 560, tablet: 960, desktop: 1280);
   runApp(...);
 }</code></pre>
                     <p>In resources, both numeric keys and named keys are accepted side-by- side:</p>
@@ -1420,27 +1428,35 @@
                   </div>
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
-                    <div id="TomBreakpoint.mobile" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static double mobile</code></div>
-                      <div class="api-doc">
-                        <p>
-                          Minimum width (in logical pixels) at which the layout is considered "mobile". Default: <code>600</code>.
-                        </p>
-                      </div>
-                    </div>
-                    <div id="TomBreakpoint.tablet" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static double tablet</code></div>
-                      <div class="api-doc"><p>Minimum width at which the layout is considered "tablet". Default: <code>900</code>.</p></div>
-                    </div>
-                    <div id="TomBreakpoint.desktop" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static double desktop</code></div>
-                      <div class="api-doc"><p>Minimum width at which the layout is considered "desktop". Default: <code>1200</code>.</p></div>
-                    </div>
+                    <div id="TomBreakpoint._mobile" class="api-member"><div class="api-member-head"><code class="api-signature">static double _mobile</code></div></div>
+                    <div id="TomBreakpoint._tablet" class="api-member"><div class="api-member-head"><code class="api-signature">static double _tablet</code></div></div>
+                    <div id="TomBreakpoint._desktop" class="api-member"><div class="api-member-head"><code class="api-signature">static double _desktop</code></div></div>
+                    <div id="TomBreakpoint.mobile" class="api-member"><div class="api-member-head"><code class="api-signature">static double mobile</code></div></div>
+                    <div id="TomBreakpoint.tablet" class="api-member"><div class="api-member-head"><code class="api-signature">static double tablet</code></div></div>
+                    <div id="TomBreakpoint.desktop" class="api-member"><div class="api-member-head"><code class="api-signature">static double desktop</code></div></div>
                     <div id="TomBreakpoint.names" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static List&lt;String&gt; names</code></div>
                       <div class="api-doc">
                         <p>
                           The canonical list of named breakpoints, in ascending-default order. Used by the resource overlay to know which named keys to probe.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBreakpoint.configure" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static void configure({double? mobile, double? tablet, double? desktop})</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Retunes the breakpoint ladder. The single supported mutation path — call once early at startup. Only the thresholds passed (non-<code>null</code>) are changed; the rest keep their current value.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBreakpoint.reset" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static void reset()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Restores the default ladder (<code>600</code> / <code>900</code> / <code>1200</code>). Intended for tests so breakpoint state cannot leak between cases.
                         </p>
                       </div>
                     </div>

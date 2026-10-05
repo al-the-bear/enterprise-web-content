@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1400,30 +1406,75 @@
                   <div class="api-doc">
                     <p>A widget that rebuilds whenever a [TomObservable] notifies its observers.</p>
                     <p>
-                      <code>TomObservingWidget</code> bridges the kernel observation model to Flutter: it registers as a [TomObserver] on [subState] and calls [State.setState] on every notification, re-invoking [child] with the (current) observable.
+                      <code>TomObservingWidget</code> bridges the kernel observation model to Flutter: it registers as a [TomObserver] on [subState] and calls [State.setState] on every notification, re-invoking [builder] with the (current) observable.
                     </p>
                     <pre><code>final showForm = TomBool(false);
 
 TomObservingWidget&lt;TomBool&gt;(
   subState: showForm,
-  child: (s) =&gt; ~s ? const FormPanel() : const SizedBox.shrink(),
+  builder: (s, _) =&gt; ~s ? const FormPanel() : const SizedBox.shrink(),
 );
 
 showForm | true; // the widget rebuilds</code></pre>
+                    <p>
+                      <strong>[child] is the hoisting escape hatch</strong>, and it is the same one [ValueListenableBuilder] and [AnimatedBuilder] provide. A subtree that does not depend on the observable is built 
+                      <strong>once</strong>, by the parent, and handed back to [builder] as its second argument on every rebuild — so a form bound to a high-frequency observable does not repaint the part of itself that cannot have changed:
+                    </p>
+                    <pre><code>TomObservingWidget&lt;TomInt&gt;(
+  subState: progress,
+  // Built once, however often `progress` ticks.
+  child: const ExpensiveChart(),
+  builder: (value, child) =&gt; Column(
+    children: [Text('${~value}%'), child!],
+  ),
+);</code></pre>
+                    <p>
+                      It is <code>null</code> when no subtree was hoisted, which is why [builder]'s second parameter is nullable: a builder that asks for a child it was not given is a mistake at the call site, and 
+                      <code>child!</code> says where to look.
+                    </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomObservingWidget.new" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">TomObservingWidget.new({required Widget Function(T) child, required T subState})</code>
+                        <code class="api-signature">
+                          TomObservingWidget.new({Key? key, required Widget Function(T, Widget?) builder, required T subState, Widget? child})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Creates a widget that rebuilds [builder] whenever [subState] notifies.</p>
+                        <p>
+                          [key] is the ordinary widget key, and it is the lever that chooses between this widget's two behaviours. Whether Flutter reuses the element or builds a new one is what selects between [TomObservingWidgetState.didUpdateWidget] 
+                          <em>migrating</em> the registration and [State.initState] making a fresh one — so a parent that rebuilds with the same key keeps the 
+                          <code>State</code>, and one that rebuilds with a different key disposes it and starts over. The second is the normal wish when a list row rebinds to an unrelated model.
+                        </p>
                       </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
+                    <div id="TomObservingWidget.builder" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Widget Function(T, Widget?) builder</code></div>
+                      <div class="api-doc">
+                        <p>Builds the subtree from the current observable state and the hoisted [child].</p>
+                        <p>
+                          Named <code>builder</code> rather than <code>child</code> because that is what it is: in Flutter, <code>child</code>
+                           names a pre-built <code>Widget</code> slot and a <code>Widget Function</code> is a builder. The distinction is what lets a reader tell from the call site alone whether a subtree is built eagerly or on demand — and this widget now has both, so the two names cannot be traded.
+                        </p>
+                        <p>
+                          Read the observable <strong>inside</strong> the builder. The argument is the observable itself, not a snapshot of its value, so capturing 
+                          <code>~state</code> outside and closing over it would freeze the value at the moment the closure was created.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomObservingWidget.child" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final Widget Function(T) child</code></div>
-                      <div class="api-doc"><p>Builds the subtree from the current observable state.</p></div>
+                      <div class="api-member-head"><code class="api-signature">final Widget? child</code></div>
+                      <div class="api-doc">
+                        <p>A subtree built once and handed to [builder] on every rebuild, or <code>null</code>.</p>
+                        <p>
+                          The part of the subtree that does not depend on [subState]. It is built by the parent, in the parent's build, and is therefore untouched by this widget's [State.setState] — which is the whole mechanism: a rebuild re-runs [builder], and anything reached through this field is reused rather than rebuilt.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomObservingWidget.subState" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final T subState</code></div>
@@ -1445,28 +1496,47 @@ showForm | true; // the widget rebuilds</code></pre>
                   <code class="api-signature">
                     class TomObservingWidgetState&lt;T extends TomObservable&gt; extends State&lt;TomObservingWidget&lt;T&gt;&gt; implements TomObserver&lt;TomObservable&gt;
                   </code>
-                  <div class="api-doc"><p>The [State] for [TomObservingWidget]; observes [subState] and rebuilds on every notification.</p></div>
+                  <div class="api-doc">
+                    <p>
+                      The [State] for [TomObservingWidget]; observes the current [TomObservingWidget.subState] and rebuilds on every notification.
+                    </p>
+                    <p>
+                      The observation lifecycle follows the standard Flutter <code>State</code> contract, so the bridge does not outlive the element: 
+                      <em> [initState] registers as an observer on the initial <code>subState</code>. </em> [didUpdateWidget] migrates the registration when the parent rebuilds with a different 
+                      <code>subState</code>, so the widget always observes the current observable and drops the previous one. * [dispose] deregisters before the element is destroyed, so a later mutation never calls [setState] on a disposed 
+                      <code>State</code>.
+                    </p>
+                    <p>
+                      <strong>What the deregistration is and is not for.</strong> [TomObservable] holds its observers by <code>WeakReference</code>, so the registration never kept this 
+                      <code>State</code> alive and removing it is not what releases it. The reference that does exist runs the other way: [TomObservingWidget.subState] is a plain strong field, so while the element is mounted it is the 
+                      <em>observable</em> that the widget keeps alive. What [dispose] buys is a known moment — notifications stop when the widget leaves the tree instead of whenever the collector next runs, which is what prevents 
+                      <code>setState() called after dispose()</code>.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
-                    <div id="TomObservingWidgetState.new" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">TomObservingWidgetState.new({required Widget Function(T) child, required T subState})</code>
-                      </div>
-                    </div>
-                  </div>
-                  <h4 class="api-group-title">Properties</h4>
-                  <div class="api-members">
-                    <div id="TomObservingWidgetState.child" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">Widget Function(T) child</code></div>
-                      <div class="api-doc"><p>Builder for the observed subtree (mirrors [TomObservingWidget.child]).</p></div>
-                    </div>
-                    <div id="TomObservingWidgetState.subState" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">T subState</code></div>
-                      <div class="api-doc"><p>The observed value (mirrors [TomObservingWidget.subState]).</p></div>
-                    </div>
+                    <div id="TomObservingWidgetState.new" class="api-member"><div class="api-member-head"><code class="api-signature">TomObservingWidgetState.new()</code></div></div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
+                    <div id="TomObservingWidgetState.initState" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">void initState()</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="TomObservingWidgetState.didUpdateWidget" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">void didUpdateWidget(TomObservingWidget&lt;T&gt; oldWidget)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="TomObservingWidgetState.dispose" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">void dispose()</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
                     <div id="TomObservingWidgetState.build" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">Widget build(BuildContext context)</code>
@@ -1477,6 +1547,19 @@ showForm | true; // the widget rebuilds</code></pre>
                       <div class="api-member-head">
                         <code class="api-signature">void onNotify(TomObservable observable)</code>
                         <span class="api-badge api-badge--override">override</span>
+                      </div>
+                      <div class="api-doc">
+                        <p>Rebuilds this widget for a notification from the observed observable.</p>
+                        <p>
+                          <strong>The <code>mounted</code> guard closes a window [dispose] cannot.</strong> Deregistering in [dispose] makes the ordinary path safe, but [TomObservable.notifyObservers] iterates a 
+                          <em>snapshot</em> taken before the loop — so an observer removed by an earlier observer's <code>onNotify</code>
+                           in the same round is still notified, and a <code>setState</code> on a disposed <code>State</code> throws. The guard makes a notification that arrives after teardown a no-op, which is the right answer: there is no element left to rebuild.
+                        </p>
+                        <p>
+                          <strong>A notification arriving during a build is deliberately left to throw.</strong> Flutter's "setState() or markNeedsBuild() called during build" names the widget that mutated the observable from inside its own 
+                          <code>build</code>, which is an application-structure mistake. Deferring the rebuild to a post-frame callback would make it work — one frame late, every time, silently — trading a diagnosable failure for an undiagnosable one. See 
+                          <code>doc/observing.md</code>, "Lifecycle and Limitations".
+                        </p>
                       </div>
                     </div>
                   </div>

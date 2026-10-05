@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1386,7 +1392,7 @@
               <span style="display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap"><span class="badge b-pub"><span class="d"></span>Published</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">role: extension</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">license: BSD-3-Clause</span></span>
             </div>
             <h2>tom_crypto</h2>
-            <div class="mono" style="color: #9FB6C9">tom_crypto · v1.0.1</div>
+            <div class="mono" style="color: #9FB6C9">tom_crypto · v1.2.2</div>
             <p style="margin-top: 10px">
               Cryptographic building blocks for Tom: JWT tokens, Argon2 password hashing, and RSA encryption, signing, and key management for secure authentication and data protection.
             </p>
@@ -1397,9 +1403,9 @@
           </div>
           <div class="statgrid">
             <div class="stat"><div class="k">Status</div><div class="v" style="font-size: 1.05rem; color: #0F7FB0">Published</div></div>
-            <div class="stat"><div class="k">LOC</div><div class="v">588</div></div>
-            <div class="stat"><div class="k">Tests</div><div class="v">9</div></div>
-            <div class="stat"><div class="k">Test LOC</div><div class="v">97</div></div>
+            <div class="stat"><div class="k">LOC</div><div class="v">600</div></div>
+            <div class="stat"><div class="k">Tests</div><div class="v">27</div></div>
+            <div class="stat"><div class="k">Test LOC</div><div class="v">322</div></div>
           </div>
           <div class="dcols">
             <div>
@@ -1496,7 +1502,7 @@
               <p>---</p>
               <h2>Installation</h2>
               <pre><code>dependencies:
-  tom_crypto: ^1.0.1</code></pre>
+  tom_crypto: ^1.1.0</code></pre>
               <p>or from the command line:</p>
               <pre><code>dart pub add tom_crypto</code></pre>
               <p>
@@ -1527,7 +1533,7 @@ import 'package:pointycastle/export.dart';</code></pre>
                   <tr>
                     <td>Generate a salt</td>
                     <td><code>generateSalt(length)</code></td>
-                    <td>Hex string from <code>Random.secure()</code></td>
+                    <td>Hex string over <code>TomSecureBytes</code></td>
                   </tr>
                   <tr>
                     <td>Build a derivator</td>
@@ -1616,7 +1622,7 @@ import 'package:pointycastle/export.dart';</code></pre>
                   <tr>
                     <td>Seed a CSPRNG</td>
                     <td><code>getSecureRandom()</code></td>
-                    <td>Fortuna, seeded from <code>Random.secure()</code></td>
+                    <td>Fortuna, seeded from <code>TomSecureBytes</code></td>
                   </tr>
                   <tr>
                     <td>Generate a key pair</td>
@@ -1646,6 +1652,21 @@ import 'package:pointycastle/export.dart';</code></pre>
                   </tr>
                 </tbody>
               </table>
+              <h3>Raw randomness — <code>TomSecureBytes</code></h3>
+              <table class="mdtable">
+                <thead><tr><th>Capability</th><th>API</th><th>Notes</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>Draw secure bytes</td>
+                    <td><code>TomSecureBytes.generate(length)</code></td>
+                    <td>Uniform over the full <code>0..255</code> range</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>
+                This is the package's single source of raw randomness — the Fortuna seed and the password salt both draw from it. Use it directly when you need secret bytes of your own (a TOTP shared secret, an API key) rather than reaching for 
+                <code>Random.secure()</code> at the call site.
+              </p>
               <p>---</p>
               <h2>Quick start</h2>
               <p>Hash a password, then verify it — the single most common use of this package:</p>
@@ -1807,8 +1828,11 @@ final pemPrivate = RsaKeyHelper.encodePrivateKeyToPemPKCS1(privateKey);</code></
 ├── rsa_encryption.dart     rsaEncrypt / rsaDecrypt     → pointycastle
 │                           rsaSign   / rsaVerify          (OAEP, RSA-SHA256)
 │
-└── rsa_tools.dart          RsaKeyHelper                → pointycastle + asn1lib
-                            getRsaKeyPair (top-level)      (key gen, PEM I/O)</code></pre>
+├── rsa_tools.dart          RsaKeyHelper                → pointycastle + asn1lib
+│                           getRsaKeyPair (top-level)      (key gen, PEM I/O)
+│
+└── secure_bytes.dart       TomSecureBytes              → dart:math
+                                                           (Random.secure)</code></pre>
               <table class="mdtable">
                 <thead><tr><th>Type / function</th><th>Role</th></tr></thead>
                 <tbody>
@@ -1823,11 +1847,17 @@ final pemPrivate = RsaKeyHelper.encodePrivateKeyToPemPKCS1(privateKey);</code></
                   <tr><td><code>rsaEncrypt</code> / <code>rsaDecrypt</code></td><td>RSA-OAEP byte encryption</td></tr>
                   <tr><td><code>rsaSign</code> / <code>rsaVerify</code></td><td>RSA-SHA-256 signatures</td></tr>
                   <tr><td><code>RsaKeyHelper</code></td><td>Key generation and PEM parse/encode</td></tr>
+                  <tr><td><code>TomSecureBytes</code></td><td>The package's only draw of raw random bytes</td></tr>
                 </tbody>
               </table>
               <p>
                 The JWT layer is the only part that reaches into <code>tom_basics</code> (for <code>TomBaseException</code>
                  and <code>tomLog</code>); the password and RSA layers depend only on <code>pointycastle</code> and <code>asn1lib</code>.
+              </p>
+              <p>
+                <code>secure_bytes.dart</code> is the one internal edge in the diagram above: both <code>TomPasswordHasher.generateSalt</code>
+                 and <code>RsaKeyHelper.getSecureRandom</code> route through it rather than calling <code>Random.secure()</code>
+                 themselves. One implementation means a bound cannot go stale in a copy that nobody is reading.
               </p>
               <p>---</p>
               <h2>Security notes</h2>
@@ -1858,7 +1888,8 @@ final pemPrivate = RsaKeyHelper.encodePrivateKeyToPemPKCS1(privateKey);</code></
               </p>
               <ul>
                 <li>
-                  <strong><a href="https://github.com/al-the-bear/tom_basics/tree/main">tom_basics</a></strong> — exceptions (<code>TomBaseException</code>) and logging
+                  <strong><a href="https://github.com/al-the-bear/tom_basics/tree/main/tom_basics">tom_basics</a></strong>
+                   — exceptions (<code>TomBaseException</code>) and logging
                 </li>
               </ul>
               <p>
@@ -1891,7 +1922,7 @@ final pemPrivate = RsaKeyHelper.encodePrivateKeyToPemPKCS1(privateKey);</code></
               <p>---</p>
               <h2>Status</h2>
               <p>
-                Stable (<code>1.0.1</code>). Public API covers password hashing, JWT issuance/parsing, RSA encryption/signatures, and RSA key management. 
+                Stable (<code>1.1.0</code>). Public API covers password hashing, JWT issuance/parsing, RSA encryption/signatures, RSA key management, and secure random bytes. 
                 <code>dart analyze</code> is clean. A runnable, article-grade project lives in the <a href="https://github.com/al-the-bear/tom_basics/tree/main/tom_basics_samples/tom_crypto_sample"><code>tom_crypto_sample</code></a>.
               </p>
             </div>

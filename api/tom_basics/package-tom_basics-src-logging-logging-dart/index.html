@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1450,6 +1456,17 @@ tomLog.setLogLevel(TomLogLevel.development);</code></pre>
                         </code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
+                      <div class="api-doc">
+                        <p>
+                          Writes one line: <code>&lt;timestamp&gt; &lt;rendering&gt;-&lt;originating&gt; &lt;level&gt; &lt;message&gt;</code>, then 
+                          <code> [&lt;origin&gt;]</code> when [origin] is given.
+                        </p>
+                        <p>
+                          The two isolate names are different questions. <code>&lt;rendering&gt;</code> is the isolate this output runs in, read now; 
+                          <code>&lt;originating&gt;</code> is [isolateName], the isolate the entry says it came from. For an entry logged and printed in the same isolate they are the same name, so an ordinary line reads 
+                          <code>main-main</code>; the pair is kept for an entry rendered somewhere other than where it was logged, where it is the only record of both.
+                        </p>
+                      </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Static</h4>
@@ -1630,13 +1647,16 @@ if (currentLevel.matches(TomLogLevel.debug)) {
                     <div id="TomLogOutput.output" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          void output(TomLogLevel loggerLevel, TomLogLevel logLevel, String level, Object message, String isolateName, DateTime timeStamp, String? origin)
+                          void output(TomLogLevel loggerLevel, TomLogLevel logLevel, String level, Object message, String isolateName, DateTime timeStamp, [String? origin])
                         </code>
                       </div>
                       <div class="api-doc">
                         <p>Outputs a log message.</p>
                         <p>
                           Parameters: - [loggerLevel]: The current logger's configured level - [logLevel]: The level of this specific message - [level]: Human-readable level string (e.g., "INFO   ") - [message]: The log message content - [isolateName]: Name of the isolate generating the log - [timeStamp]: When the log was generated - [origin]: Optional caller information (class.method)
+                        </p>
+                        <p>
+                          [origin] is an optional positional parameter, which is what the parameter list has to say for the word "optional" above to be true of the signature as well as of the value. Declared required, it read as optional in the documentation and in the class's own example while a caller had to pass it — and because an override may widen a required positional to optional, both spellings compiled, so implementations across the workspace split between them with nothing to say which was intended.
                         </p>
                       </div>
                     </div>
@@ -1648,17 +1668,6 @@ if (currentLevel.matches(TomLogLevel.debug)) {
                           Handles: - Strings (returned as-is) - Functions (called and result converted) - [TomLoggable] objects (uses [logRepresentation]) - Other objects (uses [toString])
                         </p>
                       </div>
-                    </div>
-                  </div>
-                  <h4 class="api-group-title">Static</h4>
-                  <div class="api-members">
-                    <div id="TomLogOutput._defaultRemoteLogEndpoint" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static String _defaultRemoteLogEndpoint</code></div>
-                      <div class="api-doc"><p>Default endpoint path for remote logging.</p></div>
-                    </div>
-                    <div id="TomLogOutput.globalSettingRemoteLogEndpoint" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static String globalSettingRemoteLogEndpoint</code></div>
-                      <div class="api-doc"><p>Configurable endpoint path for remote logging.</p></div>
                     </div>
                   </div>
                 </section>
@@ -1721,9 +1730,13 @@ tomLog.logOutput = MyCustomLogOutput();</code></pre>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="TomLogger._logLevel" class="api-member"><div class="api-member-head"><code class="api-signature">TomLogLevel _logLevel</code></div></div>
                     <div id="TomLogger._levelStack" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final List&lt;TomLogLevel&gt; _levelStack</code></div>
+                      <div class="api-doc">
+                        <p>
+                          LIFO stack of log levels. The top of the stack ([List.last]) is always the current effective level, so [logLevel] derives from it and the two can never diverge. The stack always holds at least the base level.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomLogger.logLevel" class="api-member"><div class="api-member-head"><code class="api-signature">TomLogLevel logLevel</code></div></div>
                     <div id="TomLogger.logOutput" class="api-member">
@@ -1743,14 +1756,19 @@ tomLog.logOutput = MyCustomLogOutput();</code></pre>
                   <div class="api-members">
                     <div id="TomLogger.setLogLevel" class="api-member">
                       <div class="api-member-head"><code class="api-signature">void setLogLevel(TomLogLevel l)</code></div>
-                      <div class="api-doc"><p>Sets the current log level.</p><p>Messages with levels not matching [l] will be filtered out.</p></div>
+                      <div class="api-doc">
+                        <p>Sets the current log level, replacing the top of the level stack.</p>
+                        <p>
+                          Messages with levels not matching [l] will be filtered out. This changes the <em>current</em> scope in place; a subsequent [popLogLevel] restores the level that was active before the most recent [pushLogLevel], not this one.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomLogger.pushLogLevel" class="api-member">
                       <div class="api-member-head"><code class="api-signature">void pushLogLevel(TomLogLevel l)</code></div>
                       <div class="api-doc">
                         <p>Pushes a new log level onto the level stack.</p>
                         <p>
-                          Use this for temporarily changing the log level (e.g., for debugging a specific section of code). Call [popLogLevel] to restore the previous level.
+                          Use this for temporarily changing the log level (e.g., for debugging a specific section of code). The current level is preserved beneath the new one; call [popLogLevel] to restore it.
                         </p>
                         <p>Example:</p>
                         <pre><code>tomLog.pushLogLevel(TomLogLevel.trace);
@@ -1761,8 +1779,10 @@ tomLog.popLogLevel(); // Restore previous level</code></pre>
                     <div id="TomLogger.popLogLevel" class="api-member">
                       <div class="api-member-head"><code class="api-signature">void popLogLevel()</code></div>
                       <div class="api-doc">
-                        <p>Restores the previous log level from the stack.</p>
-                        <p>Does nothing if the stack only contains the initial level.</p>
+                        <p>
+                          Restores the log level that was active before the most recent [pushLogLevel] by removing the top of the stack (LIFO).
+                        </p>
+                        <p>Does nothing if the stack only contains the base level.</p>
                       </div>
                     </div>
                     <div id="TomLogger.info" class="api-member">

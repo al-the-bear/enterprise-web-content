@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1388,8 +1394,11 @@
               <div class="treepane">
                 <div class="treenodes">
                   <a class="leaf" href="#AllColorsAdapter">AllColorsAdapter</a>
+                  <a class="leaf" href="#CupertinoOnlyColorAdapter">CupertinoOnlyColorAdapter</a>
+                  <a class="leaf" href="#MaterialOnlyColorAdapter">MaterialOnlyColorAdapter</a>
                   <a class="leaf" href="#TomUIColorAdapter">TomUIColorAdapter</a>
                   <a class="leaf" href="#TomUIColors">TomUIColors</a>
+                  <a class="leaf" href="#_RegistryFirstColorAdapter">_RegistryFirstColorAdapter</a>
                 </div>
               </div>
               <div class="reader">
@@ -1397,7 +1406,7 @@
                 <code class="api-import">import 'package:tom_flutter_ui/src/resource_auth/tom_colors.dart';</code>
                 <section id="AllColorsAdapter" class="api-declaration">
                   <h3 class="api-decl-title">class AllColorsAdapter</h3>
-                  <code class="api-signature">class AllColorsAdapter implements TomUIColorAdapter</code>
+                  <code class="api-signature">class AllColorsAdapter extends _RegistryFirstColorAdapter</code>
                   <div class="api-doc">
                     <p>Default adapter using all generated Flutter colors (Material + Cupertino).</p>
                     <p>
@@ -1406,7 +1415,8 @@
                     <p>
                       Color naming: - Material: <code>m&lt;ColorName&gt;</code> (e.g., <code>mRed</code>, <code>mBlue500</code>, 
                       <code>mAmberAccent</code>) - Cupertino: <code>c&lt;ColorName&gt;</code> (e.g., <code>cSystemRed</code>, 
-                      <code>cActiveBlue</code>) - Hex: <code>#RRGGBB</code> or <code>#AARRGGBB</code> - RGB: <code>rgb(r, g, b)</code>
+                      <code>cActiveBlue</code>) - Hex: <code>#RGB</code>, <code>#ARGB</code>, <code>#RRGGBB</code> or <code>#AARRGGBB</code>
+                       — alpha first, see [_parseHexColor] for why that matters when copying from a design tool - RGB: <code>rgb(r, g, b)</code>
                        or <code>rgba(r, g, b, a)</code>
                     </p>
                   </div>
@@ -1416,60 +1426,99 @@
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
-                    <div id="AllColorsAdapter.resolveColor" class="api-member">
+                    <div id="AllColorsAdapter.resolveInPalette" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">Color? resolveColor(String name)</code>
+                        <code class="api-signature">Color? resolveInPalette(String name)</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
-                    <div id="AllColorsAdapter.colorExists" class="api-member">
+                    <div id="AllColorsAdapter.existsInPalette" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">bool colorExists(String name)</code>
+                        <code class="api-signature">bool existsInPalette(String name)</code>
                         <span class="api-badge api-badge--override">override</span>
-                      </div>
-                    </div>
-                    <div id="AllColorsAdapter._parseHexColor" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">Color? _parseHexColor(String hex)</code></div>
-                      <div class="api-doc">
-                        <p>Parses a hex color string.</p>
-                        <p>
-                          Supports formats: - <code>#RGB</code> (expanded to #RRGGBB) - <code>#RRGGBB</code> (opaque) - <code>#AARRGGBB</code>
-                           (with alpha)
-                        </p>
-                      </div>
-                    </div>
-                    <div id="AllColorsAdapter._parseRgbColor" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">Color? _parseRgbColor(String rgb)</code></div>
-                      <div class="api-doc">
-                        <p>Parses an RGB/RGBA color string.</p>
-                        <p>Supports formats: - <code>rgb(255, 128, 0)</code> - <code>rgba(255, 128, 0, 0.5)</code></p>
                       </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
-                    <div id="AllColorsAdapter._customColors" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static Map&lt;String, Color&gt; _customColors</code></div>
-                      <div class="api-doc"><p>Custom colors registered at runtime.</p></div>
-                    </div>
-                    <div id="AllColorsAdapter._hexPattern" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static RegExp _hexPattern</code></div>
-                      <div class="api-doc"><p>Hex color pattern: #RGB, #RRGGBB, or #AARRGGBB</p></div>
-                    </div>
-                    <div id="AllColorsAdapter._rgbPattern" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static RegExp _rgbPattern</code></div>
-                      <div class="api-doc"><p>RGB/RGBA pattern: rgb(r, g, b) or rgba(r, g, b, a)</p></div>
-                    </div>
                     <div id="AllColorsAdapter.registerColors" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static void registerColors(Map&lt;String, Color&gt; colors)</code></div>
                       <div class="api-doc">
-                        <p>Registers additional custom colors.</p>
-                        <p>Use this to add app-specific colors or override existing ones.</p>
+                        <p>Registers additional custom colors for <strong>every</strong> adapter in this module.</p>
+                        <p>
+                          Use this to add app-specific colors or override existing ones. The registry is module-wide, so a name registered here also resolves through [MaterialOnlyColorAdapter] and [CupertinoOnlyColorAdapter]; registrations take precedence over hex/rgb parsing and the generated palette in all three. [TomUIColors.reset] clears them along with the adapter.
+                        </p>
                       </div>
                     </div>
                     <div id="AllColorsAdapter.clearCustomColors" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static void clearCustomColors()</code></div>
-                      <div class="api-doc"><p>Clears all custom registered colors.</p></div>
+                      <div class="api-doc">
+                        <p>
+                          Clears all custom registered colors, for every adapter in this module, keeping the installed adapter.
+                        </p>
+                        <p>A test tearing down the whole module wants [TomUIColors.reset] instead.</p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="CupertinoOnlyColorAdapter" class="api-declaration">
+                  <h3 class="api-decl-title">class CupertinoOnlyColorAdapter</h3>
+                  <code class="api-signature">class CupertinoOnlyColorAdapter extends _RegistryFirstColorAdapter</code>
+                  <div class="api-doc">
+                    <p>Adapter that only includes Cupertino colors.</p>
+                    <p>
+                      The iOS-facing counterpart to [MaterialOnlyColorAdapter], with the same two reasons to reach for it and the same guarantees: registrations, hex and rgb all still resolve; only the Material table is gone.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="CupertinoOnlyColorAdapter.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">CupertinoOnlyColorAdapter.new()</code></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="CupertinoOnlyColorAdapter.resolveInPalette" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Color? resolveInPalette(String name)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="CupertinoOnlyColorAdapter.existsInPalette" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">bool existsInPalette(String name)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="MaterialOnlyColorAdapter" class="api-declaration">
+                  <h3 class="api-decl-title">class MaterialOnlyColorAdapter</h3>
+                  <code class="api-signature">class MaterialOnlyColorAdapter extends _RegistryFirstColorAdapter</code>
+                  <div class="api-doc">
+                    <p>Adapter that only includes Material colors.</p>
+                    <p>
+                      Use this for smaller bundle size if you don't need the Cupertino palette, or to make a stray <code>cSystemBlue</code>
+                       in a resource file resolve to <code>null</code> and be caught rather than quietly working. Colors registered through [AllColorsAdapter.registerColors] still resolve — the registry is module-wide — as do hex and rgb literals; only the Cupertino table is gone.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="MaterialOnlyColorAdapter.new" class="api-member"><div class="api-member-head"><code class="api-signature">MaterialOnlyColorAdapter.new()</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="MaterialOnlyColorAdapter.resolveInPalette" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Color? resolveInPalette(String name)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="MaterialOnlyColorAdapter.existsInPalette" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">bool existsInPalette(String name)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
                     </div>
                   </div>
                 </section>
@@ -1486,9 +1535,10 @@
                       <code>mBlue</code>, <code>mAmber</code>) - Material shade: <code>m&lt;ColorName&gt;&lt;Shade&gt;</code>
                        (e.g., <code>mRed500</code>, <code>mBlue100</code>) - Material accent: <code>m&lt;ColorName&gt;Accent</code>
                        (e.g., <code>mRedAccent</code>, <code>mBlueAccent</code>) - Cupertino colors: <code>c&lt;ColorName&gt;</code>
-                       (e.g., <code>cSystemRed</code>, <code>cActiveBlue</code>) - Hex format: <code>#RRGGBB</code> or <code>#AARRGGBB</code>
-                       (e.g., <code>#FF5733</code>, <code>#80FF5733</code>) - RGB format: <code>rgb(255, 87, 51)</code> or 
-                      <code>rgba(255, 87, 51, 0.5)</code>
+                       (e.g., <code>cSystemRed</code>, <code>cActiveBlue</code>) - Hex format: <code>#RGB</code>, <code>#ARGB</code>, 
+                      <code>#RRGGBB</code> or <code>#AARRGGBB</code> (e.g., <code>#FF5733</code>, <code>#80FF5733</code>) — 
+                      <strong>alpha leads</strong>, as in <code>Color(0x…)</code>, not the trailing-alpha <code>#RRGGBBAA</code>
+                       that CSS and design tools emit - RGB format: <code>rgb(255, 87, 51)</code> or <code>rgba(255, 87, 51, 0.5)</code>
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1535,11 +1585,21 @@ final color = TomUIColors.resolveColor(colorName);
                   </div>
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
-                    <div id="TomUIColors._adapter" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static TomUIColorAdapter? _adapter</code></div>
-                    </div>
                     <div id="TomUIColors.adapter" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static TomUIColorAdapter adapter</code></div>
+                      <div class="api-member-head"><code class="api-signature">static TomUIColorAdapter? adapter</code></div>
+                      <div class="api-doc">
+                        <p>The installed colour adapter, or <code>null</code> when none is installed.</p>
+                        <p>
+                          Readable so that a diagnostics screen or a startup assertion can ask what is wired, and so that code installing an adapter for one operation can put the previous one back:
+                        </p>
+                        <pre><code>final saved = TomUIColors.adapter;
+TomUIColors.adapter = MaterialOnlyColorAdapter();
+// ...
+TomUIColors.adapter = saved;</code></pre>
+                        <p>
+                          Assigning <code>null</code> is what makes that restore total: it uninstalls without touching the registrations, which [reset] would also clear. [reset] remains the teardown hook for tests; this is the narrower tool.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomUIColors.resolveColor" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static Color? resolveColor(String name)</code></div>
@@ -1554,7 +1614,95 @@ final color = TomUIColors.resolveColor(colorName);
                     </div>
                     <div id="TomUIColors.reset" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static void reset()</code></div>
-                      <div class="api-doc"><p>Resets the adapter. Intended for testing only.</p></div>
+                      <div class="api-doc">
+                        <p>Drops the adapter <strong>and</strong> every custom registration.</p>
+                        <p>
+                          Intended for testing only. This is the whole hygiene hook: after it the module holds no state, so a suite needs nothing else in its 
+                          <code>tearDown</code>. Clearing the registrations is the point — they live in a module-wide, process-global registry, so an override left behind by one test would silently change a colour in every later test rather than failing.
+                        </p>
+                        <p>To drop registrations while keeping the installed adapter, use [AllColorsAdapter.clearCustomColors].</p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="_RegistryFirstColorAdapter" class="api-declaration">
+                  <h3 class="api-decl-title">class _RegistryFirstColorAdapter</h3>
+                  <code class="api-signature">abstract class _RegistryFirstColorAdapter implements TomUIColorAdapter</code>
+                  <div class="api-doc">
+                    <p>Resolves registrations first, then hex/rgb syntax, then the adapter's own palette.</p>
+                    <p>
+                      The order is stated once here rather than in each adapter, so "registrations win" cannot hold for one adapter and not another. Hex and rgb sit in the base because they are 
+                      <em>syntax</em>, not a palette: neither belongs to the Material or the Cupertino family, so a single-family adapter is a smaller palette, not a different contract.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="_RegistryFirstColorAdapter.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">_RegistryFirstColorAdapter.new()</code></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="_RegistryFirstColorAdapter.resolveColor" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Color? resolveColor(String name)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="_RegistryFirstColorAdapter.colorExists" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">bool colorExists(String name)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="_RegistryFirstColorAdapter.resolveInPalette" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Color? resolveInPalette(String name)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Resolves [name] against the adapter's own palette, ignoring registrations and the hex/rgb syntax the base already handled.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="_RegistryFirstColorAdapter.existsInPalette" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool existsInPalette(String name)</code></div>
+                      <div class="api-doc"><p>Whether [name] is in the adapter's own palette, ignoring registrations.</p></div>
+                    </div>
+                    <div id="_RegistryFirstColorAdapter._parseHexColor" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Color? _parseHexColor(String hex)</code></div>
+                      <div class="api-doc">
+                        <p>Parses a hex color string.</p>
+                        <p>
+                          Supports formats: - <code>#RGB</code> (expanded to <code>#RRGGBB</code>, opaque) - <code>#ARGB</code>
+                           (expanded to <code>#AARRGGBB</code>) - <code>#RRGGBB</code> (opaque) - <code>#AARRGGBB</code> (with alpha)
+                        </p>
+                        <p>
+                          <strong>Alpha comes first</strong> in both forms that carry it, matching Dart's <code>Color(0xAARRGGBB)</code>
+                           literal. CSS, Figma, Sketch and web palette exports put alpha <em>last</em> (<code>#RRGGBBAA</code> / 
+                          <code>#RGBA</code>), and the two orderings cannot be told apart from the string: <code>#FF5733AA</code>
+                           is a designer's orange at two-thirds alpha, but is read here as opaque blue-violet. Nothing detects that, so the convention is documented rather than guessed — check the channel order when copying a colour in from a design tool.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="_RegistryFirstColorAdapter._parseRgbColor" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Color? _parseRgbColor(String rgb)</code></div>
+                      <div class="api-doc">
+                        <p>Parses an RGB/RGBA color string.</p>
+                        <p>Supports formats: - <code>rgb(255, 128, 0)</code> - <code>rgba(255, 128, 0, 0.5)</code></p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="_RegistryFirstColorAdapter._hexPattern" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static RegExp _hexPattern</code></div>
+                      <div class="api-doc">
+                        <p>Hex color pattern: #RGB, #ARGB, #RRGGBB, or #AARRGGBB.</p>
+                        <p>Alpha leads in both forms that carry it — see [_parseHexColor].</p>
+                      </div>
+                    </div>
+                    <div id="_RegistryFirstColorAdapter._rgbPattern" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static RegExp _rgbPattern</code></div>
+                      <div class="api-doc"><p>RGB/RGBA pattern: rgb(r, g, b) or rgba(r, g, b, a)</p></div>
                     </div>
                   </div>
                 </section>

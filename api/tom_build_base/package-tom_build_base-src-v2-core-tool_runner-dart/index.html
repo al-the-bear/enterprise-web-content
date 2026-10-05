@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1619,6 +1625,27 @@
                         <code class="api-signature">void _printStartupTiming(String label, Duration phase, Duration total)</code>
                       </div>
                     </div>
+                    <div id="ToolRunner.runToCompletion" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;ToolResult&gt; runToCompletion(List&lt;String&gt; args)</code></div>
+                      <div class="api-doc">
+                        <p>Run the tool to completion, applying the shared CLI entrypoint contract.</p>
+                        <p>
+                          This folds the identical <code>run → print summary → set exit code</code> tail that every tool's <code>main</code>
+                           repeated (buildkit/testkit/issuekit) into a single shared implementation, so the process-exit semantics defined in 
+                          <code>doc/cli_error_handling.md</code> cannot drift per tool. It:
+                        </p>
+                        <p>
+                          1. runs [args] via [run]; 2. writes <code>result.renderRunSummary()</code> (with a leading blank line) to [output] when it is non-empty — empty for single-shot commands that traverse nothing (<code>--version</code>, 
+                          <code>--help</code>); 3. sets the process [exitCode] to <code>1</code> when the run failed — and <strong>never</strong>
+                           calls <code>exit()</code>, so <code>main</code> can return and the VM drains buffered output first (a bare 
+                          <code>exit(1)</code> can truncate the summary just written).
+                        </p>
+                        <p>
+                          Returns the [ToolResult] so callers may inspect it further. A successful run leaves [exitCode] untouched (it does not reset it to 
+                          <code>0</code>).
+                        </p>
+                      </div>
+                    </div>
                     <div id="ToolRunner.run" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Future&lt;ToolResult&gt; run(List&lt;String&gt; args)</code></div>
                       <div class="api-doc"><p>Run the tool with command-line arguments.</p></div>
@@ -1659,6 +1686,41 @@
                         <code class="api-signature">Future&lt;ToolResult&gt; _runCommand(String cmdName, CliArgs cliArgs)</code>
                       </div>
                       <div class="api-doc"><p>Run a specific command.</p></div>
+                    </div>
+                    <div id="ToolRunner._allProjectPatterns" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">List&lt;String&gt; _allProjectPatterns(CliArgs cliArgs)</code></div>
+                      <div class="api-doc">
+                        <p>Every <code>--project</code> pattern that must pass the path guards.</p>
+                        <p>
+                          A <code>--project</code> placed <em>before</em> the command name lands in the global [CliArgs.projectPatterns]; one placed 
+                          <em>after</em> a command name (e.g. <code>:dependencies --project _build/x</code>) lands in <code>commandArgs[cmd].projectPatterns</code>. Both forms select which projects the tool operates on, so both must be guarded — otherwise the per-command form silently no-ops on a mistyped or out-of-workspace path.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="ToolRunner._guardProjectPaths" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String? _guardProjectPaths(CliArgs cliArgs, String executionRoot)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Guard every <code>--project</code> path (global and per-command) against the workspace boundary and, for non-glob paths, existence.
+                        </p>
+                        <p>
+                          Within-root is validated before existence so the existence check only ever sees in-root absolute paths (as its contract documents). On the first offending pattern the error is written to [output] and returned; a return of null means every 
+                          <code>--project</code> path is valid.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="ToolRunner._reportUnmatchedProjects" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          String? _reportUnmatchedProjects(ProcessingResult result, BaseTraversalInfo traversalInfo, {required bool allowEmpty})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Turn <code>--project</code> selectors that matched nothing into a failure message.</p>
+                        <p>
+                          An unmatched selector yields an empty selection, and an empty selection executes nothing and would otherwise report success — so a mistyped selector and a finished job are indistinguishable from the outside. The message names both the selector and the root it was searched under, since the same selector is right or wrong depending on where the tool was pointed. Returns null when every selector matched something, or when [allowEmpty] (<code>--allow-empty</code>) opts out of the rule.
+                        </p>
+                      </div>
                     </div>
                     <div id="ToolRunner._runWithTraversal" class="api-member">
                       <div class="api-member-head">
@@ -1709,6 +1771,15 @@
                     <div id="ToolRunner._findExecutor" class="api-member">
                       <div class="api-member-head"><code class="api-signature">CommandExecutor? _findExecutor(String cmdName)</code></div>
                       <div class="api-doc"><p>Look up an executor by command name (checks both native and wired).</p></div>
+                    </div>
+                    <div id="ToolRunner._handleCompletion" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">ToolResult _handleCompletion(String shellName)</code></div>
+                      <div class="api-doc">
+                        <p>Handle <code>--completion &lt;shell&gt;</code>: print a shell completion script.</p>
+                        <p>
+                          Intercepted early (alongside <code>--dump-definitions</code>, before lazy wiring), so it emits from the tool's own command/option definitions. Returns a failure (non-zero exit) for an unknown shell so automation can distinguish a bad request from a successful emission.
+                        </p>
+                      </div>
                     </div>
                     <div id="ToolRunner._handleHelp" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Future&lt;ToolResult&gt; _handleHelp(CliArgs cliArgs)</code></div>
@@ -1954,13 +2025,17 @@
                         </p>
                       </div>
                     </div>
-                    <div id="ToolRunner._normalizeArgs" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static List&lt;String&gt; _normalizeArgs(List&lt;String&gt; args)</code></div>
+                    <div id="ToolRunner.normalizeArgs" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static List&lt;String&gt; normalizeArgs(List&lt;String&gt; args)</code></div>
                       <div class="api-doc">
                         <p>Normalize legacy/alternative flag forms before parsing.</p>
                         <p>
-                          Converts: - <code>-version</code> → <code>--version</code> (single-dash long form) - <code>-help</code>
-                           → <code>--help</code> (single-dash long form)
+                          Converts single-dash long-form flags to their canonical double-dash form, at any position in [args]: - 
+                          <code>-version</code> → <code>--version</code> - <code>-help</code> → <code>--help</code>
+                        </p>
+                        <p>
+                          [run] applies this automatically after macro expansion. It is also exposed publicly so tools that pre-parse arguments 
+                          <em>before</em> delegating to [run] (e.g. to detect a TUI mode, or to early-exit for help/version before loading credentials) can apply the identical normalization instead of maintaining their own duplicate helper. Idempotent; returns [args] unchanged when empty or when there is nothing to convert.
                         </p>
                       </div>
                     </div>

@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1388,7 +1394,11 @@
               <div class="treepane">
                 <div class="treenodes">
                   <a class="leaf" href="#TomConfigResourceProvider">TomConfigResourceProvider</a>
+                  <a class="leaf" href="#TomResourceException">TomResourceException</a>
                   <a class="leaf" href="#TomTextResourceProvider">TomTextResourceProvider</a>
+                  <a class="leaf" href="#_reportBothShapes">_reportBothShapes</a>
+                  <a class="leaf" href="#_resolveObjectOrNull">_resolveObjectOrNull</a>
+                  <a class="leaf" href="#_resolveStringOrNull">_resolveStringOrNull</a>
                 </div>
               </div>
               <div class="reader">
@@ -1403,12 +1413,18 @@
                   <p>
                     Both providers support hierarchical key access using dot notation (e.g., 'app.title') and can be initialized from JSON maps or loader functions.
                   </p>
+                  <h2>Bootstrap</h2>
+                  <p>
+                    Both providers must be installed explicitly during startup, before anything reads from them; an uninstalled lookup throws rather than bootstrapping itself. Applications with no bundle install an empty one — every lookup then echoes its key, which is the intended degradation.
+                  </p>
                   <h2>Example</h2>
-                  <pre><code>// Set up a text resource provider
-TomTextResourceProvider.loader = () =&gt; {
-  'app': {'title': 'My App', 'version': '1.0.0'},
-  'messages': {'welcome': 'Hello, World!'}
-};
+                  <pre><code>// Install the bundles once, at startup.
+TomTextResourceProvider.setAppResourceProvider(
+  TomTextResourceProvider.from({
+    'app': {'title': 'My App', 'version': '1.0.0'},
+    'messages': {'welcome': 'Hello, World!'},
+  }),
+);
 
 // Access resources anywhere in the app
 final resources = TomTextResourceProvider.getAppResources();
@@ -1425,13 +1441,29 @@ print(resources.getText('messages.welcome')); // 'Hello, World!'</code></pre>
                     </p>
                     <h2>Usage</h2>
                     <h3>Setting up with a loader function</h3>
-                    <pre><code>// Define the loader before first access
-TomConfigResourceProvider.loader = () =&gt; loadJsonFromAssets('config.json');
+                    <pre><code>// Install once at startup; the loader runs here, not at first access.
+TomConfigResourceProvider.setAppConfigProvider(
+  TomConfigResourceProvider.load(() =&gt; jsonDecode(bundledConfig)
+      as Map&lt;String, dynamic&gt;),
+);
 
 // Access configuration throughout the app
 final config = TomConfigResourceProvider.getAppConfig();
-String apiUrl = config.getText('api.baseUrl') as String;
-int timeout = config.getText('api.timeout') as int;</code></pre>
+final apiUrl = config.getObjectOrNull('api.baseUrl') as String? ?? '';
+final timeout = config.getObjectOrNull('api.timeout') as int? ?? 5000;</code></pre>
+                    <p>
+                      [getObjectOrNull] rather than [getObject] here because [getObject] echoes the key back as a <code>String</code>
+                       on a miss, so <code>as int</code> throws — see [getObject].
+                    </p>
+                    <h3>Setting up from an asynchronous source</h3>
+                    <p>
+                      The loader is synchronous, so a configuration file that only arrives via a <code>Future</code> is awaited before the install and handed to [TomConfigResourceProvider.from] — the same shape as [TomTextResourceProvider], and usually the same 
+                      <code>initializeResources()</code>:
+                    </p>
+                    <pre><code>final contents = await readAsset('assets/config.json');
+TomConfigResourceProvider.setAppConfigProvider(
+  TomConfigResourceProvider.from(jsonDecode(contents) as Map&lt;String, dynamic&gt;),
+);</code></pre>
                     <h3>Setting up with a custom provider</h3>
                     <pre><code>final customConfig = TomConfigResourceProvider.from({
   'api': {
@@ -1466,6 +1498,10 @@ TomConfigResourceProvider.setAppConfigProvider(customConfig);</code></pre>
                       </div>
                       <div class="api-doc">
                         <p>Creates a new configuration provider with a custom loader function.</p>
+                        <p>
+                          The loader is called here, so the provider is fully populated by the time this returns. It must therefore produce the map without awaiting; for a source that only yields a 
+                          <code>Future</code>, await it first and use [TomConfigResourceProvider.from].
+                        </p>
                         <p>[loader] - A function that returns the configuration map.</p>
                       </div>
                     </div>
@@ -1502,18 +1538,45 @@ TomConfigResourceProvider.setAppConfigProvider(customConfig);</code></pre>
                         <p>Returns <code>true</code> if any value exists at the path, <code>false</code> otherwise.</p>
                       </div>
                     </div>
-                    <div id="TomConfigResourceProvider.getText" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">Object getText(String s)</code></div>
+                    <div id="TomConfigResourceProvider.getObject" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Object getObject(String s)</code></div>
                       <div class="api-doc">
                         <p>Retrieves the configuration value at the given path.</p>
                         <p>
                           Supports both flat keys (e.g., 'timeout') and hierarchical paths using dot notation (e.g., 'api.timeout').
                         </p>
                         <p>
-                          If the configuration is not found, returns the key itself as a fallback, which helps identify missing configuration during development.
+                          <strong>On a miss this returns the key itself, as a <code>String</code></strong> — the same lenient fallback the text provider uses, which makes a missing key visible rather than fatal. For configuration that has a sharp edge: the caller wanted an 
+                          <code>int</code> or a <code>bool</code>, so a direct cast throws.
                         </p>
+                        <pre><code>config.getObject('api.timeout') as int   // 30000 when present
+config.getObject('api.retries') as int   // throws: String is not int
+config.getObject('api.retries') as int?  // throws too — the miss value is
+                                         // a non-null String, not null</code></pre>
+                        <p>
+                          The <code>TypeError</code> names <code>String</code> and <code>int</code> and never names the key, so it tells you nothing about which setting is missing. Use [getObjectOrNull] with a default instead — it is one lookup, and a miss cannot throw:
+                        </p>
+                        <pre><code>final timeout = config.getObjectOrNull('api.timeout') as int? ?? 5000;</code></pre>
+                        <p>Cast [getObject] directly only where a miss is genuinely impossible, or behind an [exists] guard.</p>
                         <p>[s] - The configuration key or path to retrieve.</p>
                         <p>Returns the value if found (can be any type), or the key [s] if not found.</p>
+                      </div>
+                    </div>
+                    <div id="TomConfigResourceProvider.getObjectOrNull" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Object? getObjectOrNull(String s)</code></div>
+                      <div class="api-doc">
+                        <p>Retrieves the configuration value at the given path, or <code>null</code> when it is absent.</p>
+                        <p>
+                          The presence-reporting counterpart to [getObject], mirroring [TomTextResourceProvider.getObjectOrNull]. Prefer it whenever the value is going to be cast: because a miss is 
+                          <code>null</code> rather than the echoed key, a nullable cast with a default expresses "use the configured value, else this" in one lookup and one line.
+                        </p>
+                        <pre><code>final timeout = config.getObjectOrNull('api.timeout') as int? ?? 5000;
+final dark = config.getObjectOrNull('features.darkMode') as bool? ?? false;</code></pre>
+                        <p>
+                          A configured value of the wrong type still throws, which is the intent — that is a broken configuration file, not an absent setting.
+                        </p>
+                        <p>[s] - The configuration key or path to retrieve.</p>
+                        <p>Returns the value if found (can be any type), or null if not found.</p>
                       </div>
                     </div>
                   </div>
@@ -1526,9 +1589,10 @@ TomConfigResourceProvider.setAppConfigProvider(customConfig);</code></pre>
                     <div id="TomConfigResourceProvider.loader" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static Map&lt;String, dynamic&gt; Function()?? loader</code></div>
                       <div class="api-doc">
-                        <p>Optional loader function to initialize configuration lazily.</p>
+                        <p>Optional loader function consulted by the default constructor.</p>
                         <p>
-                          Set this before the first call to [getAppConfig] to provide a custom configuration loading mechanism (e.g., loading from JSON assets).
+                          Declares <em>how</em> to build the configuration; [setAppConfigProvider] decides <em>when</em> it is installed. Setting this on its own installs nothing, and it stays set afterwards, so every later bare 
+                          <code>TomConfigResourceProvider()</code> is populated from it — see [TomTextResourceProvider.loader] for the two-phase pattern, that process-wide coupling, its single-statement alternative [TomConfigResourceProvider.load], and why asynchronous sources are awaited before the install rather than inside a loader.
                         </p>
                       </div>
                     </div>
@@ -1539,7 +1603,22 @@ TomConfigResourceProvider.setAppConfigProvider(customConfig);</code></pre>
                       <div class="api-doc">
                         <p>Sets the application-wide configuration provider instance.</p>
                         <p>Use this method to replace the default provider with a custom pre-configured instance.</p>
+                        <p>
+                          <strong>Announces nothing, by design.</strong> Unlike [TomTextResourceProvider.setAppResourceProvider] there is no revision to bump: configuration is installed at bootstrap and captured by its consumers when they are built — a declared client setting takes its baseline at declaration, a 
+                          <code>TomProperty</code> at construction — so a counter would notify nothing that could act on it. Nor does it borrow [TomTextResourceProvider.appResourcesRevision]: re-rendering every text observer for a configuration change would cost what a counter costs without meaning what it means.
+                        </p>
+                        <p>
+                          Replacing the provider later is allowed, and every read made after the call answers from the new one; a value captured before it is not updated. An application that replaces configuration at a session boundary — a per-user bundle after sign-in — rebuilds what depends on it itself. A revision counter becomes worth adding only when configuration has to change under a running screen.
+                        </p>
                         <p>[provider] - The provider instance to use application-wide.</p>
+                      </div>
+                    </div>
+                    <div id="TomConfigResourceProvider.clearAppConfigProvider" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static void clearAppConfigProvider()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Returns the process to the un-bootstrapped state, where [getAppConfig] throws again. See [TomTextResourceProvider.clearAppResourceProvider].
+                        </p>
                       </div>
                     </div>
                     <div id="TomConfigResourceProvider.getAppConfig" class="api-member">
@@ -1547,9 +1626,29 @@ TomConfigResourceProvider.setAppConfigProvider(customConfig);</code></pre>
                       <div class="api-doc">
                         <p>Returns the application-wide configuration provider.</p>
                         <p>
-                          If no provider has been set, creates a new instance using the [loader] function if available, or an empty provider otherwise.
+                          Throws <code>resources.config_provider.not_installed</code> when [setAppConfigProvider] has not run. Configuration has no revision counter to keep honest, so this provider does not share the text provider's specific defect; it shares the contract because the two are used side by side, and a module in which one sibling refuses an unbootstrapped lookup while the other quietly answers "not configured" teaches nothing a caller can rely on.
                         </p>
-                        <p>This method implements lazy initialization - the provider is created on first access.</p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="TomResourceException" class="api-declaration">
+                  <h3 class="api-decl-title">class TomResourceException</h3>
+                  <code class="api-signature">class TomResourceException extends TomException</code>
+                  <div class="api-doc">
+                    <p>Thrown when the resource providers are used outside their contract.</p>
+                    <p>
+                      Currently that is one condition on each provider — a lookup before a bundle was installed (<code>resources.text_provider.not_installed</code>, 
+                      <code>resources.config_provider.not_installed</code>).
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomResourceException.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          TomResourceException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, StackTrace? stack, Object? rootException, bool autoLog = false, String? uuid, TomServerCallError? serverCallError})
+                        </code>
                       </div>
                     </div>
                   </div>
@@ -1560,19 +1659,52 @@ TomConfigResourceProvider.setAppConfigProvider(customConfig);</code></pre>
                   <div class="api-doc">
                     <p>A singleton provider for managing text resources in the application.</p>
                     <p>
-                      [TomTextResourceProvider] is designed for storing and retrieving text-based resources such as localized strings, UI labels, error messages, and other text content that may vary by locale or configuration. It also supports retrieval of object values using the existsObject and getObject methods, this is intended for extended UI configuration which is related to look and feel of the UI, such as TextStyles, Colors, etc. This allows for a unified resource management
+                      [TomTextResourceProvider] is designed for storing and retrieving text-based resources such as localized strings, UI labels, error messages, and other text content that may vary by locale or configuration.
                     </p>
                     <p>
-                      The provider supports: - Singleton access via [getAppResources] - Hierarchical key access using dot notation - Lazy initialization with a loader function - Direct initialization from a map
+                      It also holds values that are <em>not</em> Strings. [existsObject], [getObject] and [getObjectOrNull] resolve a value of any type, which is what lets the look-and-feel settings that travel with the text — TextStyles, Colors, and similar — live in the same bundle instead of a second one. The bundle is a 
+                      <code>Map&lt;String, dynamic&gt;</code> either way; "text" names what the resources are <em>for</em>, not what type they are.
+                    </p>
+                    <p>
+                      The String family ([getText], [getTextOrNull], [exists]) reports a non-String value as absent, so a Color is read with [getObject], not [getText]. Do not move such a value to [TomConfigResourceProvider] on account of its type: configuration is a different purpose, its accessors are a strict subset of these, and it has no [appResourcesRevision] to re-render from.
+                    </p>
+                    <p>
+                      The provider supports: - Singleton access via [getAppResources], after an explicit install - Hierarchical key access using dot notation - Deferred 
+                      <em>loading</em> with a loader function, separate from installation - Direct initialization from a map
                     </p>
                     <h2>Usage</h2>
                     <h3>Setting up with a loader function</h3>
-                    <pre><code>// Define the loader before first access
-TomTextResourceProvider.loader = () =&gt; loadJsonFromAssets('strings.json');
+                    <pre><code>// Install once at startup; the loader runs here, not at first access.
+TomTextResourceProvider.setAppResourceProvider(
+  TomTextResourceProvider.load(() =&gt; jsonDecode(bundledStrings)
+      as Map&lt;String, dynamic&gt;),
+);
 
 // Access resources throughout the app
 final resources = TomTextResourceProvider.getAppResources();
 String title = resources.getText('screens.home.title');</code></pre>
+                    <h3>Setting up from an asynchronous source</h3>
+                    <p>
+                      The loader is synchronous by design — [getText] is synchronous, so the bundle has to be in memory before anything reads it, and a constructor cannot await. A source that only yields a 
+                      <code>Future</code> (an asset, a file, a downloaded pack) is therefore awaited <em>before</em> the install, and the resolved map is handed to [TomTextResourceProvider.from]:
+                    </p>
+                    <p>
+                      <code>readAsset</code> is the target's own asynchronous read — <code>rootBundle.loadString</code> in a Flutter app, 
+                      <code>(path) =&gt; File(path).readAsString()</code> on a server. This package has no Flutter dependency, so the application supplies it.
+                    </p>
+                    <pre><code>Future&lt;void&gt; initializeResources(
+  Future&lt;String&gt; Function(String assetPath) readAsset,
+) async {
+  final strings = await readAsset('assets/strings.json');
+  TomTextResourceProvider.setAppResourceProvider(
+    TomTextResourceProvider.from(jsonDecode(strings) as Map&lt;String, dynamic&gt;),
+  );
+}
+
+// Called once at startup, before anything reads a resource.
+Future&lt;void&gt; main() async {
+  await initializeResources(readAsset);
+}</code></pre>
                     <h3>Setting up with a custom provider</h3>
                     <pre><code>final customProvider = TomTextResourceProvider.from({
   'greeting': 'Hello',
@@ -1601,6 +1733,10 @@ TomTextResourceProvider.setAppResourceProvider(customProvider);</code></pre>
                       </div>
                       <div class="api-doc">
                         <p>Creates a new text resource provider with a custom loader function.</p>
+                        <p>
+                          The loader is called here, so the provider is fully populated by the time this returns. It must therefore produce the map without awaiting; for a source that only yields a 
+                          <code>Future</code>, await it first and use [TomTextResourceProvider.from].
+                        </p>
                         <p>[loader] - A function that returns the resource map.</p>
                       </div>
                     </div>
@@ -1616,12 +1752,11 @@ TomTextResourceProvider.setAppResourceProvider(customProvider);</code></pre>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
+                    <div id="TomTextResourceProvider._resources" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Map&lt;String, dynamic&gt; _resources</code></div>
+                    </div>
                     <div id="TomTextResourceProvider.resources" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Map&lt;String, dynamic&gt; resources</code></div>
-                      <div class="api-doc">
-                        <p>The map containing all text resources.</p>
-                        <p>Resources can be nested maps, with values accessed using dot notation.</p>
-                      </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
@@ -1640,39 +1775,48 @@ TomTextResourceProvider.setAppResourceProvider(customProvider);</code></pre>
                     <div id="TomTextResourceProvider.existsObject" class="api-member">
                       <div class="api-member-head"><code class="api-signature">bool existsObject(String s)</code></div>
                       <div class="api-doc">
-                        <p>Checks if a configuration value exists at the given path.</p>
+                        <p>Checks if an object resource exists at the given path.</p>
                         <p>
-                          Supports both flat keys (e.g., 'timeout') and hierarchical paths using dot notation (e.g., 'api.timeout').
+                          Unlike [exists], this accepts any resource type (TextStyles, Colors, and other non-String UI values), not only String text resources.
                         </p>
-                        <p>[s] - The configuration key or path to check.</p>
+                        <p>
+                          Supports both flat keys (e.g., 'title') and hierarchical paths using dot notation (e.g., 'screens.home.style').
+                        </p>
+                        <p>[s] - The resource key or path to check.</p>
                         <p>Returns <code>true</code> if any value exists at the path, <code>false</code> otherwise.</p>
                       </div>
                     </div>
                     <div id="TomTextResourceProvider.getObject" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Object getObject(String s)</code></div>
                       <div class="api-doc">
-                        <p>Retrieves the configuration value at the given path.</p>
+                        <p>Retrieves the object resource at the given path.</p>
                         <p>
-                          Supports both flat keys (e.g., 'timeout') and hierarchical paths using dot notation (e.g., 'api.timeout').
+                          Returns non-String UI values (TextStyles, Colors, etc.) as well as text; use [getText] when a String is required.
                         </p>
                         <p>
-                          If the configuration is not found, returns the key itself as a fallback, which helps identify missing configuration during development.
+                          Supports both flat keys (e.g., 'title') and hierarchical paths using dot notation (e.g., 'screens.home.style').
                         </p>
-                        <p>[s] - The configuration key or path to retrieve.</p>
+                        <p>
+                          If the resource is not found, returns the key itself as a fallback, which helps identify missing resources during development.
+                        </p>
+                        <p>[s] - The resource key or path to retrieve.</p>
                         <p>Returns the value if found (can be any type), or the key [s] if not found.</p>
                       </div>
                     </div>
                     <div id="TomTextResourceProvider.getObjectOrNull" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Object? getObjectOrNull(String s)</code></div>
                       <div class="api-doc">
-                        <p>Retrieves the configuration value at the given path.</p>
+                        <p>Retrieves the object resource at the given path.</p>
                         <p>
-                          Supports both flat keys (e.g., 'timeout') and hierarchical paths using dot notation (e.g., 'api.timeout').
+                          Returns non-String UI values (TextStyles, Colors, etc.) as well as text; use [getTextOrNull] when a String is required.
                         </p>
                         <p>
-                          If the configuration is not found, returns null as a fallback, which helps identify missing configuration during development.
+                          Supports both flat keys (e.g., 'title') and hierarchical paths using dot notation (e.g., 'screens.home.style').
                         </p>
-                        <p>[s] - The configuration key or path to retrieve.</p>
+                        <p>
+                          If the resource is not found, returns null as a fallback, which helps identify missing resources during development.
+                        </p>
+                        <p>[s] - The resource key or path to retrieve.</p>
                         <p>Returns the value if found (can be any type), or null if not found.</p>
                       </div>
                     </div>
@@ -1714,9 +1858,51 @@ TomTextResourceProvider.setAppResourceProvider(customProvider);</code></pre>
                     <div id="TomTextResourceProvider.loader" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static Map&lt;String, dynamic&gt; Function()?? loader</code></div>
                       <div class="api-doc">
-                        <p>Optional loader function to initialize resources lazily.</p>
+                        <p>Optional loader function consulted by the default constructor.</p>
                         <p>
-                          Set this before the first call to [getAppResources] to provide a custom resource loading mechanism (e.g., loading from JSON assets).
+                          This declares <em>how</em> to build the bundle; [setAppResourceProvider] decides <em>when</em> it is installed. The split lets a platform layer name the source in one place while startup code installs it at the right moment:
+                        </p>
+                        <pre><code>TomTextResourceProvider.loader =
+    () =&gt; jsonDecode(bundledStrings) as Map&lt;String, dynamic&gt;;
+// ... later, in main():
+TomTextResourceProvider.setAppResourceProvider(TomTextResourceProvider());</code></pre>
+                        <p>
+                          The signature is synchronous, and deliberately so: [getText] is synchronous, so the map must exist by the time the constructor returns. The loader therefore only fits sources that can be produced without awaiting — a computed map, a compiled-in constant, an already-decoded string. Anything asynchronous (assets, files, network) is awaited in 
+                          <code>main()</code> and installed with [TomTextResourceProvider.from]; see the class documentation.
+                        </p>
+                        <p>
+                          Setting this on its own installs nothing: [getAppResources] does not bootstrap itself, and will throw until the install above has run.
+                        </p>
+                        <p>
+                          It is also process-wide and persistent, which is the cost of the split. The field is not consumed by the construction it was set for: it stays set until something assigns 
+                          <code>null</code>, and <em>every</em> later bare <code>TomTextResourceProvider()</code> — including one built for a purely local scope, far from the startup code that set it — is populated from it rather than starting empty. That is action at a distance, so set it once during bootstrap and leave it alone. Test suites that exercise the default constructor have to clear it between cases for the same reason.
+                        </p>
+                        <p>
+                          When both halves live in the same place, prefer [TomTextResourceProvider.load]: it takes the loader as an argument, so it populates the one provider being built and leaves no static state behind.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomTextResourceProvider.appResourcesRevision" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static TomInt appResourcesRevision</code></div>
+                      <div class="api-doc">
+                        <p>Observable revision counter for the application-wide text bundle.</p>
+                        <p>
+                          Incremented every time the installed bundle changes — either because [setAppResourceProvider] installed a different provider, or because the [resources] map of the installed provider was replaced. Observe it to re-derive anything computed from the bundle (localised labels, in particular) when the application switches locale:
+                        </p>
+                        <pre><code>// Retain the observer — observers are held weakly.
+final observer = TomTextResourceProvider.appResourcesRevision
+    &gt;&gt; (_) =&gt; rebuildLabels();</code></pre>
+                        <p>
+                          In-place <em>mutation</em> of the map (<code>resources['a'] = 'b'</code>) cannot be detected; call [notifyAppResourcesChanged] after such an edit.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomTextResourceProvider.notifyAppResourcesChanged" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static void notifyAppResourcesChanged()</code></div>
+                      <div class="api-doc">
+                        <p>Announces that the application-wide text bundle has changed.</p>
+                        <p>
+                          Bumps [appResourcesRevision], which notifies its observers. Call this after mutating the installed provider's [resources] map in place; installing a provider or assigning a new map does it automatically.
                         </p>
                       </div>
                     </div>
@@ -1726,8 +1912,22 @@ TomTextResourceProvider.setAppResourceProvider(customProvider);</code></pre>
                       </div>
                       <div class="api-doc">
                         <p>Sets the application-wide text resource provider instance.</p>
-                        <p>Use this method to replace the default provider with a custom pre-configured instance.</p>
+                        <p>
+                          Use this method to replace the default provider with a custom pre-configured instance. Bumps [appResourcesRevision] so that text derived from the bundle can be re-resolved.
+                        </p>
                         <p>[provider] - The provider instance to use application-wide.</p>
+                      </div>
+                    </div>
+                    <div id="TomTextResourceProvider.clearAppResourceProvider" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static void clearAppResourceProvider()</code></div>
+                      <div class="api-doc">
+                        <p>Returns the process to the un-bootstrapped state, where [getAppResources] throws again.</p>
+                        <p>
+                          Deliberately does <em>not</em> bump [appResourcesRevision]. The revision exists so that observers can re-derive text from the new bundle, and after a clear there is no bundle to re-derive from — every observer's reaction would throw. Uninstalling is a teardown step, and teardown has no readers.
+                        </p>
+                        <p>
+                          Tests need this because installation is otherwise one-way: [getAppResources] refuses to bootstrap itself, so the very first install can only be observed by a test that can get back to "nothing installed".
+                        </p>
                       </div>
                     </div>
                     <div id="TomTextResourceProvider.getAppResources" class="api-member">
@@ -1735,11 +1935,45 @@ TomTextResourceProvider.setAppResourceProvider(customProvider);</code></pre>
                       <div class="api-doc">
                         <p>Returns the application-wide text resource provider.</p>
                         <p>
-                          If no provider has been set, creates a new instance using the [loader] function if available, or an empty provider otherwise.
+                          Throws <code>resources.text_provider.not_installed</code> when [setAppResourceProvider] has not run. There is deliberately no lazy bootstrap: a self-installing lookup would put a bundle in place without bumping [appResourcesRevision], leaving observers registered before the first lookup showing raw keys for a bundle that had in fact been loaded. Because installation now happens in exactly one place, and that place notifies, the counter and the installed bundle cannot disagree.
                         </p>
-                        <p>This method implements lazy initialization - the provider is created on first access.</p>
+                        <p>
+                          An application with no text resources still installs one — an empty bundle makes every lookup echo its key, which is the intended degradation. Not installing at all is a bootstrap bug, and this reports it at the first read rather than rendering the whole UI in raw keys.
+                        </p>
                       </div>
                     </div>
+                  </div>
+                </section>
+                <section id="_reportBothShapes" class="api-declaration">
+                  <h3 class="api-decl-title">function _reportBothShapes</h3>
+                  <code class="api-signature">void _reportBothShapes(Map&lt;String, dynamic&gt; resources, String path)</code>
+                  <div class="api-doc">
+                    <p>
+                      Warns once per bundle when the dotted [path], which has just resolved through the tree, also names a literal flat key in [resources].
+                    </p>
+                  </div>
+                </section>
+                <section id="_resolveObjectOrNull" class="api-declaration">
+                  <h3 class="api-decl-title">function _resolveObjectOrNull</h3>
+                  <code class="api-signature">Object? _resolveObjectOrNull(Map&lt;String, dynamic&gt; resources, String path)</code>
+                  <div class="api-doc">
+                    <p>Resolves the raw object at [path] in [resources].</p>
+                    <p>
+                      Returns the tree value when the dotted [path] resolves, otherwise the flat-key value <code>resources[path]</code>, otherwise 
+                      <code>null</code>. Backs the object-family accessors (any value type is accepted).
+                    </p>
+                  </div>
+                </section>
+                <section id="_resolveStringOrNull" class="api-declaration">
+                  <h3 class="api-decl-title">function _resolveStringOrNull</h3>
+                  <code class="api-signature">String? _resolveStringOrNull(Map&lt;String, dynamic&gt; resources, String path)</code>
+                  <div class="api-doc">
+                    <p>Resolves the String value at [path] in [resources].</p>
+                    <p>
+                      Returns the tree value when the dotted [path] resolves to a String, otherwise the flat-key value when it is a String, otherwise 
+                      <code>null</code>. Backs the text-family accessors, which only surface String content. The flat-key leg is consulted even when the tree walk lands on a non-String value, so a literal dotted key (e.g. 
+                      <code>'a.b'</code>) still resolves.
+                    </p>
                   </div>
                 </section>
               </div>

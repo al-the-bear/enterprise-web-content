@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1386,7 +1392,16 @@
             <a class="crosslink" href="/api/tom_core_server">← tom_core_server API</a>
             <div class="treewrap">
               <div class="treepane">
-                <div class="treenodes"><a class="leaf" href="#TomQuerySentenceCompiler">TomQuerySentenceCompiler</a></div>
+                <div class="treenodes">
+                  <a class="leaf" href="#TomQuerySentenceCompiler">TomQuerySentenceCompiler</a>
+                  <a class="leaf" href="#_ScalarLiteral">_ScalarLiteral</a>
+                  <a class="leaf" href="#_SentenceOptions">_SentenceOptions</a>
+                  <a class="leaf" href="#_CompiledColumnType">_CompiledColumnType</a>
+                  <a class="leaf" href="#_SentenceOption">_SentenceOption</a>
+                  <a class="leaf" href="#_ComparisonFactory">_ComparisonFactory</a>
+                  <a class="leaf" href="#_UnaryPredicateFactory">_UnaryPredicateFactory</a>
+                  <a class="leaf" href="#_scalarLiteralFor">_scalarLiteralFor</a>
+                </div>
               </div>
               <div class="reader">
                 <h2 class="api-library-title">package:tom_core_server/src/tomserver/object_persistence/query_sentence_compiler.dart</h2>
@@ -1399,16 +1414,46 @@
                     <p>
                       A query sentence is a whitespace-separated phrase such as <code>find by name = :name order by age desc</code>, 
                       <code>count by status IS IN ( :s )</code>, or <code>delete by id = $id</code>. The first word selects the query kind (<code>find</code>
-                       → [TomSelect], <code>count</code> → [TomCount], <code>delete</code> → [TomDelete]); the part before 
-                      <code>by</code> carries options (<code>distinct</code>, <code>top</code>/<code>first</code> N); the part after 
-                      <code>by</code> is the predicate, optionally followed by an <code>order by &lt;fields&gt; [asc|desc]</code>
-                       clause. The predicate is parsed against the entity's resolved columns (via [TomQueryBuilder] and [TomAnnotationAnalyzer]) into a [TomOperator] tree.
+                       → [TomSelect], <code>count</code> → [TomCount], <code>delete</code> → [TomDelete], <code>group</code>
+                       → [TomGroupedSelect]); the part before <code>by</code> carries options (<code>distinct</code>, <code>top</code>/<code>first</code>
+                       N, <code>skip</code>/<code>offset</code> M, and for <code>group</code> the projection); the part after 
+                      <code>by</code> is the predicate, optionally followed by a <code>having &lt;predicate&gt;</code> clause and an 
+                      <code>order by &lt;fields&gt; [asc|desc]</code> clause. The predicate is parsed against the entity's resolved columns (via [TomQueryBuilder] and [TomAnnotationAnalyzer]) into a [TomOperator] tree.
                     </p>
                     <p>
-                      Throws [TomQuerySyntaxException] for a malformed sentence (unknown kind, both <code>top</code> and <code>first</code>, a misplaced order direction, etc.).
+                      <strong>Paging.</strong> <code>top</code>/<code>first</code> N caps the rows; <code>skip</code>/<code>offset</code>
+                       M skips M of them first, so page P of size N is <code>first N skip P*N</code>. A skip needs a cap — SQL has no bare 
+                      <code>OFFSET</code> — and a paged sentence should order by something unique, or successive pages are cut from an order the database is free to change between them.
                     </p>
                     <p>
-                      (The select/count/delete branches currently build their option fields independently; unifying them is a tracked follow-up.)
+                      <strong>Sort direction.</strong> A direction keyword applies to every field back to the previous direction keyword, so 
+                      <code>order by a b desc</code> sorts both descending (one direction for the whole list, as it always did) while 
+                      <code>order by a desc b asc</code> mixes them.
+                    </p>
+                    <p><strong>The grouped sentence.</strong> <code>group</code> projects aggregates instead of entities:</p>
+                    <pre><code>group count ( * ) as total , sum ( amount ) as revenue over status
+  by createdAt &gt;= :from having total &gt; :minCount order by total desc</code></pre>
+                    <p>
+                      The projection is a comma-separated list of <code>&lt;fn&gt; ( &lt;arg&gt; ) as &lt;alias&gt;</code> (<code>count</code>/<code>sum</code>/<code>avg</code>/<code>min</code>/<code>max</code>; 
+                      <code>count ( * )</code> for the row count, and a leading <code>distinct</code> inside the parentheses for 
+                      <code>count</code>/<code>sum</code>/<code>avg</code>). The optional <code>over &lt;fields&gt;</code> names the group key — omit it to aggregate the whole result set. 
+                      <code>having</code> filters <em>groups</em> and so addresses the projection <strong>by alias</strong>, where the 
+                      <code>by</code> predicate filters <em>rows</em> and addresses columns.
+                    </p>
+                    <p>
+                      Throws [TomQuerySyntaxException] for a malformed sentence (unknown kind, both <code>top</code> and <code>first</code>, both 
+                      <code>skip</code> and <code>offset</code>, a skip without a cap, etc.).
+                    </p>
+                    <p>
+                      <strong>Options.</strong> The four a sentence can carry — <code>distinct</code>, the cap, the skip and the sort — are parsed once, by one step, for every kind. Each kind then declares which of them it permits (<code>_permittedOptions</code>), and one loop refuses the rest 
+                      <strong>by name</strong>: a find or a group takes the cap, the skip and the sort; a delete takes the cap and the sort but no skip, because 
+                      <code>DELETE</code> has no <code>OFFSET</code>, and no <code>distinct</code>, because a single-table delete has no projection to deduplicate; a count takes only 
+                      <code>distinct</code>, because it returns one row whatever the others say.
+                    </p>
+                    <p>
+                      The declaration is what keeps the promise the next sentence makes. A combination a kind cannot express is refused with a message naming the reason — never accepted and then ignored — and so is a word before 
+                      <code>by</code> that names no option at all, because a token skipped along with its argument changes what the query returns while reading as though it had not. The matrix is in 
+                      <code>doc/object_persistence.md</code> and asserted against this compiler, cell by cell, by <code>query_sentence_options_test.dart</code>.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1418,20 +1463,131 @@
                       <div class="api-doc"><p>Creates a compiler for the given entity [types] (the first is primary).</p></div>
                     </div>
                   </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="TomQuerySentenceCompiler._aliasOperands" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Map&lt;String, TomAggregate&lt;dynamic, dynamic&gt;&gt; _aliasOperands</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          The aggregates a <code>having</code> clause may address, keyed by their projection alias — non-empty only while that clause is being parsed.
+                        </p>
+                        <p>
+                          <code>HAVING</code> filters groups, so its operands are the <em>projected</em> aggregates rather than the entity's columns. Publishing them here lets the one expression parser serve both predicates: [_buildExpression] resolves a token against this map before falling back to [determineColumn].
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
                     <div id="TomQuerySentenceCompiler.compileQuerySentence" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomQuery compileQuerySentence(String qs)</code></div>
-                      <div class="api-doc"><p>Parses query sentence [qs] into a [TomSelect], [TomCount], or [TomDelete].</p></div>
+                      <div class="api-doc"><p>Parses query sentence [qs] into a [TomSelect], [TomCount], [TomDelete] or [TomGroupedSelect].</p></div>
+                    </div>
+                    <div id="TomQuerySentenceCompiler._parseOptions" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          _SentenceOptions _parseOptions(List&lt;String&gt; queryOptions, List&lt;String&gt; whereClause, String qs)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Parses everything a sentence carries besides its predicate, once, for every kind.</p>
+                        <p>
+                          [queryOptions] is the tokens before <code>by</code>, [whereClause] those after it. The scan runs left to right from the kind word and stops at the first token that names no option, which the caller reads as the projection (<code>group</code>) or as a stray word (every other kind).
+                        </p>
+                        <p>
+                          Scanning rather than searching is what makes that stop meaningful. While each option was found by searching the whole list, a token belonging to none of them was invisible: nothing knew which tokens had been consumed, so nothing could notice one that had not been.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomQuerySentenceCompiler._optionArgument" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">int _optionArgument(List&lt;String&gt; options, int at, String keyword, String qs)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Reads the whole, non-negative row count [keyword] takes, at [at] + 1.</p>
+                        <p>
+                          The argument is rejected — never guessed at — when it is missing, non-numeric or negative: a window the compiler had to invent would return a different result set than the sentence asked for, without saying so.
+                        </p>
+                        <p>
+                          Zero is accepted and means <em>unpaged</em>, the reading [TomPageRequest.assertWindow] gives <code>limit: 0</code>
+                           for a window built programmatically. Negative is refused for the same reason, and for one more: <code>-1</code>
+                           is the compiler's own "absent" sentinel, so an accepted <code>first -1</code> could not be told apart from a sentence with no cap.
+                        </p>
+                        <p>
+                          [keyword] is quoted as the author spelled it — <code>top</code> and <code>first</code> are one option internally, and quoting the other one sends the reader looking for a word their sentence does not contain.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomQuerySentenceCompiler._compileGrouped" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          TomGroupedSelect _compileGrouped(List&lt;String&gt; queryOptions, List&lt;String&gt; whereClause, String qs, _SentenceOptions options)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Compiles the <code>group</code> sentence kind into a [TomGroupedSelect].</p>
+                        <p>
+                          [queryOptions] is everything before <code>by</code> (the kind word, the optional window options <code>top</code>/<code>first</code>
+                           N and <code>skip</code>/<code>offset</code> M, the projection, and an optional <code>over &lt;fields&gt;</code>); [whereClause] is everything after it with the 
+                          <code>order by</code> clause already stripped, so it is the row predicate optionally followed by <code>having</code>.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomQuerySentenceCompiler._parseGroupColumns" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">List&lt;DbCol&lt;dynamic&gt;&gt; _parseGroupColumns(List&lt;String&gt; tokens, String qs)</code>
+                      </div>
+                      <div class="api-doc"><p>Parses the comma-separated <code>over</code> field list into group-key columns.</p></div>
+                    </div>
+                    <div id="TomQuerySentenceCompiler._parseAggregates" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          List&lt;TomAggregate&lt;dynamic, dynamic&gt;&gt; _parseAggregates(List&lt;String&gt; tokens, String qs)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Parses the projection list — <code>&lt;fn&gt; ( &lt;arg&gt; ) as &lt;alias&gt;</code>, comma-separated — into the aggregate nodes the grouped select projects.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomQuerySentenceCompiler._aggregateFunction" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomAggregateFunction _aggregateFunction(String token, String qs)</code></div>
+                    </div>
+                    <div id="TomQuerySentenceCompiler._expectToken" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">void _expectToken(List&lt;String&gt; tokens, int at, String expected, String qs)</code>
+                      </div>
+                    </div>
+                    <div id="TomQuerySentenceCompiler._createCountAll" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          TomAggregate&lt;dynamic, dynamic&gt; _createCountAll(TomAggregateFunction function, bool distinct, String alias, String qs)
+                        </code>
+                      </div>
+                    </div>
+                    <div id="TomQuerySentenceCompiler._createAggregate" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          TomAggregate&lt;dynamic, dynamic&gt; _createAggregate(TomAggregateFunction function, String field, bool distinct, String alias, String qs)
+                        </code>
+                      </div>
                     </div>
                     <div id="TomQuerySentenceCompiler._analyseOrderByClause" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">List&lt;String&gt; _analyseOrderByClause(List&lt;String&gt; wc, String qs)</code>
+                        <code class="api-signature">List&lt;TomSortField&gt; _analyseOrderByClause(List&lt;String&gt; wc, String qs)</code>
                       </div>
-                    </div>
-                    <div id="TomQuerySentenceCompiler._find" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">bool _find(List&lt;String&gt; list, String key, [int startAt = 0])</code>
+                      <div class="api-doc">
+                        <p>
+                          Parses the trailing <code>order by &lt;field&gt; [asc|desc] …</code> clause into sort terms and strips it from [wc].
+                        </p>
+                        <p>
+                          A direction keyword applies to every field back to the previous direction keyword — so <code>order by a b desc</code>
+                           sorts both descending (the whole-list reading the clause has always had) and <code>order by a desc b asc</code>
+                           mixes them. Fields with no direction of their own default to ascending. Commas are accepted as separators and ignored.
+                        </p>
                       </div>
                     </div>
                     <div id="TomQuerySentenceCompiler._index" class="api-member">
@@ -1442,6 +1598,37 @@
                     <div id="TomQuerySentenceCompiler._lookAhead" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">bool _lookAhead(List&lt;String&gt; list, int start, int ahead, String forWhat)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Whether the token [ahead] positions past [start] is [forWhat].</p>
+                        <p>
+                          Answers <code>false</code> when the sentence ends first. The bound is <code>&lt;=</code> because the token being asked about is at index 
+                          <code>start + ahead</code>, so a list of exactly that length does not contain it — reading it is one past the end. While the check was 
+                          <code>&lt;</code>, a sentence ending on a keyword that looks ahead (<code>… title not</code>) threw <code>RangeError</code>
+                           out of the compiler instead of a [TomQuerySyntaxException], escaping the family callers catch on.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomQuerySentenceCompiler._createComparison" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          (TomOperator&lt;TomDbBool&gt;, int) _createComparison(List&lt;String&gt; qp, String qs, int i, TomColumnInformation? column, TomOperator&lt;dynamic&gt; current, {required TomOperator&lt;TomDbBool&gt; Function&lt;T&gt;(TomOperator&lt;T&gt;, TomOperator&lt;T&gt;) build, required String key, required String symbol})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Dispatches a two-operand comparison on the SQL type of its left operand.</p>
+                        <p>
+                          The right-hand side is parsed <em>as</em> that type, so the parse and the node construction have to agree — which is why this is one method taking a [build] factory rather than a copy of the switch per operator. [key] and [symbol] name the operator in the failure a type outside the switch produces, so the six callers stay distinguishable in an error message.
+                        </p>
+                        <p>
+                          Every arm parses the right-hand side with [_buildExpression], the operand-level entry point — including the boolean arm, which is the one where the choice is not obvious. Routing a boolean operand through [_buildQuery] instead, the 
+                          <em>statement</em>-level entry point, would let the operand claim <code>and</code>, <code>or</code> and 
+                          <code>)</code> as its own, so a boolean right-hand side would not stop at the comparison: <code>done = TRUE and id &gt; 2</code>
+                           would pull the conjunction into the operand and be refused, and <code>not ( done = TRUE ) and id &gt; 2</code>
+                           would have its closing bracket consumed by the <code>=</code> and compile to <code>NOT ( done = true AND id &gt; 2 )</code>
+                           — a different predicate from the one written. Nor does the statement-level entry point buy the form it looks like it would, a comparison against a whole predicate (<code>done = ( a &gt; 1 or b &gt; 2 )</code>): [_buildQuery] threads the boolean column into the bracket, and the first column inside is then read as a second operand of 
+                          <em>its</em> type.
+                        </p>
                       </div>
                     </div>
                     <div id="TomQuerySentenceCompiler._createEq" class="api-member">
@@ -1492,6 +1679,37 @@
                           (TomOperator&lt;TomDbBool&gt;, int) _createIsIn(List&lt;String&gt; qp, String qs, int i, TomColumnInformation? column, TomOperator&lt;dynamic&gt; current)
                         </code>
                       </div>
+                      <div class="api-doc">
+                        <p>
+                          <code>&lt;column&gt; IN ( &lt;options...&gt; )</code>, with the options parsed as the column's own type so a bind or literal in the list cannot be typed differently from what it is compared against.
+                        </p>
+                        <p>
+                          A boolean column reaches [_getInOptions] and is refused there: <code>IN</code> over two possible values is a predicate written the long way round.
+                        </p>
+                        <p>
+                          Returns the index of the <strong>last token consumed</strong>, which is the closing bracket — the same contract every other branch of [_buildExpression] keeps (<code>IS NULL</code>
+                           returns the index of <code>null</code>, not the one after it), because the caller resumes with <code>i = index</code>
+                           and then increments. Reporting one more than that skipped whatever followed the list: with <code>and</code>
+                           there, the conjunction was never seen and <code>id is in ( 1 , 2 ) and done = TRUE</code> compiled to 
+                          <code>done = true</code> alone, silently dropping the <code>IN</code> filter.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomQuerySentenceCompiler._createNullTest" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          TomOperator&lt;TomDbBool&gt; _createNullTest(TomOperator&lt;dynamic&gt; current, {required TomOperator&lt;TomDbBool&gt; Function&lt;T&gt;(TomOperator&lt;T&gt;) build, required String key, required String name})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Dispatches a null test on the operand's SQL type.</p>
+                        <p>
+                          The node is the same shape for every type, but it is <em>generic</em> in that type, so the type still has to be recovered from [TomOperator.returnType] before the node can be built. [build] is [isNull] or [isNotNull].
+                        </p>
+                        <p>
+                          [key] and [name] name the operator in the failure a type outside the switch produces, so the two callers stay distinguishable in an error message — the same arrangement [_createComparison] makes for its six.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomQuerySentenceCompiler._createIsNull" class="api-member">
                       <div class="api-member-head">
@@ -1510,6 +1728,20 @@
                         </code>
                       </div>
                     </div>
+                    <div id="TomQuerySentenceCompiler._requireComparisonOperand" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          TomOperator&lt;dynamic&gt; _requireComparisonOperand(TomOperator&lt;dynamic&gt;? current, String key, String message)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Returns [current] as the left operand of a comparison, or throws.</p>
+                        <p>
+                          A valid operand is a column reference — or, inside a <code>having</code> clause, one of the projected aggregates: 
+                          <code>HAVING COUNT(*) &gt; 3</code> compares a <em>group's</em> value, so the operand there is an aggregate rather than a column. [key] and [message] identify the operator so the failure names it.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomQuerySentenceCompiler._buildExpression" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
@@ -1524,6 +1756,25 @@
                         </code>
                       </div>
                     </div>
+                    <div id="TomQuerySentenceCompiler._compiledColumnType" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">_CompiledColumnType _compiledColumnType(TomColumnInformation column, String field)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>The type [field]'s column is compiled as.</p>
+                        <p>
+                          An explicit <code>@TomDbColumn(columnType: ...)</code> wins over the field's declared Dart type — being able to say "this Dart value is stored as 
+                          <em>that</em>" is the entire purpose of the annotation, and the declared type is only ever a fallback inference.
+                        </p>
+                        <p>
+                          An explicit type this compiler cannot build a column for is <strong>refused</strong>, not quietly replaced by the inferred one. Falling back would make the escape hatch fail open: the entity states one storage type, the compiler builds another, and the disagreement first shows up as a value written to the wrong kind of column rather than as a rejection naming the annotation. The fall-through that did this was invisible for as long as it was: no fixture entity declared 
+                          <code>columnType:</code> at all, so neither the honouring nor the refusal had ever run.
+                        </p>
+                        <p>
+                          Both failures carry <code>create_column.failed</code>. A caller that has already built the column node — [_createParameter] is the only one — cannot reach either, because the same column resolved once already.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomQuerySentenceCompiler._createParameter" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">Parameter&lt;QT&gt; _createParameter&lt;QT&gt;(TomColumnInformation column, String field)</code>
@@ -1536,7 +1787,339 @@
                     </div>
                     <div id="TomQuerySentenceCompiler._splitQuerySentence" class="api-member">
                       <div class="api-member-head"><code class="api-signature">List&lt;String&gt; _splitQuerySentence(String qs)</code></div>
+                      <div class="api-doc">
+                        <p>Splits [qs] into tokens: words, separators, and whole string literals.</p>
+                        <p>
+                          Quoting is why this is a hand-written scan rather than the regex-and-split it replaced. That version inserted spaces around every 
+                          <code>,()=&lt;&gt;</code>, collapsed runs of whitespace and split on the result — with no notion of a quoted region, so a literal was only writable if it contained none of those characters and no space. 
+                          <code>title = 'in progress, phase (2)'</code> became eight tokens, the first of them <code>'in</code>, and the failure that came back named a column 
+                          <code>['in]</code>: a fragment the author never wrote, raised by the annotation analyzer rather than as a query-syntax error.
+                        </p>
+                        <p>
+                          A quoted region is returned as <strong>one token with its quotes still on</strong>, so the literal branch of [_buildExpression] recognises it the same way it always has, and so a token that merely 
+                          <em>looks</em> like a keyword or a column name cannot be mistaken for one — <code>by</code>, <code>order</code>
+                           and <code>and</code> are all found by scanning this list.
+                        </p>
+                        <p>
+                          An apostrophe inside a literal is written the SQL way, by doubling it. The doubling is left in the token here and undone by [_decodeStringLiteral], so a token still reads back as it was written when it appears in an error message.
+                        </p>
+                      </div>
                     </div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="TomQuerySentenceCompiler._permittedOptions" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static Map&lt;String, Set&lt;_SentenceOption&gt;&gt; _permittedOptions</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Which options each kind of sentence permits.</p>
+                        <p>
+                          The declaration, not a detail: a kind permits what is listed here and refuses everything else <strong>by name</strong>, so a new kind is a new row rather than a search for the conditions that mention the existing ones. Listing what is 
+                          <em>permitted</em> rather than what is refused is the direction that fails safe — an option added to [_SentenceOption] is refused by every kind until one opts in, where a refusal list would let it through everywhere.
+                        </p>
+                        <p>
+                          Private, because a <code>Set&lt;_SentenceOption&gt;</code> is not something a caller could do anything with. The table a reader needs is in 
+                          <code>doc/object_persistence.md</code>, and <code>query_sentence_options_test.dart</code> asserts the compiler against that table rather than against this one — a test reading this map would agree with it by construction.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomQuerySentenceCompiler._compiledColumnTypes" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Map&lt;Type, _CompiledColumnType&gt; _compiledColumnTypes</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Every spelling a compiled column type may be written with, on either of the two routes into [_compiledColumnType].
+                        </p>
+                        <p>
+                          One map for both routes rather than one per route. A field cannot be <em>declared</em> with a <code>TomDb…</code>
+                           box — those name SQL types, not Dart values — so the declared-type vocabulary is a strict subset of the explicit one, and splitting the map would buy nothing but a second thing to keep in step. The extra keys are unreachable on the declared route, not wrong on it.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomQuerySentenceCompiler._separatorCharacters" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Set&lt;String&gt; _separatorCharacters</code></div>
+                      <div class="api-doc"><p>The characters that end a token on their own, outside a quoted region.</p></div>
+                    </div>
+                    <div id="TomQuerySentenceCompiler._reservedInOperandPosition" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Set&lt;String&gt; _reservedInOperandPosition</code></div>
+                      <div class="api-doc">
+                        <p>The grammar's words, which are never an operand.</p>
+                        <p>
+                          Reaching a branch below is how a word becomes an operator; reaching this set is how one that did not becomes a 
+                          <em>diagnosis</em>. Every branch that claims one of these needs a lookahead — <code>IS NULL</code>, <code>IS NOT IN</code>, 
+                          <code>NOT LIKE</code> — so a word whose partner is missing or wrong declines every branch and arrives in operand position, where the only remaining reading is "column name". That reading is always wrong and always plausible: 
+                          <code>find by title is</code> was answered by the <em>annotation analyzer</em> with "No column match field [is] found. Must be a variable and must have @TomDbColumn annotation", sending the author to look for a field they never wrote, for a sentence that merely stops one token early.
+                        </p>
+                        <p>
+                          The set is the same construction as the <code>TRUE</code>/<code>FALSE</code> branches and [_separatorCharacters], and carries the same cost: a column actually named 
+                          <code>is</code> or <code>and</code> no longer resolves. SQL reserves these words too, the sentence language has no quoting for identifiers, and 
+                          <code>@TomDbColumn(name: ...)</code> already renames such a field. The alternative — resolve the column first and fall back to the diagnosis — would make which error you get depend on the entity's field list, so the same malformed sentence would be reported two ways in two entities.
+                        </p>
+                        <p>
+                          <code>AND</code> and <code>OR</code> are here although the <em>outer</em> loop is what joins predicates: this expression parser is entered per operand, so a sentence like 
+                          <code>find by title = and</code> presents one in operand position without the outer loop ever seeing it.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomQuerySentenceCompiler._twoCharacterOperators" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Set&lt;String&gt; _twoCharacterOperators</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The two-character operators, matched before the single-character ones so <code>&lt;=</code> is one token rather than 
+                          <code>&lt;</code> followed by <code>=</code>. This is the whole vocabulary [_buildExpression] recognises; anything else made of these characters splits into singles and is refused there by name.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomQuerySentenceCompiler._sortDirection" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static TomSortDirection? _sortDirection(String token)</code></div>
+                      <div class="api-doc"><p>The direction [token] names, or <code>null</code> when it is not a direction keyword.</p></div>
+                    </div>
+                    <div id="TomQuerySentenceCompiler._decodeStringLiteral" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String _decodeStringLiteral(String token)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The value a quoted [token] stands for: the quotes removed and each doubled apostrophe folded back to one.
+                        </p>
+                        <p>
+                          The fold belongs here rather than in the dialect, which does the opposite job — [TomStandardSqlDialect.text] escapes 
+                          <code>'</code> to <code>''</code> on the way out. Skipping this step left the author's escape in the value, so the dialect doubled it a second time and 
+                          <code>'O''Brien'</code> reached SQL as <code>'O''''Brien'</code>, an apostrophe richer than what was written.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="_ScalarLiteral" class="api-declaration">
+                  <h3 class="api-decl-title">class _ScalarLiteral</h3>
+                  <code class="api-signature">class _ScalarLiteral</code>
+                  <div class="api-doc">
+                    <p>
+                      One kind of scalar value a query sentence can spell <strong>inline</strong>, as opposed to binding it — 
+                      <code>find by priority &gt; 3</code>, <code>find by due = 2026-07-05</code>.
+                    </p>
+                    <p>
+                      The five kinds are recognised by shape alone, and their shapes nest: every datetime literal contains a date 
+                      <em>and</em> a time, every date contains digits, and a bare digit test matches any token that merely 
+                      <em>contains</em> one. So two rules keep them all reachable, and both are load-bearing —
+                    </p>
+                    <ul><li>every [pattern] is <strong>anchored</strong>, so a token matches a kind only by being</li></ul>
+                    <p>
+                      that kind entirely rather than by containing one somewhere; and <em> <code>_scalarLiterals</code> is ordered </em>
+                      <em>most specific first</em>*, so the datetime is tested before the date it contains and the date before its digits.
+                    </p>
+                    <p>
+                      Drop either and the later kinds become unreachable: the token is claimed by a broader rule that then rejects it for having the wrong type.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="_ScalarLiteral.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          const _ScalarLiteral.new({required String kind, required String noun, required Type sqlType, required RegExp pattern, required TomOperator&lt;dynamic&gt; Function(TomQueryBuilder, String) build})
+                        </code>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="_ScalarLiteral.kind" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String kind</code></div>
+                      <div class="api-doc"><p>Names the kind in the exception key (<code>&lt;kind&gt;_literal_…</code>).</p></div>
+                    </div>
+                    <div id="_ScalarLiteral.noun" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String noun</code></div>
+                      <div class="api-doc"><p>Names the kind, with its article, in the exception message.</p></div>
+                    </div>
+                    <div id="_ScalarLiteral.sqlType" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Type sqlType</code></div>
+                      <div class="api-doc"><p>The SQL type a literal of this kind can stand for.</p></div>
+                    </div>
+                    <div id="_ScalarLiteral.pattern" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final RegExp pattern</code></div>
+                      <div class="api-doc"><p>Anchored — see the class comment.</p></div>
+                    </div>
+                    <div id="_ScalarLiteral.build" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">final TomOperator&lt;dynamic&gt; Function(TomQueryBuilder, String) build</code>
+                      </div>
+                      <div class="api-doc"><p>Builds the literal node from the matched token.</p></div>
+                    </div>
+                  </div>
+                </section>
+                <section id="_SentenceOptions" class="api-declaration">
+                  <h3 class="api-decl-title">class _SentenceOptions</h3>
+                  <code class="api-signature">class _SentenceOptions</code>
+                  <div class="api-doc">
+                    <p>The options one sentence carries, parsed once for every kind.</p>
+                    <p>
+                      [projectionStart] is where the option scan stopped — the first token before <code>by</code> that names no option. For 
+                      <code>group</code> that is where the projection begins; for every other kind there must be nothing there, and a token that is neither an option nor a projection is refused rather than dropped.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="_SentenceOptions.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          const _SentenceOptions.new({required Set&lt;_SentenceOption&gt; present, required bool distinct, required int cap, required int skip, required List&lt;TomSortField&gt; sort, required int projectionStart})
+                        </code>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="_SentenceOptions.present" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Set&lt;_SentenceOption&gt; present</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Which options the sentence actually wrote, so a kind refuses only what was asked for. An option left out is not refused, however little the kind could have done with it.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="_SentenceOptions.distinct" class="api-member"><div class="api-member-head"><code class="api-signature">final bool distinct</code></div></div>
+                    <div id="_SentenceOptions.cap" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final int cap</code></div>
+                      <div class="api-doc"><p>The row cap, or <code>-1</code> for none.</p></div>
+                    </div>
+                    <div id="_SentenceOptions.skip" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final int skip</code></div>
+                      <div class="api-doc"><p>The row skip, or <code>0</code> for none.</p></div>
+                    </div>
+                    <div id="_SentenceOptions.sort" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final List&lt;TomSortField&gt; sort</code></div>
+                    </div>
+                    <div id="_SentenceOptions.projectionStart" class="api-member"><div class="api-member-head"><code class="api-signature">final int projectionStart</code></div></div>
+                  </div>
+                </section>
+                <section id="_CompiledColumnType" class="api-declaration">
+                  <h3 class="api-decl-title">enum _CompiledColumnType</h3>
+                  <code class="api-signature">enum _CompiledColumnType</code>
+                  <div class="api-doc">
+                    <p>The SQL type a named column is compiled as.</p>
+                    <p>
+                      Interposed between an entity's annotations and the two nodes a predicate builds from them — the column and the parameter bound against it — so that the two cannot answer the same question differently. They did: 
+                      <code>_createColumn</code> honoured an explicit <code>@TomDbColumn(columnType: ...)</code> and <code>_createParameter</code>
+                       read only the declared Dart type, so an entity using that escape hatch produced a column of one type and a parameter of another. The two meet at a cast, so the disagreement surfaced as a bare 
+                      <code>TypeError</code> — outside the exception family this module documents, and naming neither the column nor the annotation that caused it.
+                    </p>
+                    <p>
+                      Both dispatches are <code>switch</code> <strong>expressions</strong> over this enum, so they are exhaustiveness-checked: a type family added here fails to compile until both are extended. That is the property worth having, because the three previous defects in this file were all one dispatch of a set being missed — 
+                      <code>double</code> was absent from three of them at once.
+                    </p>
+                    <p>
+                      Deliberately not [TomSqlTypeFamily]. That answers a neighbouring but different question — how a value is 
+                      <em>stored</em>, folding in <code>isJson</code> and the <code>TomDbColumn&lt;,&gt;</code> type arguments — and it resolves an explicit 
+                      <code>columnType:</code> naming a bare Dart type differently from this compiler. Sharing the vocabulary without sharing the resolution would suggest an agreement that does not hold.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Values</h4>
+                  <div class="api-members">
+                    <div id="_CompiledColumnType.text" class="api-member"><div class="api-member-head"><code class="api-signature">text</code></div></div>
+                    <div id="_CompiledColumnType.integer" class="api-member"><div class="api-member-head"><code class="api-signature">integer</code></div></div>
+                    <div id="_CompiledColumnType.decimal" class="api-member"><div class="api-member-head"><code class="api-signature">decimal</code></div></div>
+                    <div id="_CompiledColumnType.boolean" class="api-member"><div class="api-member-head"><code class="api-signature">boolean</code></div></div>
+                    <div id="_CompiledColumnType.dateTime" class="api-member"><div class="api-member-head"><code class="api-signature">dateTime</code></div></div>
+                    <div id="_CompiledColumnType.date" class="api-member"><div class="api-member-head"><code class="api-signature">date</code></div></div>
+                    <div id="_CompiledColumnType.time" class="api-member"><div class="api-member-head"><code class="api-signature">time</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="_CompiledColumnType.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">const _CompiledColumnType.new()</code></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="_CompiledColumnType.values" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static List&lt;_CompiledColumnType&gt; values</code></div>
+                    </div>
+                  </div>
+                </section>
+                <section id="_SentenceOption" class="api-declaration">
+                  <h3 class="api-decl-title">enum _SentenceOption</h3>
+                  <code class="api-signature">enum _SentenceOption</code>
+                  <div class="api-doc">
+                    <p>One thing a query sentence can carry besides its predicate.</p>
+                    <p>
+                      Three are written before <code>by</code> (<code>distinct</code>, the row cap, the skip) and one after the predicate (<code>order by …</code>), but they are one vocabulary: each is parsed once for every sentence, and each kind of sentence then either permits it or refuses it 
+                      <strong>by name</strong>.
+                    </p>
+                    <p>
+                      Naming them is what makes that one question instead of several. A rule written per kind, in a condition of its own, is a rule a fifth kind has to remember to state — and an option no condition happens to mention is accepted and then dropped, which changes what a query returns while reading as though it had not.
+                    </p>
+                    <p>
+                      [refusalKey] and [reason] are what a kind that does not permit this option says. One pair per option rather than per (kind, option) pair, because exactly one kind refuses each of them today; a second refuser would need a reason of its own, which 
+                      <code>query_sentence_options_test.dart</code> asserts by checking every kind against every option.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Values</h4>
+                  <div class="api-members">
+                    <div id="_SentenceOption.distinct" class="api-member"><div class="api-member-head"><code class="api-signature">distinct</code></div></div>
+                    <div id="_SentenceOption.cap" class="api-member"><div class="api-member-head"><code class="api-signature">cap</code></div></div>
+                    <div id="_SentenceOption.skip" class="api-member"><div class="api-member-head"><code class="api-signature">skip</code></div></div>
+                    <div id="_SentenceOption.sort" class="api-member"><div class="api-member-head"><code class="api-signature">sort</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="_SentenceOption.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">const _SentenceOption.new(String spelling, String refusalKey, String reason)</code>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="_SentenceOption.spelling" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String spelling</code></div>
+                      <div class="api-doc"><p>How the option is written, for the refusal message.</p></div>
+                    </div>
+                    <div id="_SentenceOption.refusalKey" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String refusalKey</code></div>
+                      <div class="api-doc"><p>The tail of the exception key a kind refusing this option raises.</p></div>
+                    </div>
+                    <div id="_SentenceOption.reason" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String reason</code></div>
+                      <div class="api-doc"><p>Why that kind cannot express it.</p></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="_SentenceOption.values" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static List&lt;_SentenceOption&gt; values</code></div>
+                    </div>
+                  </div>
+                </section>
+                <section id="_ComparisonFactory" class="api-declaration">
+                  <h3 class="api-decl-title">typedef _ComparisonFactory</h3>
+                  <code class="api-signature">
+                    typedef _ComparisonFactory = TomOperator&lt;TomDbBool&gt; Function&lt;T&gt;(TomOperator&lt;T&gt;, TomOperator&lt;T&gt;)
+                  </code>
+                  <div class="api-doc">
+                    <p>
+                      A two-operand comparison node factory: [TomQueryBuilder.eq], [TomQueryBuilder.neq], [TomQueryBuilder.lt], [TomQueryBuilder.lte], [TomQueryBuilder.gt] and [TomQueryBuilder.gte] all have this shape.
+                    </p>
+                    <p>
+                      Naming it is what lets a <em>single</em> dispatch over the operand's SQL type serve all six operators. Without it each operator needs its own copy of the switch, and a type added to one is silently missing from the other five — which is exactly how 
+                      <code>double</code> came to be unsupported.
+                    </p>
+                  </div>
+                </section>
+                <section id="_UnaryPredicateFactory" class="api-declaration">
+                  <h3 class="api-decl-title">typedef _UnaryPredicateFactory</h3>
+                  <code class="api-signature">
+                    typedef _UnaryPredicateFactory = TomOperator&lt;TomDbBool&gt; Function&lt;T&gt;(TomOperator&lt;T&gt;)
+                  </code>
+                  <div class="api-doc"><p>A one-operand predicate factory: [TomQueryBuilder.isNull] and [TomQueryBuilder.isNotNull].</p></div>
+                </section>
+                <section id="_scalarLiteralFor" class="api-declaration">
+                  <h3 class="api-decl-title">function _scalarLiteralFor</h3>
+                  <code class="api-signature">_ScalarLiteral? _scalarLiteralFor(String token)</code>
+                  <div class="api-doc">
+                    <p>
+                      The literal kind [token] spells, or <code>null</code> if it spells none — in which case it is an identifier (a column or a 
+                      <code>having</code> alias), not a value.
+                    </p>
                   </div>
                 </section>
               </div>

@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1402,7 +1408,6 @@
                   <a class="leaf" href="#SocketExceptionIo">SocketExceptionIo</a>
                   <a class="leaf" href="#SocketIo">SocketIo</a>
                   <a class="leaf" href="#SocketOptionIo">SocketOptionIo</a>
-                  <a class="leaf" href="#_runAction">_runAction</a>
                 </div>
               </div>
               <div class="reader">
@@ -1449,14 +1454,25 @@
                       <div class="api-member-head">
                         <code class="api-signature">static void _checkNetworkPermission(InterpreterVisitor visitor, String host)</code>
                       </div>
-                      <div class="api-doc"><p>Helper method to check if NetworkPermission is granted</p></div>
+                      <div class="api-doc">
+                        <p>Asserts the script may resolve [host].</p>
+                        <p>
+                          SCD170: this used to take [host] and then drop it, asking only <code>{'type': 'network', 'connect': true}</code>
+                           — so <code>NetworkPermission.connectTo</code> behaved exactly like <code>NetworkPermission.connect</code>. It now routes through the shared helper every other socket-acquiring bridge calls, which passes the host through.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>
                 <section id="InternetAddressTypeIo" class="api-declaration">
                   <h3 class="api-decl-title">class InternetAddressTypeIo</h3>
                   <code class="api-signature">class InternetAddressTypeIo</code>
-                  <div class="api-doc"><p>Bridged InternetAddress class</p></div>
+                  <div class="api-doc">
+                    <p>Bridged <code>InternetAddressType</code> enum.</p>
+                    <p>
+                      The doc comment used to read "Bridged InternetAddress class", which is the fingerprint of how the four fabricated members got here: the adapter map was filled from the neighbouring class and the header came with it.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="InternetAddressTypeIo.new" class="api-member"><div class="api-member-head"><code class="api-signature">InternetAddressTypeIo.new()</code></div></div>
@@ -1547,7 +1563,25 @@
                 <section id="ServerSocketIo" class="api-declaration">
                   <h3 class="api-decl-title">class ServerSocketIo</h3>
                   <code class="api-signature">class ServerSocketIo</code>
-                  <div class="api-doc"><p>Bridged InternetAddress class</p></div>
+                  <div class="api-doc">
+                    <p>Bridged ServerSocket class.</p>
+                    <p>
+                      ONLY WHAT <code>ServerSocket</code> ADDS OVER <code>Stream&lt;Socket&gt;</code> IS DECLARED HERE — <code>bind</code>, 
+                      <code>address</code>, <code>port</code>, <code>close</code>. Every <code>Stream</code> member reaches it through the 
+                      <code>ServerSocket -&gt; Stream</code> edge SCD38 registered.
+                    </p>
+                    <p>
+                      sce195 deleted the 28 copies this bridge used to spell out (21 methods, including <code>listen</code>, and 7 getters). Each shadowed an inherited 
+                      <code>Stream</code> adapter, and two implementations of one member on one type drift — the leaf wins, because the adapter map is consulted first. They were deleted only after the SCC51 shadow differential could see them: sce185 widened it to this bridge, and all 28 pairs agreed once 
+                      <code>Stream.transform</code> bound a script transformer instead of rejecting it. SCC51 and SCD152 deleted such copies before; SCD152 is why the differential comes first, having found 
+                      <code>HashMap.map</code> shipping a wrong answer from a copy that looked redundant.
+                    </p>
+                    <p>
+                      The copies also carried arity diagnostics naming <code>Socket.map</code>, <code>Socket.where</code> and so on — copied from the 
+                      <code>Socket</code> bridge above — so a script misusing <code>serverSocket.map</code> was told about a type it did not touch. The inherited adapters name 
+                      <code>Stream</code>, which is the type that declares them.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="ServerSocketIo.new" class="api-member"><div class="api-member-head"><code class="api-signature">ServerSocketIo.new()</code></div></div>
@@ -1597,14 +1631,14 @@
                     <div id="SocketIo._connect" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          static Future&lt;Socket&gt; _connect(List&lt;dynamic&gt; positionalArgs, Map&lt;String, dynamic&gt; namedArgs)
+                          static Future&lt;Socket&gt; _connect(InterpreterVisitor visitor, List&lt;dynamic&gt; positionalArgs, Map&lt;String, dynamic&gt; namedArgs)
                         </code>
                       </div>
                     </div>
                     <div id="SocketIo._startConnect" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          static Future&lt;ConnectionTask&lt;Socket&gt;&gt; _startConnect(List&lt;dynamic&gt; positionalArgs, Map&lt;String, dynamic&gt; namedArgs)
+                          static Future&lt;ConnectionTask&lt;Socket&gt;&gt; _startConnect(InterpreterVisitor visitor, List&lt;dynamic&gt; positionalArgs, Map&lt;String, dynamic&gt; namedArgs)
                         </code>
                       </div>
                     </div>
@@ -1622,12 +1656,6 @@
                   <div class="api-members">
                     <div id="SocketOptionIo.definition" class="api-member"><div class="api-member-head"><code class="api-signature">static BridgedClass definition</code></div></div>
                   </div>
-                </section>
-                <section id="_runAction" class="api-declaration">
-                  <h3 class="api-decl-title">function _runAction</h3>
-                  <code class="api-signature">
-                    T? _runAction&lt;T&gt;(InterpreterVisitor visitor, InterpretedFunction? function, List&lt;Object?&gt; args)
-                  </code>
                 </section>
               </div>
             </div>

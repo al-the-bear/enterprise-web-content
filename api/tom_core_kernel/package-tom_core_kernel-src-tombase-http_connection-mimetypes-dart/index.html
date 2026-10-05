@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1423,6 +1429,17 @@ final pdfType = StaticFileMimetypeMapping.getMimeType('.pdf');</code></pre>
                   <div class="api-doc">
                     <p>Maps file extensions to their corresponding MIME types.</p>
                     <p>Useful for serving static files with correct Content-Type headers.</p>
+                    <p>
+                      Every entry is the media type the IANA registry assigns to that extension. The one exception is <code>.avi</code>, which IANA does not register at all — see the note on that entry.
+                    </p>
+                    <p>
+                      The table is a curated list rather than a complete registry mirror: it covers what a Tom application actually serves over HTTP — web assets, fonts, documents, images and the common media containers — and [getMimeType] returns 
+                      <code>null</code> for anything else so the caller can decide. Callers wanting a total function should use 
+                      <code>TomFileSource.guessMediaType</code>, which falls back to <code>application/octet-stream</code>.
+                    </p>
+                    <p>
+                      A curated table is the deliberate choice over delegating to a registry-mirroring package: the mapping is small, its entries are stated with the registration that justifies them, and it yields [TomMimeType] values — including the charset decision each entry makes — rather than strings a caller would have to re-parse.
+                    </p>
                     <h2>Example</h2>
                     <pre><code>final mimeType = StaticFileMimetypeMapping.getMimeType('.json');
 // Returns TomMimeType.json</code></pre>
@@ -1461,6 +1478,19 @@ final pdfType = StaticFileMimetypeMapping.getMimeType('.pdf');</code></pre>
                     <p>
                       Common MIME types are available as static constants: - Text: [plainText], [html], [css], [csv], [javascript] - Application: [json], [xml], [pdf], [zip], [octetStream] - Multipart: [multipartFormData], [multipartByteranges] - Form: [urlEncoded]
                     </p>
+                    <h2>Equality</h2>
+                    <p>
+                      [operator ==] is whole-value — charset and codecs count, because they change how the bytes are read. [isEqualType] is the media-type-only comparison, and is the one to use against an incoming 
+                      <code>content-type</code>: a real request carries parameters the declaration never named.
+                    </p>
+                    <p>
+                      Both comparisons are <strong>case-insensitive</strong> in the media type and the charset, because RFC 2045 §5.1 is: 
+                      <code>TEXT/HTML</code> and <code>text/html</code> name one type, as do <code>charset=utf-8</code> and 
+                      <code>charset=UTF-8</code>. Codecs are compared verbatim — an RFC 6381 codec string encodes profile and level as hex, so its case is data.
+                    </p>
+                    <p>
+                      The fields themselves keep the spelling they were given; only the comparisons fold case. A value read from a header therefore renders back the header it came from, which is the same rule this class already applies to a charset.
+                    </p>
                     <h2>Example</h2>
                     <pre><code>// Use predefined constant
 final mimeType = TomMimeType.json;
@@ -1492,13 +1522,33 @@ response.headers['Content-Type'] = mimeType.toHeaderValue();</code></pre>
                     <div id="TomMimeType.parse" class="api-member">
                       <div class="api-member-head"><code class="api-signature">factory TomMimeType.parse(String type)</code></div>
                       <div class="api-doc">
-                        <p>Parses a MIME type string into a [TomMimeType] instance.</p>
-                        <p>Expects format: <code>primaryType/subType</code> (e.g., "application/json").</p>
-                        <p>Throws [TomMimeTypeException] if the string is not a valid MIME type.</p>
+                        <p>Parses a <code>Content-Type</code> value into a [TomMimeType] instance.</p>
+                        <p>
+                          Accepts a media type optionally followed by parameters — the shape a real header has: <code>application/json;charset=UTF-8</code>, 
+                          <code>text/html; charset="utf-8"</code>, <code>multipart/form-data; boundary=----abc</code>. Optional whitespace after each 
+                          <code>;</code> and a quoted parameter value are both allowed, and parameter names are matched case-insensitively.
+                        </p>
+                        <p>
+                          [charset] and [codecs] are read from the parameters; <strong>any other parameter is ignored</strong> rather than rejected, because a request this is asked to read carries parameters this class has no field for (a multipart boundary always does).
+                        </p>
+                        <p>
+                          A charset the header does not state stays <code>null</code> rather than defaulting to <code>UTF-8</code>
+                           — a header states what it states, and inventing an encoding here would make a parsed <code>application/pdf</code>
+                           differ from [pdf]. This makes the factory the exact inverse of [toHeaderValue]: <code>TomMimeType.parse(x.toHeaderValue()) == x</code>
+                           for every value.
+                        </p>
+                        <p>
+                          The media type keeps the case the header used, so echoing the fields back reproduces what arrived. Matching is unaffected: [operator ==] and [isEqualType] fold case, so 
+                          <code>TEXT/HTML</code> still equals [html].
+                        </p>
+                        <p>
+                          Throws [TomMimeTypeException] if the media type is not <code>primary/sub</code> with both parts present.
+                        </p>
                         <h2>Example</h2>
-                        <pre><code>final mimeType = TomMimeType.parse('text/html');
+                        <pre><code>final mimeType = TomMimeType.parse('text/html;charset=UTF-8');
 print(mimeType.primaryType); // "text"
-print(mimeType.subType);     // "html"</code></pre>
+print(mimeType.subType);     // "html"
+print(mimeType.charset);     // "UTF-8"</code></pre>
                       </div>
                     </div>
                   </div>
@@ -1544,7 +1594,14 @@ print(mimeType.subType);     // "html"</code></pre>
                       <div class="api-member-head"><code class="api-signature">bool isEqualType(TomMimeType other)</code></div>
                       <div class="api-doc">
                         <p>Checks if this MIME type has the same primary and sub type as another.</p>
-                        <p>Does not compare charset or codecs.</p>
+                        <p>
+                          Does not compare charset or codecs — unlike [operator ==], which is whole-value. This is the comparison to reach for when matching a declared constant against an incoming 
+                          <code>content-type</code>: a real request carries a boundary or a charset the declaration never named, so whole-value equality would never match.
+                        </p>
+                        <p>
+                          Case-insensitive, per RFC 2045 §5.1. This is the comparison a server runs against a header it did not write, so it is the one that has to see through a 
+                          <code>TEXT/HTML</code> a peer chose to shout.
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -1554,6 +1611,21 @@ print(mimeType.subType);     // "html"</code></pre>
                       <div class="api-member-head">
                         <code class="api-signature">bool operator ==(Object other)</code>
                         <span class="api-badge api-badge--override">override</span>
+                      </div>
+                      <div class="api-doc">
+                        <p>Whole-value equality: the media type <strong>and</strong> its parameters.</p>
+                        <p>
+                          Two values are equal when their primary type, subtype, charset and codecs all match. Parameters are part of identity because they change how the bytes are read: 
+                          <code>text/html;charset=UTF-8</code> and the same type in Latin-1 decode to different characters, and 
+                          <code>video/mp4;codecs=avc1</code> is playable by a client that cannot decode <code>hevc</code>.
+                        </p>
+                        <p>
+                          [isEqualType] is the deliberately weaker comparison for the cases where only the media type matters — matching a declared constant against the 
+                          <code>content-type</code> of a real request, which always carries parameters the declaration does not name.
+                        </p>
+                        <p>
+                          The media type and the charset compare case-insensitively (RFC 2045 §5.1); codecs do not, because an RFC 6381 codec string encodes profile and level as hex and folding it would merge different streams.
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -1639,6 +1711,14 @@ print(mimeType.subType);     // "html"</code></pre>
                         <p>Used for standard HTML form submissions.</p>
                       </div>
                     </div>
+                    <div id="TomMimeType._unquote" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String _unquote(String value)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Strips one pair of surrounding double quotes, which a parameter value is allowed to carry. The content is returned verbatim otherwise — a charset is echoed as the sender spelled it.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </section>
                 <section id="TomMimeTypeException" class="api-declaration">
@@ -1650,7 +1730,7 @@ print(mimeType.subType);     // "html"</code></pre>
                     <div id="TomMimeTypeException.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomMimeTypeException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, Object? stack, Object? rootException, bool autoLog = false})
+                          TomMimeTypeException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, StackTrace? stack, Object? rootException, bool autoLog = false})
                         </code>
                       </div>
                     </div>

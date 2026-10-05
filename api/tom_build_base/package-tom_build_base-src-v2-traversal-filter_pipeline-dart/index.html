@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1444,6 +1450,23 @@
                         </p>
                         <p>
                           When [executionRoot] is provided, patterns containing '/' are matched against the folder's path relative to the execution root.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="FilterPipeline.unmatchedProjectPatterns" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          List&lt;String&gt; unmatchedProjectPatterns(List&lt;FsFolder&gt; folders, List&lt;String&gt; patterns, {required String executionRoot})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>The subset of [patterns] that matches none of [folders].</p>
+                        <p>
+                          A <code>--project</code> pattern may be an id, a name, a folder-name glob, or a path, and only the last of those names a directory that can be existence-checked up front. For every other form — and for glob paths, which are exempt from the existence check because they 
+                          <em>may</em> legitimately match zero — the only way to tell a real selector from a typo is to try it against the projects that were actually scanned. A pattern that matches nothing selected nothing, and a selection of nothing is a mistake worth reporting rather than a no-op worth performing.
+                        </p>
+                        <p>
+                          [folders] must be the <strong>scanned</strong> folders with their natures already detected, before the exclude filters run: matching is by id and name as well as by path, and "select A then exclude A" is a coherent request in which A is not mistyped. Order follows [patterns], and each pattern appears at most once.
                         </p>
                       </div>
                     </div>

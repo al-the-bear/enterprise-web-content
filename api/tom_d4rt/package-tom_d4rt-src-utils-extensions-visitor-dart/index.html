@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1400,6 +1406,44 @@
                       <div class="api-member-head">
                         <code class="api-signature">(BridgedInstance&lt;Object&gt;?, bool) toBridgedInstance(Object? nativeObject, {String? methodName})</code>
                       </div>
+                    </div>
+                    <div id="InterpreterVisitorExtension.interpretedCallMethod" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Callable? interpretedCallMethod(Object? value)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          SCD145 — the clause a member error should carry when its receiver is a NATIVE object that <strong>no bridge claims</strong>.
+                        </p>
+                        <p>
+                          <code>Environment.toBridgedClass</code> throws <code>Cannot bridge native object: No registered bridged class found for native type …</code>
+                           and [toBridgedInstance] above catches it, <code>revoke()</code>s it and returns <code>(null, false)</code>. That catch is correct and load-bearing: its callers use the 
+                          <code>false</code> as a CONTROL-FLOW signal and fall through to other registries, because an interpreter-internal value legitimately has no bridge. The cost is that the real cause is gone by the time the fallthrough chain gives up, and what the script author sees is
+                        </p>
+                        <p>Undefined property or method 'moveNext' on _TallyIterator</p>
+                        <p>
+                          which points at the member. The reader goes looking for a missing method on a bridge that does not exist.
+                        </p>
+                        <p>
+                          This recovers the cause at the point of failure. It changes only the MESSAGE — not the exception type, not 
+                          <code>memberName</code>, not <code>receiver</code>, and not the control flow. <code>environment.dart</code>'s own note records why widening resolution instead broke 43 enum-dispatch tests: callers use the throw as a signal. A message change on a path that is already failing cannot regress a passing one.
+                        </p>
+                        <p>
+                          Returns <code>''</code> for anything that is not in that situation, and the two exclusions are the interesting part:
+                        </p>
+                        <ul><li><strong>Interpreter-internal values.</strong> Tested against the abstractions the</li></ul>
+                        <p>
+                          interpreter owns — <code>RuntimeValue</code>, <code>RuntimeType</code>, <code>Callable</code>, <code>InterpretedRecord</code>
+                           — rather than a list of concrete types, because a list is what rots when a new value shape appears. A script-declared class has no bridge and is not supposed to, so saying so would be noise on every script typo. 
+                          <em> </em><em>Types a bridge DOES claim.</em>* There the member really is the problem and the new wording would be a lie. Dart's callable-object rule for an interpreted instance: 
+                          <code>a(3)</code> means <code>a.call(3)</code> when the class, a superclass or a mixin declares an instance method named 
+                          <code>call</code>. Returns that method bound to [value], or null when [value] is not such an instance.
+                        </p>
+                        <p>
+                          Both call paths ask this before deciding a value is not callable. Until SCE176 neither did: a call through a variable fell through to returning the instance itself, and a call through an expression threw.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpreterVisitorExtension.unbridgedNativeClause" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String unbridgedNativeClause(Object? receiver)</code></div>
                     </div>
                     <div id="InterpreterVisitorExtension.lookupOnBridgedSupertypes" class="api-member">
                       <div class="api-member-head">

@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1415,7 +1421,7 @@ final astgenExec = NestedToolExecutor(
                     <div id="NestedToolExecutor.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          NestedToolExecutor.new({required String binary, required String hostCommandName, String? nestedCommand, bool isStandalone = false})
+                          NestedToolExecutor.new({required String binary, required String hostCommandName, String? nestedCommand, bool isStandalone = false, bool supportsDryRun = false})
                         </code>
                       </div>
                     </div>
@@ -1438,6 +1444,16 @@ final astgenExec = NestedToolExecutor(
                       <div class="api-member-head"><code class="api-signature">final String hostCommandName</code></div>
                       <div class="api-doc"><p>The host command name (may differ from nestedCommand due to renames).</p></div>
                     </div>
+                    <div id="NestedToolExecutor.supportsDryRun" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final bool supportsDryRun</code></div>
+                      <div class="api-doc">
+                        <p>Whether the nested tool implements a dry-run mode.</p>
+                        <p>
+                          Read from the nested tool's own <code>--dump-definitions</code> output during wiring. Defaults to false: forwarding 
+                          <code>--dry-run</code> to a tool that ignores it is what makes a host dry run write for real, so an unknown capability is treated as "does not support it".
+                        </p>
+                      </div>
+                    </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
@@ -1459,13 +1475,14 @@ final astgenExec = NestedToolExecutor(
                     <div id="NestedToolExecutor.buildNestedArgs" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          static List&lt;String&gt; buildNestedArgs({required CliArgs hostArgs, required String hostCommandName, required String nestedCommand, required bool isStandalone})
+                          static List&lt;String&gt; buildNestedArgs({required CliArgs hostArgs, required String hostCommandName, required String nestedCommand, required bool isStandalone, bool nestedSupportsDryRun = false})
                         </code>
                       </div>
                       <div class="api-doc">
                         <p>Build CLI args for the nested tool invocation.</p>
                         <p>
-                          Forwards: - <code>--nested</code> (always) - <code>--verbose</code> and <code>--dry-run</code> (behavioral globals) - The nested command name (for multi-command tools) - Command-specific options from the host invocation
+                          Forwards: - <code>--nested</code> (always) - <code>--verbose</code> always, and <code>--dry-run</code>
+                           only when the nested tool declares a dry-run mode - The nested command name (for multi-command tools) - Command-specific options from the host invocation
                         </p>
                         <p>
                           Does NOT forward: - Traversal options (<code>-s</code>, <code>-r</code>, <code>-R</code>, etc.) - Host-specific global options (<code>--list</code>, 

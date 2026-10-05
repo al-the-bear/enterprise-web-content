@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1603,6 +1609,20 @@ TomRuntime.initializePlatform();</code></pre>
                       <div class="api-member-head"><code class="api-signature">static void setRootEnvironment(TomEnvironment env)</code></div>
                       <div class="api-doc"><p>Sets the root environment (ultimate fallback).</p></div>
                     </div>
+                    <div id="TomRuntime.reset" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static void reset()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Clears all registered environments and platforms and drops the active selections, returning the runtime to its pristine startup state.
+                        </p>
+                        <p>
+                          The environment/platform registries are process-global static state. A real application registers each environment exactly once at startup, so the registries never need clearing there. Independent units of work that each build their own runtime — most visibly tests and runnable samples — would otherwise inherit registrations from a previously executed unit: a second 
+                          <code>addEnvironment('dev', ...)</code> leaves two <code>dev</code> entries, and [setCurrentEnvironment] would resolve the 
+                          <em>earlier</em> one, running the wrong initializer. Call this between such units to isolate them. This mirrors 
+                          <code>TomBean.resetBeanContext</code> for the bean registry.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomRuntime.setCurrentEnvironment" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">static void setCurrentEnvironment(String? name, [String fallback = "defaultRoot"])</code>
@@ -1610,7 +1630,11 @@ TomRuntime.initializePlatform();</code></pre>
                       <div class="api-doc">
                         <p>Sets the current environment by name.</p>
                         <p>
-                          [name] The environment name to activate. [fallback] Fallback environment name if [name] not found. Use "defaultRoot" to fall back to [defaultTomEnvironment].
+                          This is an unconditional setter: it resolves [name] (or its [fallback] when [name] is not registered) and 
+                          <em>replaces</em> the current environment. The fallback applies whether or not a current environment was already set — a caller invoking this to switch to a fallback must not be silently ignored just because a previous environment happened to be active.
+                        </p>
+                        <p>
+                          [name] The environment name to activate. [fallback] Fallback environment name if [name] not found. Use "defaultRoot" to fall back to [defaultTomEnvironment]. An empty string means "no named fallback" — fall through to the root environment.
                         </p>
                       </div>
                     </div>

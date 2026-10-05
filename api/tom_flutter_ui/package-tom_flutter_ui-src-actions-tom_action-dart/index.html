@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1402,7 +1408,7 @@
                     <p>Base class for all Tom actions.</p>
                     <p>
                       Actions are the behavioral counterpart to widgets: - <strong>Stateless</strong> — no mutable instance state between invocations - 
-                      <strong>Typed</strong> — context requirements declared via [TContext] - <strong>Authorized</strong> — visibility controlled via the authorization system - 
+                      <strong>Typed</strong> — context requirements declared via [TContext] - <strong>Authorized</strong> — [effectiveAuthState] governs both whether a widget shows the action and whether [TomActionTrigger] will run it ([isAuthorized]) - 
                       <strong>Undoable</strong> — optional undo support via [TUndo]
                     </p>
                     <pre><code>class DeleteOrderAction extends TomAction&lt;OrderContext, DeleteOrderUndo&gt; {
@@ -1450,19 +1456,60 @@
                     </div>
                     <div id="TomAction.scope" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final InvalidType scope</code></div>
-                      <div class="api-doc"><p>Optional scope for resource resolution.</p></div>
+                      <div class="api-doc">
+                        <p>Optional explicit scope for resource and authorization lookups.</p>
+                        <p>When provided, this scope is used instead of the controller's — see [constructionScope].</p>
+                      </div>
                     </div>
                     <div id="TomAction.tomGroup" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">final InvalidType tomGroup</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
+                      <div class="api-doc">
+                        <p>
+                          The authorization group this action belongs to: its own when it was given one, otherwise the controller's [TomActionController.tomGroup].
+                        </p>
+                        <p>
+                          The fallback is what makes a controller-level group mean anything. A group declared once on the controller covers every action it owns, which is what "collective action control" has to mean if it is to save the caller the per-action wiring; an action that names its own group still overrides it.
+                        </p>
+                        <p>
+                          Resolved at construction, like [constructionScope] and for the same reason — the group is <em>registered with</em>
+                           here, so it has to be known before the constructor body runs. A controller whose group is assignable therefore has to carry it by the time its actions are built; for a 
+                          <code>TomForm</code>, that is while the form prepares itself, before any <code>late final</code> action field is first read.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAction.constructionScope" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final InvalidType constructionScope</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The frame this action resolves in: its own [scope] when it was given one, otherwise the controller's [TomActionController.constructionScope].
+                        </p>
+                        <p>
+                          Named once and read everywhere, because every path this action produces has to come out of the same frame. [canonicalPath] and the group path are a 
+                          <code>&lt;prefix&gt;.&lt;id&gt;</code> pair; a prefix that differs between them looks up a rule belonging to some other member. Capturing it at construction — rather than reading [TomScope.current] per lookup, as the group composition used to — is what makes the answer independent of where it is read from: an action is a long-lived object consulted from screens, triggers and group inspection alike, and only the zone it was built in describes where it actually lives.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomAction.tomId" class="api-member"><div class="api-member-head"><code class="api-signature">String? tomId</code></div></div>
-                    <div id="TomAction.canonicalPath" class="api-member"><div class="api-member-head"><code class="api-signature">String canonicalPath</code></div></div>
+                    <div id="TomAction.canonicalPath" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String canonicalPath</code></div>
+                      <div class="api-doc">
+                        <p>The canonical authorization path for this action.</p>
+                        <p>
+                          Format: <code>&lt;scopePath&gt;.&lt;controllerId&gt;.&lt;actionId&gt;</code>, dropping the scope segment at the root — the same rule every other path in the package goes through ([TomScopePath]).
+                        </p>
+                        <p>
+                          The controller id stays in the path even when the action carries a scope of its own: it is the action's namespace, not its location, and dropping it would let two controllers in one scope collide on an action id.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomAction.isUndoable" class="api-member"><div class="api-member-head"><code class="api-signature">bool isUndoable</code></div></div>
+                    <div id="TomAction.isRedoable" class="api-member"><div class="api-member-head"><code class="api-signature">bool isRedoable</code></div></div>
                     <div id="TomAction.authState" class="api-member"><div class="api-member-head"><code class="api-signature">InvalidType authState</code></div></div>
                     <div id="TomAction.effectiveAuthState" class="api-member"><div class="api-member-head"><code class="api-signature">InvalidType effectiveAuthState</code></div></div>
+                    <div id="TomAction.isAuthorized" class="api-member"><div class="api-member-head"><code class="api-signature">bool isAuthorized</code></div></div>
                     <div id="TomAction.authorizer" class="api-member"><div class="api-member-head"><code class="api-signature">InvalidType authorizer</code></div></div>
                     <div id="TomAction.label" class="api-member"><div class="api-member-head"><code class="api-signature">String label</code></div></div>
                     <div id="TomAction.tooltip" class="api-member"><div class="api-member-head"><code class="api-signature">String? tooltip</code></div></div>
@@ -1489,6 +1536,47 @@
                       <div class="api-doc">
                         <p>Reverses the action using the saved undo state.</p>
                         <p>Only called if [isUndoable] is <code>true</code> and [execute] returned non-null.</p>
+                      </div>
+                    </div>
+                    <div id="TomAction.redo" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void redo(TUndo undoState)</code></div>
+                      <div class="api-doc">
+                        <p>Re-applies the action using the saved undo state.</p>
+                        <p>
+                          The forward counterpart of [undo], and the reason redo can work at all: a transaction records <code>(action, undoState)</code>
+                           pairs, never the <code>TContext</code> an action ran with, so re-running [execute] is not available to it. [redo] takes the same argument [undo] does, which the transaction 
+                          <em>does</em> hold.
+                        </p>
+                        <p>
+                          The undo state generally names the target of the change while the action holds the parameters — an increment's undo state carries the counter and its previous value, and the action carries the step — so the pair is enough to go either way:
+                        </p>
+                        <pre><code>@override
+bool get isRedoable =&gt; true;
+
+@override
+void redo(IncrementUndo undoState) =&gt;
+    undoState.counter.value = undoState.previous + step;</code></pre>
+                        <p>Only called if [isRedoable] is <code>true</code> and the transaction was undone.</p>
+                      </div>
+                    </div>
+                    <div id="TomAction.recordInto" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void recordInto(TomActionTransaction tx, TUndo undoState)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Records this action's [undoState] into [tx], so the transaction can reverse it — and re-apply it when [isRedoable].
+                        </p>
+                        <p>
+                          The counterpart of [TomActionTransaction.run] for an undo state you already hold: <code>run</code> executes and records in one step, this records something that was executed elsewhere.
+                        </p>
+                        <p>
+                          <strong>Called on the action, not passed to the transaction.</strong> <code>TUndo</code> is this class's own type parameter, so the receiver's static type fixes it and a state belonging to some other action is rejected here, at the call that is wrong. A transaction method taking 
+                          <code>(action, undoState)</code> could not do that: Dart's class type parameters are covariant, so inference widens the undo type to 
+                          <code>TomActionUndo</code>, accepts anything, and leaves the mismatch to surface as a <code>TypeError</code>
+                           from inside the history at undo time.
+                        </p>
+                        <p>
+                          [isRedoable] is read now, so the entry is a complete record of what can be done with it. Actions are stateless, so there is nothing a later reading could learn that this one could not.
+                        </p>
                       </div>
                     </div>
                     <div id="TomAction.toString" class="api-member">

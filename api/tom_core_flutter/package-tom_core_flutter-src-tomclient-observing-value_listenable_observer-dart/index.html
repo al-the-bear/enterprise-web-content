@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1399,7 +1405,7 @@
                   <div class="api-doc">
                     <p>Adapts a kernel [TomObservable] to Flutter's [ValueListenable] contract.</p>
                     <p>
-                      <code>ValueListenableObserver</code> lets a [TomObservable] drive any Flutter API that consumes a [ValueListenable] — e.g. a [ValueListenableBuilder] or an [AnimatedBuilder]. It registers as a [TomObserver] on [observable] and, whenever the kernel state notifies, forwards the notification to the currently registered Flutter listener.
+                      <code>ValueListenableObserver</code> lets a [TomObservable] drive any Flutter API that consumes a [ValueListenable] — e.g. a [ValueListenableBuilder] or an [AnimatedBuilder]. It registers as a [TomObserver] on [observable] and, whenever the kernel state notifies, forwards the notification to every registered Flutter listener.
                     </p>
                     <pre><code>final error = TomString('');
 final adaptor = ValueListenableObserver&lt;TomString&gt;(error);
@@ -1411,7 +1417,30 @@ ValueListenableBuilder&lt;TomString&gt;(
 
 error | 'Boom'; // the builder rebuilds with "Boom"</code></pre>
                     <p>
-                      <strong>Single-listener limitation:</strong> this adaptor holds at most one listener. [addListener] replaces any previously registered callback rather than appending, which matches its sole intended consumer (a single [ValueListenableBuilder]). It is not a general-purpose multicast [ValueListenable].
+                      <strong>It is a real multicast [Listenable].</strong> [addListener] appends and [removeListener] removes the callback it is given, so one adaptor may be handed to any number of consumers — two [ValueListenableBuilder]s, a builder plus an [AnimatedBuilder], a manual registration in a 
+                      <code>State.initState</code> — and each is notified. That matters because a [Listenable] is <em>structurally</em>
+                       substitutable wherever Flutter asks for one: a type that replaced on add would leave the first consumer silently not rebuilding, with no error anywhere.
+                    </p>
+                    <p>
+                      The semantics are Flutter's own, including the corners: <em> registering the same callback twice makes it fire twice, and one [removeListener] undoes one registration; 
+                      </em> removing a callback that was never registered does nothing, rather than silencing the adaptor; * a listener may add or remove listeners while it is being notified — dispatch walks a snapshot, so a listener removed mid-notification does not shift the ones after it, and one added mid-notification is called on the next notification rather than this one.
+                    </p>
+                    <p>
+                      <strong>Construction subscribes, and [dispose] is what ends it.</strong> An adaptor held beyond a single build — in a 
+                      <code>State</code> field, which is the normal way to hold one — <strong>must</strong> be disposed, exactly like the [TomObservingWidget] it is the non-widget counterpart of:
+                    </p>
+                    <pre><code>class _MyScreenState extends State&lt;MyScreen&gt; {
+  late final ValueListenableObserver&lt;TomString&gt; error =
+      ValueListenableObserver(widget.state.error);
+
+  @override
+  void dispose() {
+    error.dispose();
+    super.dispose();
+  }
+}</code></pre>
+                    <p>
+                      [removeListener] is not a substitute: it unregisters one Flutter listener and leaves the kernel registration in place, so the adaptor keeps running [onNotify] on every notification — and removing the last listener does not end the subscription either. The kernel does hold its observers weakly and sweeps dead ones on the next notification, so a forgotten adaptor is not an unbounded leak — but that sweep happens when the adaptor becomes unreachable and something else happens to notify, which is not a moment a caller can choose, and an adaptor still held in a field never becomes unreachable at all. "It stops eventually, at a point you cannot observe" is not a contract to build on.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1424,17 +1453,50 @@ error | 'Boom'; // the builder rebuilds with "Boom"</code></pre>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
                     <div id="ValueListenableObserver.observable" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">T observable</code></div>
-                      <div class="api-doc"><p>The kernel observable whose notifications are forwarded to Flutter.</p></div>
+                      <div class="api-member-head"><code class="api-signature">final T observable</code></div>
+                      <div class="api-doc">
+                        <p>The kernel observable whose notifications are forwarded to Flutter.</p>
+                        <p>
+                          <code>final</code>, because the subscription is made against <em>this</em> observable in the constructor and nothing moves it. A settable field would let an adaptor be pointed at a second observable while still registered on the first, so [value] would report one and [onNotify] would fire from the other — a 
+                          <code>ValueListenableBuilder</code> rebuilding on one observable's changes while rendering another's. Retargeting is what a new adaptor is for; a 
+                          <code>TomObservingWidget</code> migrates instead, because a widget has a <code>didUpdateWidget</code>
+                           to migrate in and this has no lifecycle at all.
+                        </p>
+                      </div>
                     </div>
-                    <div id="ValueListenableObserver.voidCallback" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">void Function()?? voidCallback</code></div>
-                      <div class="api-doc"><p>The single Flutter listener to invoke on each notification, if any.</p></div>
+                    <div id="ValueListenableObserver._listeners" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final List&lt;void Function()&gt; _listeners</code></div>
+                      <div class="api-doc">
+                        <p>The Flutter listeners to invoke on each notification, in registration order.</p>
+                        <p>
+                          Private: it is implementation state, not surface. Reaching it directly would bypass [addListener] and [removeListener], which is where registration is traced and where use after [dispose] is caught. [value] is the type's reader.
+                        </p>
+                        <p>
+                          A [List] rather than a [Set]: the [Listenable] contract counts registrations, so the same callback added twice is notified twice and removed once stays registered once. A set would silently collapse that.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="ValueListenableObserver._isDisposed" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool _isDisposed</code></div>
+                      <div class="api-doc"><p>Whether [dispose] has run. Read by the debug assertions below.</p></div>
                     </div>
                     <div id="ValueListenableObserver.value" class="api-member"><div class="api-member-head"><code class="api-signature">T value</code></div></div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
+                    <div id="ValueListenableObserver.dispose" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void dispose()</code></div>
+                      <div class="api-doc">
+                        <p>Ends the subscription: deregisters from [observable] and drops every listener.</p>
+                        <p>
+                          <strong>Required for any adaptor that outlives one build.</strong> After this the adaptor is spent — it is off the observable's observer list, so nothing re-subscribes it and no listener added later will ever fire. That is asserted in debug rather than left to be discovered: [addListener] on a disposed adaptor fails an 
+                          <code>assert</code>, which is where a mistake of this shape is cheapest to find.
+                        </p>
+                        <p>
+                          Idempotent. Disposing twice is what a <code>State</code> that also nulls its field ends up doing, and a teardown that punishes being called twice makes the call sites defensive instead of simple.
+                        </p>
+                      </div>
+                    </div>
                     <div id="ValueListenableObserver.onNotify" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">void onNotify(T observable)</code>
@@ -1447,8 +1509,10 @@ error | 'Boom'; // the builder rebuilds with "Boom"</code></pre>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                       <div class="api-doc">
-                        <p>Registers [listener] as the callback to fire on notification.</p>
-                        <p>Replaces any previously registered listener (see the single-listener limitation in the class docs).</p>
+                        <p>Registers [listener] to fire on every notification.</p>
+                        <p>
+                          Appends, per the [Listenable] contract. Registering the same callback twice makes it fire twice; it then takes two [removeListener] calls to stop it.
+                        </p>
                       </div>
                     </div>
                     <div id="ValueListenableObserver.removeListener" class="api-member">
@@ -1456,7 +1520,18 @@ error | 'Boom'; // the builder rebuilds with "Boom"</code></pre>
                         <code class="api-signature">void removeListener(void Function() listener)</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
-                      <div class="api-doc"><p>Clears the registered listener so notifications are no longer forwarded.</p></div>
+                      <div class="api-doc">
+                        <p>Stops [listener] being notified.</p>
+                        <p>
+                          Removes <strong>one</strong> registration of it, per the [Listenable] contract, and does nothing when it was never registered — it does not silence the other listeners.
+                        </p>
+                        <p>
+                          This is <strong>not</strong> a teardown. The kernel registration made at construction survives it, so the adaptor stays on the observable's observer list and keeps running [onNotify]; only this listener stops. Use [dispose] to end the subscription.
+                        </p>
+                        <p>
+                          Tolerated after [dispose], unlike [addListener]. A widget tearing down cannot always control whether the listenable it registered on was disposed first, and refusing the call would turn a correct teardown into a crash; there is nothing left to remove, so nothing is lost by accepting it.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>

@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1461,8 +1467,18 @@
                       </div>
                     </div>
                     <div id="StandaloneLibraryResolver.resolveFile" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">Future&lt;LibraryElement?&gt; resolveFile(String filePath)</code></div>
-                      <div class="api-doc"><p>Resolves a specific file and returns its library element.</p></div>
+                      <div class="api-member-head">
+                        <code class="api-signature">Future&lt;LibraryElement?&gt; resolveFile(String filePath)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                      <div class="api-doc">
+                        <p>Resolves a specific file and returns its library element.</p>
+                        <p>
+                          Returns <code>null</code> only when the analyzer produces a non-library result for the file (e.g. it is a part file) — a benign skip. A failure 
+                          <em>inside</em> resolution (for example a corrupt analyzer summary in the cache, which throws <code>RangeError</code>
+                           from the bundle reader) is a hard failure: it is <strong>rethrown</strong>, never swallowed. Callers must surface it loudly and fail the run rather than reporting a "successful" regen that regenerated nothing.
+                        </p>
+                      </div>
                     </div>
                     <div id="StandaloneLibraryResolver.dispose" class="api-member">
                       <div class="api-member-head"><code class="api-signature">void dispose()</code></div>
@@ -1474,7 +1490,7 @@
                     <div id="StandaloneLibraryResolver.create" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          static Future&lt;StandaloneLibraryResolver&gt; create(String projectRoot, {List&lt;String&gt;? librarySummaryPaths, String? sdkSummaryPath})
+                          static Future&lt;StandaloneLibraryResolver&gt; create(String projectRoot, {List&lt;String&gt;? librarySummaryPaths, String? sdkSummaryPath, Iterable&lt;String&gt; targetFiles = const []})
                         </code>
                       </div>
                       <div class="api-doc">
@@ -1486,6 +1502,12 @@
                         <p>
                           If [sdkSummaryPath] is provided, it's used as the Dart SDK summary. If not provided but [librarySummaryPaths] is set, we look for an existing 
                           <code>sdk.sum</code> in <code>.dart_tool/build_resolvers/</code>.
+                        </p>
+                        <p>
+                          [targetFiles] are the files generation will resolve. Each is added to the collection's included paths 
+                          <strong>by name</strong>, beside the project root. A file the project's analysis options <code>exclude:</code>
+                           — a test fixture under a workspace-wide <code>**/test/**/fixtures/**</code>, typically — is otherwise in no analysis context at all from analyzer 10.2 on, and 
+                          <code>contextFor</code> throws "Unable to find the context". Linting may skip such a file; generating for it must not, and a file named explicitly is analyzed whatever the excludes say.
                         </p>
                       </div>
                     </div>

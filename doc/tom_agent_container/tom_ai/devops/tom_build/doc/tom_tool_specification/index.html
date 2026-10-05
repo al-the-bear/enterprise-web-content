@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -3145,7 +3151,7 @@ working-dir: .
               <p><strong>Multiline D4rt Script Example (Runtime Placeholder):</strong></p>
               <pre><code>custom-script: |
   $D4S
-  import 'package:tom_build/tom.dart';
+  import 'package:tom_build/tom_build.dart';
   
   void main() {
     final count = tom.projectInfo.values
@@ -3293,7 +3299,7 @@ working-dir: .
               <pre><code># Multiline D4rt script (void, for side effects)
 custom-script: |
   $D4S
-  import 'package:tom_build/tom.dart';
+  import 'package:tom_build/tom_build.dart';
   
   void main() {
     for (final name in tom.projectInfo.keys) {
@@ -3931,6 +3937,12 @@ tom :pipeline release   # Run release pipeline</code></pre>
                 1. <strong>Type Safety:</strong> Properties are strongly typed for Dart code 2. <strong>Nullable Fields:</strong>
                  Optional fields are nullable 3. <strong>Factory Constructors:</strong> Classes provide <code>fromYaml(Map&lt;String, dynamic&gt;)</code>
                  factory constructors 4. <strong>Serialization:</strong> Classes provide <code>toYaml()</code> methods for round-trip serialization 5. 
+                <strong>Compaction is lossy, deliberately:</strong> <code>TomProject.toYamlCompact()</code> omits a project's 
+                <code>cross-compilation</code>, <code>&lt;mode&gt;-mode-definitions</code> and <code>actions</code> when they equal the workspace's, and the read does 
+                <strong>not</strong> put them back — a project whose block was compacted away comes back with that field 
+                <code>null</code>. Only the master document is written this way, so <code>toYaml()</code> round-trips exactly and 
+                <code>TomMaster.toYaml()</code> round-trips <em>modulo</em> that compaction. The asymmetry is the contract, not a defect; 
+                <code>test/file_structure/all_attributes_test.dart</code> states it, tolerating an omission only where the project's value really did equal the workspace's. 6. 
                 <strong>Custom Tags:</strong> Unrecognized YAML keys are preserved in <code>customTags</code> maps
               </p>
               <h3>8.2 Core Types</h3>
@@ -5245,7 +5257,7 @@ tom :analyze -include-tests           # Include zom_* test projects</code></pre>
   enabled: true
 
   # Import path for bridged classes (automatically imported in scripts)
-  import-path: package:tom_build/tom.dart
+  import-path: package:tom_build/tom_build.dart
 
   # Script search paths (relative to workspace root)
   script-paths:
@@ -5366,7 +5378,7 @@ scripts:
   custom-build: custom_build.dart
   analyze-workspace: workspace/analyze.dart</code></pre>
               <p>Script file example (<code>tom_scripts/lib/custom_build.dart</code>):</p>
-              <pre><code>import 'package:tom_build/tom.dart';
+              <pre><code>import 'package:tom_build/tom_build.dart';
 
 void main() {
   // Access workspace context
@@ -5385,7 +5397,7 @@ void main() {
 }</code></pre>
               <h3>11.5 D4rt Instance API</h3>
               <p>Programmatic D4rt usage in Dart code:</p>
-              <pre><code>import 'package:tom_build/tom.dart';
+              <pre><code>import 'package:tom_build/tom_build.dart';
 
 // Create instance with workspace context
 final d4rt = D4rtInstance.create(
@@ -5403,7 +5415,7 @@ final count = await d4rt.evaluate('tom.projectInfo.length');
 
 // Execute script content
 await d4rt.executeScript('''
-import 'package:tom_build/tom.dart';
+import 'package:tom_build/tom_build.dart';
 
 void main() {
   print('Workspace: \${tom.workspace.name}');

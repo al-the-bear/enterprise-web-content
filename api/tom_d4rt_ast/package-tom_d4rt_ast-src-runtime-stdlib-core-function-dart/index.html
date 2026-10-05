@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1399,6 +1405,37 @@
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
                     <div id="FunctionCore.definition" class="api-member"><div class="api-member-head"><code class="api-signature">static BridgedClass definition</code></div></div>
+                    <div id="FunctionCore._namedArgumentsFromSymbolKeys" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static Map&lt;String, Object?&gt; _namedArgumentsFromSymbolKeys(Object? raw)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Translates the SDK's <code>Map&lt;Symbol, dynamic&gt;</code> named-argument map into the name-keyed map [Callable.call] takes.
+                        </p>
+                        <p>
+                          SCD70 made this adapter coerce rather than cast, which replaced an opaque <code>_TypeError</code> with a readable message — but the message it produced said 
+                          <code>Symbol</code> is not a <code>String</code>, because the adapter still wanted the keys d4rt uses internally. The SDK declares 
+                          <code>Map&lt;Symbol, dynamic&gt;?</code>, so <code>{#b: 2}</code> — the only spelling the analyzer accepts — was the one that failed, and 
+                          <code>{'b': 2}</code> — which no Dart program can contain — was the one that worked. The translation happens here so that the legal spelling is the working one.
+                        </p>
+                        <p>
+                          String keys are rejected rather than accepted alongside Symbols: d4rt matches the SDK per construct, so that a script ported from Dart behaves the same and a script written against d4rt still compiles as Dart.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="FunctionCore._symbolName" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String _symbolName(Symbol symbol)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Reads a [Symbol]'s name without <code>dart:mirrors</code>, which the analyzer-free twin cannot import.
+                        </p>
+                        <p>
+                          <code>Symbol('b').toString()</code> is <code>Symbol("b")</code>. Minification is the usual reason not to trust that, and it does not apply: every Symbol a script can produce is built at run time by the interpreter — from a symbol literal, or through the 
+                          <code>Symbol</code> bridge constructor — so its name is always the spelling in the source.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </section>
               </div>

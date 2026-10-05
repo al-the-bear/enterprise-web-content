@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1428,25 +1434,73 @@ tx.commit();  // Records all undo states as one entry</code></pre>
                       <div class="api-member-head"><code class="api-signature">bool _rolledBack</code></div>
                       <div class="api-doc"><p>Whether this transaction has been rolled back.</p></div>
                     </div>
+                    <div id="TomActionTransaction._undone" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool _undone</code></div>
+                      <div class="api-doc">
+                        <p>Whether the transaction's effects are currently reversed.</p>
+                        <p>
+                          The one piece of state that says which way this transaction is applied. [undoAll] and [rollback] set it, because both run every entry's 
+                          <code>undo</code>; [redoAll] clears it, because it runs every entry's <code>redo</code> and puts the effects back. It is therefore not a latch but a direction, and each of the two operations refuses when the transaction is already the way it would leave it.
+                        </p>
+                        <p>
+                          Separate from [_rolledBack], which answers a different question — <em>was this transaction abandoned before commit</em>
+                           — and is what [record] refuses on.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomActionTransaction._entries" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final List&lt;_UndoEntry&gt; _entries</code></div>
                       <div class="api-doc"><p>Recorded undo entries from sub-actions.</p></div>
                     </div>
                     <div id="TomActionTransaction.hasEntries" class="api-member"><div class="api-member-head"><code class="api-signature">bool hasEntries</code></div></div>
                     <div id="TomActionTransaction.isCommitted" class="api-member"><div class="api-member-head"><code class="api-signature">bool isCommitted</code></div></div>
+                    <div id="TomActionTransaction.isUndone" class="api-member"><div class="api-member-head"><code class="api-signature">bool isUndone</code></div></div>
+                    <div id="TomActionTransaction.isRedoable" class="api-member"><div class="api-member-head"><code class="api-signature">bool isRedoable</code></div></div>
                     <div id="TomActionTransaction.entryCount" class="api-member"><div class="api-member-head"><code class="api-signature">int entryCount</code></div></div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
                     <div id="TomActionTransaction.record" class="api-member">
                       <div class="api-member-head">
+                        <code class="api-signature">void record({required String actionId, required void Function() undo, void Function()?? redo})</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Records the two calls that move one sub-action.</p>
+                        <p>
+                          Prefer [TomAction.recordInto], which builds both from an action and its undo state. Reach for this directly only when the reversal is not a call to 
+                          <code>TomAction.undo</code> at all.
+                        </p>
+                        <p>
+                          Taking the <strong>calls</strong> rather than an <code>(action, undoState)</code> pair is what makes a mis-pairing impossible here: a closure body is checked against the receiver's own signature, so 
+                          <code>() =&gt; increment.undo(someOtherUndoState)</code> does not compile. Passing the two as arguments cannot achieve that — Dart's class type parameters are covariant, so inference is free to widen the undo type to 
+                          <code>TomActionUndo</code> and accept any state at all, leaving the mismatch to surface as a <code>TypeError</code>
+                           from inside the history when somebody presses undo.
+                        </p>
+                        <p>
+                          [actionId] appears in the diagnostic [redoAll] raises when an entry has no redo; [redo] is null when the action declares none.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomActionTransaction.run" class="api-member">
+                      <div class="api-member-head">
                         <code class="api-signature">
-                          void record&lt;TUndo extends TomActionUndo&gt;(TomAction&lt;TomActionContext, TomActionUndo&gt; action, TUndo undoState)
+                          void run&lt;TContext extends TomActionContext, TUndo extends TomActionUndo&gt;(TomAction&lt;TContext, TUndo&gt; action, TContext context)
                         </code>
                       </div>
                       <div class="api-doc">
-                        <p>Records an undo entry for a sub-action.</p>
-                        <p>Called automatically by the action trigger mechanism.</p>
+                        <p>
+                          Runs [action] against [context] inside this transaction, recording its undo state when there is one to record.
+                        </p>
+                        <p>
+                          This is the one place that pairs <em>executing</em> an action with <em>recording</em> it: an action contributes an undo entry only when it returned a state 
+                          <strong>and</strong> declares itself [TomAction.isUndoable]. Every caller that runs a sub-action into a transaction — 
+                          <code>TomActionTrigger</code> and <code>TomCompositeAction</code> — goes through here, so the rule cannot drift between them.
+                        </p>
+                        <p>
+                          The action runs inside the context's frame — see [TomActionContext.runInScope] — so anything it reaches that reads 
+                          <code>TomScope.current</code> sees where the invocation is happening rather than whatever zone the dispatcher stood in.
+                        </p>
+                        <p>Throws if the transaction is already committed or rolled back, via [record].</p>
                       </div>
                     </div>
                     <div id="TomActionTransaction.commit" class="api-member">
@@ -1455,13 +1509,42 @@ tx.commit();  // Records all undo states as one entry</code></pre>
                     </div>
                     <div id="TomActionTransaction.rollback" class="api-member">
                       <div class="api-member-head"><code class="api-signature">void rollback()</code></div>
-                      <div class="api-doc"><p>Rolls back all recorded sub-actions in reverse order.</p></div>
+                      <div class="api-doc">
+                        <p>Rolls back all recorded sub-actions in reverse order.</p>
+                        <p>
+                          Leaves the transaction in the same state [undoAll] does — [isUndone] — so a rolled-back transaction is one [redoAll] would accept. In practice it never reaches one: a rolled-back transaction is abandoned before commit and so is never pushed onto a history.
+                        </p>
+                        <p>
+                          A second call is a silent no-op, unlike [undoAll]'s. The asymmetry is deliberate: rollback is the failure path — it runs from error handling that may itself be reached more than once — so arriving twice is an ordinary consequence of something else going wrong, and throwing there would replace the original failure with this one.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomActionTransaction.undoAll" class="api-member">
                       <div class="api-member-head"><code class="api-signature">void undoAll()</code></div>
                       <div class="api-doc">
                         <p>Undoes all sub-actions in reverse order.</p>
-                        <p>This is called by the undo history when undoing a transaction.</p>
+                        <p>Called by the undo history when undoing a transaction.</p>
+                        <p>
+                          Reverse order because the entries are recorded in execution order and a later step may depend on an earlier one; [redoAll] goes forward for the same reason.
+                        </p>
+                        <p>
+                          Throws [StateError] when the transaction is already undone — applying the same undos a second time would repeat them, which is invisible for an undo that assigns a previous value and a duplicated row for one that restores a deleted record. The check runs before any entry is touched, so a refused call changes nothing. [redoAll] is what makes a transaction undoable again, by putting its effects back first.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomActionTransaction.redoAll" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void redoAll()</code></div>
+                      <div class="api-doc">
+                        <p>Re-applies all sub-actions in the order they were originally executed.</p>
+                        <p>
+                          Called by the undo history when redoing a transaction. The forward counterpart of [undoAll]: it runs each entry's [TomAction.redo] with the undo state that entry recorded, and marks the transaction applied again, so it can be undone once more.
+                        </p>
+                        <p>
+                          Forward order, because that is the order the steps ran in and a later step may depend on an earlier one. [undoAll] reverses for the same reason.
+                        </p>
+                        <p>
+                          Throws [StateError] when the transaction is not undone — there is nothing to put back, and clearing the flag would make an already-applied transaction look freshly applied. Throws too when [isRedoable] is false, naming the action that does not implement redo: silently running no-op redos would report a re-application that did not happen and would leave the transaction undoable again, which is exactly the corruption the two methods exist to prevent. The check runs before any entry is touched.
+                        </p>
                       </div>
                     </div>
                     <div id="TomActionTransaction.toString" class="api-member">
@@ -1475,22 +1558,45 @@ tx.commit();  // Records all undo states as one entry</code></pre>
                 <section id="_UndoEntry" class="api-declaration">
                   <h3 class="api-decl-title">class _UndoEntry</h3>
                   <code class="api-signature">class _UndoEntry</code>
+                  <div class="api-doc">
+                    <p>
+                      One recorded sub-action, as the two calls that move it rather than the parts they would be assembled from.
+                    </p>
+                    <p>
+                      Closures because a list cannot hold <code>TomAction&lt;TContext, TUndo&gt;</code> values with differing type arguments: keeping the action and its state as a pair forces the state to an untyped field and the reversal to an unchecked dispatch. A closure built where both values are still statically typed carries the same behaviour with the types intact and nothing left to re-assemble.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="_UndoEntry.new" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">
-                          _UndoEntry.new({required TomAction&lt;TomActionContext, TomActionUndo&gt; action, required dynamic undoState})
-                        </code>
+                        <code class="api-signature">_UndoEntry.new({required String actionId, required void Function() undo, void Function()?? redo})</code>
                       </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="_UndoEntry.action" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final TomAction&lt;TomActionContext, TomActionUndo&gt; action</code></div>
+                    <div id="_UndoEntry.undo" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final void Function() undo</code></div>
+                      <div class="api-doc"><p>Reverses the sub-action.</p></div>
                     </div>
-                    <div id="_UndoEntry.undoState" class="api-member"><div class="api-member-head"><code class="api-signature">final dynamic undoState</code></div></div>
+                    <div id="_UndoEntry.redo" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final void Function()?? redo</code></div>
+                      <div class="api-doc">
+                        <p>Re-applies it, or <strong>null</strong> when the action declares no redo.</p>
+                        <p>
+                          Null rather than a no-op closure, so "this cannot be redone" is a state the transaction can read rather than a call that quietly does nothing — see [TomActionTransaction.isRedoable].
+                        </p>
+                      </div>
+                    </div>
+                    <div id="_UndoEntry.actionId" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String actionId</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The action's id, kept for the diagnostic [TomActionTransaction.redoAll] raises when an entry has no redo. It is the only thing either reversal path needed the action itself for.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </section>
               </div>

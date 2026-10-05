@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1418,7 +1424,35 @@
                   <div class="api-members">
                     <div id="TomActionContext.scope" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final InvalidType scope</code></div>
-                      <div class="api-doc"><p>The scope in which this action is executing.</p></div>
+                      <div class="api-doc">
+                        <p>The frame this invocation happens in, or null for the ambient one.</p>
+                        <p>
+                          Distinct from [TomAction.scope], which is fixed at construction and says where the action <em>lives</em>
+                           — it fixes <code>canonicalPath</code> and the group ceiling, and is deliberately independent of where the action is later consulted from. This one is per invocation and says where the action is being 
+                          <em>run</em>: [runInScope] installs it around every consult of the action with this context, so anything reached from 
+                          <code>canExecute</code> or <code>execute</code> that reads [TomScope.current] — a nested controller, a resource lookup, a widget built in response — sees this frame.
+                        </p>
+                        <p>
+                          Null is the ordinary case and means <em>the ambient frame</em>. A context is built per invocation by a 
+                          <code>contextBuilder</code> called at the moment of the gesture, so the zone in force then is usually already the right one; capturing it here would be redundant. The field exists for the case where it is not — work dispatched from a callback, a timer or an isolate boundary, where the gesture's frame is no longer installed.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="TomActionContext.runInScope" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">T runInScope&lt;T&gt;(T Function() body)</code></div>
+                      <div class="api-doc">
+                        <p>Runs [body] in [scope], or directly when this context carries none.</p>
+                        <p>
+                          The single place [scope] is read. Every consult of an action with a context goes through here — <code>canExecute</code>
+                           from [TomActionTrigger] and from [TomCompositeAction], <code>execute</code> from [TomActionTransaction.run] — so the gate and the body cannot end up seeing different frames.
+                        </p>
+                        <p>
+                          Re-entrant: installing a scope that is already current is a no-op, so nesting the calls costs nothing.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>

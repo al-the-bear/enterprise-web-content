@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1407,7 +1413,7 @@
                 <div id="TomExpansionPanel.new" class="api-member">
                   <div class="api-member-head">
                     <code class="api-signature">
-                      TomExpansionPanel.new({String? tomId, InvalidType authorizationGroup, required Widget Function(BuildContext, bool) headerBuilder, required Widget body, bool isExpanded = false, bool canTapOnHeader = false, Color? backgroundColor, Color? splashColor, Color? highlightColor})
+                      TomExpansionPanel.new({String? tomId, InvalidType tomGroup, InvalidType scope, InvalidType authorizer, InvalidType uiStateController, required Widget Function(BuildContext, bool) headerBuilder, required Widget body, bool isExpanded = false, bool canTapOnHeader = false, Color? backgroundColor, Color? splashColor, Color? highlightColor})
                     </code>
                   </div>
                 </div>
@@ -1418,9 +1424,21 @@
                   <div class="api-member-head"><code class="api-signature">final String? tomId</code></div>
                   <div class="api-doc"><p>Tom ID for resource resolution and authorization.</p></div>
                 </div>
-                <div id="TomExpansionPanel.authorizationGroup" class="api-member">
-                  <div class="api-member-head"><code class="api-signature">final InvalidType authorizationGroup</code></div>
+                <div id="TomExpansionPanel.tomGroup" class="api-member">
+                  <div class="api-member-head"><code class="api-signature">final InvalidType tomGroup</code></div>
                   <div class="api-doc"><p>Optional group membership.</p></div>
+                </div>
+                <div id="TomExpansionPanel.scope" class="api-member">
+                  <div class="api-member-head"><code class="api-signature">final InvalidType scope</code></div>
+                  <div class="api-doc"><p>Optional explicit scope for resource resolution.</p></div>
+                </div>
+                <div id="TomExpansionPanel.authorizer" class="api-member">
+                  <div class="api-member-head"><code class="api-signature">final InvalidType authorizer</code></div>
+                  <div class="api-doc"><p>Optional per-panel authorizer, applied after the group's mode.</p></div>
+                </div>
+                <div id="TomExpansionPanel.uiStateController" class="api-member">
+                  <div class="api-member-head"><code class="api-signature">final InvalidType uiStateController</code></div>
+                  <div class="api-doc"><p>Optional build-time UI-state controller, applied last.</p></div>
                 </div>
                 <div id="TomExpansionPanel.headerBuilder" class="api-member">
                   <div class="api-member-head"><code class="api-signature">final Widget Function(BuildContext, bool) headerBuilder</code></div>
@@ -1455,7 +1473,12 @@
               <div class="api-members">
                 <div id="TomExpansionPanel.toPanel" class="api-member">
                   <div class="api-member-head"><code class="api-signature">ExpansionPanel toPanel()</code></div>
-                  <div class="api-doc"><p>Converts this to a Flutter [ExpansionPanel].</p></div>
+                  <div class="api-doc">
+                    <p>Converts this to a Flutter [ExpansionPanel].</p>
+                    <p>
+                      Both slots are wrapped in a [TomAuthGate]: an [ExpansionPanel] is not a widget, so this class has no build of its own in which to resolve [tomId]. The header is gated inside the builder rather than around it because [ExpansionPanelList] calls the builder itself, with the expansion state it owns.
+                    </p>
+                  </div>
                 </div>
               </div>
             </section>

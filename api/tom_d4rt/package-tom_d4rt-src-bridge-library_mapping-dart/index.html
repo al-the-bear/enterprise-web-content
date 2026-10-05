@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1398,14 +1404,32 @@
                 <div class="api-doc">
                   <p>Library bridge mapping types for deduplicating elements across re-exports.</p>
                   <p>
-                    These types enable D4rt to correctly handle barrels that re-export elements from other packages without registering duplicate bridges.
+                    These types describe a RUNTIME solution to barrel re-export deduplication: group bridged elements by the canonical library they came from, record which source libraries each barrel re-exports, and let the interpreter recognise that the same element reached through two barrels is one element.
+                  </p>
+                  <h2>Deprecated — the problem was solved in the other layer (SCE155)</h2>
+                  <p>
+                    That deduplication happens, and it happens at GENERATION time instead: <code>PerPackageBridgeOrchestrator</code>
+                     in <code>tom_d4rt_generator</code> maps each source file to the barrel that exports it (<code>sourceFileToBarrel</code>, 
+                    <code>BarrelPackageMapping</code>) and emits one per-package bridge file plus delegating barrel files, so the duplicate never reaches the runtime to be deduplicated. Nothing here was ever wired up, and nothing needs to be: this is a SUPERSEDED design, not an unfinished one. There is no intent to recover.
+                  </p>
+                  <p>
+                    MEASURED 2026-09-23, and the answer is conclusive rather than presumed. Workspace-wide, the only <code>.dart</code>
+                     files naming [LibraryBridgeDefinition], [BarrelMapping] or [ModuleBridgeInfo] are this file and the two guards that record them as dead. Outside it, pub.dev lists exactly four dependents of 
+                    <code>tom_d4rt</code> — <code>tom_d4rt_generator</code>, <code>tom_d4rt_exec</code>, <code>tom_d4rt_dcli</code>, 
+                    <code>tom_d4rt_flutter</code>, all of them this workspace's own — and no cached release of any of the four names one of these types. The API has never had a consumer, here or anywhere.
+                  </p>
+                  <p>
+                    It is deprecated rather than deleted because it is on a PUBLISHED surface and removal is breaking whether or not anyone is hurt by it. The removal is due at 2.0.0, and is not left to memory: 
+                    <code>tom_d4rt/test/sce155_dead_surface_removal_test.dart</code> fails the moment this package's major version reaches 2 while the file is still here.
                   </p>
                 </div>
                 <section id="BarrelMapping" class="api-declaration">
-                  <h3 class="api-decl-title">class BarrelMapping</h3>
+                  <h3 class="api-decl-title">class BarrelMapping<span class="api-badge api-badge--deprecated">deprecated</span></h3>
                   <code class="api-signature">class BarrelMapping</code>
                   <div class="api-doc">
-                    <p>Mapping from a barrel (re-export file) to its source libraries.</p>
+                    <p>
+                      doc-ref: ok — the <code>package:</code> URIs in this example name BRIDGED libraries, the canonical URIs a bridge registers under rather than files here. Mapping from a barrel (re-export file) to its source libraries.
+                    </p>
                     <p>
                       Barrels like <code>package:tom_core_kernel/tom_core_kernel.dart</code> export elements from many source libraries. This mapping allows the runtime to trace which libraries a barrel provides access to.
                     </p>
@@ -1478,12 +1502,13 @@
                   </div>
                 </section>
                 <section id="LibraryBridgeDefinition" class="api-declaration">
-                  <h3 class="api-decl-title">class LibraryBridgeDefinition</h3>
+                  <h3 class="api-decl-title">class LibraryBridgeDefinition<span class="api-badge api-badge--deprecated">deprecated</span></h3>
                   <code class="api-signature">class LibraryBridgeDefinition</code>
                   <div class="api-doc">
                     <p>Bridges for a single source library.</p>
                     <p>
-                      Groups all bridged elements that originate from the same canonical library (e.g., <code>package:tom_crypto/src/rsa/helpers.dart</code>). This allows the runtime to identify that elements from the same source are identical, even when accessed through different barrels.
+                      doc-ref: ok — the <code>package:</code> URIs below name BRIDGED libraries, the canonical URI a bridge registers under. They are runtime identities, not files, and several deliberately name a library this package does not ship. Groups all bridged elements that originate from the same canonical library (e.g., 
+                      <code>package:tom_crypto/src/rsa/helpers.dart</code>). This allows the runtime to identify that elements from the same source are identical, even when accessed through different barrels.
                     </p>
                     <p>Example:</p>
                     <pre><code>// Elements from package:tom_crypto/src/rsa/helpers.dart
@@ -1560,7 +1585,7 @@ final libraryBridge = LibraryBridgeDefinition(
                   </div>
                 </section>
                 <section id="ModuleBridgeInfo" class="api-declaration">
-                  <h3 class="api-decl-title">class ModuleBridgeInfo</h3>
+                  <h3 class="api-decl-title">class ModuleBridgeInfo<span class="api-badge api-badge--deprecated">deprecated</span></h3>
                   <code class="api-signature">class ModuleBridgeInfo</code>
                   <div class="api-doc">
                     <p>Complete bridge information for a package/module.</p>

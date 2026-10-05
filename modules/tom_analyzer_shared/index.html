@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1386,7 +1392,7 @@
               <span style="display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap"><span class="badge b-pub"><span class="d"></span>Published</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">role: extension</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">license: BSD-3-Clause</span></span>
             </div>
             <h2>tom_analyzer_shared</h2>
-            <div class="mono" style="color: #9FB6C9">tom_analyzer_shared · v0.2.0</div>
+            <div class="mono" style="color: #9FB6C9">tom_analyzer_shared · v0.7.6</div>
             <p style="margin-top: 10px">
               Caching infrastructure that builds and reuses binary analyzer summaries so Tom's code generators skip rescanning stable dependencies on every run.
             </p>
@@ -1397,9 +1403,9 @@
           </div>
           <div class="statgrid">
             <div class="stat"><div class="k">Status</div><div class="v" style="font-size: 1.05rem; color: #0F7FB0">Published</div></div>
-            <div class="stat"><div class="k">LOC</div><div class="v">1.1k</div></div>
-            <div class="stat"><div class="k">Tests</div><div class="v">87</div></div>
-            <div class="stat"><div class="k">Test LOC</div><div class="v">1.1k</div></div>
+            <div class="stat"><div class="k">LOC</div><div class="v">1.9k</div></div>
+            <div class="stat"><div class="k">Tests</div><div class="v">150</div></div>
+            <div class="stat"><div class="k">Test LOC</div><div class="v">2.3k</div></div>
           </div>
           <div class="dcols">
             <div>
@@ -1493,10 +1499,14 @@
                  SummaryGenerator ──▶ build SDK summary, then each package
                                           │  summary in topological order
                                           ▼
-                 SummaryCacheManager ──▶ &lt;workspace&gt;/.tom/analyzer-cache/
+                 SummaryCacheManager ──▶ &lt;tool-cache&gt;/analyzer-cache/
                                           │  {package}@{version}.sum
                                           ▼
             SummaryCacheResult { summaryPaths, sdkSummaryPath } ──▶ analyzer</code></pre>
+              <p>
+                The <code>&lt;tool-cache&gt;</code> root is the <strong>shared Tom tool-cache directory</strong> resolved by 
+                <code>ToolCacheLocator</code> (see <a href="#the-shared-tool-cache">The shared tool cache</a>), so the same hosted-package summary is generated once and reused across every project and tool on the machine.
+              </p>
               <p>
                 The whole pipeline is wrapped by one function — <code>runSummaryCacheStage</code> — that a CLI tool calls once and then feeds the result straight into its analysis context. The individual stages are public too, for tools that need finer control.
               </p>
@@ -1511,7 +1521,7 @@
               <p>---</p>
               <h2>Installation</h2>
               <pre><code>dependencies:
-  tom_analyzer_shared: ^0.1.0</code></pre>
+  tom_analyzer_shared: ^0.3.0</code></pre>
               <p>Or from the command line:</p>
               <pre><code>dart pub add tom_analyzer_shared</code></pre>
               <p>Then import the single entry point:</p>
@@ -1581,6 +1591,17 @@
                     <td>Reads/writes <code>.sum</code> files; cache paths, stats, cleanup</td>
                   </tr>
                   <tr><td><code>CacheStats</code></td><td>class</td><td>Cache directory size and file count</td></tr>
+                  <tr>
+                    <td><code>ToolCacheLocator</code></td>
+                    <td>class</td>
+                    <td>
+                      Resolves the workspace-local tool-cache root (env → workspace-root 
+                      <code>.tom</code>
+                       → 
+                      <code>&lt;start&gt;/.tom</code>
+                      )
+                    </td>
+                  </tr>
                 </tbody>
               </table>
               <p>---</p>
@@ -1602,8 +1623,9 @@ Future&lt;void&gt; analyse(String projectRoot) async {
   // … use `collection` to analyse the project's own sources …
 }</code></pre>
               <p>
-                <code>runSummaryCacheStage</code> resolves dependencies from <code>pubspec.lock</code>, builds any summaries not already in 
-                <code>&lt;projectRoot&gt;/.tom/analyzer-cache/</code>, and returns a <code>SummaryCacheResult</code>. On the first run it generates the cache; on later runs it finds everything present and returns immediately. It returns 
+                <code>runSummaryCacheStage</code> resolves dependencies from <code>pubspec.lock</code>, builds any summaries not already in the shared tool cache's 
+                <code>analyzer-cache/</code> sub-directory (see <a href="#the-shared-tool-cache">The shared tool cache</a>), and returns a 
+                <code>SummaryCacheResult</code>. On the first run it generates the cache; on later runs it finds everything present and returns immediately. It returns 
                 <code>null</code> when no dependencies could be resolved or no summaries are available, so the null-aware 
                 <code>result?.…</code> is the intended usage.
               </p>
@@ -1645,12 +1667,10 @@ Future&lt;void&gt; analyse(String projectRoot) async {
   log: print,                    // redirect output (defaults to print)
 );</code></pre>
               <ul>
-                <li>
-                  <code>rebuildCache</code> clears <code>&lt;root&gt;/.tom/analyzer-cache/</code> before generating — use it
-                </li>
+                <li><code>rebuildCache</code> clears the <code>analyzer-cache/</code> sub-directory before generating —</li>
               </ul>
               <p>
-                when a summary may be stale (e.g. after an SDK upgrade). - <code>showCacheStatus</code> prints a per-package CACHED/MISSING report and returns 
+                use it when a summary may be stale (e.g. after an SDK upgrade). - <code>showCacheStatus</code> prints a per-package CACHED/MISSING report and returns 
                 <code>null</code> without doing heavy work — the implementation behind a <code>--cache-status</code> flag. - 
                 <code>cacheOnlyPackages</code> narrows generation to named packages for targeted rebuilds. - <code>log</code>
                  redirects the human-readable progress lines to your own sink.
@@ -1688,21 +1708,51 @@ print(dep.cacheKey);    // provider@6.1.2</code></pre>
 print(set.cacheable.length);        // hosted + sdk
 print(deps.hosted.map((d) =&gt; d.name));  // hosted only
 print(deps.findByName('flutter')?.cacheKey);</code></pre>
+              <h3>The workspace tool cache</h3>
+              <p>
+                Summaries live in a <strong>workspace-local Tom tool-cache directory</strong> — the workspace's <code>.tom/</code>
+                 folder — so the same hosted-package summary is generated once and reused by every project and tool <em>in that workspace</em>. 
+                <code>ToolCacheLocator.resolve</code> picks the root — the first branch that applies wins:
+              </p>
+              <p>
+                1. <strong><code>TOM_TOOL_CACHE</code> environment variable</strong> — set it to point the cache at a fast disk, a shared CI cache, or a RAM-backed directory. 2. 
+                <strong>The workspace root's <code>.tom</code> directory</strong> — the search walks up from the start directory to the nearest 
+                <strong>workspace root</strong> (a directory containing <code>tom_workspace.yaml</code> or <code>.tom_metadata/tom_master.yaml</code>) and returns that root's 
+                <code>.tom</code> directory as the cache root (analyzer summaries then live in <code>.tom/analyzer-cache/</code>). Keying off the committed workspace-root marker rather than the nearest 
+                <code>.tom</code> means nested project-level <code>.tom</code> directories never fragment the cache — every tool in the tree shares the one 
+                <code>&lt;workspace&gt;/.tom/analyzer-cache/</code>. 3. <strong>Workspace-local fallback <code>&lt;start&gt;/.tom</code></strong>
+                 — when no workspace-root ancestor exists. The resolver <strong>never</strong> falls back to a machine-global directory such as 
+                <code>~/.config/dart</code>; the cache is always inside the workspace tree.
+              </p>
+              <pre><code>final root = ToolCacheLocator.resolve(startDirectory: projectRoot);
+// e.g. &lt;workspace&gt;/.tom  (branch 2 — the committed workspace .tom)
+
+// Override the resolution explicitly:
+//   TOM_TOOL_CACHE=/fast/disk/cache  → branch 1</code></pre>
+              <p>
+                <code>resolve</code> only reads the filesystem; the directory is created lazily the first time a summary is written. Each artefact kind uses a named sub-directory of the root (analyzer summaries use 
+                <code>analyzer-cache/</code>) so different kinds never collide.
+              </p>
               <h3>The cache directory</h3>
               <p>
-                <code>SummaryCacheManager</code> owns <code>&lt;workspace&gt;/.tom/analyzer-cache/</code> and the file naming. You construct it with the workspace root and ask it for paths or status — it never guesses a layout the analyzer can't find:
+                <code>SummaryCacheManager</code> owns the <code>analyzer-cache/</code> sub-directory of that shared tool cache and the file naming. You construct it with the workspace root (which seeds the 
+                <code>ToolCacheLocator</code> ancestor search) and ask it for paths or status — it never guesses a layout the analyzer can't find:
               </p>
               <pre><code>final cache = SummaryCacheManager(projectRoot);
 
-print(cache.cacheDirectory);                       // …/.tom/analyzer-cache
+print(cache.cacheDirectory);                       // &lt;tool-cache&gt;/analyzer-cache
 print(cache.getCachePath('provider', '6.1.2'));    // …/provider@6.1.2.sum
 print(cache.getSdkSummaryPath());                  // …/sdk@&lt;dart-version&gt;.sum
 
 final stats = await cache.getStats();              // CacheStats
 print('${stats.summaryCount} files, ${stats.totalSizeMB.toStringAsFixed(1)} MB');</code></pre>
               <p>
+                Pass <code>cacheDirectory:</code> to bypass the shared-cache resolution entirely (tests and callers that manage their own layout), or 
+                <code>environment:</code> to override the process environment the locator consults.
+              </p>
+              <p>
                 It also offers <code>hasSummary</code>, <code>findMissingSummaries</code>, <code>loadSummary</code>, 
-                <code>clearCache</code>, <code>cleanOutdated</code>, and <code>cleanUnusedSummaries</code> for tools that manage the cache lifecycle directly.
+                <code>clearCache</code>, and <code>cleanUnusedSummaries</code> for tools that manage the cache lifecycle directly.
               </p>
               <h3>Generating summaries directly</h3>
               <p>
@@ -1746,8 +1796,11 @@ for (final entry in result.errors.entries) {
         ├── SummaryGenerator  ── generateSdkSummary / generateMissingSummaries
         │        topological order ──▶ SummaryGenerationResult
         │
-        └── SummaryCacheManager  ── &lt;workspace&gt;/.tom/analyzer-cache/
-                 getCachePath / getSdkSummaryPath / getStats / clearCache</code></pre>
+        ├── SummaryCacheManager  ── &lt;tool-cache&gt;/analyzer-cache/
+        │        getCachePath / getSdkSummaryPath / getStats / clearCache
+        │
+        └── ToolCacheLocator  ── resolves &lt;tool-cache&gt; root
+                 TOM_TOOL_CACHE → workspace-root .tom → &lt;start&gt;/.tom (workspace-local)</code></pre>
               <table class="mdtable">
                 <thead><tr><th>Type</th><th>Role</th></tr></thead>
                 <tbody>
@@ -1778,6 +1831,10 @@ for (final entry in result.errors.entries) {
                     <td>The <code>.sum</code> cache directory: paths, stats, cleanup</td>
                   </tr>
                   <tr><td><code>CacheStats</code></td><td>Cache file count and total size</td></tr>
+                  <tr>
+                    <td><code>ToolCacheLocator</code></td>
+                    <td>Resolves the shared Tom tool-cache root for all artefacts</td>
+                  </tr>
                 </tbody>
               </table>
               <p>
@@ -1800,7 +1857,7 @@ for (final entry in result.errors.entries) {
                  so they share one <code>.tom/analyzer-cache/</code> directory per workspace. Adding a third generator is a matter of the same one-call stage — the cache it shares is already there.
               </p>
               <p>
-                Sibling foundation packages: <a href="https://github.com/al-the-bear/tom_basics/tree/main"><code>tom_basics</code></a>
+                Sibling foundation packages: <a href="https://github.com/al-the-bear/tom_basics/tree/main/tom_basics"><code>tom_basics</code></a>
                  · <a href="https://github.com/al-the-bear/tom_basics/tree/main/tom_basics_console"><code>tom_basics_console</code></a>
                  · <a href="https://github.com/al-the-bear/tom_basics/tree/main/tom_basics_network"><code>tom_basics_network</code></a>
                  · <a href="https://github.com/al-the-bear/tom_basics/tree/main/tom_build_base"><code>tom_build_base</code></a>.
@@ -1821,7 +1878,7 @@ for (final entry in result.errors.entries) {
               <p>---</p>
               <h2>Status</h2>
               <ul>
-                <li><strong>Version:</strong> 0.1.0</li>
+                <li><strong>Version:</strong> 0.3.0</li>
                 <li><strong>Tests:</strong> a <code>test/summary/</code> suite covering dependency resolution, the cache</li>
               </ul>
               <p>

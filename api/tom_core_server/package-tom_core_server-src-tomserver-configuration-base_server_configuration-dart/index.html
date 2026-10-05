@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1408,7 +1414,7 @@
                       <code>.env</code> file, then command-line arguments (which win).
                     </p>
                     <p>
-                      JWT signing keys ([jwtRsaPubKey] / [jwtRsaPrivKey] / [jwtSharedSecretKey]) are present as fields; richer JWT-creation settings are a tracked follow-up (see the quest completion steps).
+                      The JWT fields ([jwtRsaPubKey] / [jwtRsaPrivKey] / [jwtSharedSecretKey]) are the server's signing key material, read by [installJwtSigning] — which a boot calls once, after the runtime environment is selected and before anything mints or verifies a token. A field left null falls back to the framework's bundled sample key, which is permitted in a development or test environment and refused anywhere else. The rest of a signing configuration — algorithm, issuer, audience, expiry — is supplied in code, because there are no configuration keys for those.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1419,46 +1425,501 @@
                         <p>
                           Creates the configuration, resolving and applying values from all sources (see [getDefaultValues]) for the given [args].
                         </p>
+                        <p>
+                          [args] is assigned to the field of the same name <strong>after</strong> [setValues], so the record of the invocation survives a merged key that happens to be spelled 
+                          <code>args</code>. Both are last for a reason: [setValues] runs first because a subclass's constructor body must see the resolved fields, and the 
+                          <code>args</code> assignment runs after it because the invocation is the meaning this field promises.
+                        </p>
+                        <p>
+                          The instance also registers itself as the isolate's active configuration, which is what [tomAppId] resolves through. Registering the object rather than reading [appId] out of it here is the point: the subclass constructor body has not run yet, so there is no value to read — only an object that will have one.
+                        </p>
+                        <p>
+                          For the same reason it installs a <em>resolver</em> over [tomAppId] as the kernel's remote-log sender rather than a copy of it. A remote log collector names its per-client files after the sender, so without this every application reports the kernel's default — and several servers of one deployment, which is exactly when a collector is worth running, write into one file set distinguished only by isolate name. The closure is installed here because this is the one place that already says "this isolate's application is me", and it is idempotent: a second configuration in the same isolate installs an equivalent closure over the same getter.
+                        </p>
+                        <p>
+                          A field an application marked [TomRequiredField] is checked here too, by [assertRequiredSettings], with the merged map and before the instance registers itself: a configuration that refuses to start must not become the isolate's active one on its way out.
+                        </p>
+                        <p>
+                          It applies the kernel's protection settings from [args] too ([TomResourceKeyProtection.applyArguments]), so 
+                          <code>tom.protection=false</code> or <code>tom.protection.json=false</code> on a server's command line switches the authorization system or one tier of it off. A misspelt setting throws before anything else is configured: a server that believed a tier off while it was on — or the reverse — is worse than one that does not start.
+                        </p>
                       </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="TomBaseServerConfiguration.appId" class="api-member"><div class="api-member-head"><code class="api-signature">String appId</code></div></div>
-                    <div id="TomBaseServerConfiguration.args" class="api-member"><div class="api-member-head"><code class="api-signature">List&lt;String&gt; args</code></div></div>
-                    <div id="TomBaseServerConfiguration.serverHeader" class="api-member"><div class="api-member-head"><code class="api-signature">String serverHeader</code></div></div>
-                    <div id="TomBaseServerConfiguration.autoCompress" class="api-member"><div class="api-member-head"><code class="api-signature">bool autoCompress</code></div></div>
-                    <div id="TomBaseServerConfiguration.poweredByHeader" class="api-member"><div class="api-member-head"><code class="api-signature">String poweredByHeader</code></div></div>
-                    <div id="TomBaseServerConfiguration.noSsl" class="api-member"><div class="api-member-head"><code class="api-signature">bool noSsl</code></div></div>
-                    <div id="TomBaseServerConfiguration.listenToAnyIP" class="api-member"><div class="api-member-head"><code class="api-signature">bool listenToAnyIP</code></div></div>
-                    <div id="TomBaseServerConfiguration.port" class="api-member"><div class="api-member-head"><code class="api-signature">int port</code></div></div>
-                    <div id="TomBaseServerConfiguration.certificateChain" class="api-member"><div class="api-member-head"><code class="api-signature">String certificateChain</code></div></div>
-                    <div id="TomBaseServerConfiguration.privateKey" class="api-member"><div class="api-member-head"><code class="api-signature">String privateKey</code></div></div>
-                    <div id="TomBaseServerConfiguration.jwtRsaPubKey" class="api-member"><div class="api-member-head"><code class="api-signature">String? jwtRsaPubKey</code></div></div>
-                    <div id="TomBaseServerConfiguration.jwtRsaPrivKey" class="api-member"><div class="api-member-head"><code class="api-signature">String? jwtRsaPrivKey</code></div></div>
-                    <div id="TomBaseServerConfiguration.jwtSharedSecretKey" class="api-member"><div class="api-member-head"><code class="api-signature">String? jwtSharedSecretKey</code></div></div>
-                    <div id="TomBaseServerConfiguration.host" class="api-member"><div class="api-member-head"><code class="api-signature">String host</code></div></div>
-                    <div id="TomBaseServerConfiguration.isolateCount" class="api-member"><div class="api-member-head"><code class="api-signature">int isolateCount</code></div></div>
+                    <div id="TomBaseServerConfiguration.appId" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String appId</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The application's own name — what this server calls itself in a log, a diagnostic, or anywhere else several servers meet.
+                        </p>
+                        <p>
+                          It is an ordinary configuration key, so the merge can supply it (<code>appId</code> in a resource file, the environment, 
+                          <code>.env</code>, or <code>appId=…</code> on the command line). A server that has a fixed name states it in its constructor body instead, and one that wants both states it the way [port] does, so the configured value wins:
+                        </p>
+                        <pre><code>MyConfiguration(super.args) {
+  if (appId.isEmpty) appId = 'billing';
+}</code></pre>
+                        <p>Whichever way it is set, [tomAppId] reports it process-wide; nothing else needs to publish it.</p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.args" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">List&lt;String&gt; args</code></div>
+                      <div class="api-doc">
+                        <p>The command-line arguments this configuration was built from.</p>
+                        <p>
+                          The one <strong>derived</strong> field on this class: every other field answers "what was I told", this one answers "how was I invoked". It is not a configuration key — the constructor assigns it from its own parameter after [setValues] has run, so a merged key spelled 
+                          <code>args</code> cannot displace the real invocation. Such a key is still merged and still visible in [getDefaultValues]'s result; it just does not land here.
+                        </p>
+                        <p>
+                          Note that a merged <code>args</code> key whose value is not a <code>List&lt;String&gt;</code> — an <code>args=x</code>
+                           argument parses to a <code>String</code> — still fails inside [setValues] before this assignment is reached. That is deliberate: the message names the field and the offending value, which is the right answer for a configuration that set a key it should not have.
+                        </p>
+                        <p>
+                          <strong>This may hold a secret.</strong> The command line is one of the out-of-band channels a deployment uses to supply [smtpPassword], [smsApiKey] and the rest, so the invocation recorded here can contain them verbatim. Log or serialize individual fields, never this list.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.serverHeader" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String serverHeader</code></div>
+                      <div class="api-doc">
+                        <p>The <code>Server</code> response header. Empty (the default) sends none.</p>
+                        <p>
+                          Applied to the bound [HttpServer] after it is listening, so it names the <em>deployment</em>, not a route. An empty string is the "say nothing" value rather than a header with no value: [TomServer.start] translates it to 
+                          <code>null</code>, which is what leaves the header off the wire. Naming the product and version here tells every client — and every scanner — what is running, so a deployment that would rather not say leaves this as it is.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.autoCompress" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool autoCompress</code></div>
+                      <div class="api-doc">
+                        <p>Whether the bound [HttpServer] compresses responses it judges compressible.</p>
+                        <p>
+                          <code>true</code> by default, and only ever turned <em>on</em> by [TomServer.start] — the flag gates an assignment, so setting this 
+                          <code>false</code> leaves the socket at Dart's own default rather than actively disabling compression. Turn it off where a proxy in front of the server already compresses, or where response bodies are encrypted or already compressed and the pass would only cost CPU.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.poweredByHeader" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String poweredByHeader</code></div>
+                      <div class="api-doc">
+                        <p>The <code>X-Powered-By</code> response header. Defaults to <code>"tom"</code>; empty sends none.</p>
+                        <p>
+                          Passed to <code>shelf_io.serve</code>, so unlike [serverHeader] it is fixed when the socket is bound. Empty is again the "say nothing" value, translated to 
+                          <code>null</code> before the bind.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.noSsl" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool noSsl</code></div>
+                      <div class="api-doc">
+                        <p>Whether to bind a plain HTTP socket instead of a TLS one.</p>
+                        <p>
+                          <code>false</code> by default, which is the safe direction: a deployment gets TLS unless it asks not to. When 
+                          <code>true</code>, [TomServer.start] builds no [SecurityContext] at all and [certificateChain] / [privateKey] are never read — which is the supported way to run behind a TLS-terminating proxy, and the only honest way to run without a certificate. Reading [TomServer.securityContext] afterwards reports what was 
+                          <em>built</em>; this field reports what was asked for.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.listenToAnyIP" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool listenToAnyIP</code></div>
+                      <div class="api-doc">
+                        <p>Whether to bind every interface, overriding [host].</p>
+                        <p>
+                          Read <em>after</em> [host], so <code>true</code> wins: [TomServer.start] resolves the listen address from [host] (or [InternetAddress.anyIPv4] when it is empty) and then replaces it with 
+                          <code>anyIPv4</code> if this is set. So it is not "also listen on any IP" — it is "ignore whatever host was configured", which is the setting a container image wants when the host it inherited from a configuration file names an address that does not exist inside the container.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.port" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">int port</code></div>
+                      <div class="api-doc">
+                        <p>
+                          HTTP bind port. <code>0</code> is the "unconfigured" sentinel: [setValues] (config / env / <code>port=</code>) overwrites it when a port is supplied, otherwise a subclass constructor — which runs 
+                          <em>after</em> the base constructor's [setValues] call — applies its own default via <code>if (port == 0) port = …</code>. A literal default here (e.g. 
+                          <code>8080</code>) would defeat that guard, since the field would never be <code>0</code> for the subclass to detect "no port configured".
+                        </p>
+                        <p>
+                          Either command-line spelling reaches it: a key is the argument text before the first <code>=</code> with its leading dashes stripped, so 
+                          <code>port=8080</code> and <code>--port=8080</code> are one argument naming this field (see <code>doc/cmdline.md</code>).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.certificateChain" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String certificateChain</code></div>
+                      <div class="api-doc">
+                        <p>The PEM-encoded TLS certificate chain [TomServer.start] binds with, unless [noSsl] is set.</p>
+                        <p>
+                          <strong>The default is a throwaway self-signed <code>localhost</code> pair committed to this repository, and its private key is public.</strong>
+                           It exists so a development machine can speak HTTPS without a certificate authority. Nothing refuses to start when a deployment leaves it in place, so overriding this and [privateKey] together is the deployment's responsibility — a server still serving this chain in production is authenticating itself with a key anyone can read.
+                        </p>
+                        <p>
+                          Supplied as PEM text rather than a path, which is what lets a container inject it through the environment; the bytes are handed to [SecurityContext.useCertificateChainBytes] unparsed, so a malformed value fails at bind time and not before.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.privateKey" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String privateKey</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The PEM-encoded TLS private key for [certificateChain]. <strong>A credential:</strong> handle it exactly as the marked settings below are handled.
+                        </p>
+                        <p>
+                          The default is the private half of the checked-in self-signed pair and is therefore public. See [certificateChain]: the two are overridden together or not at all, since a chain without its matching key binds nothing.
+                        </p>
+                        <p>
+                          Never log this field, and never log [args], which may carry it. The bytes are handed to [SecurityContext.usePrivateKeyBytes] unparsed.
+                        </p>
+                        <p>
+                          It carries a different wording from the marked settings on purpose. That marker is a controlled one: 
+                          <code>doc/configuration.md</code> tabulates the four out-of-band blocks a deployment supplies — JWT signing, server self-login, outbound mail, outbound SMS — and a test holds the marked fields and that table to each other, so a field marked without a row there fails. TLS material has no row: it is documented by the limitation naming the checked-in pair. The difference is about which document owes a row, not about how carefully this value is handled.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.jwtRsaPubKey" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String? jwtRsaPubKey</code></div>
+                      <div class="api-doc">
+                        <p>
+                          PEM of the RSA public key that encrypts the payload section of an issued token; read by [installJwtSigning].
+                        </p>
+                        <p>
+                          Null means "not configured", and every one of the three JWT fields means that by being null rather than by holding a sentinel: a default that looked like a key could not be told apart from a key, which is how a server came to sign with a published passphrase and report nothing.
+                        </p>
+                        <p>Environment name: <code>JWT_RSA_PUB_KEY</code> (see [getDefaultValues]).</p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.jwtRsaPrivKey" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String? jwtRsaPrivKey</code></div>
+                      <div class="api-doc">
+                        <p>
+                          PEM of the RSA private key that decrypts the payload section; the counterpart of [jwtRsaPubKey] and secret-bearing.
+                        </p>
+                        <p>Environment name: <code>JWT_RSA_PRIV_KEY</code>.</p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.jwtSharedSecretKey" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String? jwtSharedSecretKey</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Passphrase of the HMAC key that <em>signs</em> an issued token, and the one setting two servers must agree on to trust each other's tokens.
+                        </p>
+                        <p>
+                          The auth server that issues and the application server that verifies share this value and nothing else; set it in one only and the second rejects the first's tokens. Secret-bearing: whoever holds it can mint a token this deployment accepts.
+                        </p>
+                        <p>Environment name: <code>JWT_SHARED_SECRET_KEY</code>.</p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.authServerLoginUri" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String? authServerLoginUri</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Absolute URI of the auth server's login endpoint, e.g. <code>https://auth.example.com/auth/login</code>.
+                        </p>
+                        <p>
+                          Not secret, but deployment-specific: it belongs in the deployed config tree / environment, not in a spec (<code>codespecs_mapping.md</code>
+                           §5.16, CE-CF). <code>null</code> or blank disables server self-login.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.serviceAccountName" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String? serviceAccountName</code></div>
+                      <div class="api-doc">
+                        <p>The login name of this deployment's service account.</p>
+                        <p><code>null</code> or blank disables server self-login.</p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.serviceAccountCredential" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String? serviceAccountCredential</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The service account's secret — <strong>secret-bearing</strong> per <code>codespecs_mapping.md</code> §5.16.
+                        </p>
+                        <p>
+                          Its <em>declaration</em> lives here (so the shape and the source key are known); its <strong>value is never authored</strong>. It is supplied out-of-band at deploy time through the ordinary CE-CF precedence chain — OS environment, 
+                          <code>.env</code>, or command line — and must never be written into a spec or a checked-in configuration tree, the same rule that governs [privateKey] and the JWT keys above.
+                        </p>
+                        <p><code>null</code> or blank disables server self-login.</p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.serviceAccountOrganization" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String? serviceAccountOrganization</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Organization presented with the deployment's own login; <code>null</code> for a single-tenant deployment.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.serviceAccountApplication" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String? serviceAccountApplication</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Application the deployment logs into; <code>null</code> when the auth server does not scope service logins by application.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.serviceAccountProcess" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String? serviceAccountProcess</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Process (sub-context of [serviceAccountApplication]) the deployment logs into; <code>null</code> when unscoped.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.serviceAccountClient" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String? serviceAccountClient</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Client identifier the deployment's own login originates from; <code>null</code> when the auth server does not scope service logins by client.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.smtpHost" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String? smtpHost</code></div>
+                      <div class="api-doc">
+                        <p>The mail server's host name; <code>null</code> or blank means this deployment sends no mail.</p>
+                        <p>
+                          Deployment-specific but not secret, like [authServerLoginUri] (<code>codespecs_mapping.md</code> §5.16, CE-CF).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.smtpPort" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">int smtpPort</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The mail server's port. <code>0</code> is the "unconfigured" sentinel — the same convention as [port] — and lets the transport pick the default that goes with [smtpSecurity] (25, 587 or 465) rather than forcing every deployment to restate a number the protocol already implies.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.smtpSecurity" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String smtpSecurity</code></div>
+                      <div class="api-doc">
+                        <p>How the connection is secured: <code>none</code>, <code>startTls</code> or <code>implicitTls</code>.</p>
+                        <p>
+                          Defaults to <code>startTls</code>, which is both the common case on port 587 and the safe one: an unrecognised value falls back to it too, because failing 
+                          <em>closed</em> on a typo is the only acceptable direction for a setting that decides whether a password crosses the network in the clear.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.smtpUsername" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String? smtpUsername</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The login name presented to the mail server; <code>null</code> or blank for an unauthenticated relay.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.smtpPassword" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String? smtpPassword</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The mail server password — <strong>secret-bearing</strong> per <code>codespecs_mapping.md</code> §5.16.
+                        </p>
+                        <p>
+                          Its <em>declaration</em> lives here (so the shape and the source key are known); its <strong>value is never authored</strong>. It is supplied out-of-band at deploy time through the ordinary CE-CF precedence chain — OS environment, 
+                          <code>.env</code>, or command line — and must never be written into a spec or a checked-in configuration tree, the same rule that governs [serviceAccountCredential], [privateKey] and the JWT keys above.
+                        </p>
+                        <p>
+                          Supplying [smtpUsername] without this value is rejected when the settings are built, so the omission surfaces at startup naming the setting rather than as a 
+                          <code>535</code> on the first notification.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.smtpFromAddress" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String? smtpFromAddress</code></div>
+                      <div class="api-doc">
+                        <p>The address mail is sent from when a message does not name its own.</p>
+                        <p>
+                          Most relays require the envelope sender to be an address they are authorised to send for, so this is effectively mandatory for any deployment that actually sends.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.smtpFromName" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String? smtpFromName</code></div>
+                      <div class="api-doc"><p>The display name shown beside [smtpFromAddress]; <code>null</code> to send the bare address.</p></div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.smtpClientName" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String smtpClientName</code></div>
+                      <div class="api-doc">
+                        <p>The name announced in <code>EHLO</code>.</p>
+                        <p>
+                          Some relays check that it resolves. <code>localhost</code> is accepted by most and is the honest answer for a server that has no public name.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.smtpAllowInsecureCertificate" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool smtpAllowInsecureCertificate</code></div>
+                      <div class="api-doc">
+                        <p>Whether to accept a mail server certificate that does not validate.</p>
+                        <p>
+                          <code>false</code>, and it should stay that way in any deployment. It exists because self-signed certificates are common on internal relays, and a developer who cannot turn this on will set [smtpSecurity] to 
+                          <code>none</code> instead — which is strictly worse, since it sends [smtpPassword] in the clear.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.smsEndpoint" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String? smsEndpoint</code></div>
+                      <div class="api-doc">
+                        <p>The gateway's submit URL; <code>null</code> or blank means this deployment sends no SMS.</p>
+                        <p>
+                          Deployment-specific but not secret, like [smtpHost] (<code>codespecs_mapping.md</code> §5.16, CE-CF). Must be 
+                          <code>http</code> or <code>https</code>; anything else is rejected when the settings are built, so a typo surfaces at startup rather than as an unroutable request at 03:00.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.smsApiKey" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String? smsApiKey</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The gateway credential — <strong>secret-bearing</strong> per <code>codespecs_mapping.md</code> §5.16.
+                        </p>
+                        <p>
+                          Its <em>declaration</em> lives here; its <strong>value is never authored</strong>. Supplied out-of-band at deploy time through the ordinary CE-CF precedence chain, exactly as [smtpPassword] is.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.smsApiSecret" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String? smsApiSecret</code></div>
+                      <div class="api-doc">
+                        <p>The second half of a two-part gateway credential — <strong>secret-bearing</strong>.</p>
+                        <p>
+                          Required only by [smsAuthScheme] <code>basic</code>, where [smsApiKey] is the user and this is the password. Gateways that authenticate with a single bearer token leave it unset.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.smsSenderId" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String? smsSenderId</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The sender shown to the recipient — a short code, a long number, or an alphanumeric sender id where the destination country permits one.
+                        </p>
+                        <p>
+                          A message may override it through [TomMessage.metadata]; this is the default for the ones that do not.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.smsAuthScheme" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String smsAuthScheme</code></div>
+                      <div class="api-doc">
+                        <p>How the credential is presented: <code>none</code>, <code>bearer</code> or <code>basic</code>.</p>
+                        <p>
+                          Defaults to <code>bearer</code>, and an unrecognised value falls back to it. That fallback is safe in a way [smtpSecurity]'s is not — the worst outcome is a 
+                          <code>401</code> from the gateway, not a credential sent in the clear — but it is still the setting to check first when a gateway rejects every request.
+                        </p>
+                        <p>
+                          Gateways that want the key <em>in the payload</em> rather than in a header use <code>none</code> here and name the field on the protocol.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.smsTimeoutSeconds" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">int smsTimeoutSeconds</code></div>
+                      <div class="api-doc">
+                        <p>How long to wait for the gateway before treating the attempt as deferred.</p>
+                        <p>
+                          A timeout is transient: the message may well have been accepted, and the only honest answer is to retry and let the message id deduplicate.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.smsMaxSegments" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">int smsMaxSegments</code></div>
+                      <div class="api-doc">
+                        <p>The most segments a single message may occupy, or <code>0</code> for no cap.</p>
+                        <p>
+                          Three is roughly a paragraph. The cap exists because segmentation is invisible at composition time — a template that gains one sentence, or a parameter that arrives with an umlaut in it, can quietly triple the cost of every message the deployment sends. Over the cap fails 
+                          <em>permanently</em> at send: a message too long now is too long on the retry.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.host" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String host</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The bind host. Empty (the default) makes [TomServer.start] listen on [InternetAddress.anyIPv4]; set a concrete host to bind a specific address. The default must stay a genuine address or the empty string; a placeholder such as 
+                          <code>"t"</code> or <code>"0"</code> binds nothing.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.isolateCount" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">int isolateCount</code></div>
+                      <div class="api-doc">
+                        <p>How many worker isolates the deployment runs. Defaults to <code>10</code>.</p>
+                        <p>
+                          The framework reads it for one decision only: a count above <code>1</code> binds the socket with <code>shared: true</code>, so several isolates can accept on the same port. Actually 
+                          <em>starting</em> the isolates is the application's boot step — <code>TomWorkerPool.withSize(configuration.isolateCount, …)</code>
+                           — which is why a deployment that raises this without also sizing its pool from it gets a shared socket and one listener.
+                        </p>
+                        <p>
+                          <code>0</code> is meaningful: a boot that reads it takes it as "no pool, serve from the main isolate", and the socket is then bound unshared.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomBaseServerConfiguration.authenticationMiddleware" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
                           FutureOr&lt;Response&gt; Function(Request) Function(FutureOr&lt;Response&gt; Function(Request))?? authenticationMiddleware
                         </code>
                       </div>
+                      <div class="api-doc">
+                        <p>Replaces the authentication layer of [TomServer.start]'s pipeline.</p>
+                        <p>
+                          <code>null</code> (the default) installs [tomDefaultAuthenticationMiddleware], which is what reads the bearer token and publishes the principal into the request zone. A replacement takes over that whole responsibility: everything downstream — authorization, delegation, audit attribution — reads the principal this layer established, so a middleware that publishes none leaves the pipeline running as nobody rather than failing.
+                        </p>
+                        <p>
+                          Supply one to authenticate against something this package does not model. Wrapping rather than replacing is usually what is wanted, and shelf's 
+                          <code>Middleware</code> composes, so a custom layer can call the default and add to what it produced.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomBaseServerConfiguration.errorHandler" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Response? Function(Request, Object, StackTrace)?? errorHandler</code></div>
+                      <div class="api-doc">
+                        <p>Replaces the server's default error response.</p>
+                        <p>
+                          <code>null</code> (the default) leaves [TomServer.errorHandler] in place, which renders [tomErrorEnvelope] as a 500 with 
+                          <code>x-tom-error: true</code> and a JSON content type. Installed at <strong>two</strong> pipeline layers — the inner one below authentication, and the outer one when [authenticationErrorHandler] is 
+                          <code>null</code> — so a single handler here covers both unless the two are separated deliberately.
+                        </p>
+                        <p>
+                          Returning <code>null</code> from the handler rethrows the original error rather than answering, which is the way to handle some failures and leave the rest to shelf. The error and its stack trace are already logged before the handler is called, so a handler that only wants to log has nothing to add.
+                        </p>
+                        <p>
+                          <strong>A handler that puts a message in its body must read it through <code>TomServerException.clientMessage</code>,</strong>
+                           not from <code>defaultUserMessage</code>. The <code>clientThrow</code> flag is the thrower's statement about its own text, and five types in the package set it 
+                          <code>false</code> because their messages describe server internals — an unreachable data source, a failed audit write, a misconfigured identity provider. The default handler is safe by construction because [tomErrorEnvelope] carries no message at all; a handler that adds one takes the obligation on.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomBaseServerConfiguration.authenticationErrorHandler" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">Response? Function(Request, Object, StackTrace)?? authenticationErrorHandler</code>
                       </div>
+                      <div class="api-doc">
+                        <p>Replaces the error response for failures raised <em>at or above</em> the authentication layer.</p>
+                        <p>
+                          Falls back to [errorHandler] when <code>null</code>, which is the default, so the two differ only where a deployment wants them to. Separating them is worth it when an authentication failure should answer differently from an application one — a 
+                          <code>401</code> with a <code>WWW-Authenticate</code> challenge rather than the <code>500</code> envelope, say — since this layer sits outside the authentication middleware and therefore sees what it throws.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomBaseServerConfiguration.preExecutionHandler" class="api-member">
                       <div class="api-member-head"><code class="api-signature">FutureOr&lt;Response&gt; Function(Request)?? preExecutionHandler</code></div>
+                      <div class="api-doc">
+                        <p>A handler offered the request <em>before</em> the router, in a shelf [Cascade].</p>
+                        <p>
+                          <code>null</code> (the default) leaves the router alone. A cascade tries each handler in turn and takes the first response that is not a 404, so this one 
+                          <strong>answers or steps aside</strong>: return a response to serve it, or a 404 to let the router handle the request as usual. It is not middleware — it cannot see or alter what the router returns, and it runs inside the pipeline, so the principal and the request context are already established.
+                        </p>
+                        <p>Serving a fixed asset or a redirect that must not reach the router is the case for it.</p>
+                      </div>
                     </div>
                     <div id="TomBaseServerConfiguration.postExecutionHandler" class="api-member">
                       <div class="api-member-head"><code class="api-signature">FutureOr&lt;Response&gt; Function(Request)?? postExecutionHandler</code></div>
+                      <div class="api-doc">
+                        <p>A handler offered the request <em>after</em> the router, in the same [Cascade].</p>
+                        <p>
+                          Reached only when the router answers 404, which is what "after" means here: it is a fallback, not a post-processing step, and it never sees the router's response. Use it for a catch-all — a single-page-application index, a custom not-found body — and use [loggingMiddleware] or a [Middleware] of your own when the response itself has to be inspected or changed.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomBaseServerConfiguration.loggingMiddleware" class="api-member">
                       <div class="api-member-head">
@@ -1466,16 +1927,111 @@
                           FutureOr&lt;Response&gt; Function(Request) Function(FutureOr&lt;Response&gt; Function(Request)) loggingMiddleware
                         </code>
                       </div>
+                      <div class="api-doc">
+                        <p>The middleware that emits the per-request access-log line.</p>
+                        <p>
+                          Installed as the innermost layer of [TomServer.start]'s pipeline, so it sees the response the router produced. The default, [tomLoggingMiddleware], emits one line per request but only when the request's [TomRequestLogInfo.shouldBeLogged] is set and it has not already been logged.
+                        </p>
+                        <p>
+                          Shelf's own <code>logRequests()</code> is the obvious alternative and drops in unchanged — it is a <code>Middleware</code>
+                           of the same shape and adds request timing, which the default does not report:
+                        </p>
+                        <pre><code>loggingMiddleware = logRequests(
+  logger: (String s, bool error) =&gt;
+      error ? tomLog.error(s) : tomLog.info(s),
+);</code></pre>
+                        <p>
+                          It is <strong>not</strong> the default because it reads nothing from the request context, so it can honour neither guard. The consequential one is 
+                          <code>shouldBeLogged</code>: the endpoint pipeline copies each endpoint's <code>logRequests</code> flag onto it, which is how 
+                          <code>TomHealthService</code> keeps a <code>/health</code> probe arriving every few seconds out of the log. Substituting shelf's middleware silently re-enables the line for every endpoint that opted out. 
+                          <code>hasBeenLogged</code> likewise stops being honoured, so a retried or re-entered request logs once per pass.
+                        </p>
+                        <p>
+                          It also logs the <em>error</em> path, which this layer deliberately does not: it sits inside <code>_handleError</code>, which already logs the error and its stack trace, so shelf's middleware reports every failed request twice.
+                        </p>
+                        <p>
+                          Choose it when timing matters more than the opt-out — a load test, or a deployment with no suppressed endpoints — and expect health-probe noise and doubled error reports.
+                        </p>
+                      </div>
                     </div>
-                    <div id="TomBaseServerConfiguration.isolateLogging" class="api-member"><div class="api-member-head"><code class="api-signature">bool isolateLogging</code></div></div>
-                    <div id="TomBaseServerConfiguration.logLevelExceptions" class="api-member"><div class="api-member-head"><code class="api-signature">String logLevelExceptions</code></div></div>
-                    <div id="TomBaseServerConfiguration.logLevel" class="api-member"><div class="api-member-head"><code class="api-signature">String logLevel</code></div></div>
+                    <div id="TomBaseServerConfiguration.isolateLogging" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool isolateLogging</code></div>
+                      <div class="api-doc">
+                        <p>Whether the deployment moves logging into an isolate of its own.</p>
+                        <p>
+                          Read by the application's boot, not by the framework: the step it gates is <code>TomIsolateLogging.startIsolatedLogging</code>, which a 
+                          <code>main</code> calls once in the main isolate. Declared here so it arrives through the same merge as every other setting rather than being read from the environment by hand.
+                        </p>
+                        <p>
+                          <code>true</code> by default. Isolated logging keeps formatting and writing off the request path, which matters most for a worker pool, where every isolate would otherwise write to the same sink; the cost is that a log line is posted to another isolate, so a process that dies abruptly can lose the last of them.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.logLevelExceptions" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String logLevelExceptions</code></div>
+                      <div class="api-doc">
+                        <p>Per-logger log-level overrides, as <code>name1=level1,name2=level2</code>.</p>
+                        <p>
+                          <strong>Not a level for exceptions.</strong> It is the pattern <code>TomLogger.setLogLevelExceptions</code>
+                           parses, where each entry raises or lowers the level for one logger <em>name</em> against the global [logLevel] — the "exception" is to the global setting, not an error. 
+                          <code>MyClass=DEBUG</code> turns one class up while the rest of the deployment stays at <code>INFO</code>.
+                        </p>
+                        <p>
+                          Empty (the default) sets no override. An unparseable pattern is logged and otherwise ignored, so a typo here loses the overrides silently rather than stopping the boot. Applied by the application's boot alongside [logLevel]; the framework only carries the value.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.logLevel" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String logLevel</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The global log level, by name: <code>TRACE</code>, <code>DEBUG</code>, <code>TRAFFIC</code>, <code>INFO</code>, 
+                          <code>WARN</code>, <code>STATUS</code>, <code>ERROR</code>, <code>SEVERE</code>, <code>FATAL</code>, or one of the aggregate names (<code>ALL</code>, 
+                          <code>DEVELOPMENT</code>, <code>EXTENDED</code>, <code>ERRORS</code>, <code>PRODUCTION</code>, <code>STILL</code>, 
+                          <code>SILENT</code>, <code>OFF</code>).
+                        </p>
+                        <p>
+                          Empty (the default) leaves the logger at whatever it already had, so a deployment that says nothing does not get silence. An unrecognised name is reported as an error and the level is left alone.
+                        </p>
+                        <p>
+                          Applied by the application's boot — <code>tomLog.setLogLevelByName(...)</code> — and not by the framework, which is why it takes effect at the point that call is reached: everything logged earlier in the boot, this class's own merge included, is emitted at the previous level.
+                        </p>
+                        <p>Environment name: <code>LOG_LEVEL</code> (see [getDefaultValues]).</p>
+                      </div>
+                    </div>
                     <div id="TomBaseServerConfiguration.databaseMigrationsDirectory" class="api-member">
                       <div class="api-member-head"><code class="api-signature">String databaseMigrationsDirectory</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The directory <code>TomDbMigrations.migrateDatabases</code> reads, relative to the working directory unless absolute.
+                        </p>
+                        <p>
+                          Defaults to <code>./database_migrations</code>, which is where every sample keeps them — and since the path is relative, a server started from anywhere but its package root finds no migrations rather than failing to find the directory. Migration is the application's boot step, so nothing in the framework reads this; it is declared here so the path is configurable per deployment through the same merge as the rest.
+                        </p>
+                        <p>
+                          The directory holds one subdirectory per datasource name, which is what ties a migration set to the datasource key it belongs to.
+                        </p>
+                      </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
+                    <div id="TomBaseServerConfiguration.usesDevelopmentTlsMaterial" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool usesDevelopmentTlsMaterial()</code></div>
+                      <div class="api-doc">
+                        <p>Whether either half of the TLS material is still the checked-in development pair.</p>
+                        <p>
+                          <strong>Either half, not both</strong>, because the two halves fail differently and both are worth hearing about. A default [privateKey] means the server authenticates itself with a key published in this repository, which is the danger this getter exists for. A default [certificateChain] beside an overridden key is a different fault with the same remedy: the pair does not match, so the socket fails to bind — and saying so before the bind is cheaper than reading the error afterwards.
+                        </p>
+                        <p>
+                          Compared against [developmentCertificateChain] and [developmentPrivateKey], which are the very constants the fields default to, so the check cannot drift from what it checks.
+                        </p>
+                        <p>
+                          It says nothing about whether TLS is <em>served</em> — [noSsl] answers that, and a plaintext server carrying the default pair is not doing anything wrong. [TomServer.warnOnDevelopmentTlsMaterial] puts the two questions together. A method rather than a getter, and on this class that is a distinction the documentation rests on: the 
+                          <code>Properties</code> table of <code>api_summary_configuration.md</code> is the list of <strong>knobs a deployment sets</strong>, held to the class's fields by a census, and a computed answer standing among them would blur the two.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomBaseServerConfiguration.setValues" class="api-member">
                       <div class="api-member-head"><code class="api-signature">void setValues(Map&lt;String, Object?&gt; values)</code></div>
                       <div class="api-doc">
@@ -1483,11 +2039,73 @@
                         <p>
                           Implemented by the generated reflection for the concrete subclass; each known field is set from the matching key in [values].
                         </p>
+                        <p>
+                          <strong>Implement it with the shared <code>tomReflectionInfo</code>, not with a <code>TomReflectionInfo(strictUnknownFields: true)</code>.</strong>
+                           Strictness turns a key naming no field into <code>reflection.set.unknown_field</code>, which is the right setting for a map whose two ends are both yours — and [values] is not that map. [getDefaultValues] merges the entire process environment into it, in both the 
+                          <code>SCREAMING_SNAKE_CASE</code> spelling and the field spelling [TomArgs.resolveEnvironmentNames] derives from it, so a configuration resolved on an ordinary developer machine arrives here carrying 
+                          <code>PATH</code>, <code>path</code>, <code>HOME</code>, <code>home</code> and eighty or so of their neighbours. A strict converter would refuse the first of them and no server would start.
+                        </p>
+                        <p>
+                          The cost is the one strictness exists to remove: a key misspelled in a configuration file is dropped in silence and the field keeps its default. Catching 
+                          <em>that</em> needs the check applied to the configuration layer alone, before the environment is merged over it — a narrower question than this method is in a position to ask.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.assertRequiredSettings" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void assertRequiredSettings(Map&lt;String, Object?&gt; values)</code></div>
+                      <div class="api-doc">
+                        <p>Throws when a field marked [TomRequiredField] was supplied by no source.</p>
+                        <p>
+                          Called by the constructor with the map [getDefaultValues] merged, which is the only place the question can be asked: the answer is "did 
+                          <em>any</em> source name this setting", and no single source knows. Binding cannot report it — an unsupplied setting leaves the field at its initialiser, which reads exactly like a setting nobody required, so the failure would otherwise surface much later as a connection to 
+                          <code>localhost:0</code> or an empty application id.
+                        </p>
+                        <p>
+                          Nothing on this class carries the annotation, and nothing should: every field here has a documented default, and a field a constructor falls back for is not required. An application marks its own:
+                        </p>
+                        <pre><code>@tomReflector
+class BillingConfiguration extends TomBaseServerConfiguration {
+  @TomRequiredField()
+  String dbUrl = '';
+
+  BillingConfiguration(super.args);
+}</code></pre>
+                        <p>
+                          Every missing setting is named at once, in declaration order, so a deployment fixes them in one pass rather than one restart at a time. A key present with a 
+                          <strong>null</strong> value counts as missing — a <code>.env</code> line <code>DB_URL=</code> names the setting without giving it one — while an explicitly empty command-line value (<code>dbUrl=</code>) counts as supplied. That is the distinction the conversion table draws deliberately; see [TomReflectionInfo.missingRequiredFields].
+                        </p>
+                        <p>
+                          Public and separate from the constructor so a configuration composed some other way — a test, a tool that merges its own sources — can ask the same question of the same map.
+                        </p>
+                        <p>
+                          <strong>A configuration with no mirrors is not checked.</strong> The annotation is read through reflection, so a subclass that implements [setValues] by hand instead of through the generator has none to read, and this method has nothing to report rather than a failure to report. That is a supported shape — a test or a tool composing a configuration without codegen — and it is the same class of object for which 
+                          <code>setValues</code> was already the subclass's own affair. A server whose <code>setValues</code> is generated is reflected by construction, so the check is in force wherever the framework binds the fields.
+                        </p>
                       </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
+                    <div id="TomBaseServerConfiguration.developmentCertificateChain" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String developmentCertificateChain</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The PEM certificate chain [certificateChain] defaults to: a throwaway self-signed <code>localhost</code>
+                           pair committed to this repository.
+                        </p>
+                        <p>
+                          Named rather than written inline so that [usesDevelopmentTlsMaterial] compares against the very text the field defaults to. A fingerprint or a copy would be a second statement of the same value, and the check would go quiet the day the two drifted apart.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBaseServerConfiguration.developmentPrivateKey" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String developmentPrivateKey</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The PEM private key [privateKey] defaults to, and the reason [usesDevelopmentTlsMaterial] exists: <strong>it is published</strong>, in this repository, so a server serving it authenticates itself with a key anyone can read.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomBaseServerConfiguration.getDefaultValues" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">static Map&lt;String, Object?&gt; getDefaultValues(List&lt;String&gt; args)</code>
@@ -1495,8 +2113,25 @@
                       <div class="api-doc">
                         <p>Builds the merged value map used to populate a configuration instance.</p>
                         <p>
-                          Starts from the active provider's [TomServerConfigResourceProvider.resources] and overlays, in increasing precedence: the OS environment, a 
-                          <code>.env</code> file (<code>./.env</code>), then the parsed [args]. Command-line arguments therefore win.
+                          Starts from a <strong>deep copy</strong> of the active provider's [TomServerConfigResourceProvider.resources] and overlays, in increasing precedence: the OS environment, a 
+                          <code>.env</code> file (<code>./.env</code>), then the parsed [args]. Command-line arguments therefore win. The copy is essential: the merges below mutate their first argument in place, so merging into the provider's own 
+                          <code>resources</code> would permanently inject the environment, the <code>.env</code> file and the CLI args into the process-wide provider. [deepCopyJsonTree] is the kernel's primitive for exactly this; a shallow 
+                          <code>Map.from</code> would leave every nested subtree shared and defeat the copy.
+                        </p>
+                        <h2>Environment names</h2>
+                        <p>
+                          Both environment sources pass through [TomArgs.resolveEnvironmentNames], so a variable written <code>SCREAMING_SNAKE_CASE</code>
+                           also arrives under the <code>lowerCamelCase</code> field name it spells: <code>JWT_SHARED_SECRET_KEY</code>
+                           sets [jwtSharedSecretKey], <code>LOG_LEVEL</code> sets [logLevel], <code>PORT</code> sets [port]. The verbatim key is kept as well, and a variable already spelled as the field wins over its screaming twin.
+                        </p>
+                        <p>
+                          Resolution happens <strong>per source</strong>, not on the merged result, so a resolved name inherits the precedence of the source it came from — a 
+                          <code>PORT</code> in the OS environment still loses to a <code>port=</code> argument.
+                        </p>
+                        <p>
+                          The command line is deliberately left out of it. An argument names its field directly — <code>port=9081</code>, or 
+                          <code>--port=9081</code>, since <code>TomArgs</code> strips a key's leading dashes (see <code>doc/cmdline.md</code>) — so there is no naming convention to reconcile, and accepting a 
+                          <code>SCREAMING_SNAKE_CASE</code> argument as well would widen the surface without gaining a source.
                         </p>
                       </div>
                     </div>
@@ -1509,6 +2144,11 @@
                     <p>Holds the resolved configuration tree and answers property lookups for [TomConfig].</p>
                     <p>
                       A single provider is shared process-wide through [getServerConfig]; install a populated one at startup with [setServerConfigProvider] or by setting the static [loader]. Keys may be dotted paths into the nested [resources] map (resolved via the kernel's tree walker).
+                    </p>
+                    <p>
+                      A dotted key is tried as a <strong>path first</strong> and as a literal top-level key only if the walk fails, so 
+                      <code>server.port</code> reads the same value whether it was written nested under <code>server:</code>
+                       or flat as <code>server.port:</code>. Where a tree carries <em>both</em>, the path wins and the flat key is unreachable — never merged and never reported. Use one spelling per key.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1532,6 +2172,10 @@
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
+                    <div id="TomServerConfigResourceProvider.isUnconfiguredPlaceholder" class="api-member"><div class="api-member-head"><code class="api-signature">bool isUnconfiguredPlaceholder</code></div></div>
+                    <div id="TomServerConfigResourceProvider._isUnconfiguredPlaceholder" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool _isUnconfiguredPlaceholder</code></div>
+                    </div>
                     <div id="TomServerConfigResourceProvider.resources" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Map&lt;String, dynamic&gt; resources</code></div>
                       <div class="api-doc"><p>The configuration tree: a possibly-nested map of property values.</p></div>
@@ -1541,14 +2185,32 @@
                   <div class="api-members">
                     <div id="TomServerConfigResourceProvider.exists" class="api-member">
                       <div class="api-member-head"><code class="api-signature">bool exists(String s)</code></div>
-                      <div class="api-doc"><p>Whether property [s] exists, as a dotted tree path or a top-level key.</p></div>
+                      <div class="api-doc">
+                        <p>Whether property [s] exists, as a dotted tree path or a top-level key.</p>
+                        <p>
+                          A property configured explicitly as <code>null</code> <strong>exists</strong>: [getObjectFromTree] resolves it rather than throwing, so the tree leg returns 
+                          <code>true</code> for it. That is the point of the distinction — a deliberately cleared setting is configured, and [TomConfig] must see it as configured so it does not silently substitute a default the operator was overriding.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomServerConfigResourceProvider.get" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">Object get(String s)</code></div>
+                      <div class="api-member-head"><code class="api-signature">Object? get(String s)</code></div>
                       <div class="api-doc">
                         <p>Returns property [s] (dotted path or top-level key).</p>
                         <p>
-                          As a deliberate fallback, an unknown key resolves to the key string [s] itself rather than throwing; callers gate on [exists] when absence must be distinguished (as [TomConfig] does).
+                          <strong>Gate on [exists] first.</strong> This method is total — it never throws, and it never answers 
+                          <code>null</code> for a key the tree does not hold — so it cannot, by itself, report a key nobody configured. An unknown key resolves to the key string [s]; [exists] is what separates that from a value. [TomConfig] gates, and a caller reading through it inherits the gate.
+                        </p>
+                        <p>
+                          That is the contract rather than a gap, and the reason is the pair of answers it keeps apart. <code>null</code>
+                           means the property is present and explicitly <strong>cleared</strong>; the key string means <strong>unknown</strong>. Answering 
+                          <code>null</code> for both would collapse them, and the distinction is the one [exists] was built to preserve: a cleared setting is configured, and [TomConfig] must see it as configured so it does not substitute the default the operator was overriding. Throwing instead would cost the other half — a read that cannot fail is what lets a caller walk a tree of optional settings without a 
+                          <code>try</code> at every step.
+                        </p>
+                        <p>
+                          The fallback is <em>indistinguishable from a configured value that equals its own key</em>, which is the price and is why the gate is [exists] rather than a test on the value. The cost of forgetting it is the one this API cannot remove: a missing 
+                          <code>host</code> reads back as the host name <code>host</code>, and the failure surfaces at connect time rather than at lookup. Every read in this package is gated, and 
+                          <code>configuration_test.dart</code> fails on one that is not.
                         </p>
                       </div>
                     </div>
@@ -1564,6 +2226,10 @@
                         <p>
                           Optional factory for the default provider's [resources]. When set, it is invoked the first time [getServerConfig] lazily creates a provider.
                         </p>
+                        <p>
+                          It is reachable <strong>only before a provider exists</strong>. The call is in the default constructor, which [getServerConfig] runs on its 
+                          <em>creating</em> access, so once [setServerConfigProvider] has installed anything this hook can never fire — setting it afterwards is silently inert. Use [TomServerConfigResourceProvider.load] from that point on; it defers the same build, scoped to one provider instead of standing as a process-wide default.
+                        </p>
                       </div>
                     </div>
                     <div id="TomServerConfigResourceProvider.setServerConfigProvider" class="api-member">
@@ -1574,7 +2240,13 @@
                     </div>
                     <div id="TomServerConfigResourceProvider.getServerConfig" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static TomServerConfigResourceProvider getServerConfig()</code></div>
-                      <div class="api-doc"><p>Returns the active provider, creating a default one (using [loader] if set) on first access.</p></div>
+                      <div class="api-doc">
+                        <p>Returns the active provider, creating a default one (using [loader] if set) on first access.</p>
+                        <p>
+                          The provider created here when [loader] is unset is a <strong>placeholder</strong>: it holds nothing, and nobody asked for it. It is returned rather than refused, so a direct 
+                          <code>exists</code>/<code>get</code> still answers, but it is marked (see [isUnconfiguredPlaceholder]) and [TomConfig] refuses to resolve against it — a property that resolves before its configuration exists is the ordering mistake, and taking the placeholder's answer hides it.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>

@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1385,7 +1391,14 @@
             <h2></h2>
             <a class="crosslink" href="/api/tom_d4rt">← tom_d4rt API</a>
             <div class="treewrap">
-              <div class="treepane"><div class="treenodes"><a class="leaf" href="#EnumCore">EnumCore</a></div></div>
+              <div class="treepane">
+                <div class="treenodes">
+                  <a class="leaf" href="#EnumCore">EnumCore</a>
+                  <a class="leaf" href="#_EnumFacts">_EnumFacts</a>
+                  <a class="leaf" href="#_comparandPair">_comparandPair</a>
+                  <a class="leaf" href="#_enumFacts">_enumFacts</a>
+                </div>
+              </div>
               <div class="reader">
                 <h2 class="api-library-title">package:tom_d4rt/src/stdlib/core/enum.dart</h2>
                 <code class="api-import">import 'package:tom_d4rt/src/stdlib/core/enum.dart';</code>
@@ -1405,6 +1418,34 @@
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
                     <div id="EnumCore.definition" class="api-member"><div class="api-member-head"><code class="api-signature">static BridgedClass definition</code></div></div>
+                  </div>
+                </section>
+                <section id="_EnumFacts" class="api-declaration">
+                  <h3 class="api-decl-title">typedef _EnumFacts</h3>
+                  <code class="api-signature">typedef _EnumFacts = ({int index, String name})</code>
+                  <div class="api-doc">
+                    <p>
+                      The <code>index</code> and <code>name</code> of one enum value, read from whichever representation the interpreter happens to be holding.
+                    </p>
+                  </div>
+                </section>
+                <section id="_comparandPair" class="api-declaration">
+                  <h3 class="api-decl-title">function _comparandPair</h3>
+                  <code class="api-signature">
+                    (({int index, String name}), ({int index, String name})) _comparandPair(String member, List&lt;Object?&gt; positionalArgs)
+                  </code>
+                  <div class="api-doc"><p>Reads both comparands, or throws naming the argument that is not an enum.</p></div>
+                </section>
+                <section id="_enumFacts" class="api-declaration">
+                  <h3 class="api-decl-title">function _enumFacts</h3>
+                  <code class="api-signature">({int index, String name})? _enumFacts(Object? value)</code>
+                  <div class="api-doc">
+                    <p>Reads [value] as an enum value regardless of representation.</p>
+                    <p>
+                      D4rt has three: a native SDK <code>Enum</code> (reached through a bridge that hands back the raw value), a [BridgedEnumValue] wrapping one, and an [InterpretedEnumValue], which is what a script-declared 
+                      <code>enum</code> produces and which has no native value at all. Writing these comparators as <code>positionalArgs[0] as Enum</code>
+                       would compile and then reject precisely the enums a script is most likely to declare and then compare. All three expose an index and a name, so the comparison is expressible over all three — and the rule that settles it is the one this bridge family keeps meeting: the bridge must not refuse what Dart accepts.
+                    </p>
                   </div>
                 </section>
               </div>

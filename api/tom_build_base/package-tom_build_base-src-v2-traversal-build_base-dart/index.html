@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1389,6 +1395,7 @@
                 <div class="treenodes">
                   <a class="leaf" href="#BuildBase">BuildBase</a>
                   <a class="leaf" href="#ProcessingResult">ProcessingResult</a>
+                  <a class="leaf" href="#describeUnmatchedProjectPatterns">describeUnmatchedProjectPatterns</a>
                 </div>
               </div>
               <div class="reader">
@@ -1412,7 +1419,7 @@
                     <div id="BuildBase.traverse" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          static Future&lt;ProcessingResult&gt; traverse({required BaseTraversalInfo info, required Future&lt;bool&gt; Function(CommandContext) run, Set&lt;Type&gt;? requiredNatures, Set&lt;Type&gt; worksWithNatures = const {}, bool verbose = false})
+                          static Future&lt;ProcessingResult&gt; traverse({required BaseTraversalInfo info, required Future&lt;bool&gt; Function(CommandContext) run, Set&lt;Type&gt;? requiredNatures, Set&lt;Type&gt; worksWithNatures = const {}, bool verbose = false, List&lt;String&gt; additionalProjectPatterns = const [], bool allowUnmatchedProjectPatterns = false})
                         </code>
                       </div>
                       <div class="api-doc">
@@ -1432,6 +1439,14 @@
                         </p>
                         <p>
                           <strong>Special types:</strong> - [FsFolder] in either set always matches (every folder is an FsFolder). - [DartProjectFolder] matches any Dart project subtype (hierarchy check).
+                        </p>
+                        <h2>Unmatched project selectors</h2>
+                        <p>
+                          A <code>--project</code> pattern that matches none of the scanned projects is a mistake, not an empty request: the run would otherwise do nothing and report success, which is indistinguishable from a run that worked. Such patterns are collected into [ProcessingResult.unmatchedProjectPatterns] and, unless [allowUnmatchedProjectPatterns] is set, nothing is executed.
+                        </p>
+                        <p>
+                          [additionalProjectPatterns] lets a caller that applies further <code>--project</code> selectors of its own (per-command patterns in 
+                          <code>ToolRunner</code>, which are filtered inside [run] rather than by the pipeline) have them audited by the same rule.
                         </p>
                       </div>
                     </div>
@@ -1523,6 +1538,12 @@
                     <div id="ProcessingResult._errors" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final Map&lt;String, Object&gt; _errors</code></div>
                     </div>
+                    <div id="ProcessingResult._unmatchedProjectPatterns" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">List&lt;String&gt; _unmatchedProjectPatterns</code></div>
+                    </div>
+                    <div id="ProcessingResult.unmatchedProjectPatterns" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">List&lt;String&gt; unmatchedProjectPatterns</code></div>
+                    </div>
                     <div id="ProcessingResult.successes" class="api-member"><div class="api-member-head"><code class="api-signature">List&lt;String&gt; successes</code></div></div>
                     <div id="ProcessingResult.failures" class="api-member"><div class="api-member-head"><code class="api-signature">List&lt;String&gt; failures</code></div></div>
                     <div id="ProcessingResult.errors" class="api-member">
@@ -1544,12 +1565,25 @@
                     <div id="ProcessingResult.recordError" class="api-member">
                       <div class="api-member-head"><code class="api-signature">void recordError(String path, Object error)</code></div>
                     </div>
+                    <div id="ProcessingResult.recordUnmatchedProjectPatterns" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void recordUnmatchedProjectPatterns(List&lt;String&gt; patterns)</code></div>
+                    </div>
                     <div id="ProcessingResult.toString" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">String toString()</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
+                  </div>
+                </section>
+                <section id="describeUnmatchedProjectPatterns" class="api-declaration">
+                  <h3 class="api-decl-title">function describeUnmatchedProjectPatterns</h3>
+                  <code class="api-signature">String describeUnmatchedProjectPatterns(List&lt;String&gt; patterns, {required String scanRoot})</code>
+                  <div class="api-doc">
+                    <p>The error message for [ProcessingResult.unmatchedProjectPatterns].</p>
+                    <p>
+                      Names both the patterns and [scanRoot], because the same selector is right or wrong depending on where the tool was pointed — "no such project" is only actionable together with "looked here". Shared so that every caller that turns unmatched selectors into a failure words it identically.
+                    </p>
                   </div>
                 </section>
               </div>

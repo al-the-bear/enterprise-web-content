@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1389,6 +1395,7 @@
                 <div class="treenodes">
                   <a class="leaf" href="#TomBoolConfig">TomBoolConfig</a>
                   <a class="leaf" href="#TomConfig">TomConfig</a>
+                  <a class="leaf" href="#TomConfigurationException">TomConfigurationException</a>
                   <a class="leaf" href="#TomDoubleConfig">TomDoubleConfig</a>
                   <a class="leaf" href="#TomIntConfig">TomIntConfig</a>
                   <a class="leaf" href="#TomStringConfig">TomStringConfig</a>
@@ -1424,7 +1431,34 @@
                       <code>get</code>/<code>exists</code>).
                     </p>
                     <p>
-                      Resolution order at construction: 1. If the provider has the [key], its value is cast to [T] (a failed cast throws an [Exception] naming the key, type, and value). 2. Otherwise, if a default was supplied via [TomConfig.withDefault], the default is used. 3. Otherwise the property is considered obligatory and construction throws.
+                      Resolution order at construction: 1. If the provider has the [key], its value is cast to [T] (a failed cast throws a [TomConfigurationException] naming the key, type and value, and chaining the [TypeError] the cast raised). 2. Otherwise, if a default was supplied via [TomConfig.withDefault], the default is used. 3. Otherwise the property is considered obligatory and construction throws.
+                    </p>
+                    <p>
+                      One widening applies in branch 1: an <code>int</code> resolves as a <code>double</code> when [T] is <code>double</code>
+                       (or <code>double?</code>), so <code>rate: 2</code> and <code>rate: 2.0</code> mean the same thing. A configuration file cannot say "double" — both YAML 
+                      <code>rate: 2</code> and JSON <code>"rate": 2</code> decode to an <code>int</code> — and the reflected path that fills a configuration object's 
+                      <em>fields</em> widens the same way, so a file that fills a declared <code>double</code> field also satisfies the matching [TomDoubleConfig]. The converse does not hold: a decimal is still refused for an 
+                      <code>int</code>, because narrowing would need a rounding policy and truncating <code>2.5</code> would discard what the operator wrote.
+                    </p>
+                    <p>
+                      The provider is the <strong>only</strong> source read. The OS environment, the <code>.env</code> file and the command line are 
+                      <em>not</em> a fourth branch: they are merged by [TomBaseServerConfiguration.getDefaultValues] into a 
+                      <strong>copy</strong> of the provider's resources, and that copy populates a configuration object's <em>fields</em>
+                       — it is never installed back into the provider, so merging one server's arguments cannot leak into every later lookup in the process. To read such a value here, install the merged map as the provider first:
+                    </p>
+                    <pre><code>TomServerConfigResourceProvider.setServerConfigProvider(
+  TomServerConfigResourceProvider.from(
+    TomBaseServerConfiguration.getDefaultValues(args).cast&lt;String, dynamic&gt;(),
+  ),
+);</code></pre>
+                    <p>
+                      Note that [TomConfig.withDefault] fails <em>silently</em> against an unmerged key: an absent key and a key the environment supplied but nobody installed are indistinguishable here, so the default wins and nothing throws.
+                    </p>
+                    <p>
+                      A key configured explicitly as <code>null</code> takes branch 1, not branch 2: the provider reports it as present, because an explicit 
+                      <code>null</code> is a deliberate act and a default exists to cover an <em>absent</em> key (the same reason a nullable 
+                      <code>null</code> default is honoured). So <code>TomConfig&lt;int?&gt;</code> reads it as <code>null</code>, while 
+                      <code>TomConfig&lt;int&gt;</code> fails the cast and throws naming the key. Failing loudly is intended: silently substituting the default would discard the very setting the operator wrote.
                     </p>
                     <p>
                       Prefer the typed subclasses ([TomStringConfig], [TomIntConfig], [TomDoubleConfig], [TomBoolConfig]) where the type is known up front.
@@ -1450,6 +1484,15 @@
                     <div id="TomConfig._value" class="api-member"><div class="api-member-head"><code class="api-signature">T? _value</code></div></div>
                     <div id="TomConfig._propertyKey" class="api-member"><div class="api-member-head"><code class="api-signature">String _propertyKey</code></div></div>
                     <div id="TomConfig._defaultValue" class="api-member"><div class="api-member-head"><code class="api-signature">T? _defaultValue</code></div></div>
+                    <div id="TomConfig._hasDefault" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool _hasDefault</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Whether a default was supplied via [TomConfig.withDefault]. Tracked separately from <code>_defaultValue != null</code>
+                           so a <em>nullable</em> <code>null</code> default is honoured rather than treated as "no default".
+                        </p>
+                      </div>
+                    </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
@@ -1464,6 +1507,64 @@
                     <div id="TomConfig.~" class="api-member">
                       <div class="api-member-head"><code class="api-signature">T? operator ~()</code></div>
                       <div class="api-doc"><p>Shorthand for [get]: <code>~config</code> returns the resolved value.</p></div>
+                    </div>
+                  </div>
+                </section>
+                <section id="TomConfigurationException" class="api-declaration">
+                  <h3 class="api-decl-title">class TomConfigurationException</h3>
+                  <code class="api-signature">class TomConfigurationException extends TomServerException</code>
+                  <div class="api-doc">
+                    <p>A configuration property could not be resolved.</p>
+                    <p>
+                      <strong>One type, three conditions, told apart by <code>key</code></strong> — the shape <code>TomProperty</code>
+                       uses on the client side for the same question, and the reason a caller can write one <code>on TomConfigurationException catch</code>
+                       and still discriminate:
+                    </p>
+                    <table class="mdtable">
+                      <thead><tr><th><code>key</code></th><th>Condition</th></tr></thead>
+                      <tbody>
+                        <tr>
+                          <td><code>configuration.tom_config.property_not_configured</code></td>
+                          <td>The key is absent and the property declared no default.</td>
+                        </tr>
+                        <tr>
+                          <td><code>configuration.tom_config.property_type_mismatch</code></td>
+                          <td>The key holds a value that cannot be cast to the property's <code>T</code>.</td>
+                        </tr>
+                        <tr>
+                          <td><code>configuration.tom_config.no_provider_installed</code></td>
+                          <td>The property was declared before any provider existed.</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <p>
+                      All three are raised during <strong>construction</strong>, so catching one means wrapping the declaration rather than the read. 
+                      <code>parameters</code> carries the <code>key</code> — and, for a type mismatch, the <code>type</code>
+                       it was wanted as and the offending <code>value</code> — so a handler reports them without parsing the message. A type mismatch also chains the [TypeError] the cast raised as 
+                      <code>rootException</code>: the message names the type that was <em>expected</em>, and for a generic mismatch only the 
+                      <code>TypeError</code> names the subtype relation that actually failed (a YAML <code>hosts: [a, b]</code>
+                       read as <code>List&lt;String&gt;</code> reports <code>with value [a, b]</code>, which is exactly what the operator wrote).
+                    </p>
+                    <p>
+                      <strong><code>clientThrow</code> is <code>false</code> by default, and that is a property of the type.</strong>
+                       Every message here names an internal configuration key, and the type mismatch names the offending value as well — which for 
+                      <code>smtpPassword</code> or <code>jwtSharedSecretKey</code> is the secret itself. None of that may reach a caller, so the decision is made once, where the exception is defined, rather than at each raise site in turn.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomConfigurationException.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          TomConfigurationException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, StackTrace? stack, Object? rootException, bool autoLog = false, bool clientThrow = false})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Creates a configuration resolution failure.</p>
+                        <p>
+                          [clientThrow] defaults to <code>false</code>, unlike [TomServerException]'s <code>true</code>: a configuration message is for the operator who wrote the file.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>

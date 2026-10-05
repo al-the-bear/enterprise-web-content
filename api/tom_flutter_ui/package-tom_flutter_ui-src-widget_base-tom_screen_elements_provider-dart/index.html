@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1470,7 +1476,7 @@ class OrderDetailsProvider extends TomScreenElementsProviderBase {
                       <div class="api-doc">
                         <p>Creates a scoped element provider.</p>
                         <p>
-                          [scopeId] — the scope segment for this provider (e.g., <code>'basicSection'</code>). When <code>null</code>, the provider adopts the current scope without creating a child scope. This is useful for root providers that run inside an existing [TomScope.withScope] zone.
+                          [scopeId] — the scope segment for this provider (e.g., <code>'basicSection'</code>). When <code>null</code>, the provider passes through to the surrounding scope instead of adding a segment of its own, so its path — and the path of everything it declares — is exactly the surrounding one. This is the shape a root provider takes: inside a [TomScope.withScope] zone it adopts that zone's scope, and outside any zone it adopts the root, whose path is empty.
                         </p>
                         <p>
                           [parent] — optional parent provider. When given, this provider's scope nests under <code>parent.scope</code>. When omitted, nests under the current zone scope ([TomScope.current]).
@@ -1480,7 +1486,35 @@ class OrderDetailsProvider extends TomScreenElementsProviderBase {
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
+                    <div id="TomScreenElementsProviderBase._passThrough" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final InvalidType _passThrough</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The scope this provider passes through to, or <code>null</code> when it owns a scope segment of its own.
+                        </p>
+                        <p>
+                          Holding the adopted scope itself — rather than a copy of its identity — is what makes pass-through faithful. [TomScope.buildScopePath] elides the root by 
+                          <em>identity</em>, never by name, so a copy of the root reproduces its id and parent but not its identity, and therefore contributes a 
+                          <code>default</code> segment the original would not.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomScreenElementsProviderBase.scope" class="api-member"><div class="api-member-head"><code class="api-signature">InvalidType scope</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="TomScreenElementsProviderBase.getScopePath" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">String getScopePath()</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="TomScreenElementsProviderBase.runInScope" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">T runInScope&lt;T&gt;(T Function() body)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
                   </div>
                 </section>
               </div>

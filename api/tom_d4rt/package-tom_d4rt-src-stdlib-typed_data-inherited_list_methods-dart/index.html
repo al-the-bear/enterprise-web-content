@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1389,6 +1395,9 @@
                 <div class="treenodes">
                   <a class="leaf" href="#inheritedListGetters">inheritedListGetters</a>
                   <a class="leaf" href="#inheritedListMethods">inheritedListMethods</a>
+                  <a class="leaf" href="#inheritedListSetters">inheritedListSetters</a>
+                  <a class="leaf" href="#typedListGetters">typedListGetters</a>
+                  <a class="leaf" href="#typedListStaticGetters">typedListStaticGetters</a>
                 </div>
               </div>
               <div class="reader">
@@ -1409,7 +1418,7 @@
                 <section id="inheritedListMethods" class="api-declaration">
                   <h3 class="api-decl-title">function inheritedListMethods</h3>
                   <code class="api-signature">
-                    Map&lt;String, Object? Function(InterpreterVisitor, Object, List&lt;Object?&gt;, Map&lt;String, Object?&gt;, List&lt;RuntimeType&gt;?)&gt; inheritedListMethods&lt;E&gt;(List&lt;E&gt; Function(Object) coerce)
+                    Map&lt;String, Object? Function(InterpreterVisitor, Object, List&lt;Object?&gt;, Map&lt;String, Object?&gt;, List&lt;RuntimeType&gt;?)&gt; inheritedListMethods&lt;E&gt;(List&lt;E&gt; Function(Object) coerce, {required String className, required Object Function(Object) unmodifiableView})
                   </code>
                   <div class="api-doc">
                     <p>
@@ -1418,11 +1427,30 @@
                       <code>Uint8List</code>, …).
                     </p>
                     <p>
-                      <strong>Why this helper exists.</strong> The d4rt interpreter resolves bridged method names with a direct 
-                      <code>bridgedClass.methods[name]</code> lookup (<code>interpreter_visitor.dart</code>) — it does <em>not</em>
-                       walk the supertype chain to the <code>List</code> / <code>Iterable</code> bridges. So each typed-data list variant has to declare its own copy of 
-                      <code>toList</code>, <code>map</code>, <code>where</code>, etc. Without this helper, exposing those methods would mean duplicating ~25 adapters across 12 typed-data variant files. The helper centralises the implementations and each variant just merges 
+                      <strong>Why this helper exists.</strong> Each typed-data list variant has to declare its own copy of 
+                      <code>toList</code>, <code>map</code>, <code>where</code>, etc. Without this helper, exposing those methods would mean duplicating ~30 adapters across the typed-data variant files. The helper centralises the implementations and each variant just merges 
                       <code>inheritedListMethods&lt;E&gt;(...)</code> into its <code>methods:</code> map.
+                    </p>
+                    <p>
+                      <strong>Why the explicit lists are not redundant with the <code>List</code> bridge.</strong> The supertype registry declares 
+                      <code>Int8List -&gt; List -&gt; Iterable</code> (and the same for every other variant), so a member that misses on a typed view's own bridge falls back to 
+                      <code>lookupOnBridgedSupertypes</code> and reaches the generic <code>List</code> bridge. Every member below therefore 
+                      <em>resolves</em> either way, which makes deleting the spread look safe. It is not.
+                    </p>
+                    <p>
+                      Resolution is not the question. The <code>List</code> bridge is generic over <code>Object?</code>, while a typed-data list is a 
+                      <code>List&lt;E&gt;</code> whose element type is <em>reified</em> at the native boundary. Any member that passes an iterable or a callback 
+                      <em>into</em> the native call needs the concrete <code>E</code>, which only a per-element-type adapter can supply. Measured on 
+                      <code>Int8List</code> with the spread removed, three members change behaviour:
+                    </p>
+                    <ul><li><code>followedBy([9])</code> hands a <code>List&lt;Object?&gt;</code> to a parameter typed</li></ul>
+                    <p>
+                      <code>Iterable&lt;int&gt;</code> and throws <code>_TypeError</code>; <em> <code>reduce((a, b) =&gt; a + b)</code> builds a <code>(dynamic, dynamic) =&gt; Object?</code> closure where 
+                        <code>(int, int) =&gt; int</code> is required, and throws; </em> <code>firstWhere(…, orElse: () =&gt; 's')</code>
+                       returns the <code>String</code> to the script instead of rejecting it.
+                    </p>
+                    <p>
+                      <code>test/stdlib/typed_data/typed_list_inherited_members_test.dart</code> pins the last two as F-SCC60-1 and F-SCC60-2; F-SCB3-20 pins the first. A prune that reaches for the supertype walk will turn those red.
                     </p>
                     <p>
                       The [coerce] callback narrows <code>target</code> to the concrete typed-data variant — e.g. <code>(t) =&gt; t as Float64List</code>. Typed-data lists are all 
@@ -1430,9 +1458,70 @@
                        surface natively.
                     </p>
                     <p>
-                      Mutating <code>List&lt;E&gt;</code> operations (<code>add</code>, <code>remove</code>, <code>insert</code>, 
-                      <code>sort</code>, …) are <em>not</em> included here because typed-data lists are fixed-length and would throw 
-                      <code>UnsupportedError</code> at runtime.
+                      Length-<em>changing</em> <code>List&lt;E&gt;</code> operations (<code>add</code>, <code>insert</code>, 
+                      <code>remove</code>, <code>clear</code>, …) are <em>not</em> included here: typed-data lists are fixed-length and those genuinely throw 
+                      <code>UnsupportedError</code>.
+                    </p>
+                    <p>
+                      In-place reordering, however, <em>is</em> included. <code>sort</code> and <code>shuffle</code> permute the existing elements without changing the length, so the SDK supports them on every typed-data variant. They were once excluded here on the mistaken grounds that all "mutating" operations throw — which conflated fixed-<em>length</em>
+                       with immutable, and left nine of the ten shared variants unable to sort while <code>Uint8List</code>
+                       (which hand-rolls its own adapter map) could.
+                    </p>
+                    <p>
+                      [unmodifiableView] is required rather than optional because <code>asUnmodifiableView</code> is declared on each concrete typed-data class, not on 
+                      <code>List&lt;E&gt;</code>, so it cannot be expressed through [coerce]. Making it required means a newly added variant cannot silently omit it. [className] names the concrete variant for the arity diagnostic. SCD204 added it, and it is the reason the 21 adapters here were the residue SCC85 left behind: the sweep's guard message takes a 
+                      <code>Class.member</code> string, and a helper shared by thirteen bridges has no single class to name at the point an adapter is written. Every call site knows it — it is in the 
+                      <code>name:</code> field of the <code>BridgedClass</code> two lines above — so this threads a value that exists rather than inventing one. Required, so a new variant cannot omit it and quietly report the wrong class.
+                    </p>
+                  </div>
+                </section>
+                <section id="inheritedListSetters" class="api-declaration">
+                  <h3 class="api-decl-title">function inheritedListSetters</h3>
+                  <code class="api-signature">
+                    Map&lt;String, void Function(InterpreterVisitor?, Object, Object?)&gt; inheritedListSetters&lt;E&gt;(List&lt;E&gt; Function(Object) coerce)
+                  </code>
+                  <div class="api-doc">
+                    <p>The <code>List&lt;E&gt;</code> setters every typed list inherits.</p>
+                    <p>
+                      SCD28. <code>Uint8List</code> hand-rolled these three and the other ten had NO <code>setters</code> map at all, so 
+                      <code>l.first = 1</code> worked on <code>Uint8List</code> and raised <code>RuntimeD4rtException</code>
+                       on its siblings — with <code>Uint8List</code> being the correct one for once. All three are valid Dart on every typed list: 
+                      <code>first</code> and <code>last</code> are length-PRESERVING and simply assign, and <code>length</code>
+                       is declared but throws <code>UnsupportedError</code> on a fixed-length list, which is a runtime answer rather than a missing member.
+                    </p>
+                    <p>
+                      That is the shape SCD28 exists to remove: a member correct in one variant and absent from ten, because one variant did not share the code. Reached through the shared helper, the eleven cannot disagree again.
+                    </p>
+                  </div>
+                </section>
+                <section id="typedListGetters" class="api-declaration">
+                  <h3 class="api-decl-title">function typedListGetters</h3>
+                  <code class="api-signature">
+                    Map&lt;String, Object? Function(InterpreterVisitor?, Object)&gt; typedListGetters&lt;E&gt;(List&lt;E&gt; Function(Object) coerce)
+                  </code>
+                  <div class="api-doc">
+                    <p>
+                      The getters every typed-data list variant declares for itself — the <code>TypedData</code> view (<code>lengthInBytes</code>, 
+                      <code>elementSizeInBytes</code>, <code>offsetInBytes</code>, <code>buffer</code>) and the list basics — as one map per variant.
+                    </p>
+                    <p>
+                      SCE202. Ten variants wrote each of these guarded — <code>if (target is Int8List) return …; throw RuntimeD4rtException(…)</code>
+                       — and <code>Uint8List</code> wrote them as a bare cast, so a wrong target would have meant a descriptive error from ten and a raw 
+                      <code>_TypeError</code> from one. That question was MEASURED rather than argued, 2026-09-28: every one of the 176 guard branches (both trees) was instrumented, and 4 092 interpreted calls — all eleven variants, six ways of building each (fresh, 
+                      <code>fromList</code>, <code>sublist</code>, <code>sublistView</code>, <code>asUnmodifiableView</code>, 
+                      <code>view</code> over a buffer), fourteen getters, through the typed, <code>dynamic</code>, <code>List</code>, 
+                      <code>TypedData</code> and <code>Iterable</code> static types — plus both full suites reached none of them. Dispatch picks the bridge from the value's own class, and no variant is a subtype of another (<code>typed_data_hierarchy.dart</code>
+                       gives each <code>['TypedData', 'List']</code> only), so a wrong target cannot arrive here: the guards were dead code, not a safety net. The branches are gone and the eleven share this map.
+                    </p>
+                  </div>
+                </section>
+                <section id="typedListStaticGetters" class="api-declaration">
+                  <h3 class="api-decl-title">function typedListStaticGetters</h3>
+                  <code class="api-signature">Map&lt;String, Object? Function(InterpreterVisitor)&gt; typedListStaticGetters(int bytesPerElement)</code>
+                  <div class="api-doc">
+                    <p>Static members shared by every typed-data list variant.</p>
+                    <p>
+                      <code>bytesPerElement</code> is a <code>static const int</code> on each concrete class, so it cannot be reached through the instance maps or through any supertype fallback — the interpreter does not walk the chain for statics at all. Pass the SDK constant itself (<code>typedListStaticGetters(Float32List .bytesPerElement)</code>) rather than a literal, so the bridged value cannot drift from the platform's.
                     </p>
                   </div>
                 </section>

@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1402,8 +1408,10 @@
                   <ul>
                     <li>Primary server base URI configuration</li>
                     <li>Separate authentication server URI (optional)</li>
-                    <li>Singleton pattern for global access</li>
+                    <li>A process-wide context for global access, installed once at startup</li>
+                    <li>A zone-scoped override for addressing a second server from part of a</li>
                   </ul>
+                  <p>program</p>
                   <h2>Example</h2>
                   <pre><code>// Initialize the remote context (typically at app startup)
 TomClientRemoteContext.setCurrent(
@@ -1422,12 +1430,20 @@ final baseUri = TomClientRemoteContext.current!.baseUri;</code></pre>
                   <div class="api-doc">
                     <p>Configures the remote server connection for client applications.</p>
                     <p>
-                      This class holds the base URI for the primary API server and optionally a separate authentication server. Only one context can be active at a time.
+                      This class holds the base URI for the primary API server and optionally a separate authentication server. Exactly one context is [current] at any moment: a process-wide one installed once by [setCurrent], which [runWithContext] may shadow for the duration of a body.
                     </p>
                     <h2>Initialization</h2>
                     <p>The context should be set once during application startup:</p>
                     <pre><code>TomClientRemoteContext.setCurrent(
   TomClientRemoteContext(Uri.parse('https://api.example.com')),
+);</code></pre>
+                    <h2>Addressing a Second Server</h2>
+                    <p>
+                      [setCurrent] deliberately refuses a second call, so reaching a different remote for part of a program goes through [runWithContext] instead:
+                    </p>
+                    <pre><code>final report = await TomClientRemoteContext.runWithContext(
+  TomClientRemoteContext(Uri.parse('https://reporting.example.com')),
+  () =&gt; reportingApi.fetchSummary(),
 );</code></pre>
                     <h2>Separate Authentication Server</h2>
                     <p>If your authentication server is different from your API server:</p>
@@ -1456,11 +1472,19 @@ final baseUri = TomClientRemoteContext.current!.baseUri;</code></pre>
                   <div class="api-members">
                     <div id="TomClientRemoteContext.authenticationUri" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Uri authenticationUri</code></div>
-                      <div class="api-doc"><p>The URI for authentication requests.</p><p>Defaults to [baseUri] if not specified separately.</p></div>
+                      <div class="api-doc">
+                        <p>The URI for authentication requests, and for nothing else.</p>
+                        <p>
+                          Defaults to [baseUri] if not specified separately, which is why a call that addresses this one by mistake still works in a single-host deployment: only when the two are configured apart does the misrouting become visible. An endpoint reaches for this URI only if it is served by the authentication server; everything else uses [baseUri].
+                        </p>
+                      </div>
                     </div>
                     <div id="TomClientRemoteContext.baseUri" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Uri baseUri</code></div>
-                      <div class="api-doc"><p>The base URI for all API requests.</p></div>
+                      <div class="api-doc">
+                        <p>The base URI for all API requests.</p>
+                        <p>The default base for [TomServerEndpoint.createApiServerEndpoint].</p>
+                      </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
@@ -1474,12 +1498,12 @@ final baseUri = TomClientRemoteContext.current!.baseUri;</code></pre>
                   </div>
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
+                    <div id="TomClientRemoteContext._processContext" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static TomClientRemoteContext? _processContext</code></div>
+                      <div class="api-doc"><p>The process-wide context installed by [setCurrent].</p></div>
+                    </div>
                     <div id="TomClientRemoteContext.current" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static TomClientRemoteContext? current</code></div>
-                      <div class="api-doc">
-                        <p>The currently active remote context.</p>
-                        <p>Returns <code>null</code> if no context has been set.</p>
-                      </div>
                     </div>
                     <div id="TomClientRemoteContext.setCurrent" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static void setCurrent(TomClientRemoteContext context)</code></div>
@@ -1492,6 +1516,35 @@ final baseUri = TomClientRemoteContext.current!.baseUri;</code></pre>
                         <pre><code>TomClientRemoteContext.setCurrent(
   TomClientRemoteContext(Uri.parse('https://api.example.com')),
 );</code></pre>
+                      </div>
+                    </div>
+                    <div id="TomClientRemoteContext.runWithContext" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static T runWithContext&lt;T&gt;(TomClientRemoteContext context, T Function() body)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Runs [body] with [context] as [current], then restores what was there before.</p>
+                        <p>
+                          This is the supported way to address a different remote for part of a program — a tool talking to two servers, or a test exercising one. The context is carried on the [Zone], so it follows [body] across 
+                          <code>await</code> boundaries and the caller's own continuation never sees it.
+                        </p>
+                        <p>
+                          That bounds <em>reachability</em>, not lifetime. Anything [body] schedules — an unawaited request, a timer, a stream subscription — inherits the zone and still targets [context] whenever it later runs, however long after this call returned. Start work that belongs to a different remote outside the body, or install the context it should actually use.
+                        </p>
+                        <h2>Example</h2>
+                        <pre><code>final report = await TomClientRemoteContext.runWithContext(
+  TomClientRemoteContext(Uri.parse('https://reporting.example.com')),
+  () =&gt; reportingApi.fetchSummary(),
+);</code></pre>
+                      </div>
+                    </div>
+                    <div id="TomClientRemoteContext.resetCurrent" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static void resetCurrent()</code></div>
+                      <div class="api-doc">
+                        <p>Clears the context installed by [setCurrent], so it may be called again.</p>
+                        <p>
+                          Exists for tests, which need a clean process context per case; application code sets the context once at startup and uses [runWithContext] for anything narrower.
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -1508,7 +1561,7 @@ final baseUri = TomClientRemoteContext.current!.baseUri;</code></pre>
                     <div id="TomClientRemoteContextException.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomClientRemoteContextException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, Object? stack, Object? rootException, bool autoLog = false, String? uuid, TomServerCallError? serverCallError})
+                          TomClientRemoteContextException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, StackTrace? stack, Object? rootException, bool autoLog = false, String? uuid, TomServerCallError? serverCallError})
                         </code>
                       </div>
                     </div>

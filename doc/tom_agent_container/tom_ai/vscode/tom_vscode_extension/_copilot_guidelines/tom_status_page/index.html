@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1411,21 +1417,30 @@
                   <strong>Quick actions</strong> — restart bridge, toggle debug logging, open config file, clear session, etc.
                 </li>
               </ul>
-              <h2>MCP Server card</h2>
+              <h2>MCP Server cards</h2>
               <p>
-                The <strong>MCP Server</strong> card configures and controls the standalone MCP server (see <a href="/docs?module=tom_vscode_extension&amp;path=doc%2Fmcp_server.md">../doc/mcp_server.md</a>). Rendered by 
-                <a href="https://github.com/al-the-bear/tom_vscode/blob/main/tom_vscode_extension/src/utils/mcpServerCard.ts">mcpServerCard.ts</a>; message handling in 
-                <a href="https://github.com/al-the-bear/tom_vscode/blob/main/tom_vscode_extension/src/handlers/statusPage-handler.ts">statusPage-handler.ts</a>.
+                The standalone MCP server (see <a href="/docs?module=tom_vscode_extension&amp;path=doc%2Fmcp_server.md">../doc/mcp_server.md</a>) is configured and controlled by 
+                <strong>two sibling cards</strong> rendered by <a href="https://github.com/al-the-bear/tom_vscode/blob/main/tom_vscode_extension/src/utils/mcpServerCard.ts">mcpServerCard.ts</a>
+                 under one shared <code>data-mcp-card</code> wrapper; message handling is in <a href="https://github.com/al-the-bear/tom_vscode/blob/main/tom_vscode_extension/src/handlers/statusPage-handler.ts">statusPage-handler.ts</a>. The shared wrapper lets the 
+                <code>saveMcpServer</code> gather reach every <code>data-mcp-field</code> / <code>data-mcp-tool</code>
+                 control regardless of which card it lives in.
               </p>
               <ul>
                 <li>
-                  <strong>Controls</strong> (each maps to a <code>mcpServer.*</code> config field): <code>enabled</code>, 
-                  <code>autoStart</code>, <code>host</code>, <code>basePort</code>, <code>apiKeyEnv</code>, <code>allowWriteWithoutAuth</code>, 
-                  <code>toolsEnabled</code>, and the tool picker for <code>enabledTools</code>. The card shows the live runtime status (running + bound port, or stopped).
+                  <strong>MCP Server</strong> (control card, always open) — the live runtime status badge (running + bound port, or stopped), the 
+                  <strong>Start / Stop / Restart</strong> buttons, and the <code>enabled</code> / <code>autoStart</code>
+                   checkboxes. Always open so the lifecycle controls are directly reachable without expanding an accordion.
                 </li>
                 <li>
-                  <strong>Save</strong> — the <code>saveMcpServer</code> action gathers the controls and persists the <code>mcpServer</code>
-                   block; saving reconciles the running server (disabled ⇒ stop, running ⇒ restart onto the new settings).
+                  <strong>MCP Server Configuration</strong> (accordion, default collapsed, <code>data-collapse="mcpConfig"</code>) — the remaining 
+                  <code>mcpServer.*</code> fields (<code>host</code>, <code>basePort</code>, <code>apiKeyEnv</code>, <code>allowWriteWithoutAuth</code>, 
+                  <code>toolsEnabled</code>, and the tool picker for <code>enabledTools</code>) plus the <strong>Save</strong>
+                   button. The accordion <strong>closes on save</strong>: the <code>saveMcpServer</code> post step in <code>listeners.js</code>
+                   collapses <code>sp-mcpConfig-content</code> client-side, and the post-save panel refresh (main.js) preserves the collapsed state.
+                </li>
+                <li>
+                  <strong>Save</strong> — the <code>saveMcpServer</code> action gathers both cards' controls and persists the 
+                  <code>mcpServer</code> block (including <code>enabled</code> / <code>autoStart</code> from the control card); saving reconciles the running server (disabled ⇒ stop, running ⇒ restart onto the new settings).
                 </li>
                 <li>
                   <strong>Start / Stop / Restart</strong> — these buttons route through the generic <code>[data-status-action]</code>

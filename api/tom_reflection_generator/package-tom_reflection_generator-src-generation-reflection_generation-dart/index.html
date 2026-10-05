@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1389,10 +1395,13 @@
                 <div class="treenodes">
                   <a class="leaf" href="#ReflectionGenerationOptions">ReflectionGenerationOptions</a>
                   <a class="leaf" href="#ReflectionGenerationResult">ReflectionGenerationResult</a>
+                  <a class="leaf" href="#ReflectionFileOutcome">ReflectionFileOutcome</a>
+                  <a class="leaf" href="#_formatElapsed">_formatElapsed</a>
                   <a class="leaf" href="#_getPackageName">_getPackageName</a>
                   <a class="leaf" href="#_getTransitiveLibraries">_getTransitiveLibraries</a>
                   <a class="leaf" href="#_isGeneratableDart">_isGeneratableDart</a>
                   <a class="leaf" href="#_usesReflection">_usesReflection</a>
+                  <a class="leaf" href="#applyGeneratedOutput">applyGeneratedOutput</a>
                   <a class="leaf" href="#collectDartFilesFromDirectory">collectDartFilesFromDirectory</a>
                   <a class="leaf" href="#collectTargetFiles">collectTargetFiles</a>
                   <a class="leaf" href="#extractBuilderOptions">extractBuilderOptions</a>
@@ -1421,7 +1430,7 @@
                     <div id="ReflectionGenerationOptions.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          const ReflectionGenerationOptions.new({String packageName = 'tom_reflection', String outputExtension = '.reflection.dart', bool useAllCapabilities = false, bool allMode = false, bool verbose = false, bool noCache = false, bool rebuildCache = false, bool showCacheStatus = false, List&lt;String&gt; cacheOnlyPackages = const []})
+                          const ReflectionGenerationOptions.new({String packageName = 'tom_reflection', String outputExtension = '.reflection.dart', bool useAllCapabilities = false, bool allMode = false, bool verbose = false, bool noCache = false, bool rebuildCache = false, bool showCacheStatus = false, List&lt;String&gt; cacheOnlyPackages = const [], bool checkOnly = false, bool dryRun = false, String? pubCachePath})
                         </code>
                       </div>
                     </div>
@@ -1464,6 +1473,37 @@
                       <div class="api-member-head"><code class="api-signature">final List&lt;String&gt; cacheOnlyPackages</code></div>
                       <div class="api-doc"><p>Restrict summary caching to specific package(s).</p></div>
                     </div>
+                    <div id="ReflectionGenerationOptions.checkOnly" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final bool checkOnly</code></div>
+                      <div class="api-doc">
+                        <p>Compare against the committed output instead of overwriting it.</p>
+                        <p>
+                          Everything up to the final write is identical to an ordinary run — the same resolver, the same generator, the same source string. Only the last step differs: the string is compared with what is on disk rather than replacing it, and any difference fails the run.
+                        </p>
+                        <p>
+                          This is the guard against a generated file that no longer matches its source. That drift is invisible to every other signal: a stale type index leaves 
+                          <code>dart analyze</code> clean and the suites green, because it is metadata the tests never read. Costly — a check run is a full generation run — but it is the only thing that actually answers the question.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="ReflectionGenerationOptions.dryRun" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final bool dryRun</code></div>
+                      <div class="api-doc">
+                        <p>Report what a generation would write, and write nothing (the CLI <code>-n</code>).</p>
+                        <p>
+                          Like [checkOnly] it runs the whole pipeline and compares the result with what is on disk; unlike it, a difference is not a failure. A preview is an answer to "what would this do", not a verdict, so the run succeeds and lists each output it would create or update. [checkOnly] wins when both are set. The analyzer summary cache is a tool cache under 
+                          <code>.dart_tool/</code> and is still maintained; no project file is touched.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="ReflectionGenerationOptions.pubCachePath" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? pubCachePath</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The pub cache the pre-flight checks the lock against. Null means pub's own default (<code>PUB_CACHE</code>, else the platform location); tests point it at a fixture.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </section>
                 <section id="ReflectionGenerationResult" class="api-declaration">
@@ -1475,7 +1515,7 @@
                     <div id="ReflectionGenerationResult.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          const ReflectionGenerationResult.new({required int processedCount, required int skippedCount, bool cacheStatusShown = false, bool noFilesMatched = false})
+                          const ReflectionGenerationResult.new({required int processedCount, required int skippedCount, int failedCount = 0, int upToDateCount = 0, int staleCount = 0, List&lt;String&gt; staleFiles = const [], List&lt;String&gt; wouldWriteFiles = const [], String? pubCacheReport, bool cacheStatusShown = false, bool noFilesMatched = false, int severeCount = 0})
                         </code>
                       </div>
                     </div>
@@ -1489,8 +1529,37 @@
                     <div id="ReflectionGenerationResult.skippedCount" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final int skippedCount</code></div>
                       <div class="api-doc">
-                        <p>Number of files that were resolved but skipped (no reflection usage, no entry point, or an error).</p>
+                        <p>
+                          Number of files that were resolved but benignly skipped (no reflection usage, no entry point, or a non-library result).
+                        </p>
                       </div>
+                    </div>
+                    <div id="ReflectionGenerationResult.failedCount" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final int failedCount</code></div>
+                      <div class="api-doc">
+                        <p>Number of files whose resolution or generation crashed. These are hard failures, never benign skips.</p>
+                      </div>
+                    </div>
+                    <div id="ReflectionGenerationResult.upToDateCount" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final int upToDateCount</code></div>
+                      <div class="api-doc"><p>Check mode: number of files whose committed output already matches.</p></div>
+                    </div>
+                    <div id="ReflectionGenerationResult.staleCount" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final int staleCount</code></div>
+                      <div class="api-doc"><p>Check mode: number of files whose committed output differs or is missing.</p></div>
+                    </div>
+                    <div id="ReflectionGenerationResult.staleFiles" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final List&lt;String&gt; staleFiles</code></div>
+                      <div class="api-doc">
+                        <p>Check mode: the project-relative paths behind [staleCount].</p>
+                        <p>
+                          Carried rather than merely counted because the count alone does not tell anyone what to regenerate, and the whole point of the check is to name the file that drifted.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="ReflectionGenerationResult.wouldWriteFiles" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final List&lt;String&gt; wouldWriteFiles</code></div>
+                      <div class="api-doc"><p>Dry-run only: the outputs a generation would create or update, relative to the project root.</p></div>
                     </div>
                     <div id="ReflectionGenerationResult.cacheStatusShown" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final bool cacheStatusShown</code></div>
@@ -1500,6 +1569,103 @@
                       <div class="api-member-head"><code class="api-signature">final bool noFilesMatched</code></div>
                       <div class="api-doc"><p>True when no input files matched the supplied targets.</p></div>
                     </div>
+                    <div id="ReflectionGenerationResult.severeCount" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final int severeCount</code></div>
+                      <div class="api-doc">
+                        <p>Number of SEVERE diagnostics the generator emitted during the run.</p>
+                        <p>
+                          A severe means the generator met something it could not render and left it out — the mirror is knowingly incomplete even though the file was written. The count does not fail the run on its own, but it is the difference between "succeeded" and "succeeded, with N things missing".
+                        </p>
+                      </div>
+                    </div>
+                    <div id="ReflectionGenerationResult.hasFailures" class="api-member"><div class="api-member-head"><code class="api-signature">bool hasFailures</code></div></div>
+                    <div id="ReflectionGenerationResult.pubCacheReport" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? pubCacheReport</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The pub-cache pre-flight's report, when the project's lock names a package the cache cannot supply. Nothing was generated.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="ReflectionGenerationResult.hasPubCacheProblem" class="api-member"><div class="api-member-head"><code class="api-signature">bool hasPubCacheProblem</code></div></div>
+                    <div id="ReflectionGenerationResult.hasStaleOutputs" class="api-member"><div class="api-member-head"><code class="api-signature">bool hasStaleOutputs</code></div></div>
+                  </div>
+                </section>
+                <section id="ReflectionFileOutcome" class="api-declaration">
+                  <h3 class="api-decl-title">enum ReflectionFileOutcome</h3>
+                  <code class="api-signature">enum ReflectionFileOutcome</code>
+                  <div class="api-doc">
+                    <p>Per-file result of [processReflectionFile].</p>
+                    <p>
+                      A crash during resolution/generation is a distinct outcome from a benign skip: it MUST be surfaced loudly and MUST fail the run. Collapsing the two (the historical behaviour) let a poisoned analyzer summary produce a "succeeded — 0 generated, 1 skipped" run that regenerated nothing and left a stale 
+                      <code>.reflection.dart</code> in place.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Values</h4>
+                  <div class="api-members">
+                    <div id="ReflectionFileOutcome.generated" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">generated</code></div>
+                      <div class="api-doc"><p>An output <code>.reflection.dart</code> file was written.</p></div>
+                    </div>
+                    <div id="ReflectionFileOutcome.skipped" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">skipped</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The file was resolved but legitimately has nothing to generate (does not use the reflection package, has no 
+                          <code>main()</code> entry point, or resolved to a non-library result). A benign skip.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="ReflectionFileOutcome.failed" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">failed</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Resolution or generation threw. A hard failure — the run must exit non-zero and must not be reported as succeeded.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="ReflectionFileOutcome.upToDate" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">upToDate</code></div>
+                      <div class="api-doc"><p>Check mode only: the committed output matches what would be generated.</p></div>
+                    </div>
+                    <div id="ReflectionFileOutcome.stale" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">stale</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Check mode only: the committed output differs from what would be generated, or is missing entirely. The source and its generated counterpart have diverged; the run must exit non-zero.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="ReflectionFileOutcome.wouldWrite" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">wouldWrite</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Dry-run only: a generation would create or rewrite this output. Nothing was written, and it is not a failure.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="ReflectionFileOutcome.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">const ReflectionFileOutcome.new()</code></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="ReflectionFileOutcome.values" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static List&lt;ReflectionFileOutcome&gt; values</code></div>
+                    </div>
+                  </div>
+                </section>
+                <section id="_formatElapsed" class="api-declaration">
+                  <h3 class="api-decl-title">function _formatElapsed</h3>
+                  <code class="api-signature">String _formatElapsed(Duration elapsed)</code>
+                  <div class="api-doc">
+                    <p>
+                      Formats [elapsed] as a compact, build-runner-style duration string (e.g. <code>0.3s</code>, <code>12.7s</code>, 
+                      <code>1m 4s</code>).
+                    </p>
                   </div>
                 </section>
                 <section id="_getPackageName" class="api-declaration">
@@ -1529,10 +1695,33 @@
                 <section id="_usesReflection" class="api-declaration">
                   <h3 class="api-decl-title">function _usesReflection</h3>
                   <code class="api-signature">
-                    Future&lt;bool&gt; _usesReflection(LibraryElement library, StandaloneLibraryResolver resolver, String packageName)
+                    Future&lt;bool&gt; _usesReflection(LibraryElement library, LibraryResolver resolver, String packageName)
                   </code>
                   <div class="api-doc">
                     <p>Heuristic check that [library] (or its visible libraries) references the reflection [packageName].</p>
+                  </div>
+                </section>
+                <section id="applyGeneratedOutput" class="api-declaration">
+                  <h3 class="api-decl-title">function applyGeneratedOutput</h3>
+                  <code class="api-signature">
+                    ReflectionFileOutcome applyGeneratedOutput({required String outputPath, required String generatedSource, required bool checkOnly, bool dryRun = false})
+                  </code>
+                  <div class="api-doc">
+                    <p>Writes [generatedSource] to [outputPath], or in check mode compares the two.</p>
+                    <p>
+                      This is the single point where generating and checking diverge, which is why it is a named function rather than an 
+                      <code>if</code> inside [processReflectionFile]: everything before it — resolver, capabilities, generator — is shared by construction, so a check cannot drift from the generation it is checking.
+                    </p>
+                    <p>
+                      Comparison is exact. A benign formatting difference would be reported as drift, which sounds harsh but converges: the remedy is to regenerate, and once regenerated the bytes agree permanently. The alternative — normalising before comparing — would have to guess which differences are benign, and guessing wrong in that direction hides the very defect this exists to catch.
+                    </p>
+                    <p>
+                      A missing output counts as [ReflectionFileOutcome.stale]. A source that should have a generated counterpart and does not is drift, and the remedy is the same: run the generator.
+                    </p>
+                    <p>
+                      With [dryRun] (and not [checkOnly]) the comparison is made the same way but reported as a preview: <code>Would create</code>
+                       / <code>Would update</code> and [ReflectionFileOutcome.wouldWrite], or [ReflectionFileOutcome.upToDate].
+                    </p>
                   </div>
                 </section>
                 <section id="collectDartFilesFromDirectory" class="api-declaration">
@@ -1600,12 +1789,16 @@
                 <section id="processReflectionFile" class="api-declaration">
                   <h3 class="api-decl-title">function processReflectionFile</h3>
                   <code class="api-signature">
-                    Future&lt;bool&gt; processReflectionFile(String filePath, String projectRoot, StandaloneLibraryResolver resolver, bool verbose, String packageName, String outputExtension, {bool useAllCapabilities = false})
+                    Future&lt;ReflectionFileOutcome&gt; processReflectionFile(String filePath, String projectRoot, LibraryResolver resolver, bool verbose, String packageName, String outputExtension, {bool useAllCapabilities = false, bool checkOnly = false, bool dryRun = false})
                   </code>
                   <div class="api-doc">
                     <p>Generates reflection for a single [filePath].</p>
                     <p>
-                      Returns true when an output file was written, false when the file was skipped (does not use reflection, has no entry point, or failed to resolve).
+                      Returns [ReflectionFileOutcome.generated] when an output file was written, [ReflectionFileOutcome.skipped] when the file legitimately has nothing to generate (does not use reflection, has no entry point, or resolves to a non-library result), and [ReflectionFileOutcome.failed] when resolution or generation 
+                      <em>threw</em>. A thrown exception is a hard failure — it is reported prominently and never collapsed into a benign skip.
+                    </p>
+                    <p>
+                      With [checkOnly] the generated source is compared against the committed output instead of replacing it, yielding [ReflectionFileOutcome.upToDate] or [ReflectionFileOutcome.stale]. See [applyGeneratedOutput].
                     </p>
                   </div>
                 </section>

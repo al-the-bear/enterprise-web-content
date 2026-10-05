@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1386,7 +1392,10 @@
             <a class="crosslink" href="/api/tom_core_kernel">← tom_core_kernel API</a>
             <div class="treewrap">
               <div class="treepane">
-                <div class="treenodes"><a class="leaf" href="#convertMinutesToUtcOffset">convertMinutesToUtcOffset</a></div>
+                <div class="treenodes">
+                  <a class="leaf" href="#TomFormattingException">TomFormattingException</a>
+                  <a class="leaf" href="#convertMinutesToUtcOffset">convertMinutesToUtcOffset</a>
+                </div>
               </div>
               <div class="reader">
                 <h2 class="api-library-title">package:tom_core_kernel/src/tombase/little_things/formatting.dart</h2>
@@ -1402,7 +1411,31 @@
 print(convertMinutesToUtcOffset(0));    // "Z"
 print(convertMinutesToUtcOffset(330));  // "+05:30" (IST)
 print(convertMinutesToUtcOffset(-300)); // "-05:00" (EST)</code></pre>
+                  <p>
+                    Offsets are bounded to ±14:00, the range real timezones occupy; anything wider throws [TomFormattingException] rather than producing a string no ISO 8601 parser accepts.
+                  </p>
                 </div>
+                <section id="TomFormattingException" class="api-declaration">
+                  <h3 class="api-decl-title">class TomFormattingException</h3>
+                  <code class="api-signature">class TomFormattingException extends TomException</code>
+                  <div class="api-doc">
+                    <p>Thrown when a formatting function is given a value it cannot render.</p>
+                    <p>
+                      The rest of this module deliberately does not throw — [tomGetStackTrace] and friends run while reporting some other failure, so raising there would lose it. That reasoning does not reach here: [convertMinutesToUtcOffset] renders timezone data on the ordinary path, where a value it cannot express is a caller bug worth surfacing rather than a crash report worth saving.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomFormattingException.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          TomFormattingException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, StackTrace? stack, Object? rootException, bool autoLog = false})
+                        </code>
+                      </div>
+                      <div class="api-doc"><p>Creates a formatting exception with the given [key] and message.</p></div>
+                    </div>
+                  </div>
+                </section>
                 <section id="convertMinutesToUtcOffset" class="api-declaration">
                   <h3 class="api-decl-title">function convertMinutesToUtcOffset</h3>
                   <code class="api-signature">String convertMinutesToUtcOffset(int totalMinutes)</code>
@@ -1411,14 +1444,23 @@ print(convertMinutesToUtcOffset(-300)); // "-05:00" (EST)</code></pre>
                     <p>Returns "Z" for zero offset (UTC), otherwise returns a string in the format "+HH:MM" or "-HH:MM".</p>
                     <h2>Parameters</h2>
                     <ul><li>[totalMinutes]: The offset from UTC in minutes. Positive values</li></ul>
-                    <p>indicate east of UTC, negative values indicate west.</p>
+                    <p>
+                      indicate east of UTC, negative values indicate west. Must be within ±840 (±14:00) inclusive — the range real timezones occupy.
+                    </p>
                     <h2>Returns</h2>
                     <p>An ISO 8601 formatted UTC offset string.</p>
+                    <h2>Throws</h2>
+                    <p>
+                      [TomFormattingException] (<code>formatting.utc_offset.out_of_range</code>) when [totalMinutes] lies outside ±840. The hour field is two digits wide, so a larger offset could only be rendered as something like 
+                      <code>+100:00</code> — a string no ISO 8601 parser accepts. Failing is the honest outcome: the value did not come from a timezone, and there is no correct way to write it.
+                    </p>
                     <h2>Example</h2>
                     <pre><code>convertMinutesToUtcOffset(0);     // "Z" (UTC)
 convertMinutesToUtcOffset(60);    // "+01:00" (CET)
 convertMinutesToUtcOffset(330);   // "+05:30" (IST)
-convertMinutesToUtcOffset(-480);  // "-08:00" (PST)</code></pre>
+convertMinutesToUtcOffset(-480);  // "-08:00" (PST)
+convertMinutesToUtcOffset(840);   // "+14:00" (Line Islands, the maximum)
+convertMinutesToUtcOffset(6000);  // throws TomFormattingException</code></pre>
                   </div>
                 </section>
               </div>

@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1387,68 +1393,76 @@
             <div class="treewrap">
               <div class="treepane">
                 <div class="treenodes">
-                  <a class="leaf" href="#DefaultHealthAnalyzer">DefaultHealthAnalyzer</a>
-                  <a class="leaf" href="#HealthAnalyzer">HealthAnalyzer</a>
+                  <a class="leaf" href="#TomDefaultHealthAnalyzer">TomDefaultHealthAnalyzer</a>
+                  <a class="leaf" href="#TomHealthAnalyzer">TomHealthAnalyzer</a>
                   <a class="leaf" href="#TomHealthServer">TomHealthServer</a>
                   <a class="leaf" href="#TomHealthService">TomHealthService</a>
+                  <a class="leaf" href="#TomHealthStatus">TomHealthStatus</a>
+                  <a class="leaf" href="#TomHealthVerdict">TomHealthVerdict</a>
                 </div>
               </div>
               <div class="reader">
                 <h2 class="api-library-title">package:tom_core_server/src/tomserver/healthcheck/health_check.dart</h2>
                 <code class="api-import">import 'package:tom_core_server/src/tomserver/healthcheck/health_check.dart';</code>
-                <section id="DefaultHealthAnalyzer" class="api-declaration">
-                  <h3 class="api-decl-title">class DefaultHealthAnalyzer</h3>
-                  <code class="api-signature">class DefaultHealthAnalyzer extends HealthAnalyzer</code>
-                  <div class="api-doc"><p>Default health analyzer that always returns "OK".</p></div>
+                <section id="TomDefaultHealthAnalyzer" class="api-declaration">
+                  <h3 class="api-decl-title">class TomDefaultHealthAnalyzer</h3>
+                  <code class="api-signature">class TomDefaultHealthAnalyzer extends TomHealthAnalyzer</code>
+                  <div class="api-doc"><p>Default health analyzer that always reports healthy.</p></div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
-                    <div id="DefaultHealthAnalyzer.new" class="api-member"><div class="api-member-head"><code class="api-signature">DefaultHealthAnalyzer.new()</code></div></div>
+                    <div id="TomDefaultHealthAnalyzer.new" class="api-member"><div class="api-member-head"><code class="api-signature">TomDefaultHealthAnalyzer.new()</code></div></div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
-                    <div id="DefaultHealthAnalyzer.analyzeHealth" class="api-member">
+                    <div id="TomDefaultHealthAnalyzer.analyzeHealth" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">Future&lt;String&gt; analyzeHealth()</code>
+                        <code class="api-signature">Future&lt;TomHealthStatus&gt; analyzeHealth()</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
                   </div>
                 </section>
-                <section id="HealthAnalyzer" class="api-declaration">
-                  <h3 class="api-decl-title">class HealthAnalyzer</h3>
-                  <code class="api-signature">abstract class HealthAnalyzer</code>
+                <section id="TomHealthAnalyzer" class="api-declaration">
+                  <h3 class="api-decl-title">class TomHealthAnalyzer</h3>
+                  <code class="api-signature">abstract class TomHealthAnalyzer</code>
                   <div class="api-doc">
                     <p>Analyzer for customizing health check responses.</p>
                     <p>
                       Extend this class to implement custom health check logic such as: - Database connectivity checks - External service availability - Memory/resource usage checks - Custom application health metrics
                     </p>
                     <h2>Example</h2>
-                    <pre><code>class MyHealthAnalyzer extends HealthAnalyzer {
+                    <pre><code>class MyHealthAnalyzer extends TomHealthAnalyzer {
   @override
-  Future&lt;String&gt; analyzeHealth() async {
+  Future&lt;TomHealthStatus&gt; analyzeHealth() async {
     final dbOk = await checkDatabaseConnection();
     final cacheOk = await checkCacheService();
     if (dbOk &amp;&amp; cacheOk) {
-      return "OK";
+      return const TomHealthStatus.healthy();
     }
-    return "DEGRADED: db=$dbOk, cache=$cacheOk";
+    return TomHealthStatus.unhealthy('db=$dbOk, cache=$cacheOk');
   }
 }
 
-// Set globally before server starts
-TomHealthServer.globalSettingsHealthAnalyzer = MyHealthAnalyzer();</code></pre>
+// Install globally before the server starts. A dependency check belongs on
+// readiness: a database being down is a reason to stop receiving traffic
+// and not a reason for the process to be restarted.
+TomHealthServer.installReadinessAnalyzer(MyHealthAnalyzer());</code></pre>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
-                    <div id="HealthAnalyzer.new" class="api-member"><div class="api-member-head"><code class="api-signature">HealthAnalyzer.new()</code></div></div>
+                    <div id="TomHealthAnalyzer.new" class="api-member"><div class="api-member-head"><code class="api-signature">TomHealthAnalyzer.new()</code></div></div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
-                    <div id="HealthAnalyzer.analyzeHealth" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">Future&lt;String&gt; analyzeHealth()</code></div>
+                    <div id="TomHealthAnalyzer.analyzeHealth" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;TomHealthStatus&gt; analyzeHealth()</code></div>
                       <div class="api-doc">
-                        <p>Analyzes the health of the server and returns a status string.</p>
-                        <p>Returns "OK" for healthy status, or a descriptive message for degraded/unhealthy states.</p>
+                        <p>Analyzes the health of the server.</p>
+                        <p>Returns the verdict a probe acts on and the message a person reads.</p>
+                        <p>
+                          It is awaited under [TomHealthServer.healthTimeout], and a timeout or a thrown exception becomes an unhealthy verdict naming what happened — so an analyzer cannot stop a probe from answering. An analyzer that touches anything remote should still impose its own, shorter deadline: the framework's can only say 
+                          <em>that</em> the check did not answer, while the analyzer's own can say <strong>which</strong> dependency was slow, and it is the only one that stops the work rather than the waiting.
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -1459,7 +1473,8 @@ TomHealthServer.globalSettingsHealthAnalyzer = MyHealthAnalyzer();</code></pre>
                   <div class="api-doc">
                     <p>Default implementation of [TomHealthService].</p>
                     <p>
-                      Delegates health checks to [globalSettingsHealthAnalyzer]. Set [globalSettingsHealthAnalyzer] to a custom [HealthAnalyzer] implementation before server startup for custom health check logic.
+                      Delegates each route to its own analyzer — [livenessAnalyzer] for <code>/health</code>, [readinessAnalyzer] for 
+                      <code>/ready</code> — and turns the verdict it gets back into the response. Install a custom [TomHealthAnalyzer] on either before server startup to add real checks.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1470,19 +1485,146 @@ TomHealthServer.globalSettingsHealthAnalyzer = MyHealthAnalyzer();</code></pre>
                   <div class="api-members">
                     <div id="TomHealthServer.health" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">Future&lt;String&gt; health()</code>
+                        <code class="api-signature">Future&lt;Response&gt; health()</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="TomHealthServer.ready" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Future&lt;Response&gt; ready()</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
-                    <div id="TomHealthServer.globalSettingsHealthAnalyzer" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static HealthAnalyzer globalSettingsHealthAnalyzer</code></div>
+                    <div id="TomHealthServer.defaultHealthTimeout" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Duration defaultHealthTimeout</code></div>
                       <div class="api-doc">
-                        <p>Global health analyzer instance used by all health check requests.</p>
+                        <p>The deadline a process starts with: five seconds.</p>
                         <p>
-                          Defaults to [DefaultHealthAnalyzer] which returns "OK". Replace with a custom implementation for advanced health checks.
+                          Long enough that a real dependency check — a <code>SELECT 1</code> over an established pool, a cache 
+                          <code>PING</code> — answers well inside it, and short enough to beat the OS connect timeout that is the failure it exists for.
+                        </p>
+                        <p>
+                          It only fires if the <em>probe's own</em> timeout is longer. Kubernetes defaults <code>timeoutSeconds</code>
+                           to 1, so a deployment that wants this deadline to be the one that answers has to raise it — see <code>doc/healthcheck.md</code>.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomHealthServer._livenessAnalyzer" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static TomHealthAnalyzer _livenessAnalyzer</code></div>
+                    </div>
+                    <div id="TomHealthServer._readinessAnalyzer" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static TomHealthAnalyzer _readinessAnalyzer</code></div>
+                    </div>
+                    <div id="TomHealthServer._healthTimeout" class="api-member"><div class="api-member-head"><code class="api-signature">static Duration _healthTimeout</code></div></div>
+                    <div id="TomHealthServer.livenessAnalyzer" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static TomHealthAnalyzer livenessAnalyzer</code></div>
+                    </div>
+                    <div id="TomHealthServer.readinessAnalyzer" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static TomHealthAnalyzer readinessAnalyzer</code></div>
+                    </div>
+                    <div id="TomHealthServer.healthTimeout" class="api-member"><div class="api-member-head"><code class="api-signature">static Duration healthTimeout</code></div></div>
+                    <div id="TomHealthServer.installLivenessAnalyzer" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static void installLivenessAnalyzer(TomHealthAnalyzer analyzer)</code></div>
+                      <div class="api-doc">
+                        <p>Installs [analyzer] as the process-wide liveness analyzer, logging the replacement at info.</p>
+                        <p>
+                          Read-only storage with one installing function, rather than an assignable field, because installation is the whole of the module's configuration and it happens through a process-wide global. A bare public static can be replaced by anything in the process at any moment — including after the server is serving — and an assignment leaves no trace, so a deployment answering a probe with the wrong analyzer has nothing to read. The log line, naming the outgoing and incoming runtime types, is that trace.
+                        </p>
+                        <p>
+                          It is not sealed after startup, and deliberately: the analyzer has to be replaceable before the bean context exists, which is what rules out making it a bean, and the framework has no way to know when a given deployment has finished installing. A seal nothing can call is dead code; a visible late installation is the boundary that can actually be enforced.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomHealthServer.installReadinessAnalyzer" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static void installReadinessAnalyzer(TomHealthAnalyzer analyzer)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Installs [analyzer] as the process-wide readiness analyzer, logging the replacement at info. See [installLivenessAnalyzer] for why installation goes through a function.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomHealthServer.installHealthTimeout" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static void installHealthTimeout(Duration timeout)</code></div>
+                      <div class="api-doc">
+                        <p>Installs [timeout] as the process-wide deadline for both probes, logging the replacement at info.</p>
+                        <p>
+                          Throws <code>ArgumentError</code> on a zero or negative duration, which would make every probe answer "timed out" before its analyzer ran — a health endpoint that is wrong in the safe-looking direction, since 503 on liveness is a restart.
+                        </p>
+                        <p>
+                          It goes through a function for the same reason the analyzers do: it is a process-wide global, and a deadline silently shortened by something else in the process is a probe failure with nothing to read. See [installLivenessAnalyzer].
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomHealthServer.resetHealthChecks" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static void resetHealthChecks()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Puts the module's process-wide state back the way a fresh process starts it: a fresh [TomDefaultHealthAnalyzer] on each probe, and the deadline at [defaultHealthTimeout].
+                        </p>
+                        <p>
+                          The supported spelling for a test or an example that configured the module and wants the process back the way it found it. Each probe gets its own analyzer instance, which is the state a fresh process starts in.
+                        </p>
+                        <p>
+                          It logs like any other installation, because it is one: a reset that went unrecorded would be the one replacement the log could not account for.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomHealthServer._installed" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static TomHealthAnalyzer _installed(String probe, TomHealthAnalyzer previous, TomHealthAnalyzer next)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Announces that [next] replaces [previous] on the [probe] analyzer, and returns [next] for the caller to store.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomHealthServer.verdictOf" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static Future&lt;TomHealthStatus&gt; verdictOf(TomHealthAnalyzer analyzer, String probe)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Runs [analyzer] under the [healthTimeout] deadline and turns every way it can fail to produce a verdict into one.
+                        </p>
+                        <p>
+                          Public so a deployment adding a probe route of its own gets the deadline and the failure handling rather than a second, thinner spelling of them. [probe] names the check in the message a person reads.
+                        </p>
+                        <p>
+                          <strong>The deadline is the point.</strong> <code>analyzeHealth</code> is <code>async</code> precisely so a 
+                          <code>SELECT 1</code> and a cache <code>PING</code> can be awaited, and a TCP connection to a host that has dropped off the network does not fail fast — it waits for the OS connect timeout, which on Linux is over two minutes. Awaited without a deadline, the probe returns nothing at all for that window, so an orchestrator sees a probe 
+                          <em>timeout</em> rather than a degraded body and restarts a process whose only problem was a slow dependency. "I could not determine my health within $healthTimeout" is a worse answer than a real verdict and a far better one than no answer.
+                        </p>
+                        <p>
+                          <strong>A thrown analyzer is caught for the same reason, and it is the nearer failure.</strong> The analyzer this module is written for issues a 
+                          <code>SELECT 1</code> through the datasource, and a datasource that is <em>down</em> throws rather than hangs — so an exception, not a timeout, is the realistic first encounter with a broken dependency. Letting it out replaces the plain-text answer with the pipeline's error envelope, a 
+                          <code>500</code> carrying JSON, which is a different response shape from the one every probe was configured to read; and on liveness a 
+                          <code>500</code> is a restart. The exception's text becomes the body instead, so the cause is still on the wire — nothing is swallowed, it is answered.
+                        </p>
+                        <p>
+                          The <code>catch</code> takes the synchronous throw too: an <code>analyzeHealth</code> that is not <code>async</code>
+                           and raises before returning a future never reaches [Future.timeout], so the call itself is inside the guarded block.
+                        </p>
+                        <p>
+                          A timed-out analyzer is <strong>not</strong> cancelled: <code>Future.timeout</code> stops the waiting, not the work, and Dart has no way to abort a future in flight. An analyzer that hangs on every probe therefore accumulates pending futures at probe frequency, which is one more reason for an analyzer that touches anything remote to carry its own, shorter deadline.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomHealthServer.responseFor" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Response responseFor(TomHealthStatus status)</code></div>
+                      <div class="api-doc">
+                        <p>The HTTP response one [status] is served as.</p>
+                        <p>
+                          Public and static so a deployment writing a health endpoint of its own — a third route, a different path — answers with the same shape rather than a second spelling of it.
+                        </p>
+                        <p>
+                          The content type is set here because a handler returning a <code>Response</code> bypasses the endpoint's 
+                          <code>produces</code>, and a probe log full of <code>application/octet-stream</code> is a small confusion nobody needs to earn.
                         </p>
                       </div>
                     </div>
@@ -1494,7 +1636,34 @@ TomHealthServer.globalSettingsHealthAnalyzer = MyHealthAnalyzer();</code></pre>
                   <div class="api-doc">
                     <p>Health check service interface for server health monitoring.</p>
                     <p>
-                      Provides a simple <code>/health</code> endpoint that returns "OK" when the server is running. Used by container orchestration tools (Docker, Kubernetes) to verify server availability.
+                      Declares the two endpoints container orchestration tools (Docker, Kubernetes, Cloud Run, every load balancer) expect. Both answer the installed analyzer's message verbatim — 
+                      <code>"OK"</code> is the [TomDefaultHealthAnalyzer]'s answer, not a constant of the endpoint — with the 
+                      <strong>status code carrying the verdict</strong>: <code>200</code> for [TomHealthVerdict.healthy], <code>503</code>
+                       for [TomHealthVerdict.unhealthy].
+                    </p>
+                    <p>
+                      Which is what makes an ordinary probe correct. A load balancer's default check reads the status code and nothing else, as does a Kubernetes 
+                      <code>httpGet</code> probe unless the deployment adds a body matcher. A probe that wants the <em>reason</em>
+                       still reads the body, which is where it has always been.
+                    </p>
+                    <h2>Two routes, because the two questions have opposite consequences</h2>
+                    <p>
+                      <code>GET /health</code> is <strong>liveness</strong> — am I running — and a failure restarts the process. 
+                      <code>GET /ready</code> is <strong>readiness</strong> — can I serve traffic — and a failure takes it out of the load balancer and leaves it alone. One route cannot answer both: "the container started but its database is unreachable" is ready-false with live-true, and a single verdict forces a deployment to pick which consequence it wants. Answering unhealthy there restarts a pod that would have recovered, in a loop, because restarting does not bring the database back; answering healthy sends it traffic it cannot serve.
+                    </p>
+                    <p>
+                      So the split is by <em>what the check touches</em>: a liveness analyzer looks at the process — is the event loop turning, is a critical isolate still there — and a readiness analyzer looks at what the process needs — the pool, the cache, the downstream API. A dependency being down is a reason to stop receiving traffic and not a reason to be killed.
+                    </p>
+                    <p>
+                      A route per question rather than one route with a <code>?probe=</code> parameter: query parameters on a health check are awkward to configure in several orchestrators, and a single route stays a single point of failure for both answers.
+                    </p>
+                    <h2>Neither route can fail to answer</h2>
+                    <p>
+                      Both run their analyzer through [TomHealthServer.verdictOf], so an analyzer that hangs, that throws, or that returns a future completing with an error produces an 
+                      <strong>unhealthy verdict carrying the reason</strong> rather than an exception. That matters for the response 
+                      <em>shape</em> as much as for the status: an exception leaving the handler becomes the endpoint pipeline's error envelope — a 
+                      <code>500</code> with a JSON body — which is not what a probe configured against a plain-text route reads, and on liveness a 
+                      <code>500</code> is a restart. The endpoint whose job is to report failure is the last one that should fail to respond because something failed.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1504,13 +1673,133 @@ TomHealthServer.globalSettingsHealthAnalyzer = MyHealthAnalyzer();</code></pre>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
                     <div id="TomHealthService.health" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">Future&lt;String&gt; health()</code></div>
+                      <div class="api-member-head"><code class="api-signature">Future&lt;Response&gt; health()</code></div>
                       <div class="api-doc">
                         <p>
-                          The <code>GET /health</code> endpoint: returns a plain-text status string. Marked <code>@TomPublicAccess</code>
-                           (no authentication) and <code>logRequests: false</code> so probe traffic does not flood the logs.
+                          The <code>GET /health</code> endpoint — <strong>liveness</strong>: a plain-text status string, with the status code carrying the verdict. Marked 
+                          <code>@TomPublicAccess</code> (no authentication) and <code>logRequests: false</code> so probe traffic does not flood the logs.
+                        </p>
+                        <p>
+                          Returns a shelf [Response] rather than a <code>String</code>, because the status is part of the answer and a 
+                          <code>String</code> has nowhere to put it. That is the pipeline's documented escape hatch — a handler that knows its whole response returns one — and it is used here rather than inventing a directive in 
+                          <code>endpoint_results.dart</code> because one caller is not a pattern: <code>TomRedirect</code> exists for the case where the 
+                          <em>body</em> is implied by the intent, and here the handler is holding both facts already.
+                        </p>
+                        <p>
+                          Never completes with an error: whatever the analyzer does becomes a verdict — see "Neither route can fail to answer" above and [TomHealthServer.verdictOf].
                         </p>
                       </div>
+                    </div>
+                    <div id="TomHealthService.ready" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;Response&gt; ready()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The <code>GET /ready</code> endpoint — <strong>readiness</strong>: the same shape as [health], answered by [TomHealthServer.readinessAnalyzer].
+                        </p>
+                        <p>
+                          <code>/ready</code> rather than <code>/health/ready</code>: a sub-path of the liveness route reads as a refinement of it, and these are two questions rather than one asked in more detail. It is also the path the platforms' own examples use, which is the path an operator will try first.
+                        </p>
+                        <p>Never completes with an error, for the same reason [health] does not.</p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="TomHealthStatus" class="api-declaration">
+                  <h3 class="api-decl-title">class TomHealthStatus</h3>
+                  <code class="api-signature">class TomHealthStatus</code>
+                  <div class="api-doc">
+                    <p>What an analyzer concluded: a verdict a probe can act on, and a message a human can read.</p>
+                    <p>
+                      The two are separate because they are different facts. Encoding both into one string — <code>"OK"</code>
+                       meaning healthy and anything else meaning not — is what forces every consumer to parse, makes a typo in an analyzer a wrong verdict, and leaves an orchestrator no way to act without a body matcher.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomHealthStatus.healthy" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">const TomHealthStatus.healthy([String message = 'OK'])</code></div>
+                      <div class="api-doc">
+                        <p>A healthy verdict, with an optional [message].</p>
+                        <p>
+                          The default message is <code>OK</code> because that is what a human reading a probe log expects to see, and because an empty body makes a 
+                          <code>curl</code> look broken.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomHealthStatus.unhealthy" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">const TomHealthStatus.unhealthy(String message)</code></div>
+                      <div class="api-doc">
+                        <p>An unhealthy verdict, with a [message] saying what failed.</p>
+                        <p>
+                          The message is required here and optional above: an unhealthy answer that does not say why is the one a person is reading at three in the morning.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="TomHealthStatus.verdict" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final TomHealthVerdict verdict</code></div>
+                      <div class="api-doc"><p>The verdict, which decides the HTTP status.</p></div>
+                    </div>
+                    <div id="TomHealthStatus.message" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String message</code></div>
+                      <div class="api-doc"><p>A free-form description, served as the response body verbatim.</p></div>
+                    </div>
+                    <div id="TomHealthStatus.isHealthy" class="api-member"><div class="api-member-head"><code class="api-signature">bool isHealthy</code></div></div>
+                    <div id="TomHealthStatus.statusCode" class="api-member"><div class="api-member-head"><code class="api-signature">int statusCode</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="TomHealthStatus.toString" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">String toString()</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="TomHealthVerdict" class="api-declaration">
+                  <h3 class="api-decl-title">enum TomHealthVerdict</h3>
+                  <code class="api-signature">enum TomHealthVerdict</code>
+                  <div class="api-doc">
+                    <p>Whether a deployment should be sent traffic.</p>
+                    <p>
+                      Two values, and deliberately not three. HTTP offers a probe exactly two answers — send me traffic, or do not — so a third verdict would either map to one of those two, making a distinction no probe can act on, or invent a status code no orchestrator reads. The gradation belongs in [TomHealthStatus.message], which is free-form and is where "degraded: cache=false, db=true" says what a number cannot.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Values</h4>
+                  <div class="api-members">
+                    <div id="TomHealthVerdict.healthy" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">healthy</code></div>
+                      <div class="api-doc"><p>Everything the analyzer checked answered. HTTP 200.</p></div>
+                    </div>
+                    <div id="TomHealthVerdict.unhealthy" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">unhealthy</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Something the analyzer checked did not. HTTP 503, which is what takes a pod out of a load balancer and what a default probe already understands.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomHealthVerdict.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">const TomHealthVerdict.new(int statusCode)</code></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="TomHealthVerdict.statusCode" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final int statusCode</code></div>
+                      <div class="api-doc"><p>The HTTP status a response carrying this verdict is answered with.</p></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="TomHealthVerdict.values" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static List&lt;TomHealthVerdict&gt; values</code></div>
                     </div>
                   </div>
                 </section>

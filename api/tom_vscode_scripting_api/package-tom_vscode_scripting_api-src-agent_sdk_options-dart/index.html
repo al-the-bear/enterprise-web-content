@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1422,8 +1428,8 @@
                     Dart mirror of the Agent SDK input surface: [Options] (the argument to <code>sdk.query({ prompt, options })</code>) plus its sealed sub-configs, value types and enums.
                   </p>
                   <p>
-                    These travel Dart → extension → <code>sdk.query()</code>, so the wire uses the SDK's camelCase field names (<code>sdk.d.ts</code>
-                     ^0.2.110) and the bridge is a faithful pass-through (proposal §1, §5). Every <em>data</em> field round-trips (<code>Options.fromJson(o.toJson()).toJson() == o.toJson()</code>).
+                    These travel Dart → extension → <code>sdk.query()</code>, so the wire uses the SDK's camelCase field names (<code>sdk.d.ts</code>, audited against 0.3.282) and the bridge is a faithful pass-through (proposal §1, §5). Every 
+                    <em>data</em> field round-trips (<code>Options.fromJson(o.toJson()).toJson() == o.toJson()</code>).
                   </p>
                   <p>
                     <strong>Callback-bearing fields</strong> ([Options.canUseTool], [Options.onStderr]) are part of the 1:1 type surface but are 
@@ -1495,7 +1501,7 @@
                     <div id="Options.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          Options.new({String? model, String? fallbackModel, SystemPrompt? systemPrompt, ToolsConfig? tools, List&lt;String&gt;? allowedTools, List&lt;String&gt;? disallowedTools, Map&lt;String, McpServerConfig&gt;? mcpServers, int? maxTurns, double? maxBudgetUsd, TaskBudget? taskBudget, PermissionMode? permissionMode, String? planModeInstructions, bool? allowDangerouslySkipPermissions, String? permissionPromptToolName, List&lt;SettingSource&gt;? settingSources, SettingsRef? settings, SettingsRef? managedSettings, String? cwd, List&lt;String&gt;? additionalDirectories, bool? continueSession, String? resume, String? sessionId, String? resumeSessionAt, bool? forkSession, bool? persistSession, String? title, Map&lt;String, String&gt;? env, Map&lt;String, String?&gt;? extraArgs, bool? strictMcpConfig, String? agent, Map&lt;String, AgentDefinition&gt;? agents, Skills? skills, List&lt;PluginConfig&gt;? plugins, List&lt;String&gt;? betas, OutputFormat? outputFormat, Map&lt;String, dynamic&gt;? toolConfig, ThinkingConfig? thinking, EffortLevel? effort, int? maxThinkingTokens, bool? includePartialMessages, bool? includeHookEvents, bool? forwardSubagentText, bool? promptSuggestions, bool? agentProgressSummaries, bool? enableFileCheckpointing, Map&lt;String, dynamic&gt;? sandbox, bool? debug, String? debugFile, int? loadTimeoutMs, Future&lt;PermissionResult&gt; Function(String, Map&lt;String, dynamic&gt;, CanUseToolContext)?? canUseTool, void Function(String)?? onStderr})
+                          Options.new({String? model, String? fallbackModel, SystemPrompt? systemPrompt, ToolsConfig? tools, List&lt;String&gt;? allowedTools, List&lt;String&gt;? disallowedTools, Map&lt;String, McpServerConfig&gt;? mcpServers, int? maxTurns, double? maxBudgetUsd, TaskBudget? taskBudget, PermissionMode? permissionMode, String? planModeInstructions, bool? allowDangerouslySkipPermissions, String? permissionPromptToolName, List&lt;SettingSource&gt;? settingSources, SettingsRef? settings, SettingsRef? managedSettings, String? cwd, List&lt;String&gt;? additionalDirectories, bool? continueSession, String? resume, String? sessionId, String? resumeSessionAt, bool? forkSession, bool? persistSession, String? title, Map&lt;String, String&gt;? env, Map&lt;String, String&gt;? envOverlay, Map&lt;String, String?&gt;? extraArgs, bool? strictMcpConfig, String? agent, Map&lt;String, AgentDefinition&gt;? agents, Skills? skills, List&lt;PluginConfig&gt;? plugins, List&lt;String&gt;? betas, OutputFormat? outputFormat, Map&lt;String, dynamic&gt;? toolConfig, ThinkingConfig? thinking, EffortLevel? effort, int? maxThinkingTokens, bool? includePartialMessages, bool? includeHookEvents, bool? forwardSubagentText, bool? promptSuggestions, bool? agentProgressSummaries, bool? enableFileCheckpointing, Map&lt;String, dynamic&gt;? sandbox, bool? debug, String? debugFile, int? loadTimeoutMs, Future&lt;PermissionResult&gt; Function(String, Map&lt;String, dynamic&gt;, CanUseToolContext)?? canUseTool, void Function(String)?? onStderr})
                         </code>
                       </div>
                     </div>
@@ -1612,7 +1618,25 @@
                     </div>
                     <div id="Options.env" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final Map&lt;String, String&gt;? env</code></div>
-                      <div class="api-doc"><p>Environment variables for the run.</p></div>
+                      <div class="api-doc">
+                        <p>Environment variables for the Claude Code subprocess.</p>
+                        <p>
+                          REPLACES the inherited environment rather than adding to it (SDK semantics since 0.2.113): <code>{'FOO': 'x'}</code>
+                           starts the subprocess with essentially only <code>FOO</code>, without <code>PATH</code> or <code>HOME</code>. Leave this null unless you mean to supply the complete environment; to add or override a few variables, use [envOverlay].
+                        </p>
+                      </div>
+                    </div>
+                    <div id="Options.envOverlay" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Map&lt;String, String&gt;? envOverlay</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Variables to add to the Claude Code subprocess's environment, keeping everything it would otherwise inherit.
+                        </p>
+                        <p>
+                          Dart-only; not an SDK option. A TypeScript caller writes <code>env: {...process.env, FOO: 'x'}</code>, but the subprocess is spawned by the VS Code extension host, whose environment this Dart process cannot read. The extension's bridge does the spread instead: it lays this map over [env] when [env] is set, otherwise over the extension host's own environment, and passes the result to the SDK as 
+                          <code>env</code>. It cannot remove an inherited variable; supply a complete [env] for that. Needs a Tom extension build that resolves it; with an older one it has no effect.
+                        </p>
+                      </div>
                     </div>
                     <div id="Options.extraArgs" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final Map&lt;String, String?&gt;? extraArgs</code></div>

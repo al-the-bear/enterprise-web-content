@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1423,26 +1429,29 @@
               </p>
               <h2>The components and modules</h2>
               <p>
-                The factory's tooling lives in the <code>tom_specs_*</code> projects (in the <code>tom_ai/ai_build</code>
-                 tree). They are not yet part of this site's component catalog, so they are described here in prose:
+                The factory's tooling ships as <strong>TomSpecs release 1</strong> from the <code>tom_ai_build</code>
+                 repository (the <code>tom_ai/ai_build</code> tree) — the <strong>TomSpecs</strong> component in this site's catalog. At its centre is a typed 
+                <strong>Specification Object Model (SOM)</strong>, written once in Dart and generated into nine languages (Dart, Python, Java, JavaScript, TypeScript, Go, Rust, C, C++). The Dart chain:
               </p>
               <ul>
                 <li>
-                  <strong><code>tom_specs_core</code></strong> — the annotation library shared across the model and tooling.
+                  <strong><code>tom_specs_core</code></strong> — the annotation vocabulary the source model is written in:
                 </li>
               </ul>
               <p>
-                It defines the section-identity and structural annotations (<code>@SectionId</code>, <code>@SectionIdPattern</code>, 
-                <code>@Document</code>, <code>@Form</code>, <code>@ContentType</code>, …) and the traceability annotations (<code>@MapsTo</code>, 
-                <code>@DetailedIn</code>, <code>@SecondLevelSectionId</code>) that carry a requirement forward through the document graph. - 
-                <strong><code>tom_specs_model</code></strong> — the typed Dart data model for every TomSpecs document. The Markdown templates are the human-readable face; the Dart model is the source of truth, with analyzer support. The Project Definition root is structurally complete (hundreds of uniquely-identified section classes), and all twelve Phase-3 document roots compile and aggregate it with full traceability annotations. - 
-                <strong><code>tom_specs_clitool</code></strong> — the analyzer-based tooling: a model <strong>outliner</strong>
-                 that renders the class tree from any document root, a <strong>validator</strong> that enforces the structural invariants (global section-id uniqueness, coverage, detail-mapping rules), and a 
-                <strong>JSON exporter</strong> that serialises the resolved model graph for the editor app. - <strong><code>tom_specs_editor</code></strong>
-                 — a Flutter app for browsing the document structures as trees and recording a structural review, persisted to YAML keyed by structural path. It consumes the model graph the CLI tool exports — thirteen document roots and roughly three thousand classes — so a reviewer walks the real typed model, not a copy. Its future direction is a full spec editor with Markdown import/export.
+                section identity and structure, and the traceability annotations that carry a requirement forward through the document graph. - 
+                <strong><code>tom_specs_model</code></strong> — the Dart source model, the single source of truth every language binding is generated from, plus the TomSpecs authority documents. - 
+                <strong><code>tom_specs_clitool</code></strong> — the generator and gate suite: SOM generation, outlines, the model validator, the citation gates and the release-closure gate. - 
+                <strong><code>tom_som_dart_runtime</code></strong> — the generic document runtime: path-keyed documents, the meta-model, schema and instance validation, and the CodeSpecs extract surface. - 
+                <strong><code>tom_som_dart_v0</code></strong> — the generated, typed Dart facade over that runtime. - 
+                <strong><code>tom_doc_scanner</code></strong> and <strong><code>tom_doc_specs</code></strong> — the DocSpecs layer: the markdown structure parser and the schema validator built on it. - 
+                <strong><code>tom_code_specs</code></strong> — the CodeSpecs annotation framework (<code>Cs*</code> markers, cross-part references, back-trace annotations), with 
+                <strong><code>tom_core_codespecs</code></strong> in the Core tree supplying the CodeSpecs-only classes for the 
+                <code>tom_core</code> family.
               </p>
               <p>
-                These build on the broader <strong>DocSpecs</strong> and <strong>CodeSpecs</strong> initiatives (the document scanner and schema layer, and the code-generation contract) and connect to the quality-gate and roles definitions that govern the process.
+                The sixteen non-Dart runtime and facade packages (<code>tom_som_&lt;lang&gt;_runtime</code> / <code>tom_som_&lt;lang&gt;_v0</code>) ship source-only in the same repository, each building and passing its suite from a clean checkout. A conformance harness proves the languages agree: the committed 
+                <em>Meridian Order Management</em> sample Solution Blueprint and the CodeSpecs extracts generated from it reproduce byte for byte from a clean checkout.
               </p>
               <h2>How it fits the rest of Tom</h2>
               <p>
@@ -1450,8 +1459,35 @@
                 <em>by construction</em> — independent of how the business logic was generated. The factory produces only that business logic, on top of those guarantees. So an application's uniformity does not depend on the AI getting everything right; the factory's job is the domain-specific behaviour, and the framework supplies everything else.
               </p>
               <p>
-                &gt; <strong>Maturity note.</strong> The process and artifact definitions are mature and the typed &gt; object model, the analyzer-based tooling, and a first-cut editor are implemented &gt; and tested. The factory is an actively implemented methodology, not only a &gt; conceptual one.
+                &gt; <strong>Maturity note.</strong> TomSpecs release 1 (model version 1.0.0, BSD 3-Clause) is &gt; published: the Dart chain on pub.dev, the other languages source-only. The &gt; scripting/agent engine and the object-model review app are in the same tree but &gt; deliberately not part of release 1.
               </p>
+            </div>
+            <div class="grouplbl">In this area</div>
+            <div class="grid cols-2" style="margin-top: 12px">
+              <a class="mcard" style="text-decoration: none; color: inherit; display: block" href="/components/ai_build">
+                <span class="cardarrow">→</span>
+                <h3>TomSpecs</h3>
+                <div class="cat">ai_build · 10 modules</div>
+                <div class="metricline">291.6k loc · 2.1k tests · 46.0k test LOC</div>
+                <div class="sum">
+                  TomSpecs is the structured, AI-assistable process for creating software systems, carried by a typed Specification Object Model (SOM) generated into nine languages (Dart, Python, Java, JavaScript, TypeScript, Go, Rust, C, C++) from a single Dart source model. Author a Solution Blueprint, validate it mechanically, and run the CodeSpecs extract that turns it into bounded, cited inputs for code generation. Release 1 lists the Dart chain here; the sixteen non-Dart runtime and facade packages ship source-only in the same repository.
+                  
+                </div>
+                <div class="extra">
+                  <div class="dist">
+                    <span style="width: 0.00%; background: #4EA72E"></span>
+                    <span style="width: 80.00%; background: #0F9ED5"></span>
+                    <span style="width: 10.00%; background: #E97132"></span>
+                    <span style="width: 10.00%; background: #8497A8"></span>
+                  </div>
+                  <div class="distlbl">
+                    <span><b style="color: #3E8F25">0</b> rel</span>
+                    <span><b style="color: #0F7FB0">8</b> pub</span>
+                    <span><b style="color: #D85F23">1</b> wip</span>
+                    <span><b style="color: #5A6B7A">1</b> ns</span>
+                  </div>
+                </div>
+              </a>
             </div>
             <div class="grouplbl">Explore other areas</div>
             <div class="grid cols-3" style="margin-top: 12px">

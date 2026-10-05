@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1395,6 +1401,7 @@
                   <a class="leaf" href="#TomEndpointBase">TomEndpointBase</a>
                   <a class="leaf" href="#TomErrorHandler">TomErrorHandler</a>
                   <a class="leaf" href="#TomService">TomService</a>
+                  <a class="leaf" href="#TomStatusMappingErrorHandler">TomStatusMappingErrorHandler</a>
                   <a class="leaf" href="#TomTransactional">TomTransactional</a>
                 </div>
               </div>
@@ -1460,7 +1467,9 @@
                   <div class="api-members">
                     <div id="TomApiEndpointImplementation.convertToTomEndpoint" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">TomEndpoint&lt;requestType, resultType&gt; convertToTomEndpoint()</code>
+                        <code class="api-signature">
+                          TomEndpoint&lt;requestType, resultType&gt; convertToTomEndpoint([TomApiImplementation? apiImplementation])
+                        </code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
@@ -1537,10 +1546,11 @@
                 </section>
                 <section id="TomDefaultErrorHandler" class="api-declaration">
                   <h3 class="api-decl-title">class TomDefaultErrorHandler</h3>
-                  <code class="api-signature">class TomDefaultErrorHandler extends TomErrorHandler</code>
+                  <code class="api-signature">class TomDefaultErrorHandler extends TomStatusMappingErrorHandler</code>
                   <div class="api-doc">
+                    <p>The default [TomErrorHandler]: the framework envelope with a <code>500</code>.</p>
                     <p>
-                      The default [TomErrorHandler]: hides the error and returns a plain-text <code>500 Internal Server Error</code>, so error details never leak to the client.
+                      What every endpoint gets when it declares no handler of its own. It maps no key to any other status — see [TomStatusMappingErrorHandler] for why the framework declines to guess one, and for the three lines a deployment writes to declare its own.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1548,15 +1558,6 @@
                     <div id="TomDefaultErrorHandler.new" class="api-member">
                       <div class="api-member-head"><code class="api-signature">const TomDefaultErrorHandler.new()</code></div>
                       <div class="api-doc"><p>Const constructor so the default handler can be shared as a <code>const</code> value.</p></div>
-                    </div>
-                  </div>
-                  <h4 class="api-group-title">Methods</h4>
-                  <div class="api-members">
-                    <div id="TomDefaultErrorHandler.handleErrorDefault" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">Response handleErrorDefault(Object error, Object stacktrace, Request r, Object? result)</code>
-                        <span class="api-badge api-badge--override">override</span>
-                      </div>
                     </div>
                   </div>
                 </section>
@@ -1571,7 +1572,9 @@
                       It fully describes the route: the HTTP [methods] and [uri], what the body [consumes] / [produces], any fixed response [headers] / [contentDisposition], the per-endpoint [errorHandler] and [logRequests] flag, and the CORS overrides. The pipeline reflects over annotated methods, binds each to its route, and supplies the method's parameters from the request (JSON body, path/query params, principal/token, or execution context).
                     </p>
                     <p>
-                      Form-field (<code>formFields</code>), file-upload, redirect, and streaming/file response handling are not yet implemented in the pipeline; the fields exist for forward compatibility. See the quest completion steps and the module guide for the tracked follow-up.
+                      A body declared as <code>multipart/form-data</code> ([consumes]) is decoded by the pipeline: text parts fold into the request DTO — narrowed by [formFields] when it is non-empty — and file parts bind to 
+                      <code>TomFormFile</code> / <code>TomMultipartForm</code> method parameters. A handler may return a <code>TomRedirect</code>
+                       to answer with a <code>3xx</code>, or a shelf <code>Response</code> to own the body itself (which is how the file endpoint streams a download).
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1579,7 +1582,7 @@
                     <div id="TomEndpoint.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          const TomEndpoint.new({List&lt;TomHttpMethod&gt; methods = const [TomHttpMethod.get], List&lt;String&gt; formFields = const [], String uri = "", TomMimeType consumes = TomMimeType.json, TomMimeType produces = TomMimeType.json, String? contentDisposition, TomErrorHandler? errorHandler = _tomDefaultErrorHandler, bool? logRequests, Map&lt;String, String&gt; headers = const {}, String? corsAllowedOrigins, String? corsAllowedMethods, String? corsAllowedHeaders})
+                          const TomEndpoint.new({List&lt;TomHttpMethod&gt; methods = const [TomHttpMethod.get], List&lt;String&gt; formFields = const [], String uri = "", TomMimeType consumes = TomMimeType.json, TomMimeType produces = TomMimeType.json, String? contentDisposition, TomErrorHandler? errorHandler = _tomDefaultErrorHandler, bool? logRequests, Map&lt;String, String&gt; headers = const {}, String? corsAllowedOrigins, String? corsAllowedMethods, String? corsAllowedHeaders, Map&lt;String, String&gt; urlParameterMapping = const {}})
                         </code>
                       </div>
                       <div class="api-doc">
@@ -1597,7 +1600,14 @@
                     </div>
                     <div id="TomEndpoint.formFields" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final List&lt;String&gt; formFields</code></div>
-                      <div class="api-doc"><p>Declared form-field names (reserved; not yet consumed by the pipeline).</p></div>
+                      <div class="api-doc">
+                        <p>
+                          The text form fields this endpoint accepts from a <code>multipart/form-data</code> body, or empty for "every one that arrives".
+                        </p>
+                        <p>
+                          An allow-list, not a requirement: a named field that the form omits is simply absent from the DTO. It exists for the case where the form is filled in by something the endpoint does not control — a browser adds hidden fields, a proxy adds its own — and the endpoint would rather ignore them than fold them into its request object. An endpoint whose form it owns leaves this empty, exactly as a JSON endpoint does.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomEndpoint.uri" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final String uri</code></div>
@@ -1605,7 +1615,19 @@
                     </div>
                     <div id="TomEndpoint.consumes" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final TomMimeType consumes</code></div>
-                      <div class="api-doc"><p>The request body media type the endpoint accepts (defaults to JSON).</p></div>
+                      <div class="api-doc">
+                        <p>The request body media type the endpoint accepts (defaults to JSON).</p>
+                        <p>
+                          <code>multipart/form-data</code> and <code>application/x-www-form-urlencoded</code> both select the form path: text parts fold into the request DTO and file parts bind to 
+                          <code>TomFormFile</code> parameters. Which of the two a browser sends is decided by the form's markup, not by the endpoint, so declaring either is declaring "this is a form".
+                        </p>
+                        <p>
+                          <strong>A form is the shape for a form, not for bulk transfer.</strong> A multipart body is a single sequential stream — part N+1 is unreachable until part N has been drained — so every file part is buffered as it goes past, and 
+                          <code>TomMultipartForm.globalSettingMaxFilePartBytes</code> (8 MiB) bounds it. An upload larger than that belongs on the raw-body file endpoint (<code>TomFileSlot</code>), where the whole request 
+                          <em>is</em> the file, the slot is the URL, and nothing is buffered. Declare the form for "create a document 
+                          <strong>with</strong> its attachment", where the title, the tags and the bytes arrive together and a raw body could carry only one of them; declare the file route for "replace the attachment of row 42".
+                        </p>
+                      </div>
                     </div>
                     <div id="TomEndpoint.produces" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final TomMimeType produces</code></div>
@@ -1625,7 +1647,19 @@
                     </div>
                     <div id="TomEndpoint.headers" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final Map&lt;String, String&gt; headers</code></div>
-                      <div class="api-doc"><p>Fixed headers added to every response from this endpoint.</p></div>
+                      <div class="api-doc">
+                        <p>Fixed headers the server adds to every response this endpoint produces.</p>
+                        <p>
+                          <strong>Outbound only.</strong> The name is bare <code>headers</code> because an endpoint declaration only ever speaks for the response: the pipeline copies these onto the response it builds (alongside the 
+                          <code>Content-Type</code> derived from [produces] and any [contentDisposition]) and reads nothing from them. An endpoint cannot declare headers it 
+                          <em>requires</em> of a request here — there is no field for that, and no request is rejected for lacking one.
+                        </p>
+                        <p>
+                          The registry-backed declaration style states the two directions separately, as <code>TomApiEndpoint.responseHeaders</code>
+                           and <code>TomApiEndpoint.requestHeaders</code>; only the former maps onto this field. <code>requestHeaders</code>
+                           instructs a <em>client</em> (<code>TomServerConnection</code> sends them when it calls the endpoint) and reaches nothing on the server.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomEndpoint.corsAllowedOrigins" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final String? corsAllowedOrigins</code></div>
@@ -1639,12 +1673,26 @@
                       <div class="api-member-head"><code class="api-signature">final String? corsAllowedHeaders</code></div>
                       <div class="api-doc"><p><code>Access-Control-Allow-Headers</code> override for this endpoint.</p></div>
                     </div>
+                    <div id="TomEndpoint.urlParameterMapping" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Map&lt;String, String&gt; urlParameterMapping</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Binds URL parameters — path captures <em>and</em> query-string parameters — to typed request-DTO fields.
+                        </p>
+                        <p>
+                          Keys are the parameter names on the URL: a route capture in [uri] (e.g. <code>id</code> in <code>/items/{id}</code>) or a query-string parameter name; values are the request-DTO field names the value is injected under before the DTO is instantiated. Path parameters not listed bind by their capture name (identity), so an empty map binds every path parameter by its own name; query parameters bind 
+                          <strong>only</strong> when named here, so an endpoint opts into query binding per parameter. See <code>TomApiEndpoint.urlParameterMapping</code>.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
                     <div id="TomEndpoint.convertToTomEndpoint" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">TomEndpoint&lt;requestType, resultType&gt; convertToTomEndpoint()</code>
+                        <code class="api-signature">
+                          TomEndpoint&lt;requestType, resultType&gt; convertToTomEndpoint([TomApiImplementation? apiImplementation])
+                        </code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
@@ -1674,8 +1722,18 @@
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
                     <div id="TomEndpointBase.convertToTomEndpoint" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">TomEndpoint&lt;requestType, resultType&gt; convertToTomEndpoint()</code></div>
-                      <div class="api-doc"><p>Resolves this annotation to the concrete [TomEndpoint] to route.</p></div>
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          TomEndpoint&lt;requestType, resultType&gt; convertToTomEndpoint([TomApiImplementation? apiImplementation])
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Resolves this annotation to the concrete [TomEndpoint] to route.</p>
+                        <p>
+                          [apiImplementation] is the class-level <code>@TomApiImplementation</code> of the service the annotated method belongs to (when there is one); registry-based endpoints fall back to its API-wide 
+                          <code>errorHandler</code> / <code>logRequestsDefault</code> for any value the endpoint itself does not override.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>
@@ -1685,7 +1743,11 @@
                   <div class="api-doc">
                     <p>Turns an error raised while serving an endpoint into a shelf [Response].</p>
                     <p>
-                      The endpoint pipeline calls one of the three hooks depending on <em>where</em> the failure occurred: [handleInvocationError] when the service method itself threw, [handleConversionError] when serialising the (successful) result failed, and [handleUnknowResultTypeError] when a result could not be mapped to a known body type. All three default to [handleErrorDefault], which is the single method a concrete handler must implement; override the individual hooks only when a stage needs a different response.
+                      The endpoint pipeline calls a hook depending on <em>where</em> the failure occurred: [handleInvocationError] when the service method itself threw, and [handleConversionError] when serialising the (successful) result failed. [handleUnknowResultTypeError] is declared for a result whose type cannot be mapped to a body and is not reached by the pipeline today — that case leaves as a conversion error. All three default to [handleErrorDefault], which is the single method a concrete handler must implement; override the individual hooks only when a stage needs a different response.
+                    </p>
+                    <p>
+                      The stack trace is a [StackTrace] on every hook. Every call site binds one from a <code>catch (error, stacktrace)</code>
+                       clause, so a looser <code>Object</code> bought nothing and cost every implementer a cast before they could call anything a trace offers.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1699,25 +1761,25 @@
                   <div class="api-members">
                     <div id="TomErrorHandler.handleInvocationError" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">Response handleInvocationError(Object error, Object stacktrace, Request r)</code>
+                        <code class="api-signature">Response handleInvocationError(Object error, StackTrace stacktrace, Request r)</code>
                       </div>
                       <div class="api-doc"><p>Builds the response for an error thrown by the service method.</p></div>
                     </div>
                     <div id="TomErrorHandler.handleConversionError" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">Response handleConversionError(Object error, Object stacktrace, Request r, Object? result)</code>
+                        <code class="api-signature">Response handleConversionError(Object error, StackTrace stacktrace, Request r, Object? result)</code>
                       </div>
                       <div class="api-doc"><p>Builds the response for an error thrown while converting [result] into the response body.</p></div>
                     </div>
                     <div id="TomErrorHandler.handleUnknowResultTypeError" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">Response handleUnknowResultTypeError(Object error, Object stacktrace, Request r, Object? result)</code>
+                        <code class="api-signature">Response handleUnknowResultTypeError(Object error, StackTrace stacktrace, Request r, Object? result)</code>
                       </div>
                       <div class="api-doc"><p>Builds the response for a [result] whose type the pipeline cannot map to a body.</p></div>
                     </div>
                     <div id="TomErrorHandler.handleErrorDefault" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">Response handleErrorDefault(Object error, Object stacktrace, Request r, Object? result)</code>
+                        <code class="api-signature">Response handleErrorDefault(Object error, StackTrace stacktrace, Request r, Object? result)</code>
                       </div>
                       <div class="api-doc">
                         <p>
@@ -1745,6 +1807,75 @@
                     <div id="TomService.new" class="api-member">
                       <div class="api-member-head"><code class="api-signature">const TomService.new()</code></div>
                       <div class="api-doc"><p>Const constructor so the annotation can be applied as <code>@tomService</code>.</p></div>
+                    </div>
+                  </div>
+                </section>
+                <section id="TomStatusMappingErrorHandler" class="api-declaration">
+                  <h3 class="api-decl-title">class TomStatusMappingErrorHandler</h3>
+                  <code class="api-signature">abstract class TomStatusMappingErrorHandler extends TomErrorHandler</code>
+                  <div class="api-doc">
+                    <p>
+                      A [TomErrorHandler] that answers with the framework's error envelope, and with the status an error key is declared to mean.
+                    </p>
+                    <p>
+                      Two things every handler in this framework was writing for itself. The <strong>body</strong> is [tomErrorEnvelope] — the package's single definition of the wire error shape — under 
+                      <code>x-tom-error: true</code> and declared <code>application/json</code>, so a client decodes one shape whichever endpoint answered and branches on 
+                      <code>errorKey</code>. The <strong>status</strong> comes from [statusByErrorKey], which a subclass overrides with its own keys; anything it does not name is a 
+                      <code>500</code>.
+                    </p>
+                    <p>
+                      The envelope is what makes this safe to use as a default. It reports <code>errorKey</code> for a client to resolve against its own resources and never 
+                      <code>defaultUserMessage</code>, so no exception's text escapes through it — the property the plain-text 
+                      <code>"Internal server error"</code> body used to buy by saying nothing at all, at the price of saying nothing at all.
+                    </p>
+                    <p>A deployment that wants a miss to read as a miss therefore writes a map rather than a handler:</p>
+                    <pre><code>class OrdersErrorHandler extends TomStatusMappingErrorHandler {
+  const OrdersErrorHandler();
+
+  @override
+  Map&lt;String, int&gt; get statusByErrorKey =&gt; const {
+    'orders.fetch.not_found': 404,
+    'orders.submit.no_positions': 400,
+  };
+}</code></pre>
+                    <p>
+                      <strong>It maps no status of its own</strong>, and that is deliberate rather than unfinished. The framework cannot know an application's keys, and the two classifications it 
+                      <em>does</em> make are already made elsewhere and differently: an access denial answers <code>404</code>
+                       from [TomEndpointHandler.accessDeniedResponse], deliberately indistinguishable from a route that is not there, and a login failure is the authentication pipeline's to report. A status invented here would contradict one of them.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomStatusMappingErrorHandler.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">const TomStatusMappingErrorHandler.new()</code></div>
+                      <div class="api-doc"><p>Const base constructor so handlers stay usable as <code>const</code> annotations.</p></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="TomStatusMappingErrorHandler.statusByErrorKey" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Map&lt;String, int&gt; statusByErrorKey</code></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="TomStatusMappingErrorHandler.statusFor" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">int statusFor(Object error)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The status [error] answers with: [statusByErrorKey]'s entry for a [TomException]'s key, else <code>500</code>.
+                        </p>
+                        <p>
+                          <code>protected</code>-by-convention rather than private, so a subclass with a rule a map cannot express — a whole key family, say — extends it by calling 
+                          <code>super.statusFor(error)</code> for everything else.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomStatusMappingErrorHandler.handleErrorDefault" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Response handleErrorDefault(Object error, StackTrace stacktrace, Request r, Object? result)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
                     </div>
                   </div>
                 </section>

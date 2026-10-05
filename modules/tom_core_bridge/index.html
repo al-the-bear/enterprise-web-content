@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1390,7 +1396,6 @@
             <p style="margin-top: 10px">
               An alternative VS Code bridge server binary (`core_bs`): the base `tom_bs` from `tom_vscode_bridge` plus the complete Tom-framework D4rt bridge set registered by `tom_core_d4rt`, so editor scripts can drive a running app's core, server, and build APIs.
             </p>
-            <div style="margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap"><a class="btn btn-ghost" href="/modules/tom_core_bridge#license">See License</a></div>
           </div>
           <div class="statgrid">
             <div class="stat">
@@ -1443,15 +1448,6 @@
                     <span class="muted linkpath">doc/smoke_test.md</span>
                   </div>
                 </div>
-                <div class="licdocrow">
-                  <div class="linkrow">
-                    <span class="ic">📜</span>
-                    <div class="linkmeta">
-                      <a class="linkname" href="/docs?module=tom_core_bridge&amp;path=LICENSE">license.md</a>
-                      <span class="muted linkpath">LICENSE</span>
-                    </div>
-                  </div>
-                </div>
               </div>
               <div class="panel">
                 <h3 style="font-size: 1.05rem">API</h3>
@@ -1460,108 +1456,6 @@
               </div>
             </aside>
           </div>
-          <section class="section repodoc">
-            <div class="pageprose">
-              <h1>Tom Core Bridge</h1>
-              <p>Extended VS Code bridge server with the full Tom Framework D4rt bridge set.</p>
-              <h2>Overview</h2>
-              <p>
-                This project provides an alternative bridge server binary (<code>core_bs</code>) for the VS Code extension. The base 
-                <code>tom_bs</code> (from <code>tom_vscode_bridge</code>) ships only the DCli and VS Code API bridges; 
-                <code>core_bs</code> is the same bridge server <strong>plus</strong> the complete Tom Framework bridge set registered by 
-                <code>tom_core_d4rt</code> (<code>TomDartscriptBridges.register</code>):
-              </p>
-              <ul>
-                <li><strong>tom_basics</strong> — basic utilities, logging, platform detection</li>
-                <li><strong>tom_reflection</strong> — reflection support</li>
-                <li><strong>tom_core_kernel</strong> — core framework types</li>
-                <li><strong>tom_core_server</strong> — server-side components</li>
-                <li><strong>tom_build</strong> — build-system APIs</li>
-                <li><strong>tom_dist_ledger</strong> — distributed ledger</li>
-                <li><strong>tom_process_monitor</strong> — process monitoring</li>
-                <li><strong>tom_doc_scanner</strong> — markdown document scanning</li>
-                <li><strong>tom_doc_specs</strong> — document-spec validation</li>
-                <li><strong>tom_md2latex</strong> — markdown → LaTeX conversion</li>
-                <li><strong>tom_md2pdf</strong> — markdown → PDF conversion</li>
-              </ul>
-              <p>
-                The bridged surfaces are documented per module in <a href="../tom_core_d4rt/doc/"><code>tom_core_d4rt/doc/</code></a>.
-              </p>
-              <h2>Architecture</h2>
-              <p>
-                The binary is a thin entry point: it starts the <code>tom_vscode_bridge</code> server and passes <code>TomDartscriptBridges.register</code>
-                 as an additional bridge registrar.
-              </p>
-              <pre><code>tom_core_bridge (bin/core_bs.dart)
-├── tom_vscode_bridge            — base bridge server + VS Code API bridges
-│   ├── tom_d4rt_dcli            — DCli bridges
-│   └── tom_vscode_scripting_api — VS Code API wrappers
-└── tom_core_d4rt               — Tom Framework bridges (TomDartscriptBridges)
-    ├── tom_basics              ├── tom_dist_ledger     ├── tom_doc_specs
-    ├── tom_reflection          ├── tom_process_monitor ├── tom_md2latex
-    ├── tom_core_kernel         ├── tom_doc_scanner     └── tom_md2pdf
-    ├── tom_core_server
-    └── tom_build</code></pre>
-              <pre><code>// bin/core_bs.dart — the whole entry point
-void main() {
-  VSCodeBridgeServer(
-    additionalBridgeRegistrars: [TomDartscriptBridges.register],
-  ).start();
-}</code></pre>
-              <p>
-                It is launched by the VS Code extension and communicates over stdin/stdout using a JSON-RPC-like protocol.
-              </p>
-              <h2>Build</h2>
-              <p>
-                The binary is compiled ahead-of-time and published into the workspace binary tree (<code>$TOM_BINARY_PATH/&lt;platform-vs&gt;/core_bs</code>). The build is driven by 
-                <a href="buildkit.yaml"><code>buildkit.yaml</code></a> (a <code>versioner</code> step that regenerates 
-                <code>lib/src/version.versioner.dart</code>, then per-platform <code>dart compile exe</code> pipelines that also cross-compile the Linux targets from macOS ARM64).
-              </p>
-              <pre><code># Via the workspace build tool (regenerates the versioner, then compiles):
-tom build tom_core_bridge
-
-# Or compile the entry point directly for the current platform:
-dart compile exe bin/core_bs.dart -o core_bs</code></pre>
-              <p>
-                &gt; <strong>Note:</strong> <code>core_bs</code> links the generated <code>tom_core_d4rt</code> bridge set, so its &gt; compilation currently shares the blockers tracked in the 
-                <code>tom_core_d4rt</code> &gt; refactoring plan (the <code>tom_d4rt_generator</code> B3/B4 codegen defects in the &gt; 
-                <code>tom_core_server</code> / <code>tom_dist_ledger</code> bridges, and a <code>tom_d4rt</code> version &gt; alignment — run 
-                <code>dart pub get</code> here after upgrading <code>tom_core_d4rt</code>). The &gt; source entry point itself is trivial; the binary builds once those upstream &gt; issues are resolved. See 
-                <code>tom_core_d4rt/CHANGELOG.md</code> "Known issues".
-              </p>
-              <h2>VS Code registration</h2>
-              <p>
-                The extension launches a bridge process whose command and arguments come from its bridge-profile configuration (<code>DartBridgeClient</code>). When no explicit command is configured it falls back to 
-                <code>dart run bin/tom_bs.dart</code>. To run the extended server instead, point the bridge command/args at 
-                <code>core_bs</code>:
-              </p>
-              <ul><li><strong>Compiled binary</strong> — set the bridge command to the published</li></ul>
-              <p>
-                <code>core_bs</code> executable (<code>$TOM_BINARY_PATH/&lt;platform-vs&gt;/core_bs</code>), no args. - 
-                <strong>From source</strong> — set the command to <code>dart</code> with args <code>['run', '&lt;path&gt;/tom_core_bridge/bin/core_bs.dart']</code>.
-              </p>
-              <p>
-                Once registered, every D4rt script run through the VS Code bridge has the full Tom Framework bridge set available in addition to the DCli and VS Code APIs.
-              </p>
-              <h2>Operations</h2>
-              <p>
-                For the full operational runbook — build pipeline and artifact locations, the bridge-profile configuration shape, switching profiles, and a troubleshooting table for failed launches — see 
-                <a href="/docs?module=tom_core_bridge&amp;path=doc%2Foperations.md"><code>doc/operations.md</code></a>.
-              </p>
-              <h2>License</h2>
-              <p>Proprietary and confidential — see <a href="LICENSE"><code>LICENSE</code></a>.</p>
-            </div>
-          </section>
-          <details class="licbox">
-            <summary>License</summary>
-            <pre id="license" class="lictext">Copyright (c) 2024-2026 Peter Nicolai Alexis Kyaw. All rights reserved.
-
-This code is proprietary and confidential. Unauthorized copying, modification,
-distribution, or use of this software, via any medium, is strictly prohibited.
-
-For licensing inquiries, find me on LinkedIn under "Alexis Kyaw".
-</pre>
-          </details>
         </div>
       </main>
       <footer class="site-footer">

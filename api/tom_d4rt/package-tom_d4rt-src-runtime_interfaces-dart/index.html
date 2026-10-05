@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1387,14 +1393,69 @@
             <div class="treewrap">
               <div class="treepane">
                 <div class="treenodes">
+                  <a class="leaf" href="#AppliedRuntimeType">AppliedRuntimeType</a>
                   <a class="leaf" href="#D4InterpretedProxy">D4InterpretedProxy</a>
+                  <a class="leaf" href="#FunctionRuntimeType">FunctionRuntimeType</a>
+                  <a class="leaf" href="#NamedRuntimeType">NamedRuntimeType</a>
+                  <a class="leaf" href="#RecordRuntimeType">RecordRuntimeType</a>
                   <a class="leaf" href="#RuntimeType">RuntimeType</a>
                   <a class="leaf" href="#RuntimeValue">RuntimeValue</a>
+                  <a class="leaf" href="#_isWildcardTypeName">_isWildcardTypeName</a>
+                  <a class="leaf" href="#_runtimeTypeCompatible">_runtimeTypeCompatible</a>
+                  <a class="leaf" href="#isTopTypeName">isTopTypeName</a>
                 </div>
               </div>
               <div class="reader">
                 <h2 class="api-library-title">package:tom_d4rt/src/runtime_interfaces.dart</h2>
                 <code class="api-import">import 'package:tom_d4rt/src/runtime_interfaces.dart';</code>
+                <section id="AppliedRuntimeType" class="api-declaration">
+                  <h3 class="api-decl-title">class AppliedRuntimeType</h3>
+                  <code class="api-signature">class AppliedRuntimeType implements RuntimeType</code>
+                  <div class="api-doc">
+                    <p>
+                      Runtime model of a generic type applied to concrete type arguments, such as <code>Box&lt;int&gt;</code>
+                       or <code>List&lt;String&gt;</code>. Preserves the applied type arguments at runtime so <code>is Box&lt;int&gt;</code>
+                       and generic/collection return-type checks can compare the arguments element-wise instead of collapsing to the raw base type. Ports the applied-runtime-types half of upstream 1042fff.
+                    </p>
+                    <p>
+                      Subtyping is base-then-arguments: the [baseType]s must be compatible (wildcard / name-equality / base 
+                      <code>isSubtypeOf</code>), then each declared type argument on [other] is matched against the corresponding argument here. An 
+                      <code>other</code> argument named <code>dynamic</code>/<code>Object</code>/<code>void</code> acts as a wildcard. When [other] is not itself an [AppliedRuntimeType] (a raw base type or a structural function/record type), the comparison falls back to the base type only — a 
+                      <code>Box&lt;int&gt;</code> is still a <code>Box</code>, an <code>Object</code>, etc. Differing arities also stay permissive, so coarsely-resolved (partially-applied) annotations don't regress.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="AppliedRuntimeType.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">AppliedRuntimeType.new(RuntimeType baseType, List&lt;RuntimeType&gt; typeArguments)</code>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="AppliedRuntimeType.baseType" class="api-member"><div class="api-member-head"><code class="api-signature">final RuntimeType baseType</code></div></div>
+                    <div id="AppliedRuntimeType.typeArguments" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final List&lt;RuntimeType&gt; typeArguments</code></div>
+                    </div>
+                    <div id="AppliedRuntimeType.name" class="api-member"><div class="api-member-head"><code class="api-signature">String name</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="AppliedRuntimeType.isSubtypeOf" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">bool isSubtypeOf(RuntimeType other, {Object? value})</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="AppliedRuntimeType.toString" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">String toString()</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
                 <section id="D4InterpretedProxy" class="api-declaration">
                   <h3 class="api-decl-title">class D4InterpretedProxy</h3>
                   <code class="api-signature">abstract class D4InterpretedProxy</code>
@@ -1420,6 +1481,147 @@
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
                     <div id="D4InterpretedProxy.d4rtInstance" class="api-member"><div class="api-member-head"><code class="api-signature">Object d4rtInstance</code></div></div>
+                  </div>
+                </section>
+                <section id="FunctionRuntimeType" class="api-declaration">
+                  <h3 class="api-decl-title">class FunctionRuntimeType</h3>
+                  <code class="api-signature">class FunctionRuntimeType implements RuntimeType</code>
+                  <div class="api-doc">
+                    <p>
+                      Runtime model of a function type such as <code>int Function(String, [double])</code> or <code>void Function({int count})</code>. Subtyping is structural: return type covariant, parameters contravariant, arities and named-parameter shape must line up.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="FunctionRuntimeType.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          const FunctionRuntimeType.new({required RuntimeType returnType, List&lt;RuntimeType&gt; positionalParameterTypes = const [], List&lt;RuntimeType&gt; optionalPositionalParameterTypes = const [], Map&lt;String, RuntimeType&gt; namedParameterTypes = const {}})
+                        </code>
+                      </div>
+                    </div>
+                    <div id="FunctionRuntimeType.untyped" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">factory FunctionRuntimeType.untyped()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          A function type with no declared shape — used as the default for callables whose parameter/return annotations could not be resolved. It matches any other function type.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="FunctionRuntimeType.returnType" class="api-member"><div class="api-member-head"><code class="api-signature">final RuntimeType returnType</code></div></div>
+                    <div id="FunctionRuntimeType.positionalParameterTypes" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final List&lt;RuntimeType&gt; positionalParameterTypes</code></div>
+                    </div>
+                    <div id="FunctionRuntimeType.optionalPositionalParameterTypes" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final List&lt;RuntimeType&gt; optionalPositionalParameterTypes</code></div>
+                    </div>
+                    <div id="FunctionRuntimeType.namedParameterTypes" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Map&lt;String, RuntimeType&gt; namedParameterTypes</code></div>
+                    </div>
+                    <div id="FunctionRuntimeType._isUntyped" class="api-member"><div class="api-member-head"><code class="api-signature">bool _isUntyped</code></div></div>
+                    <div id="FunctionRuntimeType.name" class="api-member"><div class="api-member-head"><code class="api-signature">String name</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="FunctionRuntimeType.isSubtypeOf" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">bool isSubtypeOf(RuntimeType other, {Object? value})</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="FunctionRuntimeType.toString" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">String toString()</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="NamedRuntimeType" class="api-declaration">
+                  <h3 class="api-decl-title">class NamedRuntimeType</h3>
+                  <code class="api-signature">class NamedRuntimeType implements RuntimeType</code>
+                  <div class="api-doc">
+                    <p>
+                      A minimal, self-contained [RuntimeType] identified purely by name. Used as a sentinel for <code>dynamic</code>
+                       return/parameter types when a richer type object is unavailable, and as a fallback for parameter types the resolver cannot map to a concrete class.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="NamedRuntimeType.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">const NamedRuntimeType.new(String name)</code></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="NamedRuntimeType.name" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">final String name</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="NamedRuntimeType.isSubtypeOf" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">bool isSubtypeOf(RuntimeType other, {Object? value})</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="NamedRuntimeType.toString" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">String toString()</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="RecordRuntimeType" class="api-declaration">
+                  <h3 class="api-decl-title">class RecordRuntimeType</h3>
+                  <code class="api-signature">class RecordRuntimeType implements RuntimeType</code>
+                  <div class="api-doc">
+                    <p>
+                      Runtime model of a record type such as <code>(int, String)</code> or <code>(int, {String label})</code>. Subtyping requires an identical shape (same positional arity, same named keys) with each field compatible.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="RecordRuntimeType.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          const RecordRuntimeType.new({List&lt;RuntimeType&gt; positionalFieldTypes = const [], Map&lt;String, RuntimeType&gt; namedFieldTypes = const {}})
+                        </code>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="RecordRuntimeType.positionalFieldTypes" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final List&lt;RuntimeType&gt; positionalFieldTypes</code></div>
+                    </div>
+                    <div id="RecordRuntimeType.namedFieldTypes" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Map&lt;String, RuntimeType&gt; namedFieldTypes</code></div>
+                    </div>
+                    <div id="RecordRuntimeType.name" class="api-member"><div class="api-member-head"><code class="api-signature">String name</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="RecordRuntimeType.isSubtypeOf" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">bool isSubtypeOf(RuntimeType other, {Object? value})</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="RecordRuntimeType.toString" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">String toString()</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
                   </div>
                 </section>
                 <section id="RuntimeType" class="api-declaration">
@@ -1464,6 +1666,47 @@
                       <div class="api-member-head"><code class="api-signature">void set(String name, Object? value)</code></div>
                       <div class="api-doc"><p>Sets a property of this value.</p></div>
                     </div>
+                  </div>
+                </section>
+                <section id="_isWildcardTypeName" class="api-declaration">
+                  <h3 class="api-decl-title">function _isWildcardTypeName</h3>
+                  <code class="api-signature">bool _isWildcardTypeName(String n)</code>
+                  <div class="api-doc">
+                    <p>
+                      Deprecated spelling kept for the structural helpers below, which read better with the old name at their call sites.
+                    </p>
+                  </div>
+                </section>
+                <section id="_runtimeTypeCompatible" class="api-declaration">
+                  <h3 class="api-decl-title">function _runtimeTypeCompatible</h3>
+                  <code class="api-signature">bool _runtimeTypeCompatible(RuntimeType sub, RuntimeType sup)</code>
+                  <div class="api-doc">
+                    <p>
+                      Structural field/parameter compatibility used by [FunctionRuntimeType] and [RecordRuntimeType]. Independent of the concrete [RuntimeType] class so it works uniformly across bridged classes, named sentinels, and nested function/record types (where the concrete 
+                      <code>isSubtypeOf</code> implementations do not know about each other).
+                    </p>
+                  </div>
+                </section>
+                <section id="isTopTypeName" class="api-declaration">
+                  <h3 class="api-decl-title">function isTopTypeName</h3>
+                  <code class="api-signature">bool isTopTypeName(String n)</code>
+                  <div class="api-doc">
+                    <p>True for the names that denote a TOP TYPE — one every value inhabits.</p>
+                    <p>
+                      <code>dynamic</code>, <code>Object</code>, <code>Object?</code> and <code>void</code>. Treating them as "matches anything" keeps a comparison permissive exactly where Dart's own assignability is permissive, which matters most on annotations the interpreter can only resolve coarsely.
+                    </p>
+                    <p>
+                      <strong>One predicate, because three used to disagree.</strong> SCD90 measured the question <code>X &lt;: &lt;top&gt;</code>
+                       across the implementations of [RuntimeType] and found [NamedRuntimeType] and <code>TypeParameter</code>
+                       answering <code>true</code> for all of <code>Object</code> / <code>dynamic</code> / <code>void</code>, while 
+                      <code>BridgedClass</code> answered <code>true</code> only for a <code>BridgedClass</code> named <code>Object</code>
+                       — false for <code>dynamic</code>, for <code>void</code>, and for every [NamedRuntimeType] target including 
+                      <code>Object</code>, which is the sentinel this very file documents as how <code>dynamic</code> is spelled when a richer type object is unavailable. Five of six cells wrong in one implementation, right in the others. So the fix is one shared answer rather than a fourth private copy of it.
+                    </p>
+                    <p>
+                      <code>Object?</code> is included although nothing was measured spelling it: a type whose name is literally 
+                      <code>Object?</code> can only be the nullable top type, so admitting it cannot be wrong, and omitting it would be the next asymmetry.
+                    </p>
                   </div>
                 </section>
               </div>

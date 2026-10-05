@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1391,6 +1397,7 @@
                   <a class="leaf" href="#D4UserBridge">D4UserBridge</a>
                   <a class="leaf" href="#D4UserProxy">D4UserProxy</a>
                   <a class="leaf" href="#D4UserRelaxer">D4UserRelaxer</a>
+                  <a class="leaf" href="#_AdaptedSink">_AdaptedSink</a>
                   <a class="leaf" href="#_CastIterator">_CastIterator</a>
                   <a class="leaf" href="#_PromotingDoubleIterator">_PromotingDoubleIterator</a>
                   <a class="leaf" href="#_TypePair">_TypePair</a>
@@ -1592,7 +1599,7 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                       <div class="api-doc">
                         <p>
                           Opt-in instrumentation toggle. When <code>true</code>, [extractBridgedArg] and the interpreter's generic-constructor path record each relaxer / interface-proxy / type-coercion / generic-constructor 
-                          <em>hit</em> and each unresolved <em>miss</em>, keyed by category + base type + type-argument. The accumulated data drives the mass-generation reduction work (P&amp;R steps 4–5): it reveals which generated cases real scripts actually exercise.
+                          <em>hit</em> and each unresolved <em>miss</em>, keyed by category + base type + type-argument. The accumulated data drives the mass-generation reduction work: it reveals which generated cases real scripts actually exercise.
                         </p>
                         <p>
                           Defaults to <code>false</code>. Every instrumentation call site guards on this flag <em>before</em> composing any log key, so the log is completely silent and zero-overhead when disabled.
@@ -1668,6 +1675,35 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                         </p>
                       </div>
                     </div>
+                    <div id="D4.interpretedBehind" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Object? interpretedBehind(Object? value)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The interpreted instance [value] is a native proxy for — or the bridged super object of, see [ownerOfSuperObject] — or null when it is neither.
+                        </p>
+                        <p>
+                          A native proxy and the interpreted instance behind it are ONE object as far as a script is concerned: the proxy exists so native code has something of the right Dart type to hold, and the instance is what the script wrote. Anything asking "are these the same object" — 
+                          <code>identical</code>, <code>==</code>, a collection's membership test — has to be told, because the two carriers are different Dart objects.
+                        </p>
+                        <p>
+                          Both carriers are accepted because both reach a binding: the bare proxy object, and a [BridgedInstance] wrapping it — which of the two arrives depends on the path the value took out of native code.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="D4.ownerOfSuperObject" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static InterpretedInstance? ownerOfSuperObject(Object? value)</code></div>
+                      <div class="api-doc">
+                        <p>The interpreted instance whose bridged super object [value] is, or null.</p>
+                        <p>
+                          SCF31. A script class extending a CONCRETE bridged class — <code>class _RenderMeasureBox extends RenderProxyBox</code>
+                           — gets no proxy: the base is constructed natively and that object is what native code holds, because only the real object lays out and paints. When it comes back (a framework-passed 
+                          <code>renderObject</code>, a viewport's <code>delegate</code> getter) it is the bare base, and the script's own class was unreadable on it. The native object and its instance are one object to the script, exactly as a proxy and its instance are, so [interpretedBehind] answers for both — the carrier differs, the identity does not.
+                        </p>
+                        <p>
+                          Recorded by [InterpretedInstance.bridgedSuperObject]'s setter, so every constructed super object is covered, not only one that happened to cross through [extractBridgedArg] first.
+                        </p>
+                      </div>
+                    </div>
                     <div id="D4.typeName" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static String typeName(Type t)</code></div>
                       <div class="api-doc"><p>Returns the (memoized) <code>toString()</code> of [t]. See [_typeNameCache].</p></div>
@@ -1682,13 +1718,44 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                         </p>
                       </div>
                     </div>
+                    <div id="D4.pushActiveVisitor" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static InterpreterVisitor? pushActiveVisitor(InterpreterVisitor visitor)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Sets [visitor] as the active visitor and returns the previously-active one.</p>
+                        <p>
+                          Hot-path companion to [withActiveVisitor] for callers that already own a <code>try</code>/<code>finally</code>
+                           — most importantly [InterpretedFunction.call], which runs on every interpreted function call. Pairing [pushActiveVisitor] with [popActiveVisitor] gives identical save/set/restore semantics (nesting included) without allocating the 
+                          <code>T Function()</code> closure that [withActiveVisitor] requires per invocation.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="D4.popActiveVisitor" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static void popActiveVisitor(InterpreterVisitor? previous)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Restores the active visitor saved by [pushActiveVisitor]. Always call this from a <code>finally</code>
+                           so the active visitor unwinds correctly on every exit path (including exceptions).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="D4._canKey" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static bool _canKey(Object value)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Whether [value] can key [_nativeToInterpreted]. An [Expando] throws on these, and none of them can be a super object native code hands back — but [interpretedBehind] is asked about every operand of 
+                          <code>==</code>, so the lookups must refuse them rather than throw.
+                        </p>
+                      </div>
+                    </div>
                     <div id="D4.registerInterpretedForNative" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">static void registerInterpretedForNative(Object nativeObject, Object interpretedInstance)</code>
                       </div>
                       <div class="api-doc">
                         <p>
-                          Records that [nativeObject] is the bridged-super of [interpretedInstance]. No-op for non-Object keys (Expandos require Object keys).
+                          Records that [nativeObject] is the bridged-super of [interpretedInstance]. No-op for keys an [Expando] refuses (numbers, strings, booleans, records).
                         </p>
                       </div>
                     </div>
@@ -1897,9 +1964,7 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                         </code>
                       </div>
                       <div class="api-doc">
-                        <p>
-                          Build an enriched diagnostic message for an unresolved [extractBridgedArg] resolution (P&amp;R#2 / request g).
-                        </p>
+                        <p>Build an enriched diagnostic message for an unresolved [extractBridgedArg] resolution.</p>
                         <p>
                           Beyond the bare "expected/got" line, it reports: - the <strong>base type</strong> (<code>expectedType</code>
                            stripped of nullability + type args), - the <strong>unmatched type-argument</strong> (if <code>expectedType</code>
@@ -2022,6 +2087,110 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                         </p>
                       </div>
                     </div>
+                    <div id="D4.adaptSink" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static Sink&lt;T&gt; adaptSink&lt;T&gt;(Object? arg, String paramName)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Adapt a sink that came from d4rt into a typed <code>Sink&lt;T&gt;</code>.</p>
+                        <p>
+                          <strong>The contravariant twin of [coerceStream], and it cannot be a coercion.</strong> The interpreter erases type arguments, so 
+                          <code>ChunkedConversionSink.withCallback(cb)</code> evaluates to a native <code>ChunkedConversionSink&lt;Object?&gt;</code>, and Dart generics are covariant: 
+                          <code>Sink&lt;Object?&gt;</code> is NOT a <code>Sink&lt;String&gt;</code>. Every <code>startChunkedConversion</code>
+                           guard and cast in <code>stdlib/convert</code> therefore rejected every sink a script could build, exactly as 
+                          <code>bind</code> rejected every stream before SCC68.
+                        </p>
+                        <p>
+                          A <code>Stream&lt;T&gt;</code> is a PRODUCER — [coerceStream] maps its elements on the way out, and there is something to map. A 
+                          <code>Sink&lt;T&gt;</code> is a CONSUMER: nothing has been produced yet, only a method that will be called with a 
+                          <code>T</code> later. So the repair is a forwarding wrapper that IS the demanded <code>Sink&lt;T&gt;</code>
+                           and passes <code>add</code>/<code>close</code> down to the erased sink underneath.
+                        </p>
+                        <p>
+                          An already-typed <code>Sink&lt;T&gt;</code> passes through by identity rather than being wrapped — the same rule [coerceStream] follows, and for the same reason: a wrapper around a sink that did not need one would make 
+                          <code>identical</code> false for a value the caller still holds.
+                        </p>
+                        <p>A value that is not a <code>Sink</code> at all still throws — this widens nothing.</p>
+                      </div>
+                    </div>
+                    <div id="D4.pipeStream" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static Future&lt;dynamic&gt; pipeStream(Stream&lt;dynamic&gt; source, Object? consumer, String member)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p><code>Stream.pipe</code>, without the typed call that rejects every consumer a script can hold.</p>
+                        <p>
+                          SCE217. The SDK defines <code>pipe</code> as <code>consumer.addStream(this).then((_) =&gt; consumer.close())</code>, but the call itself is typed — 
+                          <code>Stream&lt;X&gt;.pipe(StreamConsumer&lt;X&gt;)</code> — and Dart generics are covariant: a consumer is only a 
+                          <code>StreamConsumer&lt;X&gt;</code> when its element type is a SUBTYPE of <code>X</code>. The consumers a script holds sit the other way round — a script's 
+                          <code>StreamController()</code> is <code>StreamController&lt;dynamic&gt;</code>, and an <code>IOSink</code>
+                           (a file's <code>openWrite()</code>, a <code>Socket</code>) is <code>StreamConsumer&lt;List&lt;int&gt;&gt;</code>
+                           where a socket's stream is <code>Stream&lt;Uint8List&gt;</code>. So <code>socket.pipe(controller)</code>
+                           and the proxy <code>client.pipe(upstream)</code> threw a raw <code>_TypeError</code> for every reachable call.
+                        </p>
+                        <p>
+                          This runs the SDK's own body with the consumer's <code>addStream</code> dispatched dynamically, so the only type check left is the one that means something: the source must be a stream of the consumer's element type. A consumer whose element type is unrelated still fails, inside its own 
+                          <code>addStream</code> — this widens nothing. A value that is not a <code>StreamConsumer</code> at all is refused with [member]'s own message.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="D4.coerceStream" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static Stream&lt;T&gt; coerceStream&lt;T&gt;(Object? arg, String paramName)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Coerce a stream that came from d4rt into a typed <code>Stream&lt;T&gt;</code>.</p>
+                        <p>
+                          <strong>Why a bare cast is not enough.</strong> The interpreter erases type arguments: <code>Stream&lt;String&gt;.fromIterable(['a'])</code>
+                           evaluates to a native <code>Stream&lt;Object?&gt;</code>, and a <code>Stream&lt;Object?&gt;</code> is not a 
+                          <code>Stream&lt;String&gt;</code>. So both <code>arg as Stream&lt;T&gt;</code> <em>and</em> the <code>arg is! Stream&lt;T&gt;</code>
+                           guard that usually precedes it reject every stream a script can build. The guard failing first is what made this hard to spot — the adapter reports "wrong argument" rather than a cast error, so it reads like a script mistake.
+                        </p>
+                        <p>
+                          <code>Stream.cast&lt;T&gt;()</code> would be the obvious repair and is also wrong for the nested case: it re-types the 
+                          <em>element</em>, so <code>cast&lt;List&lt;int&gt;&gt;()</code> on a stream of <code>List&lt;Object?&gt;</code>
+                           chunks throws on the first chunk. Use [coerceByteStream] for chunked byte streams.
+                        </p>
+                        <p>An element whose type genuinely does not match still fails — this widens nothing.</p>
+                      </div>
+                    </div>
+                    <div id="D4.coerceByteStream" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static Stream&lt;List&lt;int&gt;&gt; coerceByteStream(Object? arg, String paramName)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Coerce a stream of byte chunks that came from d4rt into a <code>Stream&lt;List&lt;int&gt;&gt;</code>.
+                        </p>
+                        <p>
+                          This is [coerceStream] for the nested case, and it is a separate method because the erasure applies twice over: the stream is a 
+                          <code>Stream&lt;Object?&gt;</code> <em>and</em> each chunk is a <code>List&lt;Object?&gt;</code>. Coercing only the stream leaves chunks that fail on use; coercing only the chunks is not expressible through a single type parameter. Each chunk goes through [coerceList], so a chunk that is not a list of ints fails with the same message a list parameter would produce.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="D4.bindForwardingSourceErrors" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static Stream&lt;T&gt; bindForwardingSourceErrors&lt;S, T&gt;(Stream&lt;S&gt; source, Stream&lt;T&gt; Function(Stream&lt;S&gt;) bind)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Binds [source] with [bind] so that an ERROR on [source] reaches the returned stream even when the native consumer [bind] hands it to drops source errors.
+                        </p>
+                        <p>
+                          <strong>Why this exists (SCE208).</strong> [coerceStream] is lazy: a wrongly typed element becomes an error EVENT on the mapped stream, which is the right shape — every consumer that forwards source errors delivers the diagnostic to the script. Measured 2026-09-28 across the eleven bridged consumers of a coerced stream (the 
+                          <code>dart:convert</code> binds, <code>Encoding.decodeStream</code>, and the <code>IOSink</code> / <code>Socket</code>
+                           / <code>HttpResponse</code> / <code>HttpClientRequest</code> <code>addStream</code>s), all eleven do. One does not: 
+                          <code>WebSocketTransformer.bind</code> listens to its source with no <code>onError</code>, so the error went to the zone's uncaught-error handler and the script's stream simply never produced another event — a hang, not a failure.
+                        </p>
+                        <p>
+                          So the errors are split off before [bind] sees the stream and merged back into its output. The source is listened to exactly when [bind] listens to it (eagerly, for the transformer above), and pause, resume and cancel on the returned stream reach the bound stream's subscription. This is NOT an eager check — nothing is drained ahead of the consumer.
+                        </p>
+                      </div>
+                    </div>
                     <div id="D4._isDoubleType" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static bool _isDoubleType&lt;T&gt;()</code></div>
                       <div class="api-doc"><p>Check if T is double or double? (nullable double)</p></div>
@@ -2077,7 +2246,7 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                       <div class="api-member-head"><code class="api-signature">static T? _tryUserFactoryResolution&lt;T&gt;(Object? value)</code></div>
                       <div class="api-doc">
                         <p>
-                          P&amp;R#3: Last-resort user-factory resolution, tried immediately before [extractBridgedArg] gives up and throws.
+                          Last-resort user-factory resolution, tried immediately before [extractBridgedArg] gives up and throws.
                         </p>
                         <p>
                           The inlined relaxer lookup inside [extractBridgedArg] only consults [_genericTypeWrappers] when <code>T</code>
@@ -2274,6 +2443,76 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                         </p>
                       </div>
                     </div>
+                    <div id="D4.describeArityError" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static String? describeArityError(Object error, List&lt;Object?&gt; positional, String memberDescription)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>SCB28: restate a raw list <code>RangeError</code> as a wrong-arity diagnostic.</p>
+                        <p>
+                          Most hand-written stdlib bridges read their arguments as <code>positionalArgs[0]</code>, <code>positionalArgs[1]</code>, … without first checking the length — a measured 601 of the 1204 adapters that index the list. Calling such a bridge with too few arguments therefore surfaces a list 
+                          <code>RangeError</code> that names neither the class nor the member:
+                        </p>
+                        <p>
+                          Native error during static bridged method call 'parse' on UriData: RangeError (length): Invalid value: Valid value range is empty: 0
+                        </p>
+                        <p>
+                          Hand-patching 601 adapters across both interpreter trees would be 1202 copies of the same three lines, so the too-few half is recognised here instead and every unguarded adapter is covered at once. The dispatch sites in 
+                          <code>interpreter_visitor.dart</code> consult this from the catch-all that builds the "Native error during …" message; a non-null result replaces that message.
+                        </p>
+                        <p>
+                          Returns null — meaning "not an arity failure, report it as before" — unless [error] is exactly the error shape Dart's 
+                          <code>List.[]</code> raises for an out-of-range read on a list whose length equals [positional].length: 
+                          <code>name == 'length'</code>, <code>start == 0</code>, <code>end == length - 1</code>, and an <code>invalidValue</code>
+                           at or past the end. A native <code>RangeError</code> from inside the call — <code>[1, 2, 3].sublist(0, 99)</code>
+                           — fails that shape and passes through.
+                        </p>
+                        <p>
+                          The check is a heuristic over the <em>reported range</em>, not over object identity, because <code>List.[]</code>
+                           throws a plain [RangeError] with no <code>indexable</code> back-reference (unlike [IndexError]). Misattribution would require the adapter to index a 
+                          <em>different</em> list of exactly the argument count's length out of range; that only ever changes the wording of an error that was already being thrown.
+                        </p>
+                        <p>[memberDescription] is the <code>Class.member</code> the script author called.</p>
+                        <p>Mirrors the analyzer-based twin — see <code>tom_d4rt/lib/src/generator/d4.dart</code>.</p>
+                      </div>
+                    </div>
+                    <div id="D4.checkArity" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static void checkArity(List&lt;Object?&gt; positional, String memberDescription, {int? exactly, int? atMost, int? atLeast})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>SCC85: reject positional arguments the adapter would silently discard.</p>
+                        <p>
+                          The companion to [describeArityError], which covers the too-FEW half generically: an unguarded adapter that reads past the end of the argument list raises a 
+                          <code>RangeError</code> the dispatcher recognises and restates. Too MANY arguments raise nothing at all — the adapter reads the slots it wants, the surplus is dropped, and a typo stays invisible:
+                        </p>
+                        <p>UriData.parse('data:,a', 'extra')   // returns the parsed value</p>
+                        <p>
+                          That half cannot be recognised at the dispatch boundary the same way, because [BridgedClass] stores an adapter as an untyped closure and nothing on the dispatch path knows how many arguments it wants. The count is known only inside the adapter, so the check has to live there — but it does NOT have to be written out 443 times across two trees, which is what this is for.
+                        </p>
+                        <p>
+                          [atMost] is the bound to prefer, and the one a sweep can derive mechanically: it is one past the highest index the adapter ever reads, so anything beyond it is 
+                          <em>provably</em> ignored. [exactly] and [atLeast] are for adapters whose minimum is known by hand — the minimum is not derivable in general, because an adapter reading 
+                          <code>positionalArgs[1]</code> behind a length test takes one argument or two.
+                        </p>
+                        <p>
+                          Ordering note: once an adapter carries this, its message wins over [describeArityError]'s, because the check runs before any index is read. That is intended — an explicit guard can name the expected shape — but it means a test asserting the generic wording must not point at a guarded bridge.
+                        </p>
+                        <p>
+                          <strong>This is the HAND-WRITTEN stdlib entry point</strong>, and the counterpart to [getRequiredArg], which is the generated one. The two throw different exception types on purpose — see [getRequiredArg] for why the split exists and why it was not collapsed. 
+                          <code>stdlib_d4_boundary_test</code> keeps it stated.
+                        </p>
+                        <p>[memberDescription] is the <code>Class.member</code> the script author called.</p>
+                      </div>
+                    </div>
+                    <div id="D4._arguments" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String _arguments(int n)</code></div>
+                      <div class="api-doc"><p><code>argument</code> / <code>arguments</code>, so the messages above read as English.</p></div>
+                    </div>
                     <div id="D4.getRequiredArg" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
@@ -2281,8 +2520,25 @@ final items = D4.coerceList&lt;Item&gt;(positional[0], 'items');</code></pre>
                         </code>
                       </div>
                       <div class="api-doc">
-                        <p>Get a required positional argument with type checking.</p>
-                        <p>Throws ArgumentError if the argument is missing or has wrong type.</p>
+                        <p>Get a required positional argument, bounds-checked and type-extracted.</p>
+                        <p>
+                          <strong>This is the GENERATED-code entry point.</strong> <code>tom_d4rt_generator</code> emits it; the hand-written stdlib under 
+                          <code>lib/src/stdlib/</code> does not use it, and [checkArity] is what that side reaches for instead. 
+                          <code>stdlib_d4_boundary_test</code> pins the split so it stays a stated boundary rather than an accident.
+                        </p>
+                        <p>The two sides differ in what they throw, and the difference is real rather than cosmetic:</p>
+                        <ul><li>this pair throws [ArgumentD4rtException] — generated bridges and their</li></ul>
+                        <p>
+                          tests depend on it, which is why SCC87 chose not to change it; * [checkArity] throws [RuntimeD4rtException], matching what the stdlib dispatch path already produced and what [describeArityError] emits, so a hand-written bridge reports arity failures the same way whether the guard is explicit or generic.
+                        </p>
+                        <p>
+                          Both are siblings under <code>D4rtException</code>, so a script that wants every bridge argument failure catches THAT and gets all of them. What it cannot do is pick one subtype and be sure it has covered the surface — worth knowing before writing 
+                          <code>on ArgumentD4rtException</code> in a script.
+                        </p>
+                        <p>
+                          Throws [ArgumentD4rtException] when the argument is missing or has the wrong type. (The previous wording here said 
+                          <code>ArgumentError</code>, which is a different class this method never throws.)
+                        </p>
                       </div>
                     </div>
                     <div id="D4.getOptionalArg" class="api-member">
@@ -2652,6 +2908,51 @@ class TomFormListUserProxy extends D4UserProxy {}</code></pre>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
                     <div id="D4UserRelaxer.baseTypeName" class="api-member"><div class="api-member-head"><code class="api-signature">String baseTypeName</code></div></div>
+                  </div>
+                </section>
+                <section id="_AdaptedSink" class="api-declaration">
+                  <h3 class="api-decl-title">class _AdaptedSink</h3>
+                  <code class="api-signature">class _AdaptedSink&lt;T&gt; implements Sink&lt;T&gt;</code>
+                  <div class="api-doc">
+                    <p>A <code>Sink&lt;T&gt;</code> forwarding to a sink whose type argument the interpreter erased.</p>
+                    <p>
+                      See [D4.adaptSink]. <code>add</code> is where the erasure is actually resolved: the native sink underneath accepts 
+                      <code>dynamic</code>, so handing it a <code>T</code> is always sound, and a script that built the sink sees exactly the values it would have seen.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="_AdaptedSink.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">_AdaptedSink.new(Sink&lt;dynamic&gt; _inner, String _paramName)</code></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="_AdaptedSink._inner" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Sink&lt;dynamic&gt; _inner</code></div>
+                    </div>
+                    <div id="_AdaptedSink._paramName" class="api-member"><div class="api-member-head"><code class="api-signature">final String _paramName</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="_AdaptedSink.add" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">void add(T data)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="_AdaptedSink.close" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">void close()</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="_AdaptedSink.toString" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">String toString()</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
                   </div>
                 </section>
                 <section id="_CastIterator" class="api-declaration">

@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1400,7 +1406,7 @@
                 <code class="api-import">import 'package:tom_core_server/src/tomserver/authorization/authorization_cache.dart';</code>
                 <section id="TomAuthorizationCache" class="api-declaration">
                   <h3 class="api-decl-title">class TomAuthorizationCache</h3>
-                  <code class="api-signature">class TomAuthorizationCache</code>
+                  <code class="api-signature">class TomAuthorizationCache implements TomDisposable</code>
                   <div class="api-doc">
                     <p>
                       Caches the [TomPrincipal] resolved for an authentication token so that the authorization lookup runs once per token rather than on every request.
@@ -1409,23 +1415,107 @@
                       The cache lives in the <strong>main isolate</strong> and is keyed by the JWT token string. Worker isolates do not hold their own copy: [getPrincipal] and [storePrincipal] detect when they run off the main isolate and forward the request to the creator isolate via [TomWorker.executeInCreator], where the [TomAuthorizationCacheExecutor] services the [TomAuthorizationCacheStoreMessage] / [TomAuthorizationCacheRetrieveMessage] against the single shared map.
                     </p>
                     <p>
-                      A periodic timer evicts entries whose [TomAuthorizationCacheEntry.deletionTime] has passed once an hour; reads also reject an expired entry by throwing a [TomAuthorizationCacheException].
+                      A periodic sweep evicts entries whose [TomAuthorizationCacheEntry.deletionTime] has passed; a read that meets one first rejects it with a [TomAuthorizationCacheException] and drops it in the same breath, so the sweep bounds the map rather than being the only thing that does. The map therefore holds about one entry per live session.
+                    </p>
+                    <p>
+                      The sweep starts with the first stored principal and can be stopped again through [stopEviction] — or, on a server, by registering [instance] with 
+                      <code>tomShutdownCleanup</code>. It runs in [Zone.root] regardless of who starts it, so the request that happens to store first does not end up owning process-lifetime work.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
-                    <div id="TomAuthorizationCache.new" class="api-member"><div class="api-member-head"><code class="api-signature">TomAuthorizationCache.new()</code></div></div>
+                    <div id="TomAuthorizationCache._" class="api-member"><div class="api-member-head"><code class="api-signature">TomAuthorizationCache._()</code></div></div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
                     <div id="TomAuthorizationCache._cache" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final Map&lt;String, TomAuthorizationCacheEntry&gt; _cache</code></div>
                     </div>
+                    <div id="TomAuthorizationCache._evictionTimer" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Timer? _evictionTimer</code></div>
+                      <div class="api-doc">
+                        <p>The running eviction sweep, or <code>null</code> when none is running.</p>
+                        <p>
+                          Held in a field for two reasons: a periodic timer nothing references can never be stopped and keeps the isolate alive, and holding exactly one makes "at most one sweep" a property of the structure rather than a rule each starter has to remember.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="TomAuthorizationCache._startEviction" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void _startEviction(Duration interval)</code></div>
+                    </div>
+                    <div id="TomAuthorizationCache._stopEviction" class="api-member"><div class="api-member-head"><code class="api-signature">void _stopEviction()</code></div></div>
+                    <div id="TomAuthorizationCache._ensureEviction" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void _ensureEviction()</code></div>
+                      <div class="api-doc">
+                        <p>Starts the sweep at [evictionInterval] unless one is already running.</p>
+                        <p>
+                          Distinct from [_startEviction] so that the automatic start cannot undo a deliberate one: a server or a test that chose an interval keeps it, and the next store does not silently reset it to the default.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAuthorizationCache._evictExpired" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void _evictExpired()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Removes every entry whose [TomAuthorizationCacheEntry.deletionTime] has passed. Collected first and removed after, because removing while iterating [_cache] would invalidate the iteration.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAuthorizationCache.dispose" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">void dispose()</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Stops the sweep and drops every cached principal — the shutdown contract, so that registering [instance] with 
+                          <code>tomShutdownCleanup</code> both releases the isolate and leaves no authorized principals behind in memory.
+                        </p>
+                        <p>Synchronous because cancelling a timer and clearing a map need nothing more.</p>
+                      </div>
+                    </div>
                   </div>
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
                     <div id="TomAuthorizationCache._current" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static TomAuthorizationCache _current</code></div>
+                    </div>
+                    <div id="TomAuthorizationCache.instance" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static TomAuthorizationCache instance</code></div>
+                    </div>
+                    <div id="TomAuthorizationCache.evictionInterval" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Duration evictionInterval</code></div>
+                      <div class="api-doc"><p>How often the eviction sweep runs when nobody asks for another interval.</p></div>
+                    </div>
+                    <div id="TomAuthorizationCache.isEvicting" class="api-member"><div class="api-member-head"><code class="api-signature">static bool isEvicting</code></div></div>
+                    <div id="TomAuthorizationCache.startEviction" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static void startEviction({Duration interval = evictionInterval})</code></div>
+                      <div class="api-doc">
+                        <p>Starts the eviction sweep at [interval], replacing any sweep already running.</p>
+                        <p>
+                          Callers do not normally need this: [storePrincipal] starts the sweep at [evictionInterval] with the first entry it caches. It exists for the two cases that do — a server that wants a different interval than the hourly default, and a test that cannot wait an hour.
+                        </p>
+                        <p>
+                          It is <em>not</em> needed to control which zone the sweep runs in: the timer is created in [Zone.root] whichever of the two paths starts it, so a sweep started from inside a request is no different from one started at boot.
+                        </p>
+                        <p>
+                          Replacing rather than ignoring a second call is what makes the postcondition "a sweep is running at [interval]" true whenever this returns.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAuthorizationCache.stopEviction" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static void stopEviction()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Stops the eviction sweep. Does nothing when none is running, because a shutdown path cannot know which parts of the process ever started.
+                        </p>
+                        <p>
+                          Entries already cached are left alone: stopping the sweep suspends the bounding of the map, it does not invalidate what is in it. Expired entries are still rejected on read — and dropped by that read, so a stopped cache still sheds the tokens anyone asks about, just not the ones nobody does. Use [dispose] to drop them all.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomAuthorizationCache.getPrincipal" class="api-member">
                       <div class="api-member-head">
@@ -1436,22 +1526,84 @@
                           Returns the cached principal for [authenticationToken], or <code>null</code> if no entry exists (a cache miss).
                         </p>
                         <p>
-                          Throws [TomAuthorizationCacheException] when an entry exists but has expired — the caller should treat that as a prompt to re-authorize. When called from a worker isolate the lookup is forwarded to the main isolate.
+                          Throws [TomAuthorizationCacheException] when an entry exists but has expired — the caller should treat that as a prompt to re-authorize.
+                        </p>
+                        <p>
+                          That read also removes the entry it rejected, so the expiry is reported once: a second read of the same token is an ordinary miss. A caller that wants to know a session died still learns it, from the exception; a caller retrying with the dead token is told there is nothing there, which is by then the truth.
+                        </p>
+                        <p>
+                          When called from a worker isolate the lookup is forwarded to the main isolate, and all three answers survive the trip: a hit returns the principal, a miss returns 
+                          <code>null</code>, and an expiry rethrows on this side. Callers therefore need no isolate-dependent handling — which matters because the two non-hit answers mean opposite things ("no principal yet, go resolve one" versus "there was one and it has aged out"), and merging them would send a stale session back through resolution instead of re-authorization.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAuthorizationCache._refuseUnhandled" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static void _refuseUnhandled(Object? response, String operation)</code></div>
+                      <div class="api-doc">
+                        <p>Throws when [response] says nothing on the creator claimed the command.</p>
+                        <p>
+                          A configuration error rather than a cache outcome, so it is raised rather than folded into the answer: the cache cannot serve this isolate at all, and every call will do the same thing until a boot registers the executor. [operation] names which call found it, because the two fail differently — a read degrades to re-resolving the principal, a write is simply lost.
+                        </p>
+                        <p>
+                          <code>clientThrow: false</code>: the message names a start-up mistake in this deployment, which is operator-facing and no business of whoever's request happened to arrive first.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAuthorizationCache._expiryFromToken" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static DateTime _expiryFromToken(TomClientJwtToken authenticationToken)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Reads the entry's expiry from the token's standard <code>exp</code> claim.</p>
+                        <h2>Why <code>exp</code> and not <code>validUntil</code></h2>
+                        <p>
+                          A <code>TomServerJwtToken</code> carries both. <code>exp</code> is the registered JWT claim, in epoch seconds; 
+                          <code>validUntil</code> is a Tom convenience written beside it, as an ISO 8601 string. Two claims naming one instant is one claim too many for a cache to choose between, and the standard one wins on two counts.
+                        </p>
+                        <p>
+                          It is the claim a JWT verifier enforces. <code>verifyBearerToken</code> hands this module tokens whose signature it has checked, and any deployment fronted by a gateway is checking 
+                          <code>exp</code> there too — so reading anything else means the cache's notion of expiry can diverge from the one the rest of the system enforces, silently, in whichever direction the two happen to disagree.
+                        </p>
+                        <p>
+                          And it is unambiguous. <code>exp</code> is an absolute instant by definition. An ISO string is only absolute if it carries an offset, and one written without means whatever the 
+                          <em>reader's</em> zone says it means: [DateTime.tryParse] answers with a local <code>DateTime</code>, so a token minted in one zone and cached by a server in another was off by the difference between them.
+                        </p>
+                        <p>
+                          <code>validUntil</code> remains in the payload as the human-readable form of the same instant — see <code>TomServerJwtToken</code>, which derives both from one clock read so they cannot drift — and nothing on the server reads it.
+                        </p>
+                        <h2>What it refuses</h2>
+                        <p>
+                          Throws [TomAuthorizationCacheException] when the claim is absent or is not an integer (<code>missing_expiry</code>), and when it is an integer no instant can be built from (<code>invalid_expiry</code>). Both name the claim, the value seen and the token.
+                        </p>
+                        <p>
+                          The token comes from a client, so this is a boundary: the claim is untrusted input rather than internal data, and both shapes are what a caller can actually present.
+                        </p>
+                        <p>
+                          Refusing the write is the only safe answer, which is why there is no fallback lifetime. The entry's lifetime 
+                          <em>is</em> the token's — that is the whole reason the claim is read — so a default invented here would keep a principal cached after the token authorizing it had expired, and every later request bearing that token would be served from the cache instead of being re-authorized.
                         </p>
                       </div>
                     </div>
                     <div id="TomAuthorizationCache.storePrincipal" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          static Future&lt;int&gt; storePrincipal(TomClientJwtToken authenticationToken, TomPrincipal authorizedPrincipal)
+                          static Future&lt;void&gt; storePrincipal(TomClientJwtToken authenticationToken, TomPrincipal authorizedPrincipal)
                         </code>
                       </div>
                       <div class="api-doc">
                         <p>
-                          Stores [authorizedPrincipal] under [authenticationToken], using the token's <code>validUntil</code> payload claim as the entry's expiry.
+                          Stores [authorizedPrincipal] under [authenticationToken], using the token's standard <code>exp</code>
+                           payload claim as the entry's expiry.
                         </p>
                         <p>
-                          When called from a worker isolate the store is forwarded to the main isolate. Always returns <code>0</code>.
+                          Throws [TomAuthorizationCacheException] when that claim is missing or unreadable; nothing is cached in that case, and the caller keeps resolving the principal per request. See [_expiryFromToken] for why there is no fallback expiry.
+                        </p>
+                        <p>
+                          The first entry cached also starts the eviction sweep (see [startEviction]): the sweep exists to bound this map, so it runs from the moment there is something in it to bound and not before — a process that only ever reads the cache never starts a timer at all.
+                        </p>
+                        <p>When called from a worker isolate the store is forwarded to the main isolate.</p>
+                        <p>
+                          The future carries only completion and failure: there is no count or status to report, since a store either happens or throws.
                         </p>
                       </div>
                     </div>
@@ -1464,17 +1616,21 @@
                     <p>
                       A single entry in the [TomAuthorizationCache]: the authorized [TomPrincipal] paired with the [deletionTime] at which it should be considered stale and evicted.
                     </p>
-                    <p>When no explicit deletion time is supplied the entry lives for one day.</p>
+                    <p>
+                      Both are required, and neither changes afterwards. An entry's lifetime is not its own — it is the lifetime of the token the principal was authorized under, which is why [TomAuthorizationCache.storePrincipal] takes the instant off the token's 
+                      <code>validUntil</code> claim and refuses to cache a token it cannot read one from. There is therefore no instant this class could default to that would be right: a default would be an invented lifetime, the one thing that refusal exists to avoid, and it would apply exactly to the callers who had no token expiry in hand. A settable field would let the expiry be moved afterwards to one the token never granted, which is the same hole with a later entrance.
+                    </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomAuthorizationCacheEntry.new" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">TomAuthorizationCacheEntry.new(TomPrincipal authorizedPrincipal, [DateTime? deletionTime])</code>
+                        <code class="api-signature">TomAuthorizationCacheEntry.new(TomPrincipal authorizedPrincipal, DateTime deletionTime)</code>
                       </div>
                       <div class="api-doc">
                         <p>
-                          Creates an entry for [authorizedPrincipal]. [deletionTime] defaults to one day from now when omitted.
+                          Creates an entry for [authorizedPrincipal] that expires at [deletionTime] — normally the <code>validUntil</code>
+                           of the token it was authorized under.
                         </p>
                       </div>
                     </div>
@@ -1482,7 +1638,7 @@
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
                     <div id="TomAuthorizationCacheEntry.deletionTime" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">DateTime deletionTime</code></div>
+                      <div class="api-member-head"><code class="api-signature">final DateTime deletionTime</code></div>
                       <div class="api-doc">
                         <p>
                           The instant after which this entry is expired and may be evicted. Set to the token's <code>validUntil</code>
@@ -1491,21 +1647,45 @@
                       </div>
                     </div>
                     <div id="TomAuthorizationCacheEntry.authorizedPrincipal" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">TomPrincipal authorizedPrincipal</code></div>
+                      <div class="api-member-head"><code class="api-signature">final TomPrincipal authorizedPrincipal</code></div>
                       <div class="api-doc"><p>The principal resolved for the associated authentication token.</p></div>
                     </div>
                   </div>
                 </section>
                 <section id="TomAuthorizationCacheException" class="api-declaration">
                   <h3 class="api-decl-title">class TomAuthorizationCacheException</h3>
-                  <code class="api-signature">class TomAuthorizationCacheException extends TomException</code>
+                  <code class="api-signature">class TomAuthorizationCacheException extends TomServerException</code>
                   <div class="api-doc">
                     <p>
-                      Raised by [TomAuthorizationCache] when a cached principal cannot be returned — currently when a matching entry exists but its expiry has already passed.
+                      Raised by [TomAuthorizationCache] when a principal cannot be returned or cached. Three conditions carry three keys, because they call for three different responses:
+                    </p>
+                    <table class="mdtable">
+                      <thead><tr><th>Key</th><th>Meaning</th></tr></thead>
+                      <tbody>
+                        <tr>
+                          <td><code>authorization.cache.expired_principal</code></td>
+                          <td>
+                            A matching entry existed but its expiry had passed; it has been dropped, so the next read of the same token is a miss. The client should re-authorize.
+                          </td>
+                        </tr>
+                        <tr>
+                          <td><code>authorization.cache.missing_valid_until</code></td>
+                          <td>The token carries no readable <code>validUntil</code> claim, so nothing was cached.</td>
+                        </tr>
+                        <tr>
+                          <td><code>authorization.cache.invalid_valid_until</code></td>
+                          <td>The token's <code>validUntil</code> claim is not an ISO 8601 instant, so nothing was cached.</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <p>
+                      The distinct type lets a caller catch these specifically: an expired principal is a signal to re-authorize, as opposed to a cache miss (which simply returns 
+                      <code>null</code>), and the two <code>validUntil</code> keys report a malformed token rather than anything about the principal.
                     </p>
                     <p>
-                      The distinct type lets a caller catch it specifically: an expired principal is a signal that the client should re-authorize, as opposed to a cache miss (which simply returns 
-                      <code>null</code>).
+                      <code>clientThrow</code> defaults to <code>true</code>, which is the opposite of most of the package and is the point: all three conditions are about the token the caller presented, and two of them tell the caller what to do next (re-authorize; send a well-formed 
+                      <code>validUntil</code>). An answer the caller cannot read leaves it retrying a token that will never be accepted. A raise site whose message came to describe the server's own state would pass 
+                      <code>clientThrow: false</code> — none does.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1513,7 +1693,7 @@
                     <div id="TomAuthorizationCacheException.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomAuthorizationCacheException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, Object? stack, Object? rootException, bool autoLog = false, String? uuid, TomServerCallError? serverCallError})
+                          TomAuthorizationCacheException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, StackTrace? stack, Object? rootException, bool autoLog = false, bool clientThrow = true})
                         </code>
                       </div>
                     </div>
@@ -1525,6 +1705,10 @@
                   <div class="api-doc">
                     <p>
                       Runs in the main isolate and services the [TomAuthorizationCacheStoreMessage] and [TomAuthorizationCacheRetrieveMessage] commands forwarded from worker isolates, delegating to [TomAuthorizationCache]. Returns [TomExecutor.noResult] for any other command.
+                    </p>
+                    <p>
+                      Both handled commands return the delegate's future rather than awaiting it here, so a creator-side failure — an expired entry on a retrieve, an unreadable 
+                      <code>validUntil</code> on a store — reaches the asking worker as a throw instead of being swallowed on this side.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>

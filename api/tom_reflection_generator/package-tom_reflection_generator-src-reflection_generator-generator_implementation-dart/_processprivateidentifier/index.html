@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1388,7 +1394,19 @@
               <code class="api-signature">
                 Future&lt;String&gt; _processPrivateIdentifier(Identifier expression, Future&lt;String&gt; Function(Expression) helper, LibraryResolver resolver)
               </code>
-              <div class="api-doc"><p>Processes a private identifier by expanding it to its initializer.</p></div>
+              <div class="api-doc">
+                <p>Processes a private identifier by expanding it to its initializer.</p>
+                <p>
+                  A private name cannot be written into the generated library — nothing there is in its scope — so the only faithful rendering is the initializer it stands for, inlined.
+                </p>
+                <p>
+                  The initializer is reachable by two independent routes, and both are needed: the declaration's source AST, and the 
+                  <code>const</code> initializer expression the element itself carries. The AST route is unavailable whenever the declaring library was loaded from an analyzer 
+                  <strong>summary bundle</strong> rather than from source — <code>getResolvedLibraryByElement</code> cannot produce a resolved unit for a summary-backed element, so 
+                  <code>_getDeclarationAst</code> returns null. Whether a given dependency happens to be summarised is a property of the shared analyzer cache, not of the code, so relying on the AST alone made the generated output depend on cache state: the same sources produced a constructor with its default value inlined on one run and without it on the next. 
+                  <code>VariableElement.constantInitializer</code> is serialized into the bundle precisely so const values stay evaluable across libraries, and it closes that gap.
+                </p>
+              </div>
             </section>
           </section>
         </div>

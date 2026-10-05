@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1387,6 +1393,8 @@
             <div class="treewrap">
               <div class="treepane">
                 <div class="treenodes">
+                  <a class="leaf" href="#TomInMemoryLogReplayStore">TomInMemoryLogReplayStore</a>
+                  <a class="leaf" href="#TomLogReplayStore">TomLogReplayStore</a>
                   <a class="leaf" href="#TomLoggingContext">TomLoggingContext</a>
                   <a class="leaf" href="#TomRemoteLogMessage">TomRemoteLogMessage</a>
                   <a class="leaf" href="#TomRemoteLogOutput">TomRemoteLogOutput</a>
@@ -1409,22 +1417,120 @@
                     <li>Configurable sender identification</li>
                   </ul>
                   <h2>Setup</h2>
-                  <pre><code>// Configure the remote endpoint
-TomRemoteLogOutput.remoteEndpoint = TomServerEndpoint&lt;
-    TomRemoteLogMessage, TomRemoteLogResult&gt;(
-  baseUrl: 'https://logs.example.com',
-  path: '/api/logs',
-);
-
-// Switch to remote logging
-tomLog.logOutput = TomRemoteLogOutput();
-
-// Optional: Set a sender ID for this client
-TomRemoteLogMessage.globalSettingSenderId = 'client-001';</code></pre>
+                  <p>
+                    See [TomRemoteLogOutput] for the wiring snippet. It is deliberately not repeated here: this library and its primary class are read together, and when the two carried the same snippet both went stale at once — each showing a 
+                    <code>TomServerEndpoint</code> constructor the class does not have.
+                  </p>
                   <p>
                     See also: - [TomRemoteLogServer] for the server-side implementation - [TomRemoteLogMessage] for the message format - [TomRemoteLogResult] for response handling
                   </p>
                 </div>
+                <section id="TomInMemoryLogReplayStore" class="api-declaration">
+                  <h3 class="api-decl-title">class TomInMemoryLogReplayStore</h3>
+                  <code class="api-signature">class TomInMemoryLogReplayStore implements TomLogReplayStore</code>
+                  <div class="api-doc">
+                    <p>In-memory [TomLogReplayStore] — the zero-config default.</p>
+                    <p>
+                      Buffered records live in a plain list and are lost if the process exits while the queue is non-empty. This matches the historical behaviour of the replay queue; use a durable store (e.g. a file-backed one) to harden the restart-during-outage edge.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomInMemoryLogReplayStore.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomInMemoryLogReplayStore.new()</code></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="TomInMemoryLogReplayStore._records" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final List&lt;TomRemoteLogMessage&gt; _records</code></div>
+                    </div>
+                    <div id="TomInMemoryLogReplayStore.length" class="api-member"><div class="api-member-head"><code class="api-signature">int length</code></div></div>
+                    <div id="TomInMemoryLogReplayStore.oldest" class="api-member"><div class="api-member-head"><code class="api-signature">TomRemoteLogMessage? oldest</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="TomInMemoryLogReplayStore.append" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">void append(TomRemoteLogMessage message)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="TomInMemoryLogReplayStore.snapshot" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">List&lt;TomRemoteLogMessage&gt; snapshot()</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="TomInMemoryLogReplayStore.removeOldest" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">void removeOldest()</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="TomInMemoryLogReplayStore.trim" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">void trim(int maxSize)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="TomInMemoryLogReplayStore.clear" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">void clear()</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="TomLogReplayStore" class="api-declaration">
+                  <h3 class="api-decl-title">class TomLogReplayStore</h3>
+                  <code class="api-signature">abstract interface class TomLogReplayStore</code>
+                  <div class="api-doc">
+                    <p>Pluggable backend for [TomRemoteLogOutput]'s replay queue.</p>
+                    <p>
+                      The replay queue buffers records that failed every send attempt so they can be re-sent, oldest-first, once the endpoint recovers. This interface lets the 
+                      <em>storage</em> of that queue be swapped out: the default keeps records in memory (see [TomInMemoryLogReplayStore]), while a durable implementation can persist them so buffered records survive a process restart during an outage.
+                    </p>
+                    <p>
+                      Implementations own ordering: records must be returned in the same order they were [append]ed (FIFO). [oldest] / [removeOldest] drive the drain loop; [trim] enforces the bound; [clear] resets the queue.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomLogReplayStore.new" class="api-member"><div class="api-member-head"><code class="api-signature">TomLogReplayStore.new()</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="TomLogReplayStore.length" class="api-member"><div class="api-member-head"><code class="api-signature">int length</code></div></div>
+                    <div id="TomLogReplayStore.oldest" class="api-member"><div class="api-member-head"><code class="api-signature">TomRemoteLogMessage? oldest</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="TomLogReplayStore.append" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void append(TomRemoteLogMessage message)</code></div>
+                      <div class="api-doc"><p>Appends [message] to the tail of the queue.</p></div>
+                    </div>
+                    <div id="TomLogReplayStore.snapshot" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">List&lt;TomRemoteLogMessage&gt; snapshot()</code></div>
+                      <div class="api-doc"><p>Returns a copy of all buffered records in arrival (FIFO) order.</p></div>
+                    </div>
+                    <div id="TomLogReplayStore.removeOldest" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void removeOldest()</code></div>
+                      <div class="api-doc"><p>Removes the oldest buffered record. A no-op when the queue is empty.</p></div>
+                    </div>
+                    <div id="TomLogReplayStore.trim" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void trim(int maxSize)</code></div>
+                      <div class="api-doc">
+                        <p>Drops the oldest records until at most [maxSize] remain.</p>
+                        <p>A non-positive [maxSize] clears the queue.</p>
+                      </div>
+                    </div>
+                    <div id="TomLogReplayStore.clear" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void clear()</code></div>
+                      <div class="api-doc"><p>Discards every buffered record.</p></div>
+                    </div>
+                  </div>
+                </section>
                 <section id="TomLoggingContext" class="api-declaration">
                   <h3 class="api-decl-title">class TomLoggingContext</h3>
                   <code class="api-signature">class TomLoggingContext</code>
@@ -1458,8 +1564,11 @@ TomRemoteLogMessage.globalSettingSenderId = 'client-001';</code></pre>
                       This class is serialized and sent over HTTP to the remote logging endpoint. It contains all information needed to reconstruct the original log message on the server.
                     </p>
                     <h2>Sender Identification</h2>
-                    <p>Set [globalSettingSenderId] to identify which client sent the message:</p>
-                    <pre><code>TomRemoteLogMessage.globalSettingSenderId = 'web-frontend-01';</code></pre>
+                    <p>Install [globalSettingSenderIdResolver] to say which application sent the message:</p>
+                    <pre><code>TomRemoteLogMessage.globalSettingSenderIdResolver = () =&gt; 'web-frontend-01';</code></pre>
+                    <p>
+                      A collector names its per-client files after the sender, so this is what keeps two servers of one deployment out of each other's log.
+                    </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
@@ -1480,7 +1589,12 @@ TomRemoteLogMessage.globalSettingSenderId = 'client-001';</code></pre>
                   <div class="api-members">
                     <div id="TomRemoteLogMessage.sender" class="api-member">
                       <div class="api-member-head"><code class="api-signature">String sender</code></div>
-                      <div class="api-doc"><p>The sender ID for this specific message (copied from [globalSettingSenderId]).</p></div>
+                      <div class="api-doc">
+                        <p>The sender this specific message reports, from [globalSettingSenderIdResolver] at construction.</p>
+                        <p>
+                          Empty when nothing installed a resolver, which is a statement rather than a gap: it says the sending application did not name itself.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomRemoteLogMessage.timeStamp" class="api-member">
                       <div class="api-member-head"><code class="api-signature">String timeStamp</code></div>
@@ -1522,12 +1636,27 @@ TomRemoteLogMessage.globalSettingSenderId = 'client-001';</code></pre>
                   </div>
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
+                    <div id="TomRemoteLogMessage.globalSettingSenderIdResolver" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String Function() globalSettingSenderIdResolver</code></div>
+                      <div class="api-doc">
+                        <p>Answers "which application sent this", asked once per message.</p>
+                        <p>
+                          A <strong>function</strong>, not a value, and that is the whole of the design. The obvious alternative — a 
+                          <code>String</code> assigned at startup — copies whatever the application was called at the instant of the assignment, and an application's name is often not settled then: a 
+                          <code>tom_core_server</code> deployment names itself in its configuration <em>subclass</em> constructor, which runs after the base constructor that would do the installing, so the copy captures the empty string. Every one of five servers in this workspace made that mistake with the analogous 
+                          <code>tomAppId</code>. A resolver cannot be early, because it is not read until there is a message to answer for.
+                        </p>
+                        <p>
+                          The default answers the empty string rather than a placeholder. An unset sender then <em>looks</em> unset — a collector's file named for the isolate alone says "nobody said who this was", where a plausible-looking default says "this is who it was" and is wrong for every application at once.
+                        </p>
+                        <p>
+                          A consumer of <code>tom_core_server</code> needs to install nothing: <code>TomBaseServerConfiguration</code>
+                           installs a resolver over <code>tomAppId</code> when it registers itself as the isolate's active configuration.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomRemoteLogMessage.globalSettingSenderId" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static String globalSettingSenderId</code></div>
-                      <div class="api-doc">
-                        <p>Global sender identifier prepended to all messages from this client.</p>
-                        <p>Set this at application startup to identify the source of log messages.</p>
-                      </div>
                     </div>
                   </div>
                 </section>
@@ -1540,22 +1669,59 @@ TomRemoteLogMessage.globalSettingSenderId = 'client-001';</code></pre>
                       This output implementation transmits log messages over HTTP to a centralized logging server for collection and analysis.
                     </p>
                     <h2>Configuration</h2>
-                    <pre><code>// Set up the remote endpoint
-TomRemoteLogOutput.remoteEndpoint = TomServerEndpoint&lt;
-    TomRemoteLogMessage, TomRemoteLogResult&gt;(
-  baseUrl: 'https://logs.example.com',
-  path: '/api/logs',
-);
+                    <pre><code>// Optional: identify this client in the collector's log stream.
+TomRemoteLogMessage.globalSettingSenderId = 'client-001';
+
+// Set up the remote endpoint. TomServerEndpoint takes a channel (host and
+// port) and call specs (method and full URL) — there is no baseUrl/path
+// constructor. Building it opens no connection: the channel creates its
+// HTTP client lazily, on the first call.
+TomRemoteLogOutput.remoteEndpoint =
+    TomServerEndpoint&lt;TomRemoteLogMessage, TomRemoteLogResult&gt;(
+      TomServerChannel('logs.example.com', 443),
+      TomServerCallSpecs(
+        'POST',
+        Uri.parse('https://logs.example.com/api/logs'),
+      ),
+    );
 
 // Activate remote logging
 tomLog.logOutput = TomRemoteLogOutput();</code></pre>
+                    <p>
+                      That snippet is a copy of step 3 of <code>example/samples/logging/05_isolate_and_remote_logging_example.dart</code>, where it is compiled, analyzed and asserted. Change it there and copy it out: documentation has no build to fail, so a constructor invented here is caught by nobody.
+                    </p>
                     <h2>Fallback Behavior</h2>
                     <p>
                       If the remote endpoint is unavailable or not configured, messages are written to [globalSettingFallbackOutput] (console by default).
                     </p>
-                    <h2>Error Handling</h2>
                     <p>
-                      Connection errors are caught and logged locally. The original message is also written to the fallback output to prevent data loss.
+                      The fallback is the last sink in the chain, so if it throws — a full disk for a file sink, a closed port, a misconfigured custom output — the record is lost. It is never lost 
+                      <em>silently</em>: the failure is announced once per installed fallback on [TomPlatformUtils.outError], which sits below the logging stack and so cannot be broken by the same misconfiguration. The throw itself never reaches the caller.
+                    </p>
+                    <h2>Error Handling and Resilience</h2>
+                    <p>
+                      A send is considered <em>failed</em> whenever it does not reach a server that accepted it: the endpoint could not be reached at all, the server answered with an error, or the send threw. In every case the record is never silently dropped, and the accompanying warning names which of the three happened — an unreachable endpoint is not reported as a rejection.
+                    </p>
+                    <p>
+                      "The server answered with an error" covers <strong>both</strong> channels the endpoint can report one on, because a record is equally lost either way: a transport-level failure ([TomServerCallError] — a non-2xx status, an internal error) and an application-level refusal carried in the response body ([TomRemoteLogResult.hasError]) on an otherwise perfect HTTP 200. The second is what a healthy collector uses to say "received, not stored", and the server's own [TomRemoteLogResult.errorMessage] is reproduced in the warning.
+                    </p>
+                    <p>On failure the output:</p>
+                    <p>
+                      1. retries the send up to [globalSettingMaxSendRetries] additional times, waiting [globalSettingRetryBackoff] × attempt between tries (linear backoff; a zero backoff retries immediately); 2. if every attempt fails, writes the original record to [globalSettingFallbackOutput] (console by default) so it is not lost; 3. if a replay queue is enabled ([globalSettingReplayQueueMaxSize] &gt; 0), enqueues the record for a later retry. The queue is bounded and drops the 
+                      <em>oldest</em> record on overflow.
+                    </p>
+                    <p>
+                      Whenever a subsequent record is sent, the output first drains the replay queue oldest-first, stopping as soon as a queued record fails again (the endpoint is still down). This lets records that piled up during an outage flush in order once the endpoint recovers.
+                    </p>
+                    <p>
+                      Delivery is serialised: records are handed to the endpoint one at a time, in the order [output] was called, however many callers or instances there are. [output] returns before its record has been sent (see its signature), so overlapping calls are the normal case rather than the exception — and without serialisation each of them would run its own drain over the shared replay queue, re-sending records another drain had read but not yet removed. The guarantee covers one isolate, which is exactly the scope of the queue it protects: both are statics, and Dart statics are per-isolate.
+                    </p>
+                    <p>
+                      Serialisation is between <em>records</em>, not the whole logging call: [output] still returns immediately, and the caller is never blocked.
+                    </p>
+                    <p>
+                      The defaults (no retries, no backoff, no replay queue) keep behaviour predictable and testable without a live server: one attempt, fall back on failure. Opt into resilience by setting the 
+                      <code>globalSetting*</code> knobs.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1577,7 +1743,17 @@ tomLog.logOutput = TomRemoteLogOutput();</code></pre>
                   <div class="api-members">
                     <div id="TomRemoteLogOutput.globalSettingFallbackOutput" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static TomLogOutput globalSettingFallbackOutput</code></div>
-                      <div class="api-doc"><p>Fallback output used when remote logging fails or is not configured.</p></div>
+                    </div>
+                    <div id="TomRemoteLogOutput._globalSettingFallbackOutput" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static TomLogOutput _globalSettingFallbackOutput</code></div>
+                    </div>
+                    <div id="TomRemoteLogOutput._fallbackFailureReported" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static bool _fallbackFailureReported</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Whether the "the fallback itself failed" report has already been written for the currently installed [globalSettingFallbackOutput].
+                        </p>
+                      </div>
                     </div>
                     <div id="TomRemoteLogOutput.remoteEndpoint" class="api-member">
                       <div class="api-member-head">
@@ -1587,6 +1763,192 @@ tomLog.logOutput = TomRemoteLogOutput();</code></pre>
                         <p>The configured remote endpoint for log transmission.</p>
                         <p>
                           Must be set before remote logging will work. If <code>null</code>, all messages fall back to [globalSettingFallbackOutput].
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomRemoteLogOutput.globalSettingMaxSendRetries" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static int globalSettingMaxSendRetries</code></div>
+                      <div class="api-doc">
+                        <p>Number of <em>additional</em> send attempts after the first one fails.</p>
+                        <p>
+                          A value of <code>0</code> (the default) means a single attempt with no retry. A value of <code>n</code>
+                           means up to <code>n + 1</code> total attempts before the record is routed to the fallback / replay queue.
+                        </p>
+                        <p>
+                          <strong>A negative value is read as <code>0</code></strong>, not as "retry forever". The three resilience knobs share that rule — see [globalSettingReplayQueueMaxSize], where it matters most.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomRemoteLogOutput.globalSettingRetryBackoff" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Duration globalSettingRetryBackoff</code></div>
+                      <div class="api-doc">
+                        <p>Base delay between retries; the wait before retry <em>k</em> is <code>backoff × k</code>.</p>
+                        <p>
+                          [Duration.zero] (the default) retries immediately with no delay, which keeps tests fast and behaviour deterministic. 
+                          <strong>A negative duration is read as [Duration.zero]</strong>; retries never wait a negative time and never skip a retry because of one.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomRemoteLogOutput.globalSettingReplayQueueMaxSize" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static int globalSettingReplayQueueMaxSize</code></div>
+                      <div class="api-doc">
+                        <p>Maximum number of records held in the in-memory replay queue.</p>
+                        <p>
+                          <code>0</code> (the default) disables the queue entirely. When greater than zero, records that exhaust their retries are enqueued (dropping the oldest on overflow) and re-sent, oldest-first, on the next successful transmission.
+                        </p>
+                        <p>
+                          <strong>A negative value is read as <code>0</code> — it does not mean "unlimited".</strong> That is worth saying because plenty of buffering APIs use 
+                          <code>-1</code> for exactly that, so <code>-1</code> here is a plausible way to try to say "never drop anything", and it says the opposite: buffering off, every record that exhausts its retries dropped after the fallback write. There is no unbounded setting, deliberately — a queue that grows without limit while an endpoint is down is the failure this one exists to prevent, and the records it would hold are already safe in [globalSettingFallbackOutput]. To buffer a lot, name a large number.
+                        </p>
+                        <p>
+                          The mistake is silent by design rather than by omission: this is read on the path that reports some other failure, so refusing a value here would make a misconfiguration take down the reporting, and warning about it would emit a line per record for the length of the outage — which is the flood the fallback's one-shot report exists to avoid.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomRemoteLogOutput.globalSettingReplayStore" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static TomLogReplayStore globalSettingReplayStore</code></div>
+                      <div class="api-doc">
+                        <p>Backend that stores records awaiting replay after failing every send attempt.</p>
+                        <p>
+                          Defaults to an in-memory store ([TomInMemoryLogReplayStore]), so the replay queue is zero-config and stays entirely in process. Assign a durable implementation (e.g. a file-backed store) to make buffered records survive a restart while the endpoint is down. Bounded by [globalSettingReplayQueueMaxSize]; drained oldest-first on the next successful send. Shared across instances since a single remote endpoint is assumed.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomRemoteLogOutput.replayQueueLength" class="api-member"><div class="api-member-head"><code class="api-signature">static int replayQueueLength</code></div></div>
+                    <div id="TomRemoteLogOutput._deliveryLane" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Future&lt;void&gt; _deliveryLane</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Tail of the delivery lane: completes when the most recently claimed record has finished draining, sending and (if it failed) being buffered.
+                        </p>
+                        <p>
+                          Shared with [globalSettingReplayStore], whose scope it matches: both are per-isolate statics, so the lane serialises every record an isolate produces against the same isolate's queue.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomRemoteLogOutput.clearReplayQueue" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static void clearReplayQueue()</code></div>
+                      <div class="api-doc">
+                        <p>Discards every buffered record.</p>
+                        <p>
+                          Use when reconfiguring [remoteEndpoint] so records queued for a previous endpoint are not replayed to the new one.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomRemoteLogOutput.flush" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Future&lt;void&gt; flush()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Settles every record this isolate has handed to [output], then gives the replay queue a chance to drain.
+                        </p>
+                        <p>
+                          [output] returns before its record has been sent — deliberately, since a logging call must never block the code that made it — so at any moment there may be records in flight and records buffered from an earlier outage. A process that exits straight after logging loses both, and had no supported way to wait. This is that way: call it once, at shutdown, after the code that logs has stopped.
+                        </p>
+                        <p>
+                          It deliberately does <strong>not</strong> make an individual [output] call awaitable. A sink that a caller can await per record invites exactly the coupling this one exists to avoid.
+                        </p>
+                        <p>
+                          It covers exactly what was logged <strong>before it was called</strong>. [output] claims its place in the delivery lane before its first await, so every call that had started is already in the chain this awaits; a record logged while the flush runs appends behind it and is not waited for. Waiting for those too would mean re-reading the lane until it stopped moving, which in a process that never stops logging is a loop that never ends. Call it after the code that logs has stopped, and call it again if that was not true.
+                        </p>
+                        <p>
+                          The drain takes a lane slot of its own, exactly as a record does, so it cannot overlap a delivery in flight — and it runs in the same 
+                          <code>inRemoteLogging</code> zone [output] uses, so a line the transport logs on its way out does not re-enter remote logging.
+                        </p>
+                        <p>
+                          Returning does not promise delivery succeeded. A record the endpoint still refuses stays buffered, which is what the replay queue is for; the promise is only that nothing is left half-done.
+                        </p>
+                        <p>
+                          The lane and the queue are per-isolate statics, so this flushes whatever this isolate produced, whichever instance is installed.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomRemoteLogOutput._sendOnce" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static Future&lt;String?&gt; _sendOnce(TomRemoteLogMessage remoteMessage)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Sends [remoteMessage] once, translating every way the send can fail into a single failure description.
+                        </p>
+                        <p>
+                          Returns <code>null</code> only when a server accepted the record, or a human-readable failure description naming which kind of failure it was: the server was never reached, the server answered with an error, or the endpoint threw.
+                        </p>
+                        <p>
+                          The endpoint reports failure on two independent channels and both are read here. [TomServerCallError] is purely transport-level — it knows the status code and nothing about the payload — so a collector that answers HTTP 200 carrying a [TomRemoteLogResult.hasError] body signals no transport error at all. Testing only the transport channel treated such a rejection as a complete success and dropped the record without retry, fallback or replay.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomRemoteLogOutput._isUnreachable" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static bool _isUnreachable(TomServerCallError error)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Whether [error] means the request never produced a response, as opposed to producing one that failed.
+                        </p>
+                        <p>
+                          The internal code decides it on its own. [TomServerCallError] distinguishes the two conditions — <code>noResponseError</code>
+                           means there was no reply to read, <code>serverError</code> means the server replied and the reply was a failure — so there is nothing left for a second test to separate. A 
+                          <code>statusCode == 0</code> check beside it would be load-bearing only if the two codes shared a value, and a redundant condition on an error path is a condition nobody can tell is dead.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomRemoteLogOutput._sendWithRetry" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static Future&lt;String?&gt; _sendWithRetry(TomRemoteLogMessage remoteMessage)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Sends [remoteMessage] with bounded retry and linear backoff.</p>
+                        <p>
+                          Returns <code>null</code> once a send succeeds, or the last failure description if every attempt (the first plus [globalSettingMaxSendRetries] retries) fails.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomRemoteLogOutput._drainReplayQueue" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Future&lt;void&gt; _drainReplayQueue()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Re-sends buffered records oldest-first, stopping at the first one that still fails (the endpoint is presumed down again).
+                        </p>
+                        <p>
+                          A record is removed only once the server has accepted it, so a crash mid-drain replays it rather than losing it. That leaves the record readable by anyone else draining at the same time, which is why callers must hold a delivery-lane slot (see [output]): the lane, not this loop, is what stops a second drain from re-sending what this one has in flight.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomRemoteLogOutput._enqueueForReplay" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static void _enqueueForReplay(TomRemoteLogMessage remoteMessage)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Buffers [remoteMessage] for later replay, dropping the oldest record when the queue exceeds [globalSettingReplayQueueMaxSize]. A non-positive size disables buffering.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomRemoteLogOutput._logToFallback" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static void _logToFallback(TomLogLevel loggerLevel, TomLogLevel logLevel, String level, Object message, String isolateName, DateTime timeStamp, String? origin, String cause)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Writes the original record (and a warning describing [cause]) to the fallback output so a failed transmission never loses data.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomRemoteLogOutput._reportFallbackFailure" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static void _reportFallbackFailure(Object record, Object error, StackTrace stackTrace)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Announces on the platform's error channel that [globalSettingFallbackOutput] itself failed, and that [record] is therefore lost.
+                        </p>
+                        <p>
+                          The record cannot be saved — the fallback is the last sink in the chain, so there is nowhere left to write it. That makes discarding the failure tempting, but "must not throw" and "must not tell anyone" are different requirements, and only the first one is a property of a well-behaved logging sink. Silence here would make every other guarantee in this class unverifiable in production: a process with a misconfigured fallback would report perfect health while losing every record.
+                        </p>
+                        <p>
+                          The report goes to [TomPlatformUtils.outError] rather than to any [TomLogOutput], because the logging stack is the thing that just failed; routing the news through it would be the same mistake one level up.
+                        </p>
+                        <p>
+                          It is written <strong>once per installed fallback</strong>. A fallback that is broken is normally broken for every record, so a per-record report would turn one misconfiguration into exactly the flood the fallback exists to prevent. Installing a different output re-arms it (see [globalSettingFallbackOutput]).
                         </p>
                       </div>
                     </div>

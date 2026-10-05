@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1388,6 +1394,7 @@
               <div class="treepane">
                 <div class="treenodes">
                   <a class="leaf" href="#D4rt">D4rt</a>
+                  <a class="leaf" href="#D4rtProgram">D4rtProgram</a>
                   <a class="leaf" href="#LibraryClass">LibraryClass</a>
                   <a class="leaf" href="#LibraryEnum">LibraryEnum</a>
                   <a class="leaf" href="#LibraryExtension">LibraryExtension</a>
@@ -1395,6 +1402,8 @@
                   <a class="leaf" href="#LibraryGetter">LibraryGetter</a>
                   <a class="leaf" href="#LibrarySetter">LibrarySetter</a>
                   <a class="leaf" href="#LibraryVariable">LibraryVariable</a>
+                  <a class="leaf" href="#_PackageBridgeBundle">_PackageBridgeBundle</a>
+                  <a class="leaf" href="#unwrapScriptError">unwrapScriptError</a>
                 </div>
               </div>
               <div class="reader">
@@ -1423,21 +1432,46 @@ final result = await interpreter.execute(source: '''
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
-                    <div id="D4rt.new" class="api-member"><div class="api-member-head"><code class="api-signature">D4rt.new()</code></div></div>
+                    <div id="D4rt.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">D4rt.new({bool reuseAcrossRuns = true})</code></div>
+                      <div class="api-doc">
+                        <p>Creates an interpreter.</p>
+                        <p>
+                          [reuseAcrossRuns] controls the cross-run performance caches (the warm parent and the per-bridged-module environments). When 
+                          <code>true</code> (the default) those caches are kept alive across repeated <code>execute*</code> calls so the expensive bridge-binding surface is built once and reused — this is the fast path and is safe for the overwhelming majority of callers, since generated bridges hold no per-run state and cannot leak between runs.
+                        </p>
+                        <p>
+                          Set it to <code>false</code> only when you need full isolation between successive <code>execute*</code>
+                           runs on the <strong>same</strong> instance: the warm parent and bridged module environments are then rebuilt fresh on every run, so nothing an earlier run touched can be observed by a later one. Migrated instances (those using [providePackage]) still never share state 
+                          <em>across instances</em> regardless of this flag — it governs reuse <em>within</em> an instance and, for migrated instances, participation in the process-global caches.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
+                    <div id="D4rt.reuseAcrossRuns" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final bool reuseAcrossRuns</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Whether the cross-run bridge caches are reused between <code>execute*</code> calls. See the constructor. 
+                          <code>false</code> forces a fresh warm parent and fresh bridged module environments on every run for full inter-run isolation.
+                        </p>
+                      </div>
+                    </div>
                     <div id="D4rt._bridgedEnumDefinitions" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">final List&lt;Map&lt;String, LibraryEnum&gt;&gt; _bridgedEnumDefinitions</code>
+                        <code class="api-signature">final Map&lt;String, Map&lt;String, LibraryEnum&gt;&gt; _bridgedEnumDefinitions</code>
                       </div>
                     </div>
                     <div id="D4rt._bridgedClases" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final List&lt;Map&lt;String, LibraryClass&gt;&gt; _bridgedClases</code></div>
+                      <div class="api-member-head">
+                        <code class="api-signature">final Map&lt;String, Map&lt;String, LibraryClass&gt;&gt; _bridgedClases</code>
+                      </div>
                     </div>
                     <div id="D4rt._bridgedExtensions" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">final List&lt;Map&lt;String, LibraryExtension&gt;&gt; _bridgedExtensions</code>
+                        <code class="api-signature">final Map&lt;String, List&lt;LibraryExtension&gt;&gt; _bridgedExtensions</code>
                       </div>
                     </div>
                     <div id="D4rt._classAliases" class="api-member">
@@ -1448,7 +1482,9 @@ final result = await interpreter.execute(source: '''
                     </div>
                     <div id="D4rt._functionTypedefs" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">final List&lt;({String library, String name})&gt; _functionTypedefs</code>
+                        <code class="api-signature">
+                          final List&lt;({String library, int? maxPositional, String name, int? requiredPositional})&gt; _functionTypedefs
+                        </code>
                       </div>
                       <div class="api-doc">
                         <p>
@@ -1480,26 +1516,67 @@ final result = await interpreter.execute(source: '''
                     </div>
                     <div id="D4rt._visitor" class="api-member"><div class="api-member-head"><code class="api-signature">InterpreterVisitor? _visitor</code></div></div>
                     <div id="D4rt._bridgedDefLookupByType" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final Map&lt;Type, BridgedClass&gt; _bridgedDefLookupByType</code></div>
+                      <div class="api-member-head"><code class="api-signature">final LazyBridgeRegistry&lt;Type&gt; _bridgedDefLookupByType</code></div>
                     </div>
                     <div id="D4rt._grantedPermissions" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final Set&lt;Permission&gt; _grantedPermissions</code></div>
                     </div>
-                    <div id="D4rt._extensionCallbacks" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final Map&lt;String, void Function()&gt; _extensionCallbacks</code></div>
+                    <div id="D4rt._allowedPackages" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Set&lt;String&gt; _allowedPackages</code></div>
                       <div class="api-doc">
                         <p>
-                          Step 6: extension callbacks registered by bridge packages, keyed by package name. Insertion order is preserved (Dart 
-                          <code>Map</code> literals are <code>LinkedHashMap</code>) so [finalizeBridges] runs callbacks deterministically.
-                        </p>
-                        <p>
-                          Re-registering with the same <code>packageName</code> overwrites the previous body — the contract is one extension callback per bridge package, which makes the call idempotent if a process spins up multiple runners that each fire the same package's 
-                          <code>register*</code> shape.
-                        </p>
-                        <p>
-                          Mirror of the same field on [D4rtRunner] in tom_d4rt_ast — kept in lockstep so embedders that switch between the analyzer-based and analyzer-free entry points see the same hook surface.
+                          Per-instance security whitelist: the set of packages this instance has been granted via [providePackage]. Consumed by the warm-parent build and the per-module registry merge below.
                         </p>
                       </div>
+                    </div>
+                    <div id="D4rt._currentProvidingPackage" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String? _currentProvidingPackage</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The package whose bridges are currently being registered, set by [providePackage] when it returns <code>false</code>. [register*] calls accumulate into [_packagePool] under this package until the next [providePackage] call (or 
+                          <code>null</code>, in which case they fall back to [_defaultPackage]).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="D4rt._instanceWarmParent" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Environment? _instanceWarmParent</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Step 8 — per-instance warm parent for <strong>legacy</strong> instances (those with an empty [_allowedPackages]). Built from this instance's per-instance registration maps and cached 
+                          <em>here</em>, not in [_warmParentCache]: legacy registrations all land under [_defaultPackage], so a process-global cache keyed on the (empty) signature would leak one instance's bridges into another and collide on same-named classes across tests. A per-instance field keeps each legacy interpreter's warm parent private while still building it at most once for that instance.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="D4rt._instanceBridgedModuleEnvCache" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Map&lt;String, Environment&gt;? _instanceBridgedModuleEnvCache</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Per-instance analogue of [_bridgedModuleEnvCache] for <strong>legacy</strong> instances (empty [_allowedPackages]) and for the cross-run reuse that [reuseAcrossRuns] enables by default. A process-global cache cannot be used for legacy instances — their bridges collapse onto [_defaultPackage], so the empty signature would substitute one instance's module envs into another. This per-instance map keeps the bound bridged-module environments private to the instance while still letting repeated 
+                          <code>execute*</code> calls on the same instance reuse them. Invalidated by [_bundleFor] whenever a new registration arrives, so a register-after-execute sequence rebinds. 
+                          <code>null</code> when [reuseAcrossRuns] is <code>false</code> (every run rebuilds for isolation).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="D4rt._extensionPackages" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Set&lt;String&gt; _extensionPackages</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Per-instance, insertion-ordered set of package names for which this instance registered an extension callback via [registerExtensions]. [finalizeBridges] fires the pooled callbacks for these packages in registration order, skipping any whose pooled bundle has already fired in this process (step 11 once-per-package-per-process firing, guarded by 
+                          <code>_PackageBridgeBundle.extensionFired</code>).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="D4rt._mergedRegistriesKey" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String? _mergedRegistriesKey</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Step 8/9 — cached merged per-module registries for the migrated path, keyed by the sorted allowed-set signature. Rebuilt when the signature changes (i.e. a new package is granted between executes). 
+                          <code>null</code> for the legacy path (which passes the per-instance maps directly).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="D4rt._mergedRegistries" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">_PackageBridgeBundle? _mergedRegistries</code></div>
                     </div>
                     <div id="D4rt._bridgesFinalized" class="api-member">
                       <div class="api-member-head"><code class="api-signature">bool _bridgesFinalized</code></div>
@@ -1509,7 +1586,7 @@ final result = await interpreter.execute(source: '''
                       <div class="api-member-head"><code class="api-signature">bool _usageLogFromEnv</code></div>
                       <div class="api-doc">
                         <p>
-                          P&amp;R#1: set when the <code>D4RT_LOG_RELAXER_USAGE</code> environment variable enabled [D4.usageLogEnabled] at finalize time. Gates the automatic end-of-run summary so embedders that flip the flag programmatically manage their own reporting. This env-var convenience is the VM-only twin divergence — the web-capable 
+                          Set when the <code>D4RT_LOG_RELAXER_USAGE</code> environment variable enabled [D4.usageLogEnabled] at finalize time. Gates the automatic end-of-run summary so embedders that flip the flag programmatically manage their own reporting. This env-var convenience is the VM-only twin divergence — the web-capable 
                           <code>tom_d4rt_ast</code> runner has no <code>dart:io</code> and enables the flag directly.
                         </p>
                       </div>
@@ -1518,22 +1595,22 @@ final result = await interpreter.execute(source: '''
                     <div id="D4rt.bridgesFinalized" class="api-member"><div class="api-member-head"><code class="api-signature">bool bridgesFinalized</code></div></div>
                     <div id="D4rt._libraryFunctions" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">final List&lt;Map&lt;String, LibraryFunction&gt;&gt; _libraryFunctions</code>
+                        <code class="api-signature">final Map&lt;String, Map&lt;String, LibraryFunction&gt;&gt; _libraryFunctions</code>
                       </div>
                     </div>
                     <div id="D4rt._libraryVariables" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">final List&lt;Map&lt;String, LibraryVariable&gt;&gt; _libraryVariables</code>
+                        <code class="api-signature">final Map&lt;String, Map&lt;String, LibraryVariable&gt;&gt; _libraryVariables</code>
                       </div>
                     </div>
                     <div id="D4rt._libraryGetters" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">final List&lt;Map&lt;String, LibraryGetter&gt;&gt; _libraryGetters</code>
+                        <code class="api-signature">final Map&lt;String, Map&lt;String, LibraryGetter&gt;&gt; _libraryGetters</code>
                       </div>
                     </div>
                     <div id="D4rt._librarySetters" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">final List&lt;Map&lt;String, LibrarySetter&gt;&gt; _librarySetters</code>
+                        <code class="api-signature">final Map&lt;String, Map&lt;String, LibrarySetter&gt;&gt; _librarySetters</code>
                       </div>
                     </div>
                     <div id="D4rt._moduleLoader" class="api-member"><div class="api-member-head"><code class="api-signature">ModuleLoader _moduleLoader</code></div></div>
@@ -1552,13 +1629,22 @@ final result = await interpreter.execute(source: '''
                         <p><code>null</code> until the first [_initModule] call.</p>
                       </div>
                     </div>
+                    <div id="D4rt.allowedPackages" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Set&lt;String&gt; allowedPackages</code></div>
+                    </div>
+                    <div id="D4rt.debugLoadedModuleCount" class="api-member"><div class="api-member-head"><code class="api-signature">int debugLoadedModuleCount</code></div></div>
+                    <div id="D4rt.loadedSourceModuleCount" class="api-member"><div class="api-member-head"><code class="api-signature">int loadedSourceModuleCount</code></div></div>
                     <div id="D4rt.classAliases" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">List&lt;({String aliasName, String library, String targetName})&gt; classAliases</code>
                       </div>
                     </div>
                     <div id="D4rt.functionTypedefs" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">List&lt;({String library, String name})&gt; functionTypedefs</code></div>
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          List&lt;({String library, int? maxPositional, String name, int? requiredPositional})&gt; functionTypedefs
+                        </code>
+                      </div>
                     </div>
                     <div id="D4rt.libraryReExports" class="api-member">
                       <div class="api-member-head">
@@ -1567,9 +1653,115 @@ final result = await interpreter.execute(source: '''
                         </code>
                       </div>
                     </div>
+                    <div id="D4rt.onUncaughtError" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void Function(Object, StackTrace)?? onUncaughtError</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Called when an error escapes an interpreted callback that the platform invoked <em>outside</em> the script's own future chain.
+                        </p>
+                        <p>
+                          A <code>Stream.listen</code> callback, a <code>handleError</code> handler and a <code>Timer</code> body are all invoked by the platform, not by the script. When one of them throws, native Dart sends the error to the current [Zone] and lets the enclosing 
+                          <code>main()</code> return normally — and d4rt matches that. The problem it leaves behind is that <code>Zone</code>, 
+                          <code>runZoned</code> and <code>runZonedGuarded</code> are deliberately unbridged (see <code>unbridged_reasons.dart</code>), so an interpreted script has no way at all to observe its own callback failing. This hook is the embedder's way in.
+                        </p>
+                        <p>
+                          The error handed to the hook is the value the script actually threw. The interpreter's internal <code>InternalInterpreterD4rtException</code>
+                           wrapper is removed first, so this path agrees with the synchronous one, where [execute] already rethrows the original value.
+                        </p>
+                        <p>
+                          <strong>Setting a hook contains the error</strong>: it is reported here and <em>not</em> forwarded to the enclosing zone, which is what makes it usable as a sandbox boundary by a host that runs untrusted script.
+                        </p>
+                        <p>
+                          Errors the caller can already observe are not routed here — anything that propagates through [execute]'s return value or thrown exception stays on that path.
+                        </p>
+                        <p>
+                          <strong>Set this before calling [execute]</strong>, and understand that setting it makes d4rt own the 
+                          <em>error zone</em> for the execution. That is what allows the errors to be caught at all, but it also means a 
+                          <code>Future</code> created by the embedder <em>before</em> [execute] and passed into the script reports its errors to the embedder's zone rather than to the script — the ordinary consequence of an error-zone boundary, and the reason this is opt-in. Leaving it null keeps the routing untouched — escapes reach the enclosing zone — and 
+                          <strong>since SCD73 they arrive unwrapped there too</strong>, so an embedder who prefers their own <code>runZonedGuarded</code>
+                           is no longer paying legibility for it. One escape route has no seam to unwrap at, <code>Stream.handleError</code>'s handler; pass what you receive through [unwrapScriptError] if you want to be certain, which is a no-op on anything already unwrapped.
+                        </p>
+                        <h2>Example:</h2>
+                        <pre><code>final d4rt = D4rt();
+d4rt.onUncaughtError = (error, stackTrace) {
+  log.warning('script callback failed', error, stackTrace);
+};</code></pre>
+                      </div>
+                    </div>
+                    <div id="D4rt.lastErrorTrace" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">List&lt;D4rtStackFrame&gt; lastErrorTrace</code></div>
+                    </div>
+                    <div id="D4rt._lastErrorTrace" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">List&lt;D4rtStackFrame&gt; _lastErrorTrace</code></div>
+                    </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
+                    <div id="D4rt.providePackage" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool providePackage(String packageName)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Step 7 — Grants [packageName] to this instance and reports whether its bridge definitions are already in the process-global pool.
+                        </p>
+                        <p>
+                          Returns <code>true</code>  → already pooled; the caller should <strong>skip</strong> registration and the pooled definitions are reused for this instance. Returns 
+                          <code>false</code> → not pooled; the caller <strong>must</strong> register the package's bridges now. Those 
+                          <code>register*</code> calls accumulate into the pool under [packageName] (because this call sets [_currentProvidingPackage]), so the next instance in the process gets 
+                          <code>true</code>.
+                        </p>
+                        <p>
+                          Either way [packageName] is added to this instance's [_allowedPackages] whitelist — only allowed packages are exposed in the interpreter environment (consumed by the warm-parent build and the per-module registry merge).
+                        </p>
+                        <p>
+                          Idempotent on [packageName]: calling it again for an already-provided package returns <code>true</code>
+                           (it is now pooled) and leaves the grant in place.
+                        </p>
+                        <p>Mirror of [D4rtRunner.providePackage] in tom_d4rt_ast. Canonical call site:</p>
+                        <pre><code>if (d4rt.providePackage('tom_d4rt_flutter') == false) {
+  FlutterMaterialBridges.register(d4rt); // first instance pays the cost
+  d4rt.registerExtensions('tom_d4rt_flutter', registerOverrides);
+}
+// here the package is registered AND allowed in this instance</code></pre>
+                      </div>
+                    </div>
+                    <div id="D4rt._bundleFor" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">_PackageBridgeBundle _bundleFor([String? package])</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Returns the pooled bundle for the currently-providing package, creating it on first use. Falls back to [_defaultPackage] for 
+                          <code>register*</code> calls made without an active [providePackage] context (legacy callers).
+                        </p>
+                        <p>
+                          This is the single choke point for <em>every</em> <code>register*</code> call, so it is also where the per-instance cross-run caches are invalidated: a new registration may change what the warm parent or a bridged module env should bind, so any previously-built per-instance caches are stale and must be rebuilt on the next run. (No-op for the process-global migrated caches, which are keyed by the immutable pool signature; clearing per-instance fields here also fixes a latent [_instanceWarmParent] register-after-execute staleness bug.)
+                        </p>
+                      </div>
+                    </div>
+                    <div id="D4rt._mergedBundleOrNull" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">_PackageBridgeBundle? _mergedBundleOrNull()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Step 9 — returns the merged per-module registry bundle for a <strong>migrated</strong> instance (one that has called [providePackage] at least once), or 
+                          <code>null</code> for the <strong>legacy</strong> path (which reads the per-instance maps directly).
+                        </p>
+                        <p>
+                          Unlike <code>tom_d4rt_ast</code>, the analyzer-based [ModuleLoader] reads its bridge registries by reference (passed at construction) and registers names per-module at import time. A migrated instance that got 
+                          <code>true</code> from [providePackage] skipped its own <code>register*</code> calls, so its per-instance maps are incomplete — the authoritative definitions live only in the pooled bundles. This merges the pooled bundles for the granted packages (sorted, deterministic) into one combined bundle the [ModuleLoader] and the [classAliases] / [functionTypedefs] / [libraryReExports] getters read from. The synthetic [_defaultPackage] is intentionally excluded — the allowed-set is the security boundary.
+                        </p>
+                        <p>
+                          Cached per-instance keyed on the allowed-set signature so it is built at most once per signature (rebuilt only when [providePackage] grants a new package between executes).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="D4rt._mergeBundleInto" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">void _mergeBundleInto(_PackageBridgeBundle target, _PackageBridgeBundle source)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Step 9 — merges every registry slice of [source] into [target]. Inner per-URI maps are combined name-by-name (last-write-wins, matching the per-instance registration behaviour); per-URI extension lists are appended.
+                        </p>
+                      </div>
+                    </div>
                     <div id="D4rt.registerBridgedEnum" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
@@ -1597,6 +1789,22 @@ final result = await interpreter.execute(source: '''
                         </p>
                       </div>
                     </div>
+                    <div id="D4rt.registerBridgedClassLazy" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          void registerBridgedClassLazy(String name, Type nativeType, BridgedClass Function() thunk, String library, {String? sourceUri})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Lazily registers a bridged class: stores [name] / [nativeType] / the deferred [thunk] without building the [BridgedClass]. The body (member maps + adapter closures) is built (and memoized) only when [name] or [nativeType] is first resolved during interpretation.
+                        </p>
+                        <p>
+                          This is the substrate the generator's lazy bridge emission targets (import-optimization plan step #17): a script that touches N of a package's classes builds ≈N bridges, not all of them. Eager callers go through [registerBridgedClass], which wraps a built class as 
+                          <code>() =&gt; obj</code>.
+                        </p>
+                      </div>
+                    </div>
                     <div id="D4rt.registerClassAlias" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">void registerClassAlias(String aliasName, String targetName, String library)</code>
@@ -1613,7 +1821,11 @@ final result = await interpreter.execute(source: '''
                       </div>
                     </div>
                     <div id="D4rt.registerFunctionTypedef" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">void registerFunctionTypedef(String name, String library)</code></div>
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          void registerFunctionTypedef(String name, String library, {int? requiredPositional, int? maxPositional})
+                        </code>
+                      </div>
                       <div class="api-doc">
                         <p>GEN-079: Registers a function typedef so it can be resolved as a type.</p>
                         <p>
@@ -1622,7 +1834,8 @@ final result = await interpreter.execute(source: '''
                           <code>BridgedClass</code> with <code>nativeType: Function</code> for type resolution.
                         </p>
                         <p>
-                          [name] The typedef name (e.g., 'VoidCallback'). [library] The library path where this typedef is exported from.
+                          [name] The typedef name (e.g., 'VoidCallback'). [library] The library path where this typedef is exported from. SCD137 — [requiredPositional] / [maxPositional] carry the typedef's POSITIONAL arity so 
+                          <code>FunctionRuntimeType.isSubtypeOf</code> can refuse a callable that provably cannot be invoked. Both are optional: a bridge generated before the generator carried signatures through omits them, and the interpreter then keeps scd136's arity-blind acceptance.
                         </p>
                       </div>
                     </div>
@@ -1744,6 +1957,45 @@ interpreter.registerGlobalSetter('counter', (v) =&gt; _counter = v as int, 'pack
                         </code>
                       </div>
                     </div>
+                    <div id="D4rt._warmParent" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Environment _warmParent()</code></div>
+                      <div class="api-doc">
+                        <p>Step 8 — returns this instance's warm parent [Environment], building it at most once.</p>
+                        <p>
+                          Two cache regimes, selected by whether the instance has been migrated to the <code>providePackage</code>
+                           idiom:
+                        </p>
+                        <ul>
+                          <li><strong>Migrated</strong> (<code>_allowedPackages</code> non-empty): the parent is keyed on the</li>
+                        </ul>
+                        <p>
+                          sorted allowed-set signature and shared process-wide via [_warmParentCache]. It is built from the pooled bridge bundles for the granted packages only — the security boundary is the allowed-set. 
+                          <em> </em><em>Legacy</em><em> (<code>_allowedPackages</code> empty): the parent is built from this instance's per-instance registration maps and cached per-instance ([_instanceWarmParent]). It is 
+                          </em>not* shared, because legacy registrations all collapse onto [_defaultPackage]; a process-global cache would leak one instance's bridges into another and collide on same-named classes across tests.
+                        </p>
+                        <p>
+                          Mirror of [D4rtRunner._warmParent] in tom_d4rt_ast, with one deliberate divergence: tom_d4rt registers only the 
+                          <strong>type</strong> lookup on the parent (<code>registerBridgeType</code>), not full name bindings (<code>defineBridge</code>). The analyzer-based [ModuleLoader] owns per-module name registration at import time to preserve module isolation (GEN-100/107); the parent only needs to answer 
+                          <code>toBridgedInstance</code> type queries for native values returned by bridge methods before imports are processed.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="D4rt._buildWarmParentFromInstanceMaps" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Environment _buildWarmParentFromInstanceMaps()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Builds a warm parent from this instance's per-instance registration maps (legacy path). Stdlib + the type-only bridge lookup baseline.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="D4rt._buildWarmParentFromPool" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Environment _buildWarmParentFromPool()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Builds a warm parent from the pooled bridge bundles for this instance's granted packages (migrated path). Stdlib + the type-only bridge lookup of the allowed packages only, in sorted package order for determinism.
+                        </p>
+                      </div>
+                    </div>
                     <div id="D4rt.resetScriptDeclarations" class="api-member">
                       <div class="api-member-head"><code class="api-signature">void resetScriptDeclarations()</code></div>
                       <div class="api-doc">
@@ -1768,6 +2020,27 @@ interpreter.registerGlobalSetter('counter', (v) =&gt; _counter = v as int, 'pack
                         </p>
                         <p>
                           No-op on the <code>_values</code> half if [_moduleLoader] has not been initialised yet ([_hasExecutedOnce] is false) or if no baseline was captured; the native-accumulator clear runs unconditionally.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="D4rt.dispose" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void dispose()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Step #3 (retention) — releases the interpreter artifacts retained from the most recent run so a finished run's parsed [CompilationUnit], interpreted declarations, and per-run environment become collectable while this instance is kept alive but idle.
+                        </p>
+                        <p>
+                          This addresses the baseline's per-instance AST/<code>BridgedClass</code> retention: an embedder that creates one [D4rt] per script (the pattern that produced ~88 retained 
+                          <code>CompilationUnitImpl</code> generations) can call [dispose] after a run to drop that run's AST graph instead of pinning it for the instance's whole lifetime. (Reusing a 
+                          <em>single</em> instance across scripts is now cheap — step #2 shares the ~982-class bridge surface process-wide — and is the preferred pattern; [dispose] covers the per-instance case.)
+                        </p>
+                        <p>
+                          What it releases (per-run state only): <em> the script-declared environment entries and the cross-build native accumulator, via [resetScriptDeclarations]; 
+                          </em> the parsed-module cache holding this run's [CompilationUnit]s, via [ModuleLoader.releaseLoadedModules]; * the [InterpreterVisitor] ([_visitor]).
+                        </p>
+                        <p>
+                          What it preserves (process-global, no per-run state): the package pool, warm-parent cache, and shared bridged-module env cache. A subsequent 
+                          <code>execute*</code> rebuilds the per-run loader/visitor via [_initModule] as usual, so [dispose] is non-destructive — the instance remains fully usable.
                         </p>
                       </div>
                     </div>
@@ -1866,7 +2139,13 @@ interpreter.grant(NetworkPermission.any);</code></pre>
                           <code>execute</code> / <code>eval</code> invoke this implicitly on first run if it has not been called already, so embedders don't have to remember to call it. Calling it explicitly first is supported and preferred when an embedder needs deterministic timing (e.g. a constructor of a Flutter helper that touches bridges before the first script runs).
                         </p>
                         <p>
-                          <strong>Idempotent:</strong> repeat calls return without re-running any callback — the contract is "run once, then frozen". After this call returns, [registerExtensions] throws [StateError].
+                          <strong>Idempotent per instance:</strong> repeat calls on the same interpreter return without re-running any callback — the contract is "run once, then frozen". After this call returns, [registerExtensions] throws [StateError].
+                        </p>
+                        <p>
+                          <strong>Step 11 — once per package per process.</strong> Extension callbacks live on the process-global pooled bundles (<code>_packagePool</code>). A callback is fired only the first time 
+                          <em>any</em> interpreter finalizes the package, guarded by <code>_PackageBridgeBundle.extensionFired</code>. A second interpreter granted the same (already-pooled) package — e.g. via the canonical 
+                          <code>if (providePackage(name) == false) { register…; registerExtensions… }</code> idiom, where the second instance skips both — never re-fires it. Because the callback's effects (relaxers, interface proxies, generic constructors) land in 
+                          <em>static</em> D4 / BridgedClass registries shared across instances, firing once is correct and sufficient.
                         </p>
                       </div>
                     </div>
@@ -1890,7 +2169,7 @@ interpreter.grant(NetworkPermission.any);</code></pre>
                       <div class="api-member-head"><code class="api-signature">void _maybeEnableUsageLogFromEnv()</code></div>
                       <div class="api-doc">
                         <p>
-                          P&amp;R#1: enable [D4.usageLogEnabled] when <code>D4RT_LOG_RELAXER_USAGE</code> is set to a truthy value (<code>1</code>, 
+                          Enable [D4.usageLogEnabled] when <code>D4RT_LOG_RELAXER_USAGE</code> is set to a truthy value (<code>1</code>, 
                           <code>true</code>, <code>yes</code>, <code>on</code>, case-insensitive). Resets the log so each process run starts fresh, and arms the automatic end-of-run summary. No-op if the env var is unset or the flag is already on.
                         </p>
                       </div>
@@ -1899,7 +2178,7 @@ interpreter.grant(NetworkPermission.any);</code></pre>
                       <div class="api-member-head"><code class="api-signature">void _maybeEmitUsageLog()</code></div>
                       <div class="api-doc">
                         <p>
-                          P&amp;R#1: print the [D4.usageLogSummary] at run end when the usage log was auto-enabled via the environment variable. Embedders that enable the flag programmatically do their own reporting and are not affected.
+                          Print the [D4.usageLogSummary] at run end when the usage log was auto-enabled via the environment variable. Embedders that enable the flag programmatically do their own reporting and are not affected.
                         </p>
                       </div>
                     </div>
@@ -1972,7 +2251,8 @@ interpreter.grant(NetworkPermission.any);</code></pre>
                         <pre><code>final interpreter = D4rt();
 interpreter.registerBridgedClass(myClass, 'package:my_lib/my_lib.dart');
 interpreter.grant(FilesystemPermission.read);
-interpreter.registerGlobalVariable('config', {'debug': true});
+interpreter.registerGlobalVariable(
+    'config', {'debug': true}, 'package:my_lib/my_lib.dart');
 
 final config = interpreter.getConfiguration();
 print(jsonEncode(config.toJson()));</code></pre>
@@ -2099,9 +2379,90 @@ d4rt.continuedExecute(source: '''
 final result = d4rt.eval('square(5)'); // Returns 25</code></pre>
                       </div>
                     </div>
+                    <div id="D4rt.parse" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">D4rtProgram parse(String source, {String? basePath})</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Parse source code into a CompilationUnit. Parses [source] once into a [D4rtProgram] that [executeProgram] can run any number of times, on this interpreter or another.
+                        </p>
+                        <p>
+                          This is [execute] split at its one expensive step that does not depend on the run: an embedder that runs the same script repeatedly caches the program and pays for the parse once. A parse error is raised here, as the [SourceCodeD4rtException] [execute] would raise.
+                        </p>
+                        <p>
+                          [basePath] is part of the program rather than of the run because the parsed unit is anchored at <code>&lt;basePath&gt;/main.dart</code>, exactly as [execute] anchors it; [executeProgram] resolves relative imports against it.
+                        </p>
+                        <p>
+                          The program carries only syntax. Everything a run derives from it — declarations, static coordinates, the environment — is rebuilt by each [executeProgram], so two runs of one program share no state.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="D4rt.executeProgram" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          dynamic executeProgram(D4rtProgram program, {String name = 'main', List&lt;Object?&gt;? positionalArgs, Map&lt;String, Object?&gt;? namedArgs, Map&lt;String, String&gt;? sources, bool allowFileSystemImports = false})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Runs a [program] from [parse] exactly as [execute] would run its source, without parsing it again.</p>
+                        <p>
+                          Like [execute], this resets the global environment first; the arguments mean what they mean there. Only a direct source string can be a program — a root loaded by 
+                          <code>library</code> URI goes through the module loader and stays with [execute].
+                        </p>
+                      </div>
+                    </div>
                     <div id="D4rt._parseSource" class="api-member">
                       <div class="api-member-head"><code class="api-signature">CompilationUnit _parseSource({String? source, String? library})</code></div>
-                      <div class="api-doc"><p>Parse source code into a CompilationUnit.</p></div>
+                    </div>
+                    <div id="D4rt._forkScriptZone" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Zone _forkScriptZone()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Execute a parsed CompilationUnit in the given environment. Runs the script in a zone d4rt owns, so that errors escaping an interpreted callback have somewhere to be caught.
+                        </p>
+                        <p>
+                          SCC23: a callback the <em>platform</em> invokes — a <code>Stream.listen</code> handler, a <code>handleError</code>
+                           handler, a <code>Timer</code> body — is outside the script's future chain, so an error it throws cannot reach [execute]'s caller. It goes to the current zone instead, and until this fork existed that meant the embedder's zone, carrying an interpreter-internal wrapper type.
+                        </p>
+                        <p>
+                          The fork is the whole fix, and it is deliberately <em>one</em> seam rather than a guard per adapter: it catches escapes from call sites nobody enumerated, which is precisely the class of bug that motivated the todo (the escape was reported against streams and turned out to include timers).
+                        </p>
+                        <p>
+                          Note that only <em>uncaught</em> errors reach [ZoneSpecification.handleUncaughtError]. A synchronous throw out of [Zone.run] propagates to the caller untouched, so the error path [execute] already had is unaffected.
+                        </p>
+                        <p>
+                          <strong>The zone is always forked; the ERROR zone is only taken over when [onUncaughtError] is set.</strong>
+                           The distinction is the whole of SCD73 and is easy to collapse by accident. A zone that specifies <code>handleUncaughtError</code>
+                           <em>is</em> a new error zone, and Dart deliberately refuses to deliver an error across an error-zone boundary — 
+                          <code>future_impl.dart</code>, "Don't cross zone boundaries with errors". Taking over the error zone unconditionally therefore stops an ordinary script failure from ever reaching the caller of [execute]: the awaiting caller registered its listener outside the zone, so the error is diverted to the uncaught handler and the returned future simply never completes. F-SCB9-12 caught exactly that. Owning the error zone is a real change to an embedder's error routing, so it happens when the embedder asks for it and not otherwise.
+                        </p>
+                        <p>
+                          A zone that specifies only the <code>register*Callback</code> hooks is <strong>not</strong> an error zone (<code>Zone.errorZone</code>
+                           still resolves to the parent's), so those hooks are installed unconditionally. They are what unwraps the interpreter's internal types on the no-hook path: an escaping error has to be 
+                          <em>observed</em> to be unwrapped, and a callback can be observed by wrapping it at registration instead of by handling the error it throws. SCD73 was filed believing no such seam existed.
+                        </p>
+                        <p>
+                          They run on every callback registered while a script executes, including callbacks belonging to native code a bridge called — so the transform has to leave anything that is not an interpreter type byte-identical, which [unwrapScriptError] does. That it is safe to apply here at all was measured rather than assumed: a 
+                          <code>Future.then</code> callback that throws is the one registered-callback escape an interpreted <code>catch</code>
+                           can still receive, and its <code>catch</code>, <code>on</code>-clause matching, member access and <code>rethrow</code>
+                           were all checked unchanged.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="D4rt._scriptZoneSpecification" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">ZoneSpecification _scriptZoneSpecification()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The specification behind [_forkScriptZone], split out because its two halves answer to different constraints.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="D4rt._toHost" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Never _toHost(Object e, StackTrace s)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          [throwAsHostFacingError], after keeping the trace [e] carries — read from the interpreter's own carrier, before the boundary unwraps it to the value the script threw.
+                        </p>
+                      </div>
                     </div>
                     <div id="D4rt._executeInEnvironment" class="api-member">
                       <div class="api-member-head">
@@ -2109,12 +2470,33 @@ final result = d4rt.eval('square(5)'); // Returns 25</code></pre>
                           dynamic _executeInEnvironment({required CompilationUnit compilationUnit, required Environment executionEnvironment, required String name, List&lt;Object?&gt;? positionalArgs, Map&lt;String, Object?&gt;? namedArgs, String? library})
                         </code>
                       </div>
-                      <div class="api-doc"><p>Execute a parsed CompilationUnit in the given environment.</p></div>
                     </div>
-                    <div id="D4rt._executeClassic" class="api-member">
+                    <div id="D4rt._refuseStaticallyUndefinedNames" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">void _refuseStaticallyUndefinedNames(CompilationUnit unit, Environment environment)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Refuses a program that reads a name nothing defines, before <code>main</code> runs (SCG6, phase 2 of SCD95).
+                        </p>
+                        <p>
+                          TWO STAGES, so neither half has to be perfect. The syntactic pass ([reportUnresolvedNames]) NARROWS to candidates; the fully populated environment CONFIRMS. A name the pass flags that [Environment.lookup] finds is a hole in the pass and stays silent, so a resolver hole costs a missed diagnostic and can never reject a working script. Only a name both agree on is refused.
+                        </p>
+                        <p>
+                          THE ERROR IS THE INTERPRETER'S OWN. The refusal evaluates the offending identifier, which raises exactly what the line would have raised — the 
+                          <code>UndefinedNameD4rtException</code>, including the reason an SDK type is not bridged — only earlier. It refuses only on that exception for that name: if evaluation succeeds or fails in any other way, a runtime fallback owns the name and the pass stays silent. An assignment target is left to the runtime, whose message for a write differs from the one for a read.
+                        </p>
+                        <p>
+                          WHAT IT DOES NOT COVER, by the pass's design: anything after a <code>.</code>, the bodies of classes whose supertype chain leaves the unit (counted in 
+                          <code>NameReport.openClasses</code>), extension members, and type positions. The runtime guards (SCC31) remain the backstop for all of those. Top-level variable initializers have already run by this point, so the guarantee is about 
+                          <code>main</code>: no statement of it executes.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="D4rt._executeInEnvironmentInZone" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          dynamic _executeClassic({String? source, String name = 'main', List&lt;Object?&gt;? positionalArgs, Map&lt;String, Object?&gt;? namedArgs, Object? args, String? library, Map&lt;String, String&gt;? sources, String? basePath, bool allowFileSystemImports = false})
+                          dynamic _executeInEnvironmentInZone({required CompilationUnit compilationUnit, required Environment executionEnvironment, required String name, List&lt;Object?&gt;? positionalArgs, Map&lt;String, Object?&gt;? namedArgs, String? library})
                         </code>
                       </div>
                     </div>
@@ -2219,6 +2601,127 @@ final doubled = d4rt.eval('double(counter)'); // Returns 4</code></pre>
                       <div class="api-member-head"><code class="api-signature">dynamic _tryFunction(dynamic Function() fn, String error)</code></div>
                     </div>
                   </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="D4rt._defaultPackage" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String _defaultPackage</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Synthetic package name for [register*] calls made without an active [providePackage] context (legacy / unmigrated callers). Every instance is implicitly allowed this package so today's "everything is exposed" behaviour is preserved for consumers that have not adopted the 
+                          <code>providePackage</code>-guarded registration idiom.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="D4rt._packagePool" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Map&lt;String, _PackageBridgeBundle&gt; _packagePool</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Process-global pool of per-package registration payloads, keyed by the package name passed to [providePackage] (or [_defaultPackage] for unmigrated callers). Built once per package per process.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="D4rt._warmParentCache" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Map&lt;String, Environment&gt; _warmParentCache</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Step 8 — process-global cache of warm parent [Environment]s for <strong>migrated</strong> instances, keyed by the sorted allowed-set signature (<code>(_allowedPackages.toList()..sort()).join('|')</code>). Two instances granted the same set of packages share one warm parent: stdlib + the pooled bridge type baseline for those packages, built once per signature per process. Cleared together with [_packagePool] by [debugResetPool].
+                        </p>
+                      </div>
+                    </div>
+                    <div id="D4rt._bridgedModuleEnvCache" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static Map&lt;String, Map&lt;String, Environment&gt;&gt; _bridgedModuleEnvCache</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Step #2 (import-binding optimization) — process-global cache of the per-bridged-module [Environment]s for 
+                          <strong>migrated</strong> instances, keyed first by the sorted allowed-set signature (the same key as [_warmParentCache]) and then by module URI string.
+                        </p>
+                        <p>
+                          Building a bridged module's environment (binding its whole transitive re-export surface — e.g. <code>package:flutter/material.dart</code>
+                           pulls in ~982 classes) is the dominant <code>pass2Setup</code> cost. Before this cache it was rebuilt on 
+                          <strong>every</strong> <code>execute*</code> because the [ModuleLoader] (and its per-loader <code>_bridgedModuleEnvironments</code>) is recreated each run. The bound definitions all come from the immutable process-global [_packagePool], so a module env is identical across executes that share an allowed-set and is safe to share. It is built with the shared warm parent ([_warmParentCache] entry) as its 
+                          <code>enclosing</code>, so it carries no per-execution state. Cleared together with [_packagePool] / [_warmParentCache] by [debugResetPool].
+                        </p>
+                        <p>
+                          Legacy instances (empty [_allowedPackages]) are intentionally excluded: like the warm parent, their bridges collapse onto [_defaultPackage], so a process-global cache keyed on the empty signature would leak one interpreter's bridges into another. They keep the per-loader, per-execute behavior.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="D4rt._debugBridgedModuleEnvBuilds" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static int _debugBridgedModuleEnvBuilds</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Step #2 diagnostics — incremented each time a bridged module environment is <em>built</em> (a cache miss in [_bridgedModuleEnvCache]). A reuse leaves it unchanged. Lets tests assert the cache is hit across executes that share an allowed-set and rebuilt for a different one.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="D4rt.debugBridgedModuleEnvBuildCount" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static int debugBridgedModuleEnvBuildCount</code></div>
+                    </div>
+                    <div id="D4rt.debugPooledPackages" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Set&lt;String&gt; debugPooledPackages</code></div>
+                    </div>
+                    <div id="D4rt.debugWarmParentCacheSize" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static int debugWarmParentCacheSize</code></div>
+                    </div>
+                    <div id="D4rt.debugPooledClassCount" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static int debugPooledClassCount(String packageName)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Diagnostics / test introspection — the number of bridged classes pooled under [packageName] across all source URIs (0 if not pooled).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="D4rt.debugResetPool" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static void debugResetPool()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Diagnostics / test introspection — clears the process-global pool and the step-8 warm-parent cache (the migrated-instance parents are keyed on pool contents, so they must be evicted together to stay consistent). Used only by tests that need a pristine pool. Not part of the normal runtime contract.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="D4rt._parseDirectSource" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static CompilationUnit _parseDirectSource(String source, String? basePath)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Parses a direct source string — the one parse [_parseSource] and [parse] share, so a [D4rtProgram] is parsed exactly as [execute] would parse it.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="D4rtProgram" class="api-declaration">
+                  <h3 class="api-decl-title">class D4rtProgram</h3>
+                  <code class="api-signature">final class D4rtProgram</code>
+                  <div class="api-doc">
+                    <p>A script parsed once by [D4rt.parse], to be run by [D4rt.executeProgram].</p>
+                    <p>
+                      Immutable and holding no interpreter state, so one program may be cached and run repeatedly — and by different [D4rt] instances.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="D4rtProgram._" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">D4rtProgram._({required String source, required String? basePath, required CompilationUnit unit})</code>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="D4rtProgram.source" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String source</code></div>
+                      <div class="api-doc"><p>The source this program was parsed from.</p></div>
+                    </div>
+                    <div id="D4rtProgram.basePath" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? basePath</code></div>
+                      <div class="api-doc"><p>The base path relative imports resolve against, or null.</p></div>
+                    </div>
+                    <div id="D4rtProgram._unit" class="api-member"><div class="api-member-head"><code class="api-signature">final CompilationUnit _unit</code></div></div>
+                  </div>
                 </section>
                 <section id="LibraryClass" class="api-declaration">
                   <h3 class="api-decl-title">class LibraryClass</h3>
@@ -2227,19 +2730,34 @@ final doubled = d4rt.eval('double(counter)'); // Returns 4</code></pre>
                     <p>
                       Wrapper class for library-scoped bridged classes. Stores a bridged class with its canonical source URI for deduplication.
                     </p>
+                    <p>
+                      Step #17 (import-optimization): the wrapped [BridgedClass] is built lazily via a deferred [thunk] and memoized on first access to [bridgedClass]. The [name] and [nativeType] are stored up front so registration / lookup filtering / warm-parent type seeding can run 
+                      <strong>without</strong> forcing the heavy member-map + adapter-closure build. The eager constructor wraps an already-built class as a trivial 
+                      <code>() =&gt; obj</code> thunk (behaviour unchanged).
+                    </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="LibraryClass.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">LibraryClass.new(BridgedClass bridgedClass, {String? sourceUri})</code></div>
+                      <div class="api-doc"><p>Eager wrapper: [bridgedClass] is already built.</p></div>
+                    </div>
+                    <div id="LibraryClass.lazy" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">const LibraryClass.new(BridgedClass bridgedClass, {String? sourceUri})</code>
+                        <code class="api-signature">LibraryClass.lazy(String name, Type nativeType, BridgedClass Function() _thunk, {String? sourceUri})</code>
                       </div>
+                      <div class="api-doc"><p>Lazy wrapper: [thunk] builds the bridge on first access to [bridgedClass].</p></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="LibraryClass.bridgedClass" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final BridgedClass bridgedClass</code></div>
+                    <div id="LibraryClass.name" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String name</code></div>
+                      <div class="api-doc"><p>The class name — always available without building the bridge.</p></div>
+                    </div>
+                    <div id="LibraryClass.nativeType" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Type nativeType</code></div>
+                      <div class="api-doc"><p>The native Dart type the bridge wraps — available without building.</p></div>
                     </div>
                     <div id="LibraryClass.sourceUri" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final String? sourceUri</code></div>
@@ -2247,7 +2765,12 @@ final doubled = d4rt.eval('double(counter)'); // Returns 4</code></pre>
                         <p>The canonical source URI where this class is defined. See [LibraryVariable.sourceUri] for details.</p>
                       </div>
                     </div>
-                    <div id="LibraryClass.name" class="api-member"><div class="api-member-head"><code class="api-signature">String name</code></div></div>
+                    <div id="LibraryClass._thunk" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final BridgedClass Function() _thunk</code></div>
+                    </div>
+                    <div id="LibraryClass._built" class="api-member"><div class="api-member-head"><code class="api-signature">BridgedClass? _built</code></div></div>
+                    <div id="LibraryClass.bridgedClass" class="api-member"><div class="api-member-head"><code class="api-signature">BridgedClass bridgedClass</code></div></div>
+                    <div id="LibraryClass.thunk" class="api-member"><div class="api-member-head"><code class="api-signature">BridgedClass Function() thunk</code></div></div>
                   </div>
                 </section>
                 <section id="LibraryEnum" class="api-declaration">
@@ -2439,6 +2962,133 @@ final doubled = d4rt.eval('double(counter)'); // Returns 4</code></pre>
                         </p>
                       </div>
                     </div>
+                  </div>
+                </section>
+                <section id="_PackageBridgeBundle" class="api-declaration">
+                  <h3 class="api-decl-title">class _PackageBridgeBundle</h3>
+                  <code class="api-signature">class _PackageBridgeBundle</code>
+                  <div class="api-doc">
+                    <p>Step 7 (import-optimization plan) — process-global registration payload for a single bridge package.</p>
+                    <p>
+                      Holds the same per-URI registries the [D4rt] instance fields hold today, but keyed once per package name in the static [D4rt._packagePool] so the (expensive) bridge registration for a package is paid at most once per process and can be reused across every interpreter instance and every 
+                      <code>execute*</code> call.
+                    </p>
+                    <p>
+                      The shapes here are intentionally identical to the per-instance fields so that building the warm parent (step 8) and the per-module registries for a migrated instance is a mechanical merge rather than a re-modelling. Mirror of 
+                      <code>_PackageBridgeBundle</code> on [D4rtRunner] in <code>tom_d4rt_ast</code>.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="_PackageBridgeBundle.new" class="api-member"><div class="api-member-head"><code class="api-signature">_PackageBridgeBundle.new()</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="_PackageBridgeBundle.bridgedEnumDefinitions" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">final Map&lt;String, Map&lt;String, LibraryEnum&gt;&gt; bridgedEnumDefinitions</code>
+                      </div>
+                    </div>
+                    <div id="_PackageBridgeBundle.bridgedClasses" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">final Map&lt;String, Map&lt;String, LibraryClass&gt;&gt; bridgedClasses</code>
+                      </div>
+                    </div>
+                    <div id="_PackageBridgeBundle.bridgedExtensions" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">final Map&lt;String, List&lt;LibraryExtension&gt;&gt; bridgedExtensions</code>
+                      </div>
+                    </div>
+                    <div id="_PackageBridgeBundle.classAliases" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">final List&lt;({String aliasName, String library, String targetName})&gt; classAliases</code>
+                      </div>
+                    </div>
+                    <div id="_PackageBridgeBundle.functionTypedefs" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          final List&lt;({String library, int? maxPositional, String name, int? requiredPositional})&gt; functionTypedefs
+                        </code>
+                      </div>
+                    </div>
+                    <div id="_PackageBridgeBundle.libraryFunctions" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">final Map&lt;String, Map&lt;String, LibraryFunction&gt;&gt; libraryFunctions</code>
+                      </div>
+                    </div>
+                    <div id="_PackageBridgeBundle.libraryVariables" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">final Map&lt;String, Map&lt;String, LibraryVariable&gt;&gt; libraryVariables</code>
+                      </div>
+                    </div>
+                    <div id="_PackageBridgeBundle.libraryGetters" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">final Map&lt;String, Map&lt;String, LibraryGetter&gt;&gt; libraryGetters</code>
+                      </div>
+                    </div>
+                    <div id="_PackageBridgeBundle.librarySetters" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">final Map&lt;String, Map&lt;String, LibrarySetter&gt;&gt; librarySetters</code>
+                      </div>
+                    </div>
+                    <div id="_PackageBridgeBundle.bridgedDefLookupByType" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final LazyBridgeRegistry&lt;Type&gt; bridgedDefLookupByType</code></div>
+                    </div>
+                    <div id="_PackageBridgeBundle.libraryReExports" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          final Map&lt;String, List&lt;({Set&lt;String&gt;? hide, Set&lt;String&gt;? show, String uri})&gt;&gt; libraryReExports
+                        </code>
+                      </div>
+                    </div>
+                    <div id="_PackageBridgeBundle.extensionCallback" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void Function()?? extensionCallback</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The single extension callback registered for this package via [D4rt.registerExtensions]. One callback per package name (idempotent overwrite). Fired by [D4rt.finalizeBridges].
+                        </p>
+                      </div>
+                    </div>
+                    <div id="_PackageBridgeBundle.extensionFired" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool extensionFired</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Step 11 — whether [extensionCallback] has already been fired in this process. The bundle lives in the process-global 
+                          <code>_packagePool</code>, so this flag enforces the once-per-package-per-process firing contract: [D4rt.finalizeBridges] fires the callback only when this is 
+                          <code>false</code>, then sets it <code>true</code>. A second interpreter whose [finalizeBridges] encounters the same (already-fired) pooled package skips it — the callback's static D4 / BridgedClass side effects are already in place. Reset together with the pool by 
+                          <code>debugResetPool</code>.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="unwrapScriptError" class="api-declaration">
+                  <h3 class="api-decl-title">function unwrapScriptError</h3>
+                  <code class="api-signature">Object unwrapScriptError(Object error)</code>
+                  <div class="api-doc">
+                    <p>
+                      Recovers the value the script actually threw from the interpreter's internal wrappers — <strong>public, because an embedder sometimes has to call it.</strong>
+                    </p>
+                    <p>
+                      Since SCD73 an escaping error is unwrapped before it reaches an embedder on its own: the zone d4rt forks wraps every callback it registers, which covers a 
+                      <code>Stream.listen</code> handler and a <code>Future.then</code> continuation, and the three <code>Timer</code>
+                       adapters unwrap themselves because their bodies are <code>async</code> and so never throw out of the registered callback at all. An error abandoned in an unawaited future is unwrapped by the interpreter's own async machinery before it gets that far.
+                    </p>
+                    <p>
+                      <strong>One route is not covered</strong>: a handler passed to <code>Stream.handleError</code>, which the SDK invokes without registering it with the zone, so there is nothing to wrap. Reaching it would need d4rt to own the 
+                      <em>error zone</em>, which it does only when [onUncaughtError] is set, and which cannot be made unconditional — Dart refuses to deliver an error across an error-zone boundary, so an ordinary script failure would stop reaching the caller of 
+                      <code>execute</code> (tracked as sce117). An embedder who prefers their own <code>runZonedGuarded</code>
+                       to the hook should therefore pass what they receive through this function; it is a no-op on the shapes that are already unwrapped:
+                    </p>
+                    <pre><code>runZonedGuarded(() =&gt; d4rt.execute(...), (error, stack) {
+  log(unwrapScriptError(error));
+});</code></pre>
+                    <p>
+                      Two peels, not one, which is why this is not left to the caller to write: the internal wrapper holds the thrown value, and a 
+                      <em>bridged</em> exception holds its native object one level further in. A host that peeled only the first would get a 
+                      <code>BridgedInstance</code> it cannot <code>catch</code> on.
+                    </p>
+                    <p>Values that are neither are returned unchanged, so passing a native error through this is harmless.</p>
                   </div>
                 </section>
               </div>

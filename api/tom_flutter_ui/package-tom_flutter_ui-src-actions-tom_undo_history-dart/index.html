@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1399,7 +1405,12 @@
                 <section id="TomRedoAction" class="api-declaration">
                   <h3 class="api-decl-title">class TomRedoAction</h3>
                   <code class="api-signature">class TomRedoAction extends TomSimpleAction&lt;TomUndoRedoContext&gt;</code>
-                  <div class="api-doc"><p>Action that redoes the most recently undone transaction.</p></div>
+                  <div class="api-doc">
+                    <p>Action that drives [TomUndoHistory.redo].</p>
+                    <p>
+                      Gates on [TomUndoHistory.canRedo], which accounts for whether the next transaction's actions implement [TomAction.redo] — so a toolbar button bound to this is disabled both when the redo stack is empty and when what is on it cannot be put back.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomRedoAction.new" class="api-member">
@@ -1431,7 +1442,10 @@
                 <section id="TomUndoAction" class="api-declaration">
                   <h3 class="api-decl-title">class TomUndoAction</h3>
                   <code class="api-signature">class TomUndoAction extends TomSimpleAction&lt;TomUndoRedoContext&gt;</code>
-                  <div class="api-doc"><p>Action that undoes the most recent transaction in the undo history.</p></div>
+                  <div class="api-doc">
+                    <p>Action that undoes the most recent transaction in the undo history.</p>
+                    <p>Gates on [TomUndoHistory.canUndo].</p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomUndoAction.new" class="api-member">
@@ -1475,6 +1489,9 @@ undoHistory.push(transaction);
 // Undo/redo
 if (undoHistory.canUndo) undoHistory.undo();
 if (undoHistory.canRedo) undoHistory.redo();</code></pre>
+                    <p>
+                      Redo is real: [redo] re-applies the transaction by running each action's [TomAction.redo], and [canRedo] is false unless every action in the transaction on top of the redo stack declares [TomAction.isRedoable] — so a button bound to [TomRedoAction] is enabled only when pressing it would do something. See [TomAction.redo] for what an action implements.
+                    </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
@@ -1518,14 +1535,28 @@ if (undoHistory.canRedo) undoHistory.redo();</code></pre>
                     </div>
                     <div id="TomUndoHistory.undo" class="api-member">
                       <div class="api-member-head"><code class="api-signature">void undo()</code></div>
-                      <div class="api-doc"><p>Undoes the most recent transaction.</p></div>
+                      <div class="api-doc">
+                        <p>Undoes the most recent transaction.</p>
+                        <p>
+                          The transaction is undone <em>before</em> the stacks move, so a refusal leaves the history exactly as it was. [TomActionTransaction.undoAll] throws when a transaction is already undone, and popping first would have left that failure with a transaction on neither stack. [redo] mirrors the ordering.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomUndoHistory.redo" class="api-member">
                       <div class="api-member-head"><code class="api-signature">void redo()</code></div>
                       <div class="api-doc">
-                        <p>Redoes the most recently undone transaction.</p>
+                        <p>Re-applies the most recently undone transaction and moves it back onto the undo stack.</p>
                         <p>
-                          Note: Redo re-executes by undoing the undo — the transaction's entries are replayed. For complex redo scenarios, actions should implement their own redo logic.
+                          Runs each recorded action's [TomAction.redo] in the order the steps originally executed, then restores the stack position, so the transaction can be undone again.
+                        </p>
+                        <p>
+                          It is not <code>execute</code> that runs. [TomActionTransaction] stores <code>(action, undoState)</code>
+                           pairs and never the <code>TContext</code> an action ran with — contexts are built per invocation by a 
+                          <code>contextBuilder</code> and are not guaranteed valid later — so the history has no argument to re-execute with. [TomAction.redo] takes the argument the history 
+                          <em>does</em> hold, which is why redo is a hook on the action beside <code>undo</code> rather than a replay of the original call.
+                        </p>
+                        <p>
+                          Redo is per-action opt-in, and this does nothing when [canRedo] is false — which includes a top transaction whose actions do not implement redo. A caller that reaches [TomActionTransaction.redoAll] directly in that state gets a [StateError] naming the action that is missing it.
                         </p>
                       </div>
                     </div>

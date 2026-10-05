@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1390,12 +1396,14 @@
                 <h2 class="api-library-title">package:tom_flutter_ui/src/custom/tom_empty_state.dart</h2>
                 <code class="api-import">import 'package:tom_flutter_ui/src/custom/tom_empty_state.dart';</code>
                 <div class="api-doc">
-                  <p>Phase 6 — <code>TomEmptyState</code>.</p>
                   <p>
-                    Standard placeholder for empty data views. Used by <code>TomListForm</code> when its bound list is empty, and any other "no data yet" surface.
+                    Standard placeholder for a view that loaded successfully and has nothing to show — distinct from a loading state, which has not finished, and from an error state, which failed.
                   </p>
                   <p>
-                    Renders a vertically stacked icon + title + description + optional action button. All strings flow through the resource provider when the caller hands in a [tomId] (preferred) — fall-back literals are also supported for ad-hoc usage in tests / one-off screens.
+                    A leaf widget with no bindings of its own: it is composed in by whatever owns the list, wherever that owner decides "no rows" should read as a designed surface rather than blank space.
+                  </p>
+                  <p>
+                    Renders a vertically stacked icon + title + description + optional action button. All strings flow through the resource provider when the caller hands in a [TomEmptyState.tomId] (preferred) — fall-back literals are also supported for ad-hoc usage in tests / one-off screens.
                   </p>
                 </div>
                 <section id="TomEmptyState" class="api-declaration">
@@ -1407,8 +1415,13 @@
                     <div id="TomEmptyState.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          const TomEmptyState.new({Key? key, String? tomId, InvalidType scope, IconData icon = Icons.inbox_outlined, String? title, String? description, String? actionLabel, void Function()?? onActionPressed, double iconSize = 48})
+                          TomEmptyState.new({Key? key, String? tomId, InvalidType scope, IconData icon = Icons.inbox_outlined, String? title, String? description, String? actionLabel, void Function()?? onActionPressed, double iconSize = 48})
                         </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Not <code>const</code>: the headline is resolved here rather than in <code>build</code> so a missing headline reaches the caller instead of an error boundary. See [title].
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -1438,7 +1451,18 @@
                     </div>
                     <div id="TomEmptyState.title" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final String? title</code></div>
-                      <div class="api-doc"><p>Headline. Required when no [tomId] resolves a <code>title</code> resource.</p></div>
+                      <div class="api-doc">
+                        <p>Headline. Genuinely required: supply this, a [tomId], or both.</p>
+                        <p>
+                          A <code>&lt;basePath&gt;.title</code> resource wins over this value when both are present. When a [tomId] is given but its resource is missing, the resource 
+                          <em>key</em> is rendered — the same development signal every other Tom widget gives — so this parameter is the fallback for that case, not a second-class alternative to it.
+                        </p>
+                        <p>
+                          With neither source the constructor throws a [StateError] rather than leaving a wordless icon on screen. The throw is raised here, and not during 
+                          <code>build</code>, so that it lands on the caller's own line instead of being caught by an enclosing 
+                          <code>TomErrorBoundary</code> and rendered as a runtime error card.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomEmptyState.description" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final String? description</code></div>
@@ -1460,12 +1484,21 @@
                       <div class="api-member-head"><code class="api-signature">final double iconSize</code></div>
                       <div class="api-doc"><p>Diameter (logical pixels) of the icon. Defaults to 48.</p></div>
                     </div>
+                    <div id="TomEmptyState._resolvedTitle" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String _resolvedTitle</code></div>
+                      <div class="api-doc"><p>Headline actually rendered — never null, by construction.</p></div>
+                    </div>
+                    <div id="TomEmptyState._resolvedDescription" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? _resolvedDescription</code></div>
+                      <div class="api-doc"><p>Supporting copy actually rendered, or <code>null</code> when there is none.</p></div>
+                    </div>
+                    <div id="TomEmptyState._resolvedActionLabel" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? _resolvedActionLabel</code></div>
+                      <div class="api-doc"><p>Action label actually rendered, or <code>null</code> when there is none.</p></div>
+                    </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
-                    <div id="TomEmptyState._resolvedTitle" class="api-member"><div class="api-member-head"><code class="api-signature">String? _resolvedTitle()</code></div></div>
-                    <div id="TomEmptyState._resolvedDescription" class="api-member"><div class="api-member-head"><code class="api-signature">String? _resolvedDescription()</code></div></div>
-                    <div id="TomEmptyState._resolvedActionLabel" class="api-member"><div class="api-member-head"><code class="api-signature">String? _resolvedActionLabel()</code></div></div>
                     <div id="TomEmptyState.build" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">Widget build(BuildContext context)</code>

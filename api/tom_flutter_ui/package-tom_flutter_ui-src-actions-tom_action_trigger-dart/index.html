@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1395,7 +1401,11 @@
                   <div class="api-doc">
                     <p>Connects a [TomAction] to a widget's callback (e.g., onPressed).</p>
                     <p>
-                      The trigger handles: 1. Checking [canExecute] before running 2. Creating a [TomActionTransaction] if needed 3. Recording undo state into the [TomUndoHistory] 4. Executing the action with the provided context
+                      The trigger handles: 1. Refusing an action authorization does not permit ([TomAction.isAuthorized]) 2. Checking [TomAction.canExecute] before running 3. Creating a [TomActionTransaction] if needed 4. Recording undo state into the [TomUndoHistory] 5. Executing the action with the provided context
+                    </p>
+                    <p>
+                      The authorization check is not a security boundary — the server enforces — and it is not what normally stops an unauthorized action: a button bound to [TomAction.authorizer] is already disabled or hidden. It is here for the paths that do not go through such a button, a keyboard shortcut or a callback holding 
+                      <code>trigger</code> directly, so that an action a user cannot see cannot be run either.
                     </p>
                     <p>Usage with a button:</p>
                     <pre><code>TomElevatedButton(
@@ -1443,7 +1453,15 @@
                     </div>
                     <div id="TomActionTrigger.onCannotExecute" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final void Function()?? onCannotExecute</code></div>
-                      <div class="api-doc"><p>Optional callback invoked when [canExecute] returns false.</p></div>
+                      <div class="api-doc">
+                        <p>
+                          Optional callback invoked when the action was <strong>not</strong> run — because authorization refused it, or because [TomAction.canExecute] did.
+                        </p>
+                        <p>
+                          One callback for both, because the caller can tell them apart without being told: <code>action.isAuthorized</code>
+                           answers which refusal this was. A second callback, or a reason parameter, would carry information already in reach.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomActionTrigger.callback" class="api-member"><div class="api-member-head"><code class="api-signature">void Function() callback</code></div></div>
                   </div>

@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1517,11 +1523,11 @@ TomRemoteApis.registerApi(api);</code></pre>
                 </section>
                 <section id="TomApiEndpoint" class="api-declaration">
                   <h3 class="api-decl-title">class TomApiEndpoint</h3>
-                  <code class="api-signature">class TomApiEndpoint&lt;returnType, requestType&gt;</code>
+                  <code class="api-signature">class TomApiEndpoint&lt;ReturnType, RequestType&gt;</code>
                   <div class="api-doc">
                     <p>Represents a single API endpoint with type-safe request/response handling.</p>
                     <p>
-                      Generic parameters: - [returnType]: The expected response type from the server - [requestType]: The request body type to send to the server
+                      Generic parameters: - [ReturnType]: The expected response type from the server - [RequestType]: The request body type to send to the server
                     </p>
                     <h2>Example</h2>
                     <pre><code>final createUserEndpoint = TomApiEndpoint&lt;UserResponse, CreateUserRequest&gt;(
@@ -1538,7 +1544,7 @@ TomRemoteApis.registerApi(api);</code></pre>
                     <div id="TomApiEndpoint.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomApiEndpoint.new({required String id, String? uri, String? description, List&lt;TomHttpMethod&gt;? methods, required TomHttpMethod method, TomMimeType consumes = TomMimeType.json, TomMimeType produces = TomMimeType.json, String? contentDisposition, List&lt;String&gt; formFields = const [], Map&lt;String, String&gt; responseHeaders = const {}, Map&lt;String, String&gt; requestHeaders = const {}, List&lt;Type&gt;? requestTypes, bool followRedirects = false, bool? persistentConnection, bool includeBearerAuthentication = true, int? maxRedirects, Encoding? requestEncoding, Encoding? responseEncoding, Map&lt;int, Type&gt;? statusCodeResponseTypes})
+                          TomApiEndpoint.new({required String id, String? uri, String? description, List&lt;TomHttpMethod&gt;? methods, required TomHttpMethod method, TomMimeType consumes = TomMimeType.json, TomMimeType produces = TomMimeType.json, String? contentDisposition, List&lt;String&gt; formFields = const [], Map&lt;String, String&gt; responseHeaders = const {}, Map&lt;String, String&gt; requestHeaders = const {}, List&lt;Type&gt;? requestTypes, bool followRedirects = false, bool? persistentConnection, bool includeBearerAuthentication = true, int? maxRedirects, Duration? timeout, Encoding? requestEncoding, Encoding? responseEncoding, Map&lt;int, Type&gt;? statusCodeResponseTypes, Map&lt;String, String&gt; urlParameterMapping = const {}, TomAccessControl? access})
                         </code>
                       </div>
                       <div class="api-doc"><p>Creates a new API endpoint with the specified configuration.</p></div>
@@ -1614,6 +1620,17 @@ TomRemoteApis.registerApi(api);</code></pre>
                       <div class="api-member-head"><code class="api-signature">final bool? persistentConnection</code></div>
                       <div class="api-doc"><p>Whether to use persistent HTTP connections.</p></div>
                     </div>
+                    <div id="TomApiEndpoint.timeout" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Duration? timeout</code></div>
+                      <div class="api-doc">
+                        <p>
+                          How long a client call to this endpoint may take before it gives up, or <code>null</code> to wait indefinitely.
+                        </p>
+                        <p>
+                          Declared per endpoint rather than per API because the right deadline is a property of the work behind the URL, not of the service as a whole: a report that legitimately takes a minute sits in the same API as a lookup that should answer in under a second, and one shared value would have to be the larger of the two — which is the same as having none.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomApiEndpoint.includeBearerAuthentication" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final bool includeBearerAuthentication</code></div>
                       <div class="api-doc"><p>Whether to include Bearer token in Authorization header.</p></div>
@@ -1630,7 +1647,98 @@ TomRemoteApis.registerApi(api);</code></pre>
                       <div class="api-member-head"><code class="api-signature">final Map&lt;int, Type&gt;? statusCodeResponseTypes</code></div>
                       <div class="api-doc"><p>Maps HTTP status codes to response types for error handling.</p></div>
                     </div>
+                    <div id="TomApiEndpoint.urlParameterMapping" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Map&lt;String, String&gt; urlParameterMapping</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Binds URL parameters — path captures <em>and</em> query-string parameters — to typed request-DTO fields.
+                        </p>
+                        <p>
+                          Keys are the parameter names as they appear on the URL: a route-capture name from [uri] (e.g. <code>id</code>
+                           in <code>/items/{id}</code>), or a query-string parameter name (e.g. <code>error_description</code> in 
+                          <code>?error_description=…</code>). Values are the request-DTO field names the value is injected under before the DTO is instantiated. When the URL name and the field name are identical, the entry is 
+                          <code>{'id': 'id'}</code>; a differently named field is <code>{'id': 'itemId'}</code>, which is also how a provider's snake_cased spelling is translated into a Dart name.
+                        </p>
+                        <p>The two kinds bind under different rules, deliberately:</p>
+                        <ul><li><strong>Path captures</strong> not listed are still injected under their own capture</li></ul>
+                        <p>
+                          name (identity), so an empty map means every path parameter binds by its own name. A capture is part of the route, and the route is part of this endpoint's own declaration. 
+                          <em> </em><em>Query parameters</em><em> bind </em>only* when named here — there is no identity fallback. A query string is whatever a caller chose to append, so an identity fallback would let any caller write any field of the request DTO. Naming them makes query binding opt-in per endpoint and per parameter.
+                        </p>
+                        <p>
+                          A path capture wins over a query parameter mapped to the same field — the route is the stronger statement. The rule is about the 
+                          <strong>field</strong>, not the URL name that spells it: when two keys map to one field and the first is a capture, the second is not also emitted as a query parameter. The server gets this structurally (it folds query values into the request DTO first and lets the path overwrite them under the same field name); [TomApiEndpoint.resolveUri] applies the same rule when building the URL.
+                        </p>
+                        <p>
+                          A path capture wins over a <strong>body</strong> field of the same name too, by the same mechanism — the server folds the JSON body in first and lets the URL overwrite it. Do not rely on that. Precedence is the answer to a question a contract should not be asking: a request that states its subject twice can state it two different ways, and a caller that reads the body as authoritative is wrong without ever being told. Declare a capture for a field the request DTO 
+                          <em>does not otherwise carry</em> — or, when the DTO must carry it, declare no capture and let the body be the single statement. The 
+                          <code>tomUserPreferencesApi</code> write endpoint is the worked example: it takes a key, its request has a 
+                          <code>key</code> field, so its URI is the bare collection.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomApiEndpoint.access" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final TomAccessControl? access</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The access policy this endpoint is served under, <strong>declared here on the contract</strong> (G-API-3). The server pipeline extracts it when the endpoint's implementation handler carries no local 
+                          <code>TomAccessControl</code> annotation of its own; a handler annotation, when present, overrides this declaration.
+                        </p>
+                        <p>
+                          <code>null</code> means the endpoint declares no contract-side policy, so the server falls back to its global protection default (or a handler annotation). Any 
+                          <code>TomAccessControl</code> (<code>TomPublicAccess</code>, <code>TomAuthenticatedAccess</code>, <code>TomRoleAccess</code>, …) is a valid value; the constants are usually 
+                          <code>const</code>, so one shared policy can be referenced by many endpoints without re-stating it.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomApiEndpoint.api" class="api-member"><div class="api-member-head"><code class="api-signature">TomApi api</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="TomApiEndpoint.resolveUri" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Uri resolveUri(Uri baseUri, {Map&lt;String, Object?&gt; parameters = const {}})</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Builds the URL that addresses this endpoint on the server rooted at [baseUri], substituting [parameters] into the declaration.
+                        </p>
+                        <p>
+                          This is the <strong>client-side inverse</strong> of the server pipeline's URL-parameter binding. The server folds a request's path captures and its named query parameters 
+                          <em>into</em> a typed request DTO; this builds the URL those values travelled on, from the same [uri] template and the same [urlParameterMapping]. Keeping both directions derived from one declaration is the whole point: a client that spelled the path itself would agree with the route only by inspection, and would keep agreeing only by luck.
+                        </p>
+                        <p>
+                          [parameters] is keyed by <strong>request-DTO field name</strong> — the <em>values</em> of [urlParameterMapping] — because a client holds a DTO, not a URL. The two kinds of parameter then bind under the rules the mapping documents:
+                        </p>
+                        <ul><li><strong>Path captures</strong> (<code>{name}</code> in [uri], one per path segment) take</li></ul>
+                        <p>
+                          <code>parameters[urlParameterMapping[name] ?? name]</code>, so an unmapped capture binds by its own name. A capture with no value is an error, not an empty segment: the URL would address a different route. 
+                          <em> </em><em>Query parameters</em><em> are the mapping entries whose field the path did </em>not* already carry. Each is appended when [parameters] holds a non-<code>null</code>
+                           value for its field, and omitted otherwise — an optional query parameter is ordinary, whereas a missing path capture is a broken address. Skipping by field rather than by URL name is what keeps capture-wins true when two keys map to one field: the value goes in the path once instead of the path and the query both.
+                        </p>
+                        <p>
+                          Values are converted with <code>toString()</code> and escaped per path segment, so a key containing <code>/</code>
+                           or <code>?</code> addresses one segment rather than smuggling a path or a query string past the route.
+                        </p>
+                        <pre><code>final read = tomUserPreferencesApi[tomUserPreferencesReadEndpointId];
+read.resolveUri(
+  Uri.parse('https://api.example.com'),
+  parameters: {'key': TomUserPreferenceKeys.theme},
+); // https://api.example.com/preferences/tom.theme</code></pre>
+                        <p>
+                          Throws [TomEndpointException] when the endpoint has no parent API, or when a path capture has no answering parameter.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="TomApiEndpoint._captureName" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String? _captureName(String segment)</code></div>
+                      <div class="api-doc">
+                        <p>The capture name of a <code>{name}</code> path segment, or <code>null</code> for a literal one.</p>
+                      </div>
+                    </div>
                   </div>
                 </section>
                 <section id="TomContentDisposition" class="api-declaration">
@@ -1666,7 +1774,7 @@ TomRemoteApis.registerApi(api);</code></pre>
                     <div id="TomEndpointException.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomEndpointException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, Object? stack, Object? rootException, bool autoLog = false, String? uuid, TomServerCallError? serverCallError})
+                          TomEndpointException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, StackTrace? stack, Object? rootException, bool autoLog = false, String? uuid, TomServerCallError? serverCallError})
                         </code>
                       </div>
                     </div>

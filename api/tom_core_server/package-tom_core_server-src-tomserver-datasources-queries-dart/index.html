@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1405,8 +1411,20 @@
                   <code class="api-signature">class TomCount extends TomGeneratedQuery</code>
                   <div class="api-doc">
                     <p>
-                      A <code>SELECT COUNT(*)</code> (or <code>COUNT(DISTINCT(*))</code>) over the entity [types], filtered by the predicate. Returns a single 
+                      A <code>SELECT COUNT(*)</code> (or <code>COUNT(DISTINCT &lt;cols&gt;)</code>) over the entity [types], filtered by the predicate. Returns a single 
                       <code>count</code> column.
+                    </p>
+                    <p>
+                      A count has no row window and no ordering, and so takes neither <code>top</code>, <code>offset</code>, 
+                      <code>sort</code> nor the <code>orderBy</code>/<code>ascending</code> shorthand its siblings accept. Both omissions are about the shape of the result rather than SQL syntax: the statement returns exactly one row, so 
+                      <code>LIMIT</code> would cap what is <em>returned</em> rather than what is counted (<code>top: 5</code>
+                       would still count the whole filtered set), and an <code>ORDER BY</code> would have a single row to order. The total of a filtered set likewise does not depend on which page of it the caller is looking at, which is why there is no 
+                      <code>offset</code> either.
+                    </p>
+                    <p>
+                      The parameters are absent rather than accepted and ignored, so a sentence or call that asks for a window fails where it is written. [TomSelect] is the sibling that takes all of them, and [TomDelete] takes 
+                      <code>sort</code> and <code>top</code> — <code>DELETE … ORDER BY x LIMIT n</code> picks <em>which</em>
+                       rows go.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1414,7 +1432,7 @@
                     <div id="TomCount.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomCount.new(List&lt;Type&gt; types, {required TomOperator&lt;TomDbBool&gt; query, bool distinct = false, List&lt;String&gt; orderBy = const [], bool ascending = true, int top = 0, List&lt;String&gt; ignoreFields = const []})
+                          TomCount.new(List&lt;Type&gt; types, {required TomOperator&lt;TomDbBool&gt; query, bool distinct = false, List&lt;String&gt; ignoreFields = const []})
                         </code>
                       </div>
                       <div class="api-doc"><p>Builds a count query from the predicate <code>query</code>.</p></div>
@@ -1445,7 +1463,7 @@
                     <div id="TomDelete.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomDelete.new(List&lt;Type&gt; types, {required TomOperator&lt;TomDbBool&gt; query, bool distinct = false, List&lt;String&gt; orderBy = const [], bool ascending = true, int top = 0, List&lt;String&gt; ignoreFields = const []})
+                          TomDelete.new(List&lt;Type&gt; types, {required TomOperator&lt;TomDbBool&gt; query, bool distinct = false, List&lt;String&gt; orderBy = const [], bool ascending = true, List&lt;TomSortField&gt;? sort, int top = 0, List&lt;String&gt; ignoreFields = const []})
                         </code>
                       </div>
                       <div class="api-doc"><p>Builds a delete query from the predicate <code>query</code>.</p></div>
@@ -1472,7 +1490,7 @@
                   <code class="api-signature">abstract class TomGeneratedQuery extends TomQuery</code>
                   <div class="api-doc">
                     <p>
-                      A [TomQuery] whose WHERE clause is built from a [TomOperator] predicate [query], with shared shaping options ([distinct], [orderBy], [ascending], [top], [ignoreFields]). Concrete subclasses ([TomSelect], [TomCount], [TomDelete]) render the appropriate statement around that predicate.
+                      A [TomQuery] whose WHERE clause is built from a [TomOperator] predicate [query], with shared shaping options ([distinct], [sort], [top], [offset], [ignoreFields]). Concrete subclasses ([TomSelect], [TomCount], [TomDelete]) render the appropriate statement around that predicate.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1480,10 +1498,18 @@
                     <div id="TomGeneratedQuery.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomGeneratedQuery.new(List&lt;Type&gt; types, {required TomOperator&lt;TomDbBool&gt; query, bool distinct = false, List&lt;String&gt; orderBy = const [], bool ascending = true, int top = 0, List&lt;String&gt; ignoreFields = const []})
+                          TomGeneratedQuery.new(List&lt;Type&gt; types, {required TomOperator&lt;TomDbBool&gt; query, bool distinct = false, List&lt;String&gt; orderBy = const [], bool ascending = true, List&lt;TomSortField&gt;? sort, int top = 0, int offset = 0, List&lt;String&gt; ignoreFields = const []})
                         </code>
                       </div>
-                      <div class="api-doc"><p>Builds a generated query over [types] from the predicate [query] and the shaping options.</p></div>
+                      <div class="api-doc">
+                        <p>Builds a generated query over [types] from the predicate [query] and the shaping options.</p>
+                        <p>
+                          The ordering is given either as [sort] (per-term directions) or as the [orderBy]/[ascending] shorthand, which maps onto [sort] with one direction for every field. [sort] wins when both are given.
+                        </p>
+                        <p>
+                          Throws [TomQuerySyntaxException] when [offset] is set without a [top], or when either is negative (see [TomPageRequest.assertWindow]).
+                        </p>
+                      </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
@@ -1500,17 +1526,28 @@
                       <div class="api-member-head"><code class="api-signature">final bool distinct</code></div>
                       <div class="api-doc"><p>Whether to request distinct rows.</p></div>
                     </div>
-                    <div id="TomGeneratedQuery.orderBy" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final List&lt;String&gt; orderBy</code></div>
-                      <div class="api-doc"><p>Field names to sort by (empty = unsorted).</p></div>
-                    </div>
-                    <div id="TomGeneratedQuery.ascending" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final bool ascending</code></div>
-                      <div class="api-doc"><p>Sort direction when [orderBy] is set.</p></div>
+                    <div id="TomGeneratedQuery.sort" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final List&lt;TomSortField&gt; sort</code></div>
+                      <div class="api-doc">
+                        <p>The ordering, outermost term first (empty = unsorted).</p>
+                        <p>
+                          Each term carries its own direction, so <code>ORDER BY priority DESC, name ASC</code> is expressible; the 
+                          <code>orderBy</code>/<code>ascending</code> constructor pair is a shorthand that maps onto this list with one direction shared by every field.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomGeneratedQuery.top" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final int top</code></div>
-                      <div class="api-doc"><p>Row cap (0 = unbounded).</p></div>
+                      <div class="api-doc"><p>Row cap (<code>&lt;= 0</code> = unbounded).</p></div>
+                    </div>
+                    <div id="TomGeneratedQuery.offset" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final int offset</code></div>
+                      <div class="api-doc">
+                        <p>Rows skipped before the first returned row (<code>0</code> = start at the beginning).</p>
+                        <p>
+                          A non-zero offset requires a [top]: SQL skips with <code>LIMIT n OFFSET m</code> and has no bare <code>OFFSET</code>.
+                        </p>
+                      </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
@@ -1537,6 +1574,83 @@
                       <div class="api-member-head">
                         <code class="api-signature">String toString()</code>
                         <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="TomGeneratedQuery.distinctPrefix" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String distinctPrefix(bool distinct)</code></div>
+                      <div class="api-doc"><p>Renders the <code>DISTINCT </code> projection prefix (empty when not [distinct]).</p></div>
+                    </div>
+                    <div id="TomGeneratedQuery.limitClause" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String limitClause(int top, [int offset = 0])</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Renders the trailing <code> LIMIT n [OFFSET m]</code> row-window clause (empty when [top] <code>&lt;= 0</code>
+                           and no [offset] is asked for).
+                        </p>
+                        <p>
+                          MariaDB/MySQL cap rows with <code>LIMIT n</code> and skip with <code>LIMIT n OFFSET m</code>; the Informix-style 
+                          <code>FIRST n</code> this replaces is not valid MariaDB syntax. There is no bare <code>OFFSET</code>, so an offset without a cap is rejected rather than silently dropped (see [TomPageRequest.assertWindow]).
+                        </p>
+                        <p>
+                          Both bounds are rendered as literal integers rather than bound parameters, as the row cap always has been: they are Dart 
+                          <code>int</code>s, so they carry no text that could reach the statement, and MariaDB will not plan a placeholder window as well as a literal one.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomGeneratedQuery.orderByClause" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String orderByClause(List&lt;TomSortField&gt; sort)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Renders the trailing <code> ORDER BY &lt;col&gt; ASC|DESC, …</code> clause (empty when [sort] is empty).
+                        </p>
+                        <p>
+                          Every term carries its own direction, so a mixed-direction sort renders as written. The keywords are 
+                          <code>ASC</code> / <code>DESC</code>; the spelled-out <code>ASCENDING</code> / <code>DESCENDING</code>
+                           forms this replaces are not valid SQL.
+                        </p>
+                        <p>
+                          The terms' [TomSortField.field]s are emitted verbatim, so callers pass <em>resolved</em> column expressions — a name that came from outside must have been through the entity's column metadata first. [resolveSortColumns] is that step, and lives here so the two are read together.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomGeneratedQuery.resolveSortColumns" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static List&lt;TomSortField&gt; resolveSortColumns(List&lt;TomSortField&gt; sort, List&lt;TomTypePersistenceInfo&gt; persistenceInfo, {bool qualified = true})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Resolves each term of [sort] against [persistenceInfo], returning terms whose field is the <em>column</em>
+                           the entity maps it to, with the direction carried over unchanged.
+                        </p>
+                        <p>
+                          A sort term may be written as either name — the lookup matches the column name and the declared Dart field name alike — but only the column name is valid SQL, so an unresolved term names a column that does not exist on any entity whose two spellings differ.
+                        </p>
+                        <p>
+                          The lookup is also the guard on the statement text. Sort names routinely arrive from outside (an HTTP 
+                          <code>sort=</code> parameter, a query sentence), and an <code>ORDER BY</code> cannot bind them as parameters; resolving them means an unknown name throws here instead of being interpolated verbatim.
+                        </p>
+                        <p>
+                          [qualified] chooses the rendering, never the lookup. A statement that may span tables needs <code>table.column</code>
+                           to be unambiguous; MariaDB's <code>DELETE</code> is single-table, so it has nothing to disambiguate and names the column bare.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomGeneratedQuery.countProjection" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static String countProjection(bool distinct, List&lt;String&gt; columnExprs)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Renders the <code>COUNT(*)</code> / <code>COUNT(DISTINCT &lt;cols&gt;)</code> projection.</p>
+                        <p>
+                          A distinct count is expressed as <code>COUNT(DISTINCT col1, col2, ...)</code>; the previous <code>COUNT(DISTINCT(*))</code>
+                           is a MariaDB syntax error — <code>*</code> cannot follow <code>DISTINCT</code> inside <code>COUNT</code>. Falls back to 
+                          <code>COUNT(*)</code> when there are no columns to distinguish on.
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -1591,6 +1705,24 @@
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
+                    <div id="TomLiteralSelect.getFields" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Set&lt;String&gt; getFields(TomStandardSqlDialect t)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                      <div class="api-doc">
+                        <p>Always empty: a hand-written statement's field references cannot be derived.</p>
+                        <p>
+                          Read this as <em>"this statement cannot say which fields it reads"</em>, not <em>"this statement reads none"</em>
+                           — a literal select usually references several columns, but they live in SQL text that nothing here parses. The generated siblings answer from their operator tree; there is no tree here, and the caller declares only its [parameters], never its fields.
+                        </p>
+                        <p>
+                          Written out rather than left to the inherited default, because the two agree only by coincidence: the base returns 
+                          <code>{}</code> on behalf of statements that genuinely reference nothing, which is a different claim that happens to carry the same value. A caller weighing this answer — to decide a projection, to audit a statement, or to gate access — must treat an empty set from a literal query as 
+                          <em>unknown</em>, and either read the SQL or work from a query it can analyse.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </section>
                 <section id="TomQuery" class="api-declaration">
@@ -1620,7 +1752,12 @@
                     </div>
                     <div id="TomQuery.getFields" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Set&lt;String&gt; getFields(TomStandardSqlDialect t)</code></div>
-                      <div class="api-doc"><p>The column/field names the statement references (empty by default).</p></div>
+                      <div class="api-doc">
+                        <p>The column/field names the statement references (empty by default).</p>
+                        <p>
+                          An empty set does not always mean "references nothing": a statement that cannot analyse itself reports empty too (see [TomLiteralSelect.getFields]). Callers that act on this answer must decide what to do when it is empty for the wrong reason.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>
@@ -1630,7 +1767,7 @@
                   <div class="api-doc">
                     <p>
                       A <code>SELECT</code> over the entity [types]: emits the (non-reference) columns of all involved tables, the WHERE clause from the predicate, and optional 
-                      <code>DISTINCT</code>, <code>FIRST n</code>, and <code>ORDER BY</code> clauses.
+                      <code>DISTINCT</code>, <code>ORDER BY … ASC|DESC</code>, and <code>LIMIT n [OFFSET m]</code> clauses.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1638,7 +1775,7 @@
                     <div id="TomSelect.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomSelect.new(List&lt;Type&gt; types, {required TomOperator&lt;TomDbBool&gt; query, bool distinct = false, List&lt;String&gt; orderBy = const [], bool ascending = true, int top = 0, List&lt;String&gt; ignoreFields = const []})
+                          TomSelect.new(List&lt;Type&gt; types, {required TomOperator&lt;TomDbBool&gt; query, bool distinct = false, List&lt;String&gt; orderBy = const [], bool ascending = true, List&lt;TomSortField&gt;? sort, int top = 0, int offset = 0, List&lt;String&gt; ignoreFields = const []})
                         </code>
                       </div>
                       <div class="api-doc"><p>Builds a <code>SELECT</code> from the predicate <code>query</code> and shaping options.</p></div>

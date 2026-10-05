@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1388,10 +1394,11 @@
               <div class="treepane">
                 <div class="treenodes">
                   <a class="leaf" href="#AllIconsAdapter">AllIconsAdapter</a>
-                  <a class="leaf" href="#CupertinoOnlyAdapter">CupertinoOnlyAdapter</a>
-                  <a class="leaf" href="#MaterialOnlyAdapter">MaterialOnlyAdapter</a>
+                  <a class="leaf" href="#CupertinoOnlyIconAdapter">CupertinoOnlyIconAdapter</a>
+                  <a class="leaf" href="#MaterialOnlyIconAdapter">MaterialOnlyIconAdapter</a>
                   <a class="leaf" href="#TomUIIconAdapter">TomUIIconAdapter</a>
                   <a class="leaf" href="#TomUIIcons">TomUIIcons</a>
+                  <a class="leaf" href="#_RegistryFirstIconAdapter">_RegistryFirstIconAdapter</a>
                 </div>
               </div>
               <div class="reader">
@@ -1399,7 +1406,7 @@
                 <code class="api-import">import 'package:tom_flutter_ui/src/resource_auth/tom_icons.dart';</code>
                 <section id="AllIconsAdapter" class="api-declaration">
                   <h3 class="api-decl-title">class AllIconsAdapter</h3>
-                  <code class="api-signature">class AllIconsAdapter implements TomUIIconAdapter</code>
+                  <code class="api-signature">class AllIconsAdapter extends _RegistryFirstIconAdapter</code>
                   <div class="api-doc">
                     <p>Default adapter using all generated Flutter icons (Material + Cupertino).</p>
                     <p>
@@ -1417,87 +1424,92 @@
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
-                    <div id="AllIconsAdapter.resolveIcon" class="api-member">
+                    <div id="AllIconsAdapter.resolveInFamily" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">IconData? resolveIcon(String name)</code>
+                        <code class="api-signature">IconData? resolveInFamily(String name)</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
-                    <div id="AllIconsAdapter.iconExists" class="api-member">
+                    <div id="AllIconsAdapter.existsInFamily" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">bool iconExists(String name)</code>
+                        <code class="api-signature">bool existsInFamily(String name)</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
-                    <div id="AllIconsAdapter._customIcons" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static Map&lt;String, IconData&gt; _customIcons</code></div>
-                      <div class="api-doc"><p>Custom icons registered at runtime.</p></div>
-                    </div>
                     <div id="AllIconsAdapter.registerIcons" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static void registerIcons(Map&lt;String, IconData&gt; icons)</code></div>
                       <div class="api-doc">
-                        <p>Registers additional custom icons.</p>
-                        <p>Use this to add app-specific icons or override existing ones.</p>
+                        <p>Registers additional custom icons for <strong>every</strong> adapter in this module.</p>
+                        <p>
+                          Use this to add app-specific icons or override existing ones. The registry is module-wide, so a name registered here also resolves through [MaterialOnlyIconAdapter] and [CupertinoOnlyIconAdapter]; registrations take precedence over the built-in tables in all three. [TomUIIcons.reset] clears them along with the adapter.
+                        </p>
                       </div>
                     </div>
                     <div id="AllIconsAdapter.clearCustomIcons" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static void clearCustomIcons()</code></div>
-                      <div class="api-doc"><p>Clears all custom registered icons.</p></div>
+                      <div class="api-doc">
+                        <p>Clears all custom registered icons, for every adapter in this module, keeping the installed adapter.</p>
+                        <p>A test tearing down the whole module wants [TomUIIcons.reset] instead.</p>
+                      </div>
                     </div>
                   </div>
                 </section>
-                <section id="CupertinoOnlyAdapter" class="api-declaration">
-                  <h3 class="api-decl-title">class CupertinoOnlyAdapter</h3>
-                  <code class="api-signature">class CupertinoOnlyAdapter implements TomUIIconAdapter</code>
+                <section id="CupertinoOnlyIconAdapter" class="api-declaration">
+                  <h3 class="api-decl-title">class CupertinoOnlyIconAdapter</h3>
+                  <code class="api-signature">class CupertinoOnlyIconAdapter extends _RegistryFirstIconAdapter</code>
                   <div class="api-doc">
                     <p>Adapter that only includes Cupertino icons.</p>
-                    <p>Use this for iOS-focused apps that only need Cupertino icons.</p>
+                    <p>
+                      Use this for iOS-focused apps that only need Cupertino icons. Icons registered through [AllIconsAdapter.registerIcons] still resolve — the registry is module-wide — but the Material table stays out.
+                    </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
-                    <div id="CupertinoOnlyAdapter.new" class="api-member"><div class="api-member-head"><code class="api-signature">CupertinoOnlyAdapter.new()</code></div></div>
+                    <div id="CupertinoOnlyIconAdapter.new" class="api-member"><div class="api-member-head"><code class="api-signature">CupertinoOnlyIconAdapter.new()</code></div></div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
-                    <div id="CupertinoOnlyAdapter.resolveIcon" class="api-member">
+                    <div id="CupertinoOnlyIconAdapter.resolveInFamily" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">IconData? resolveIcon(String name)</code>
+                        <code class="api-signature">IconData? resolveInFamily(String name)</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
-                    <div id="CupertinoOnlyAdapter.iconExists" class="api-member">
+                    <div id="CupertinoOnlyIconAdapter.existsInFamily" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">bool iconExists(String name)</code>
+                        <code class="api-signature">bool existsInFamily(String name)</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
                   </div>
                 </section>
-                <section id="MaterialOnlyAdapter" class="api-declaration">
-                  <h3 class="api-decl-title">class MaterialOnlyAdapter</h3>
-                  <code class="api-signature">class MaterialOnlyAdapter implements TomUIIconAdapter</code>
+                <section id="MaterialOnlyIconAdapter" class="api-declaration">
+                  <h3 class="api-decl-title">class MaterialOnlyIconAdapter</h3>
+                  <code class="api-signature">class MaterialOnlyIconAdapter extends _RegistryFirstIconAdapter</code>
                   <div class="api-doc">
                     <p>Adapter that only includes Material icons.</p>
-                    <p>Use this for smaller bundle size if you don't need Cupertino icons.</p>
+                    <p>
+                      Use this for smaller bundle size if you don't need Cupertino icons. Icons registered through [AllIconsAdapter.registerIcons] still resolve — the registry is module-wide — but the Cupertino table stays out.
+                    </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
-                    <div id="MaterialOnlyAdapter.new" class="api-member"><div class="api-member-head"><code class="api-signature">MaterialOnlyAdapter.new()</code></div></div>
+                    <div id="MaterialOnlyIconAdapter.new" class="api-member"><div class="api-member-head"><code class="api-signature">MaterialOnlyIconAdapter.new()</code></div></div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
-                    <div id="MaterialOnlyAdapter.resolveIcon" class="api-member">
+                    <div id="MaterialOnlyIconAdapter.resolveInFamily" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">IconData? resolveIcon(String name)</code>
+                        <code class="api-signature">IconData? resolveInFamily(String name)</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
-                    <div id="MaterialOnlyAdapter.iconExists" class="api-member">
+                    <div id="MaterialOnlyIconAdapter.existsInFamily" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">bool iconExists(String name)</code>
+                        <code class="api-signature">bool existsInFamily(String name)</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
@@ -1565,11 +1577,21 @@ final iconData = TomUIIcons.resolveIcon(iconName);
                   </div>
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
-                    <div id="TomUIIcons._adapter" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static TomUIIconAdapter? _adapter</code></div>
-                    </div>
                     <div id="TomUIIcons.adapter" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static TomUIIconAdapter adapter</code></div>
+                      <div class="api-member-head"><code class="api-signature">static TomUIIconAdapter? adapter</code></div>
+                      <div class="api-doc">
+                        <p>The installed icon adapter, or <code>null</code> when none is installed.</p>
+                        <p>
+                          Readable so that a diagnostics screen or a startup assertion can ask what is wired, and so that code installing an adapter for one operation can put the previous one back:
+                        </p>
+                        <pre><code>final saved = TomUIIcons.adapter;
+TomUIIcons.adapter = MaterialOnlyIconAdapter();
+// ...
+TomUIIcons.adapter = saved;</code></pre>
+                        <p>
+                          Assigning <code>null</code> is what makes that restore total: it uninstalls without touching the registrations, which [reset] would also clear. [reset] remains the teardown hook for tests; this is the narrower tool.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomUIIcons.resolveIcon" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static IconData? resolveIcon(String name)</code></div>
@@ -1584,7 +1606,53 @@ final iconData = TomUIIcons.resolveIcon(iconName);
                     </div>
                     <div id="TomUIIcons.reset" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static void reset()</code></div>
-                      <div class="api-doc"><p>Resets the adapter. Intended for testing only.</p></div>
+                      <div class="api-doc">
+                        <p>Drops the adapter <strong>and</strong> every custom registration.</p>
+                        <p>
+                          Intended for testing only. This is the whole hygiene hook: after it the module holds no state, so a suite needs nothing else in its 
+                          <code>tearDown</code>. Clearing the registrations is the point — they live in a module-wide, process-global registry, so an override left behind by one test would silently change an icon in every later test rather than failing.
+                        </p>
+                        <p>To drop registrations while keeping the installed adapter, use [AllIconsAdapter.clearCustomIcons].</p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="_RegistryFirstIconAdapter" class="api-declaration">
+                  <h3 class="api-decl-title">class _RegistryFirstIconAdapter</h3>
+                  <code class="api-signature">abstract class _RegistryFirstIconAdapter implements TomUIIconAdapter</code>
+                  <div class="api-doc">
+                    <p>Resolves registered icons first, then the adapter's own family table.</p>
+                    <p>
+                      The precedence is stated once here rather than in each adapter, so "registrations win" cannot hold for one adapter and not another.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="_RegistryFirstIconAdapter.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">_RegistryFirstIconAdapter.new()</code></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="_RegistryFirstIconAdapter.resolveIcon" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">IconData? resolveIcon(String name)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="_RegistryFirstIconAdapter.iconExists" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">bool iconExists(String name)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="_RegistryFirstIconAdapter.resolveInFamily" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">IconData? resolveInFamily(String name)</code></div>
+                      <div class="api-doc"><p>Resolves [name] against the adapter's own icon table, ignoring registrations.</p></div>
+                    </div>
+                    <div id="_RegistryFirstIconAdapter.existsInFamily" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool existsInFamily(String name)</code></div>
+                      <div class="api-doc"><p>Whether [name] is in the adapter's own table, ignoring registrations.</p></div>
                     </div>
                   </div>
                 </section>

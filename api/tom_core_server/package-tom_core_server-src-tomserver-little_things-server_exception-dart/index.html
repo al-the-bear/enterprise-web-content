@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1385,10 +1391,77 @@
             <h2></h2>
             <a class="crosslink" href="/api/tom_core_server">← tom_core_server API</a>
             <div class="treewrap">
-              <div class="treepane"><div class="treenodes"><a class="leaf" href="#TomServerException">TomServerException</a></div></div>
+              <div class="treepane">
+                <div class="treenodes">
+                  <a class="leaf" href="#TomLoginException">TomLoginException</a>
+                  <a class="leaf" href="#TomServerException">TomServerException</a>
+                  <a class="leaf" href="#TomLoginFailure">TomLoginFailure</a>
+                  <a class="leaf" href="#tomErrorEnvelope">tomErrorEnvelope</a>
+                </div>
+              </div>
               <div class="reader">
                 <h2 class="api-library-title">package:tom_core_server/src/tomserver/little_things/server_exception.dart</h2>
                 <code class="api-import">import 'package:tom_core_server/src/tomserver/little_things/server_exception.dart';</code>
+                <section id="TomLoginException" class="api-declaration">
+                  <h3 class="api-decl-title">class TomLoginException</h3>
+                  <code class="api-signature">class TomLoginException extends TomServerException</code>
+                  <div class="api-doc">
+                    <p>A server-side login failure.</p>
+                    <p>
+                      Thrown by a <code>TomAuthenticationService</code>, a <code>Tom2FAService</code>, or their helpers when a login cannot succeed — unknown client/user, invalid credentials, no enrolled second factor, an expired challenge. Carries the [TomServerException] payload (<code>key</code>, user message, 
+                      <code>parameters</code>, <code>stack</code>, <code>rootException</code>, <code>autoLog</code>) plus a [reason]; 
+                      <code>TomAuthenticationServer</code> catches it and turns its <code>key</code> into a failed <code>TomAuthenticationResult</code>
+                       rather than propagating.
+                    </p>
+                    <p>
+                      It lives here, next to the exception base, rather than beside the authentication server, so that the 2FA subsystem can throw it without importing the server that consumes it.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomLoginException.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          TomLoginException.new(String key, String defaultUserMessage, {required TomLoginFailure reason, Map&lt;String, Object?&gt;? parameters, StackTrace? stack, Object? rootException, bool autoLog = false})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Creates a login failure with a resource [key], a default user message and the closed-set [reason] a caller branches on.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="TomLoginException.reason" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final TomLoginFailure reason</code></div>
+                      <div class="api-doc">
+                        <p>Which closed-set failure this is.</p>
+                        <p>
+                          Required, and required rather than defaulted, because a default would be a classification nobody made: every new throw site would silently join whichever value was chosen as the default, and the value a client branches on would quietly stop meaning anything. The compiler asking the question at each site is the whole mechanism.
+                        </p>
+                        <p>
+                          It does not replace [TomException.key]. The key stays as specific as the throw site can make it and is what the server logs and what a message catalogue looks up; the reason is the coarse, closed set a client switches on without matching strings no type enumerates.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="TomLoginException.toString" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">String toString()</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          The base string extended with the [reason], so a log line carries the classification beside the key it was classified from.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
                 <section id="TomServerException" class="api-declaration">
                   <h3 class="api-decl-title">class TomServerException</h3>
                   <code class="api-signature">class TomServerException extends TomException</code>
@@ -1398,12 +1471,32 @@
                     <ul><li><strong>Isolate attribution</strong> — it captures [isolateName] at construction so a</li></ul>
                     <p>
                       logged or serialized error identifies the worker that produced it (server work is spread across an isolate pool, so the bare message alone is ambiguous). - 
-                      <strong>Request correlation</strong> — if the surrounding zone carries a [TomRequestId] (set by the endpoints pipeline for the lifetime of a request), the constructor copies its UUID into [TomException.requestUuid], linking the error to the request that triggered it without the call site having to thread the id through.
+                      <strong>Request correlation</strong> — if the surrounding zone carries a [TomRequestId] (seeded by <code>tomDefaultAuthenticationMiddleware</code>
+                       for the lifetime of a request), the constructor copies its UUID into [TomException.requestUuid], linking the error to the request that triggered it without the call site having to thread the id through.
                     </p>
                     <p>
                       Every server exception type (for example <code>TomEndpointHandlerException</code>, <code>TomCacheException</code>, 
-                      <code>MariadbMigrationException</code>) subtypes this class, so a <code>catch (e) on TomServerException</code>
-                       reaches all of them.
+                      <code>MariadbMigrationException</code>) subtypes this class, so a single <code>on TomServerException catch (e)</code>
+                       clause reaches all of them.
+                    </p>
+                    <p>
+                      That sentence is a rule, not an observation: <code>server_exception_family_test</code> scans every class declaration under 
+                      <code>lib/src/tomserver/</code> and fails on one that reaches [TomException] without passing through this class. A type outside the family escapes the endpoints pipeline's classification, cannot report [clientThrow] through 
+                      <code>tomErrorEnvelope</code>, and arrives naming neither its isolate nor its request.
+                    </p>
+                    <p>
+                      <strong>This class is also raised directly, and only for one thing.</strong> Six <code>.named(...)</code>
+                       constructors — the audit sink, the OAuth state store, the delivery-report index, the job store, the lease lock and the scheduler roll call — resolve a data source out of 
+                      <code>TomDataSourceInfo</code> and refuse when the registry has no such name. Each throws this class with a key ending 
+                      <code>.unknown_datasource</code> and the offending name in <code>parameters['datasource']</code>.
+                    </p>
+                    <p>
+                      They are the exception to "name a subtype", and the reason they are is that there is nothing for a subtype to add. All six happen at construction, before a connection is opened and before any request is served, so a deployment meets them as a failed start-up rather than as something a 
+                      <code>catch</code> clause discriminates: the operator's next act is to fix one name in one configuration file, which the key and the parameter already say. A type declared so a 
+                      <code>catch</code> clause could name it, in a place no <code>catch</code> clause runs, would be five declarations differing only in spelling.
+                    </p>
+                    <p>
+                      The set is closed rather than open-ended. <code>server_exception_family_test</code> pins these six sites by file and key, so a seventh direct raise has to be argued for rather than merely written — which is what keeps the rule from eroding into "the base class is fine anywhere". Anywhere else, name a subtype.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1411,7 +1504,7 @@
                     <div id="TomServerException.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomServerException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, Object? stack, Object? rootException, bool autoLog = false, bool clientThrow = true})
+                          TomServerException.new(String key, String defaultUserMessage, {String? uuid, String? requestUuid, Map&lt;String, Object?&gt;? parameters, StackTrace? stack, Object? rootException, bool autoLog = false, TomServerCallError? serverCallError, bool clientThrow = true})
                         </code>
                       </div>
                       <div class="api-doc">
@@ -1421,7 +1514,20 @@
                           <code>false</code> for errors that must not leak to the client.
                         </p>
                         <p>
-                          If a [TomRequestId] is present in the current zone, its UUID is copied into [TomException.requestUuid] so the error is correlated with the active request.
+                          <strong>The kernel's whole parameter list is forwarded</strong>, including the three that identify an exception rather than describe it — 
+                          <code>uuid</code>, <code>requestUuid</code> and <code>serverCallError</code>. Every one of the package's exception types chains through here, so a parameter missing from this list is missing from all of them; the three were, and each had a case that could not be expressed:
+                        </p>
+                        <ul><li><code>uuid</code> is generated when omitted, which is right for a failure raised</li></ul>
+                        <p>
+                          here and wrong for one <em>reconstructed</em> from a wire representation — a fresh identity cannot be matched to the log line written where the failure actually happened. 
+                          <em> <code>requestUuid</code> was reachable by one route only, the zone lookup below. A worker isolate handed the request id as a plain string, or a deserialiser holding it as a field, had no way to say which request the failure belongs to — which is the correlation this module exists for. 
+                          </em> <code>serverCallError</code> is the kernel's slot for "this came from an HTTP call", and the server package is the one most likely to make outbound calls. [TomServerSelfLoginException] is the first to fill it.
+                        </p>
+                        <p>
+                          <strong>An explicitly supplied [requestUuid] wins over the ambient one.</strong> The zone lookup runs only when the caller did not say, because a caller that names a request is reconstructing or relaying a failure from elsewhere and knows something the surrounding zone does not — overwriting it would re-label another request's failure with this one's id, which is worse than no correlation at all.
+                        </p>
+                        <p>
+                          Otherwise, if a [TomRequestId] is present in the current zone, its UUID is copied into [TomException.requestUuid] so the error is correlated with the active request.
                         </p>
                       </div>
                     </div>
@@ -1429,28 +1535,68 @@
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
                     <div id="TomServerException.isolateName" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">String isolateName</code></div>
+                      <div class="api-member-head"><code class="api-signature">final String isolateName</code></div>
                       <div class="api-doc">
-                        <p>The debug name of the isolate that constructed this exception.</p>
+                        <p>The debug name of the isolate that <strong>raised</strong> this exception.</p>
                         <p>
                           Resolved from <code>Isolate.current.debugName</code> at construction time, falling back to <code>"unnamed isolate"</code>
                            when the current isolate has no debug name.
                         </p>
+                        <p>
+                          <strong>It names the origin and is deliberately never updated.</strong> An exception raised inside a pool worker and re-thrown in the main isolate still names the worker, which is the whole point: the server spreads work across identical isolates, so "which worker" is the question the message alone cannot answer, and "which isolate is reading this" is the one question whose answer is never useful. Resolving the name lazily would give exactly that useless answer.
+                        </p>
+                        <p>
+                          So the value answers <em>where this failed</em>, not <em>where this surfaced</em>. A reader wanting the latter has to record it at the rethrow site; nothing here tracks a hop, because a trail would need every rethrow site to cooperate and rethrow sites are where the least work is done.
+                        </p>
+                        <p>
+                          The name travels however the exception does. Within one isolate group — which is what <code>Isolate.spawn</code>, 
+                          <code>Isolate.run</code> and the server's isolate pooling create — an exception handed over a <code>SendPort</code>
+                           arrives with this field intact, so a worker's failure is still attributed to the worker after the hand-off. That is measured rather than assumed: 
+                          <code>little_things_test.dart</code> sends one and reads it back.
+                        </p>
                       </div>
                     </div>
                     <div id="TomServerException.clientThrow" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">bool clientThrow</code></div>
+                      <div class="api-member-head"><code class="api-signature">final bool clientThrow</code></div>
                       <div class="api-doc">
                         <p>Whether this exception is safe to propagate to the client.</p>
                         <p>
                           When <code>true</code> (the default) the endpoints pipeline may surface the exception's user message to the caller; when 
                           <code>false</code> it should be treated as internal and masked behind a generic error response.
                         </p>
+                        <p>
+                          Final, so this is a property of the exception <em>type</em>, fixed where the error is raised and by the party that knows what the message contains. A catch site that decides a particular failure must not leave the server masks it in the response it builds; it does not rewrite the error.
+                        </p>
+                        <p>
+                          Read it through [clientMessage] rather than by hand. The flag binds the <em>value</em>, not the handler: a response built from 
+                          <code>defaultUserMessage</code> directly shows the message of an exception marked <code>false</code> and nothing complains, which is a leak by omission rather than by decision.
+                        </p>
                       </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
+                    <div id="TomServerException.clientMessage" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String clientMessage(String maskedFallback)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The message this exception may be shown to a client as: its [TomException.defaultUserMessage] when [clientThrow] is true, and [maskedFallback] when it is not.
+                        </p>
+                        <p>
+                          <strong>Every response that carries a message reads it from here.</strong> The flag is a promise the thrower makes about its own text — five types in the package default it to 
+                          <code>false</code> because their messages describe server internals, an unreachable data source, a failed audit write, a misconfigured identity provider — and a handler that reads 
+                          <code>defaultUserMessage</code> directly breaks that promise by <em>omission</em> rather than by decision. Nothing in the type system can stop it; what this does is make the correct call shorter than the wrong one, and give a reviewer one name to search for.
+                        </p>
+                        <p>
+                          [maskedFallback] is required and has no default, because the framework does not own the text a deployment shows in place of a hidden one: text belongs to the rendering tier, reached through a resource key, and a generic English sentence baked in here would be the framework putting words in a client's mouth.
+                        </p>
+                        <p>
+                          Only the <em>message</em> is masked. [TomException.key] stays on the wire for every exception — <code>tomErrorEnvelope</code>
+                           reports it unconditionally — because it is a stable code a client resolves against its own resources, not free text an author wrote for a person.
+                        </p>
+                        <pre><code>return Response(403, body: error.clientMessage('Request refused.'));</code></pre>
+                      </div>
+                    </div>
                     <div id="TomServerException.toString" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">String toString()</code>
@@ -1458,10 +1604,122 @@
                       </div>
                       <div class="api-doc">
                         <p>
-                          Returns the base [TomException] string extended with the originating [isolateName], the [clientThrow] flag, and the correlated request UUID.
+                          Returns the base [TomException] string extended with the originating [isolateName], the [clientThrow] flag, and — for an exception raised inside a request — a labelled 
+                          <code>request: &lt;uuid&gt;</code> segment.
+                        </p>
+                        <p>
+                          The request segment is omitted entirely when [TomException.requestUuid] is null. An exception raised outside a request has no correlation to report, and the base already contributes three unset fields of its own; a fourth, trailing and unlabelled, reads as a stray value rather than as data.
+                        </p>
+                        <p>
+                          The segment is not redundant with the base string. [TomException] leads with the composite token <code>&lt;exception-uuid&gt;-&lt;request-uuid&gt;</code>, and because v4 UUIDs themselves contain hyphens that token cannot be split back into its two ids by eye or by a simple pattern — the labelled trailing copy is what makes the correlation greppable in a log.
                         </p>
                       </div>
                     </div>
+                  </div>
+                </section>
+                <section id="TomLoginFailure" class="api-declaration">
+                  <h3 class="api-decl-title">enum TomLoginFailure</h3>
+                  <code class="api-signature">enum TomLoginFailure</code>
+                  <div class="api-doc">
+                    <p>Why a login could not succeed, as a closed set a caller can switch on.</p>
+                    <p>
+                      The set is deliberately <strong>coarser than the framework's own knowledge</strong>. A login failure carries two audiences with opposite needs: the server, which wants every distinction it can get for its logging and its lockout logic, and the client, which must not be told more than it has earned. This enum serves the client, and the 
+                      <code>key</code> — free-form, and as specific as the throw site likes — still serves the server.
+                    </p>
+                    <p>
+                      That is why there is no <code>badCredentials</code>, no <code>unknownUser</code> and no <code>accountLocked</code>: all three are [accountProblem]. Telling a caller which of the three it hit is a 
+                      <strong>user-enumeration oracle</strong> — "unknown user" and "wrong password" as separate answers let anyone confirm which accounts exist, and "locked" confirms it a second way. One value, and the account's owner learns the detail through a channel that already knows who they are.
+                    </p>
+                    <p>
+                      The rest are separated because a client can act on each differently and none of them says anything about whether an account exists.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Values</h4>
+                  <div class="api-members">
+                    <div id="TomLoginFailure.accountProblem" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">accountProblem</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The account cannot authenticate: no such account, wrong credentials, or the account is locked. One value for the three on purpose — see above.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomLoginFailure.secondFactorRequired" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">secondFactorRequired</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The first factor was accepted and a second one is needed that the caller has not supplied or not enrolled. The remedy is to complete or begin enrolment; the credentials themselves were not refused.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomLoginFailure.secondFactorInvalid" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">secondFactorInvalid</code></div>
+                      <div class="api-doc">
+                        <p>
+                          A second factor was supplied and is not usable: the wrong code, an expired challenge, one already answered, or one this token does not carry. The remedy is to try the factor again.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomLoginFailure.rateLimited" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">rateLimited</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The attempts for this challenge or enrolment are spent. Distinct from [secondFactorInvalid] because the remedy differs: trying the same factor again cannot succeed, and the caller has to start the login over.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomLoginFailure.providerError" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">providerError</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The failure is on the deployment's side rather than the caller's: an identity provider refused or is unreachable, a one-time code could not be delivered, or the configuration names a mechanism nothing implements. Retrying the same credentials may well work once the cause is fixed, and nothing the caller did is wrong.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomLoginFailure.new" class="api-member"><div class="api-member-head"><code class="api-signature">const TomLoginFailure.new()</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="TomLoginFailure.values" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static List&lt;TomLoginFailure&gt; values</code></div>
+                    </div>
+                  </div>
+                </section>
+                <section id="tomErrorEnvelope" class="api-declaration">
+                  <h3 class="api-decl-title">function tomErrorEnvelope</h3>
+                  <code class="api-signature">Map&lt;String, Object?&gt; tomErrorEnvelope(Object error)</code>
+                  <div class="api-doc">
+                    <p>Renders [error] into the framework's wire error envelope.</p>
+                    <p>
+                      This is the single definition of what a Tom error looks like on the wire. The body is built in layers, each one reporting only what the error actually carries:
+                    </p>
+                    <ul><li><code>errorType</code> — always, because every failure has a runtime type and a</li></ul>
+                    <p>
+                      client that recognises nothing else can still log something specific; <em> <code>errorKey</code>, <code>uuid</code>, <code>autoLog</code>, <code>requestUuid</code> — for a [TomException], which is what a client branches on; 
+                      </em> <code>clientThrow</code> — for a [TomServerException], the masking flag; * 
+                      <code>loginFailure</code> — for a [TomLoginException], the closed-set reason.
+                    </p>
+                    <p>
+                      A field is <strong>absent rather than null</strong> when the error does not carry it, so its presence means something: a body with no 
+                      <code>errorKey</code> came from something that is not a Tom error at all, and one with no <code>clientThrow</code>
+                       came from outside the server package (the kernel raises plain [TomException]s), and one with no <code>loginFailure</code>
+                       is not a login failure. Padding the shape out with defaults would make every body look like a server error and cost a client the distinction.
+                    </p>
+                    <p>
+                      <code>loginFailure</code> is the field that makes a login failure actionable without string-matching: a client shows "try the code again" for [TomLoginFailure.secondFactorInvalid] and "start the login over" for [TomLoginFailure.rateLimited] by switching on a closed set, where before it had to recognise 
+                      <code>key</code> values that no type enumerated.
+                    </p>
+                    <p>
+                      It lives here, beside [TomServerException], because [TomServerException] is what decides the one conditional field and because this module is the one every other server module already depends on — so both error handlers reach it without either reaching the other.
+                    </p>
+                    <p>
+                      <strong>Every error response body in the package comes from here.</strong> It was written out by hand twice — once in 
+                      <code>TomServer.errorHandler</code> and once in <code>TomUserPreferencesErrorHandler</code> — and the copies had already drifted: the preferences 
+                      <code>404</code> reported no <code>clientThrow</code>, although every error it translates is a [TomServerException] and carries one. A wire shape with two authors has no shape.
+                    </p>
                   </div>
                 </section>
               </div>

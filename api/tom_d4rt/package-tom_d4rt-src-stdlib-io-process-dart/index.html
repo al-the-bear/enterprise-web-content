@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1440,11 +1446,37 @@
                         </code>
                       </div>
                     </div>
+                    <div id="ProcessIo._permissionCheck" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static bool Function(dynamic)?? _permissionCheck(InterpreterVisitor visitor)</code>
+                      </div>
+                      <div class="api-doc"><p>The permission check for [visitor]'s run, or null when nothing is enforced.</p></div>
+                    </div>
                     <div id="ProcessIo._checkProcessPermission" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">static void _checkProcessPermission(InterpreterVisitor visitor, String command)</code>
+                        <code class="api-signature">static void _checkProcessPermission(InterpreterVisitor visitor, List&lt;Object?&gt; positionalArgs)</code>
                       </div>
-                      <div class="api-doc"><p>Helper method to check if ProcessRunPermission is granted</p></div>
+                      <div class="api-doc">
+                        <p>Asserts the script may start the process [positionalArgs] describes (DFIN3).</p>
+                        <p>
+                          THE RULE: a ProcessRunPermission covering the command and its arguments, OR a FilesystemPermission with 
+                          <code>execute</code> on the executable. Either one is enough. The executable is the command itself when it names a path, else the first match on 
+                          <code>PATH</code>, and the check reads its REAL path so a symlink cannot borrow another file's grant. A command that resolves to no file can only be allowed by ProcessRunPermission.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="ProcessIo._checkKillPermission" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static void _checkKillPermission(InterpreterVisitor visitor)</code></div>
+                      <div class="api-doc"><p><code>Process.killPid</code> names no executable, so only ProcessRunPermission can allow it.</p></div>
+                    </div>
+                    <div id="ProcessIo.resolveExecutable" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String? resolveExecutable(String command)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The real path of the executable [command] runs, or null when none is found: the command itself when it names a path, else the first match on 
+                          <code>PATH</code> (with <code>PATHEXT</code> on Windows).
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>

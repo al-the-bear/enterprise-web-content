@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1462,14 +1468,24 @@
                     <div id="AclBuilder._preferredContainerSize" class="api-member"><div class="api-member-head"><code class="api-signature">Size? _preferredContainerSize</code></div></div>
                     <div id="AclBuilder._minimumContainerSize" class="api-member"><div class="api-member-head"><code class="api-signature">Size? _minimumContainerSize</code></div></div>
                     <div id="AclBuilder._maximumContainerSize" class="api-member"><div class="api-member-head"><code class="api-signature">Size? _maximumContainerSize</code></div></div>
-                    <div id="AclBuilder._referenceKeyByObject" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final Map&lt;Object, Key&gt; _referenceKeyByObject</code></div>
+                    <div id="AclBuilder._appended" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Map&lt;Widget, ({Key key, _RowData row})&gt; _appended</code></div>
+                      <div class="api-doc">
+                        <p>Every appended widget that can carry a component key, by identity.</p>
+                        <p>
+                          One map rather than two — the key and the row are written together and every reference check needs both, so an entry that has one and not the other is not a state this can reach.
+                        </p>
+                      </div>
                     </div>
-                    <div id="AclBuilder._rowByObject" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final Map&lt;Object, _RowData&gt; _rowByObject</code></div>
+                    <div id="AclBuilder._unkeyedChildren" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Set&lt;Widget&gt; _unkeyedChildren</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Appended widgets that carry no component key — <code>Flexible</code>, <code>Expanded</code> and <code>Spacer</code>, which the row lays out itself. Kept so a reference to one can be told apart from a reference to a widget that was never appended.
+                        </p>
+                      </div>
                     </div>
                     <div id="AclBuilder._aclId" class="api-member"><div class="api-member-head"><code class="api-signature">String? _aclId</code></div></div>
-                    <div id="AclBuilder._parentIdPath" class="api-member"><div class="api-member-head"><code class="api-signature">String? _parentIdPath</code></div></div>
                     <div id="AclBuilder._idScope" class="api-member"><div class="api-member-head"><code class="api-signature">bool _idScope</code></div></div>
                     <div id="AclBuilder._aclGroup" class="api-member"><div class="api-member-head"><code class="api-signature">String? _aclGroup</code></div></div>
                     <div id="AclBuilder._activeGroupName" class="api-member"><div class="api-member-head"><code class="api-signature">String? _activeGroupName</code></div></div>
@@ -1501,6 +1517,22 @@
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
+                    <div id="AclBuilder._requireComponent" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">_ComponentData _requireComponent(String setter)</code></div>
+                      <div class="api-doc">
+                        <p>The component every per-component call applies to.</p>
+                        <p>
+                          Throws [StateError], naming the caller it was given, when there is none. That happens before the first [append], and after [gap], [newRow] or [gapRow] — each of which clears the current component, because none of them is a target for per-component settings.
+                        </p>
+                        <p>
+                          Throwing rather than returning is the point. A per-component call with no component is always a misordered chain, and the value the caller wrote is being dropped: 
+                          <code>append(x).gap().setPSize(200)</code> sizes nothing, and the component keeps whatever it had. Nothing reports that, and the layout merely comes out subtly wrong — which is far more expensive to find than a throw at the call that is wrong.
+                        </p>
+                        <p>
+                          The cost is the conditional-append pattern — <code>if (x) b.append(...); b.setPSize(...)</code> — which now has to put the call inside the condition. That is where it belonged: outside, it was silently doing nothing on the branch the author was not thinking about.
+                        </p>
+                      </div>
+                    </div>
                     <div id="AclBuilder._finalizeCurrentComponent" class="api-member">
                       <div class="api-member-head"><code class="api-signature">void _finalizeCurrentComponent()</code></div>
                       <div class="api-doc">
@@ -1511,7 +1543,25 @@
                     </div>
                     <div id="AclBuilder.append" class="api-member">
                       <div class="api-member-head"><code class="api-signature">AclBuilder append(Widget child, {double dist = 0})</code></div>
-                      <div class="api-doc"><p>Appends a component to the current row.</p></div>
+                      <div class="api-doc">
+                        <p>Appends a component to the current row.</p>
+                        <h2>Sizing a component that is appended without a hint</h2>
+                        <p>
+                          A component that gets no [setPSize] / [setMSize] / [setXSize] and no [expandX] is given [defaultPreferredWidth] — but as a 
+                          <strong>floor</strong>, not a cap:
+                        </p>
+                        <ul><li>content that fits inside the default occupies the default, so a button</li></ul>
+                        <p>
+                          or a short label does not collapse next to an elastic gap; <em> content that needs more — a <code>Row</code> of controls, say, which cannot shrink below the sum of its children — is measured and the component is widened to what the content needs, then takes part in the row's fit/shrink distribution at that width; 
+                          </em> content that still does not fit the row is <strong>clipped</strong>, never overflowed. The child keeps the width it laid out at, so narrowing the container changes how much of the component is visible and nothing else.
+                        </p>
+                        <p>
+                          Measurement lands one frame after the component first renders; until then the plain default applies and the clip covers the difference.
+                        </p>
+                        <p>
+                          Sizing hints are therefore about <em>intent</em> — "this field is 220 wide", "these two line up" — not about preventing overflow. Overflow is the container's problem, and it has been made incapable of showing one.
+                        </p>
+                      </div>
                     </div>
                     <div id="AclBuilder.gap" class="api-member">
                       <div class="api-member-head"><code class="api-signature">AclBuilder gap({double weight = 1})</code></div>
@@ -1567,7 +1617,13 @@
                       <div class="api-doc">
                         <p>Sets a maximum size on the current component.</p>
                         <p>
-                          Pass 0 for [width] or [height] to leave that dimension unchanged (preserving any previously set value).
+                          Pass 0 for [width] or [height] to leave that dimension unchanged (preserving any previously set value, or leaving it 
+                          <strong>unconstrained</strong> when none was set).
+                        </p>
+                        <p>
+                          The unset fallback is <code>double.infinity</code>, not 0 as it is on [setPSize] and [setMSize]. A preferred or minimum of 0 is no constraint, so those two can share the sentinel; a 
+                          <em>maximum</em> of 0 means "no size at all", and the container turns it into <code>BoxConstraints(maxHeight: 0)</code>
+                           faithfully enough to collapse the child. <code>setXSize(200)</code> therefore caps the width and says nothing about the height, which is what it reads as. [setXWidthInChars] uses the same fallback for the same reason.
                         </p>
                       </div>
                     </div>
@@ -1602,16 +1658,22 @@
                       <div class="api-member-head"><code class="api-signature">AclBuilder clearAttr(int newAttr)</code></div>
                     </div>
                     <div id="AclBuilder.setComp" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">AclBuilder setComp(Object reference, int otherAttr)</code></div>
+                      <div class="api-member-head"><code class="api-signature">AclBuilder setComp(Widget reference, int otherAttr)</code></div>
+                      <div class="api-doc">
+                        <p>Links the current component's size to [reference]'s rendered size.</p>
+                        <p>
+                          [otherAttr] must carry at least one of [AclFlags.otherDimX] / [AclFlags.otherDimY]; only those bits are taken from it. Anything else would record a reference the layout never reads — a link that exists in the component and does nothing.
+                        </p>
+                      </div>
                     </div>
                     <div id="AclBuilder.sameWidthAs" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">AclBuilder sameWidthAs(Object reference)</code></div>
+                      <div class="api-member-head"><code class="api-signature">AclBuilder sameWidthAs(Widget reference)</code></div>
                     </div>
                     <div id="AclBuilder.sameHeightAs" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">AclBuilder sameHeightAs(Object reference)</code></div>
+                      <div class="api-member-head"><code class="api-signature">AclBuilder sameHeightAs(Widget reference)</code></div>
                     </div>
                     <div id="AclBuilder.sameSize" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">AclBuilder sameSize(Object reference)</code></div>
+                      <div class="api-member-head"><code class="api-signature">AclBuilder sameSize(Widget reference)</code></div>
                     </div>
                     <div id="AclBuilder.setVerticalAlignment" class="api-member">
                       <div class="api-member-head"><code class="api-signature">AclBuilder setVerticalAlignment(AclRowCrossAlignment align)</code></div>
@@ -1622,67 +1684,67 @@
                       </div>
                     </div>
                     <div id="AclBuilder.alignLeftToLeft" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">AclBuilder alignLeftToLeft(Object reference, {double gap = 0})</code></div>
+                      <div class="api-member-head"><code class="api-signature">AclBuilder alignLeftToLeft(Widget reference, {double gap = 0})</code></div>
                     </div>
                     <div id="AclBuilder.alignLeftToCenter" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">AclBuilder alignLeftToCenter(Object reference, {double gap = 0})</code></div>
+                      <div class="api-member-head"><code class="api-signature">AclBuilder alignLeftToCenter(Widget reference, {double gap = 0})</code></div>
                     </div>
                     <div id="AclBuilder.alignLeftToRight" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">AclBuilder alignLeftToRight(Object reference, {double gap = 0})</code></div>
+                      <div class="api-member-head"><code class="api-signature">AclBuilder alignLeftToRight(Widget reference, {double gap = 0})</code></div>
                     </div>
                     <div id="AclBuilder.alignCenterToLeft" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">AclBuilder alignCenterToLeft(Object reference, {double gap = 0})</code></div>
+                      <div class="api-member-head"><code class="api-signature">AclBuilder alignCenterToLeft(Widget reference, {double gap = 0})</code></div>
                     </div>
                     <div id="AclBuilder.alignCenterToCenter" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">AclBuilder alignCenterToCenter(Object reference, {double gap = 0})</code>
+                        <code class="api-signature">AclBuilder alignCenterToCenter(Widget reference, {double gap = 0})</code>
                       </div>
                     </div>
                     <div id="AclBuilder.alignCenterToRight" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">AclBuilder alignCenterToRight(Object reference, {double gap = 0})</code></div>
+                      <div class="api-member-head"><code class="api-signature">AclBuilder alignCenterToRight(Widget reference, {double gap = 0})</code></div>
                     </div>
                     <div id="AclBuilder.alignRightToLeft" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">AclBuilder alignRightToLeft(Object reference, {double gap = 0})</code></div>
+                      <div class="api-member-head"><code class="api-signature">AclBuilder alignRightToLeft(Widget reference, {double gap = 0})</code></div>
                     </div>
                     <div id="AclBuilder.alignRightToCenter" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">AclBuilder alignRightToCenter(Object reference, {double gap = 0})</code></div>
+                      <div class="api-member-head"><code class="api-signature">AclBuilder alignRightToCenter(Widget reference, {double gap = 0})</code></div>
                     </div>
                     <div id="AclBuilder.alignRightToRight" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">AclBuilder alignRightToRight(Object reference, {double gap = 0})</code></div>
+                      <div class="api-member-head"><code class="api-signature">AclBuilder alignRightToRight(Widget reference, {double gap = 0})</code></div>
                     </div>
                     <div id="AclBuilder.alignTopToTop" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">AclBuilder alignTopToTop(Object reference, {double gap = 0})</code></div>
+                      <div class="api-member-head"><code class="api-signature">AclBuilder alignTopToTop(Widget reference, {double gap = 0})</code></div>
                     </div>
                     <div id="AclBuilder.alignTopToMiddle" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">AclBuilder alignTopToMiddle(Object reference, {double gap = 0})</code></div>
+                      <div class="api-member-head"><code class="api-signature">AclBuilder alignTopToMiddle(Widget reference, {double gap = 0})</code></div>
                     </div>
                     <div id="AclBuilder.alignTopToBottom" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">AclBuilder alignTopToBottom(Object reference, {double gap = 0})</code></div>
+                      <div class="api-member-head"><code class="api-signature">AclBuilder alignTopToBottom(Widget reference, {double gap = 0})</code></div>
                     </div>
                     <div id="AclBuilder.alignMiddleToTop" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">AclBuilder alignMiddleToTop(Object reference, {double gap = 0})</code></div>
+                      <div class="api-member-head"><code class="api-signature">AclBuilder alignMiddleToTop(Widget reference, {double gap = 0})</code></div>
                     </div>
                     <div id="AclBuilder.alignMiddleToMiddle" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">AclBuilder alignMiddleToMiddle(Object reference, {double gap = 0})</code>
+                        <code class="api-signature">AclBuilder alignMiddleToMiddle(Widget reference, {double gap = 0})</code>
                       </div>
                     </div>
                     <div id="AclBuilder.alignMiddleToBottom" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">AclBuilder alignMiddleToBottom(Object reference, {double gap = 0})</code>
+                        <code class="api-signature">AclBuilder alignMiddleToBottom(Widget reference, {double gap = 0})</code>
                       </div>
                     </div>
                     <div id="AclBuilder.alignBottomToTop" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">AclBuilder alignBottomToTop(Object reference, {double gap = 0})</code></div>
+                      <div class="api-member-head"><code class="api-signature">AclBuilder alignBottomToTop(Widget reference, {double gap = 0})</code></div>
                     </div>
                     <div id="AclBuilder.alignBottomToMiddle" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">AclBuilder alignBottomToMiddle(Object reference, {double gap = 0})</code>
+                        <code class="api-signature">AclBuilder alignBottomToMiddle(Widget reference, {double gap = 0})</code>
                       </div>
                     </div>
                     <div id="AclBuilder.alignBottomToBottom" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">AclBuilder alignBottomToBottom(Object reference, {double gap = 0})</code>
+                        <code class="api-signature">AclBuilder alignBottomToBottom(Widget reference, {double gap = 0})</code>
                       </div>
                     </div>
                     <div id="AclBuilder.setRowHorizontalAlignment" class="api-member">
@@ -1711,6 +1773,14 @@
                     <div id="AclBuilder.setAclScrollableY" class="api-member"><div class="api-member-head"><code class="api-signature">AclBuilder setAclScrollableY()</code></div></div>
                     <div id="AclBuilder.setAclDefaultFlags" class="api-member">
                       <div class="api-member-head"><code class="api-signature">AclBuilder setAclDefaultFlags(int flags)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Replaces the default [AclFlags] register applied to every subsequent [append]. The built-in default is 0 — no flags.
+                        </p>
+                        <p>
+                          Prefer [setAclExpandXDefault] for the common single-flag case; it adds or removes one flag rather than replacing the whole register.
+                        </p>
+                      </div>
                     </div>
                     <div id="AclBuilder.setAclExpandXDefault" class="api-member">
                       <div class="api-member-head"><code class="api-signature">AclBuilder setAclExpandXDefault(bool enabled)</code></div>
@@ -1777,7 +1847,7 @@
                           Sets the default vertical gap (in pixels) inserted before each new content row started with [newRow].
                         </p>
                         <p>
-                          Only applies when the individual [newRow] call does not specify a non-zero <code>dist</code>. Pass 0 to disable (the default).
+                          Only applies when the individual [newRow] call does not specify a non-zero <code>dist</code>. Pass 0 to disable (the built-in default is 8).
                         </p>
                       </div>
                     </div>
@@ -1790,8 +1860,15 @@
                           <code>gapBefore</code>.
                         </p>
                         <p>
-                          The default is <code>false</code> — components still render as whatever their own self-shrink-on-<code>none</code>
-                           path produces (typically a <code>SizedBox.shrink()</code> placeholder inside a preserved gap).
+                          The default is <code>false</code>, which switches this pass off. That does <strong>not</strong> leave unauthorized elements visible: a row or component carrying an 
+                          <code>id</code> is separately gated at render time on <code>TomAuthorization.resolveAuth</code> of its policy path, and that gate never consults this flag. It also runs too late to move a gap, so its arithmetic comes out the other way round — a denied component keeps 
+                          <strong>both</strong> adjacent gaps, and a denied row loses its own. See "Not this mechanism: the id-based policy gates" in 
+                          <code>doc/acl_design_specification.md</code> §26b, and <code>test/advanced_container_layout/acl_auth_visibility_test.dart</code>
+                           for the measured numbers.
+                        </p>
+                        <p>
+                          With this pass off and no id to gate on, a component renders whatever its own self-shrink-on-<code>none</code>
+                           path produces, inside its preserved gap.
                         </p>
                         <p>Override per-component with [setHideUnauthorized].</p>
                       </div>
@@ -1815,7 +1892,7 @@
                           Builder-wide default for the <strong>vertical</strong> cross-axis placement of every row. Individual rows override via [setRowVerticalAlignment]; individual components override via [setVerticalAlignment].
                         </p>
                         <p>
-                          The factory default is [AclRowCrossAlignment.top] — chosen so that fields whose height grows (e.g. when an error message appears below the input) do not drag their neighbours off the baseline.
+                          The factory default is [AclRowCrossAlignment.top] — chosen so that fields whose height grows (e.g. when an error message appears below the input) do not drag their neighbours down off the row's top edge.
                         </p>
                       </div>
                     </div>
@@ -1827,6 +1904,7 @@
                         <p>
                           Builder-wide default for the <strong>horizontal</strong> main-axis placement of every row. Individual rows override via [setRowHorizontalAlignment] or the Left/Center/Right shortcuts.
                         </p>
+                        <p>The factory default is [RowAlignment.left].</p>
                       </div>
                     </div>
                     <div id="AclBuilder.setAclDefaultUnknownMinimumSize" class="api-member">
@@ -1838,11 +1916,16 @@
                           Sets a default minimum size for components that do not have an explicit minimum size ([setMSize] / [setMWidthInChars]).
                         </p>
                         <p>
-                          Pass 0 for [width] or [height] to leave that dimension untouched (i.e. no default minimum is applied on that axis).
+                          There is no built-in default: unless this is called, a component without an explicit minimum keeps a null minimum size.
+                        </p>
+                        <p>
+                          [width] and [height] are stored verbatim, including zeros, and a later call replaces <strong>both</strong>
+                           dimensions — there is no per-axis fallback and no previous value to fall back on. A 0 therefore means "a minimum of 0 on that axis", which the layout cannot tell apart from no minimum at all; that is what makes storing it harmless, not a special case that skips it. Contrast [setMSize], which does leave a dimension alone on a 0, because a component it targets already has a minimum to leave alone.
                         </p>
                         <p>
                           <strong>Note:</strong> setting a minimum that is smaller than the preferred size has no visible effect — the preferred size already acts as the floor. Setting a minimum that is 
-                          <em>larger</em> than the preferred size in combination with [expandX] components creates a "grow up to preferred, then distribute remainder to expandX" behaviour (see §6).
+                          <em>larger</em> than the preferred size in combination with [expandX] components creates a "grow up to preferred, then distribute remainder to expandX" behaviour — see "Row Sizing — Three Phases" (§6) in 
+                          <code>doc/acl_design_specification.md</code>.
                         </p>
                       </div>
                     </div>
@@ -1854,8 +1937,12 @@
                         <p>
                           Sets a default preferred size for components that do not have an explicit preferred size ([setPSize] / [setPWidthInChars]).
                         </p>
+                        <p>Replaces the built-in default of 150 × 0.</p>
                         <p>
-                          Replaces the built-in default of 150 × 0. Pass 0 for [width] to keep the built-in default width (150); pass 0 for [height] to keep the default height of 0 (unconstrained).
+                          A 0 [width] falls back to [defaultPreferredWidth] — the <em>factory</em> 150, not whatever an earlier call to this setter passed. [height] has no such fallback: it is stored verbatim, and 0 leaves the height unconstrained because 0 already is the built-in height.
+                        </p>
+                        <p>
+                          This is the only 0-means-fall-back among the builder-wide setters; [setAclDefaultUnknownMinimumSize] stores its zeros, and the two gap setters read 0 as "off".
                         </p>
                       </div>
                     </div>
@@ -1939,6 +2026,11 @@
                     <div id="AclBuilder.group" class="api-member"><div class="api-member-head"><code class="api-signature">AclBuilder group(String name)</code></div></div>
                     <div id="AclBuilder.setAclGroup" class="api-member">
                       <div class="api-member-head"><code class="api-signature">AclBuilder setAclGroup(String name)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Puts the whole container in group [name]: every row and component that does not name a group of its own joins it (see [AclContainer.aclGroup]).
+                        </p>
+                      </div>
                     </div>
                     <div id="AclBuilder.setRowGroup" class="api-member">
                       <div class="api-member-head"><code class="api-signature">AclBuilder setRowGroup(String name)</code></div>
@@ -1946,6 +2038,42 @@
                     <div id="AclBuilder.setGroupVisibilityController" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">AclBuilder setGroupVisibilityController(String groupName, AclGroupVisibilityController controller)</code>
+                      </div>
+                    </div>
+                    <div id="AclBuilder._copyRowDefaultsTo" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void _copyRowDefaultsTo(AclBuilder target)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Registers a replacement row tree used when the container's available width drops below [atWidth]. Variants are matched narrowest-first, so the most specific one wins.
+                        </p>
+                        <p>
+                          <strong>The variant builder does not inherit this builder's defaults.</strong> It is a fresh [AclBuilder], so every 
+                          <code>setAclDefault*</code> value configured here — append gap, row gap, row height, row alignments, flags, unknown preferred and minimum sizes — is back at its framework default inside [builder]. Restate the ones the variant needs:
+                        </p>
+                        <pre><code>AclBuilder()
+    .setAclDefaultAppendGap(16)
+    .append(street).append(number)
+    .addVariant('narrow', atWidth: 480, builder: (b) =&gt; b
+        .setAclDefaultAppendGap(16)   // restate: not inherited
+        .append(street)
+        .newRow()
+        .append(number));</code></pre>
+                        <p>
+                          The container's <em>chrome</em> — border, padding, background, title — is unaffected by which variant is active, because it belongs to the container rather than to any row tree. A variant supplies rows and nothing else.
+                        </p>
+                        <p>
+                          <code>test/advanced_container_layout/acl_variant_inheritance_test.dart</code> pins both halves of this. Copies every builder-wide 
+                          <strong>row-level</strong> default onto [target].
+                        </p>
+                        <p>
+                          Used by [addVariant] so a variant's rows are built against the same defaults as the container's own. Each field here is one a row or a component reads while it is being appended; a field the container reads at [build] time is deliberately absent, and 
+                          <code>test/advanced_container_layout/acl_variant_inheritance_test.dart</code> classifies every <code>_default*</code>
+                           field one way or the other, so a new one cannot quietly be neither.
+                        </p>
+                        <p>
+                          [target] must be freshly constructed and untouched: the row alignment is stamped onto a row when the row is 
+                          <em>created</em>, and the constructor has already created the first one, so this restamps it. A target that had rows appended would have them silently realigned.
+                        </p>
                       </div>
                     </div>
                     <div id="AclBuilder.addVariant" class="api-member">
@@ -1973,38 +2101,107 @@
                           AclBuilder startVariant({double? width, double? height, AclInputMode? input, AclFormFactor? formFactor, Orientation? orientation, Set&lt;TargetPlatform&gt;? platforms, bool? isWeb, AclDensity? density, TextDirection? textDirection, double? minAccessibilityScale, bool Function(AclDeviceContext, Acl?, BuildContext)?? detector})
                         </code>
                       </div>
+                      <div class="api-doc">
+                        <p>Opens a block whose appended components belong to one device variant.</p>
+                        <p>
+                          Everything appended until the matching [endVariant] is tagged with a single detector. At layout time the container evaluates each row's variants 
+                          <strong>in declaration order and keeps the first that matches</strong>; components of the losing variants are dropped from that row entirely.
+                        </p>
+                        <p>
+                          A <code>startVariant()</code> with no arguments builds no detector and marks its components as the <strong>default variant</strong>. It is not part of that ordered race — it is the fallback taken when no gated variant matched, so it may be declared anywhere in the row. It is also what shows when the container has no device context to test against at all, which happens whenever the incoming constraints have unbounded 
+                          <em>width</em>.
+                        </p>
+                        <p>
+                          The named facets are forwarded to [AclDeviceContext.buildConvenienceDetector] and combine with AND. Read its documentation before gating on [height] in particular: an unbounded container reports an unknown height, which 
+                          <strong>fails</strong> the facet, so a height-gated variant never activates while the container shrink-wraps.
+                        </p>
+                        <p>
+                          Passing [detector] supplies the predicate directly and ignores every named facet — use it for conditions the convenience parameters cannot express.
+                        </p>
+                        <p>Throws [StateError] when a variant block is already open.</p>
+                      </div>
                     </div>
-                    <div id="AclBuilder.endVariant" class="api-member"><div class="api-member-head"><code class="api-signature">AclBuilder endVariant()</code></div></div>
+                    <div id="AclBuilder.endVariant" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">AclBuilder endVariant()</code></div>
+                      <div class="api-doc">
+                        <p>Closes the block opened by [startVariant].</p>
+                        <p>
+                          Components appended after this call are untagged again, and untagged components survive variant filtering unconditionally — they appear whichever variant wins.
+                        </p>
+                        <p>Throws [StateError] when no variant block is open.</p>
+                      </div>
+                    </div>
                     <div id="AclBuilder.setAclDirection" class="api-member">
                       <div class="api-member-head"><code class="api-signature">AclBuilder setAclDirection(AclDirection direction)</code></div>
-                      <div class="api-doc"><p>Sets the layout direction for this container (see §30).</p></div>
+                      <div class="api-doc">
+                        <p>
+                          Sets the layout direction for this container, deciding whether components within a row flow left-to-right or right-to-left.
+                        </p>
+                        <p>
+                          Leaving it unset is not the same as passing [AclDirection.ltr]: an unset direction defers to the nearest [AclDirectionScope] ancestor and only falls back to [AclDirection.ltr] when there is none, whereas an explicit value overrides any enclosing scope. Set it when this container must oppose its surroundings; otherwise prefer a scope near the app root.
+                        </p>
+                        <p>See "Layout Direction (RTL/LTR)" (§30) in <code>doc/acl_design_specification.md</code>.</p>
+                      </div>
                     </div>
                     <div id="AclBuilder.build" class="api-member"><div class="api-member-head"><code class="api-signature">Acl build()</code></div></div>
                     <div id="AclBuilder._setHorizontalAlignment" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          AclBuilder _setHorizontalAlignment({required Object reference, required AclAxisPointX selfPoint, required AclAxisPointX referencePoint, required double gap})
+                          AclBuilder _setHorizontalAlignment({required Widget reference, required AclAxisPointX selfPoint, required AclAxisPointX referencePoint, required double gap})
                         </code>
                       </div>
                     </div>
                     <div id="AclBuilder._setVerticalAlignment" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          AclBuilder _setVerticalAlignment({required Object reference, required AclAxisPointY selfPoint, required AclAxisPointY referencePoint, required double gap})
+                          AclBuilder _setVerticalAlignment({required Widget reference, required AclAxisPointY selfPoint, required AclAxisPointY referencePoint, required double gap})
                         </code>
                       </div>
                     </div>
-                    <div id="AclBuilder._resolveReferenceKey" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">Key _resolveReferenceKey(Object reference)</code></div>
+                    <div id="AclBuilder._instancesOf" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Iterable&lt;Widget&gt; _instancesOf(Widget child)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Every widget instance appending [child] makes this builder responsible for: [child] itself, and — when it is a flex wrapper — the widget it wraps, down the whole chain.
+                        </p>
+                        <p>
+                          <strong>The chain is <code>Flexible</code> and its subclasses, which is what <code>Expanded</code> is, and nothing else.</strong>
+                           A wrapper is unwrapped because the builder gives it no key of its own: the widget that ends up in the tree, and that a reference would have to mean, is the one inside. Any other wrapper — 
+                          <code>Padding</code>, <code>Center</code>, one of the caller's own — is a component in its own right and is compared as itself. A new wrapper type that the row lays out natively has to be added here 
+                          <em>and</em> to [append]'s <code>canAttachComponentKey</code> test, or it re-opens the hole this closes.
+                        </p>
+                        <p><code>Spacer</code> yields only itself: it wraps nothing the caller passed in.</p>
+                      </div>
+                    </div>
+                    <div id="AclBuilder._alreadyAppended" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool _alreadyAppended(Widget instance)</code></div>
+                    </div>
+                    <div id="AclBuilder._newComponentKey" class="api-member"><div class="api-member-head"><code class="api-signature">Key _newComponentKey()</code></div></div>
+                    <div id="AclBuilder._requireAppended" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">({Key key, _RowData row}) _requireAppended(Widget reference, String caller)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>The row [reference] was appended to, refusing anything this container has no component for.</p>
+                        <p>
+                          A reference that resolves to nothing is the worst shape this API can take: the layout still builds, the component silently keeps its own size, and the only symptom is that two things a reader was told would match do not. [caller] names the method the author actually wrote.
+                        </p>
+                      </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
-                    <div id="AclBuilder._defaultPreferredWidth" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static double _defaultPreferredWidth</code></div>
+                    <div id="AclBuilder.defaultPreferredWidth" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static double defaultPreferredWidth</code></div>
                       <div class="api-doc">
                         <p>
-                          Default preferred width for components without an explicit preferred size and no custom [_defaultUnknownPreferredSize]. Large enough to prevent buttons/small widgets from collapsing next to elastic gaps, but still participates proportionally in the grow/shrink distribution alongside explicitly sized components.
+                          Default preferred width for components without an explicit preferred size and no custom [setAclDefaultUnknownPreferredSize].
+                        </p>
+                        <p>
+                          Large enough to prevent buttons/small widgets from collapsing next to elastic gaps, but still participates proportionally in the grow/shrink distribution alongside explicitly sized components.
+                        </p>
+                        <p>
+                          This is a <strong>floor, not a cap</strong>. A component that is appended without a size hint and whose content needs more than this takes the width its content needs; only content that fits inside the default is held at the default. See [append] for the full contract.
                         </p>
                       </div>
                     </div>
@@ -2031,6 +2228,14 @@
                     <div id="_ComponentData.gapBeforeIsDefault" class="api-member"><div class="api-member-head"><code class="api-signature">bool gapBeforeIsDefault</code></div></div>
                     <div id="_ComponentData.gapWeight" class="api-member"><div class="api-member-head"><code class="api-signature">double gapWeight</code></div></div>
                     <div id="_ComponentData.preferredSize" class="api-member"><div class="api-member-head"><code class="api-signature">Size? preferredSize</code></div></div>
+                    <div id="_ComponentData.preferredWidthIsDefault" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool preferredWidthIsDefault</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Whether [preferredSize]'s width was fabricated by [_finalizeCurrentComponent] rather than declared by the author.
+                        </p>
+                      </div>
+                    </div>
                     <div id="_ComponentData.minimumSize" class="api-member"><div class="api-member-head"><code class="api-signature">Size? minimumSize</code></div></div>
                     <div id="_ComponentData.maximumSize" class="api-member"><div class="api-member-head"><code class="api-signature">Size? maximumSize</code></div></div>
                     <div id="_ComponentData.referenceKey" class="api-member"><div class="api-member-head"><code class="api-signature">Key? referenceKey</code></div></div>
@@ -2075,6 +2280,19 @@
                       <div class="api-member-head"><code class="api-signature">List&lt;_ComponentData&gt; components</code></div>
                     </div>
                     <div id="_RowData.alignment" class="api-member"><div class="api-member-head"><code class="api-signature">RowAlignment alignment</code></div></div>
+                    <div id="_RowData.alignmentSet" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool alignmentSet</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Whether [alignment] was set explicitly via <code>setRowHorizontalAlignment</code> (as opposed to inherited from the builder-wide default at row creation). Mirrors the vertical axis' 
+                          <code>rowCrossAlignment == null</code> "not set yet" signal so a later default change can apply retroactively without clobbering explicit per-row overrides.
+                        </p>
+                        <p>
+                          [alignment] cannot carry that signal itself: it is non-nullable and every row starts at the builder default, so "still at the default" and "was explicitly set to the same value as the default" are indistinguishable without this flag. 
+                          <code>setAclDefaultRowHorizontalAlignment</code> reads it to decide which already-created rows it may rewrite.
+                        </p>
+                      </div>
+                    </div>
                     <div id="_RowData.gapBefore" class="api-member"><div class="api-member-head"><code class="api-signature">double gapBefore</code></div></div>
                     <div id="_RowData.isGapRow" class="api-member"><div class="api-member-head"><code class="api-signature">bool isGapRow</code></div></div>
                     <div id="_RowData.gapRowWeight" class="api-member"><div class="api-member-head"><code class="api-signature">double gapRowWeight</code></div></div>
@@ -2117,6 +2335,11 @@
                 <section id="AclBuilderExtensions" class="api-declaration">
                   <h3 class="api-decl-title">extension AclBuilderExtensions</h3>
                   <code class="api-signature">extension AclBuilderExtensions on AclBuilder</code>
+                  <div class="api-doc">
+                    <p>
+                      Shorthands for the growth flags: <code>expandX</code>, <code>expandY</code> and <code>expand</code> set [AclFlags.expandX], [AclFlags.expandY] and [AclFlags.expand] on the component just appended.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
                     <div id="AclBuilderExtensions.expandX" class="api-member"><div class="api-member-head"><code class="api-signature">AclBuilder expandX()</code></div></div>

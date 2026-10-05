@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1407,12 +1413,23 @@ final logServer = TomRemoteLogServer();
 // Configure where received logs should be written
 TomRemoteLogServer.localOutput = TomConsoleLogOutput();
 
-// The endpoint expects TomRemoteLogMessage and returns TomRemoteLogResult
+// The endpoint expects TomRemoteLogMessage and returns TomRemoteLogResult.
+// Neither type carries fromJson/toJson of its own — both are @tomReflector
+// types, so serialisation goes through tomReflectionInfo. That is the same
+// route TomServerEndpoint.send takes on the client, which is what makes a
+// collector written this way agree with the sender by construction.
 router.post('/remotelog', (request) async {
-  final message = TomRemoteLogMessage.fromJson(await request.json);
+  final message = tomReflectionInfo.convertFromJsonString(
+    TomRemoteLogMessage(),
+    await request.readAsString(),
+  );
   final result = logServer.receive(message);
-  return Response.ok(result.toJson());
+  return Response.ok(tomReflectionInfo.convertToJsonString(result));
 });</code></pre>
+                  <p>
+                    The serialisation half of that snippet is a copy of step 4 of <code>example/samples/logging/05_isolate_and_remote_logging_example.dart</code>, where the round-trip runs and is asserted. Change it there and copy it out: prose cannot fail to build, and neither message type carries a 
+                    <code>fromJson</code> or <code>toJson</code> for a snippet to reach for by habit.
+                  </p>
                   <p>
                     See also: - [TomRemoteLogOutput] for the client-side implementation - [TomRemoteLogMessage] for the message format
                   </p>
@@ -1426,21 +1443,35 @@ router.post('/remotelog', (request) async {
                       This class processes incoming [TomRemoteLogMessage] objects from clients and outputs them through the configured [localOutput].
                     </p>
                     <h2>Configuration</h2>
-                    <p>Set [localOutput] to control where received logs are written:</p>
-                    <pre><code>// Write to console (default)
+                    <p>
+                      Records go to the application's own sink — whatever <code>tomLog.logOutput</code> is when each record arrives — unless [localOutput] is set to override it. Set it to control where received logs are written; it is a [TomLogOutput], so any sink can receive the collected records:
+                    </p>
+                    <pre><code>// Write to the console.
 TomRemoteLogServer.localOutput = TomConsoleLogOutput();
 
-// Write to file
-TomRemoteLogServer.localOutput = FileLogOutput('/var/log/app.log');
-
-// Chain to multiple outputs
-TomRemoteLogServer.localOutput = MultiLogOutput([
-  TomConsoleLogOutput(),
-  FileLogOutput('/var/log/app.log'),
-]);</code></pre>
+// Or relay onwards to a collector further up the chain.
+TomRemoteLogServer.localOutput = TomRemoteLogOutput();</code></pre>
+                    <p>
+                      The kernel ships no file sink and no composite sink. To write received records to a file, or to fan out to more than one destination, implement [TomLogOutput] and assign an instance here; 
+                      <code>doc/logging/logging.md</code> has a worked file-writing implementation.
+                    </p>
                     <h2>Message Processing</h2>
                     <p>Received messages are prefixed with the sender ID to identify which client generated the log:</p>
                     <pre><code>2024-01-15T10:30:00.000Z client-001_main INFO   Application started</code></pre>
+                    <h2>Bounds on an untrusted record</h2>
+                    <p>
+                      Every field of a received message is attacker-controlled, so each one is capped as it is sanitized — 8192 UTF-16 code units, with the cut announced by a 
+                      <code>…[truncated]</code> suffix inside that limit rather than past it.
+                    </p>
+                    <p>
+                      The cap is per field, and deliberately so: a record's bound follows from it — four sanitized fields, so at most four times the cap reaches [localOutput] from one [receive] call — and a second, whole-record budget would have to choose which field to sacrifice when the record as a whole is too large, a choice no rule here can make better than the per-field one. What is 
+                      <em>not</em> bounded here is how many records a client may send; that is a property of the transport, and a collector endpoint belongs behind the same authentication and rate limiting as any other write endpoint.
+                    </p>
+                    <h2>Refusals</h2>
+                    <p>
+                      A record can be refused for two independent reasons — the message is undecodable, or [localOutput] is broken. [receive] names which in the [TomRemoteLogResult] it returns 
+                      <em>and</em> logs it locally at error level; see [receive] for why both are needed and why the local half ignores the sender's own logger level.
+                    </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
@@ -1455,17 +1486,92 @@ TomRemoteLogServer.localOutput = MultiLogOutput([
                         <p>
                           Reconstructs the log entry from [m] and outputs it through [localOutput]. The isolate name is prefixed with the sender ID for identification.
                         </p>
-                        <p>Returns a [TomRemoteLogResult] indicating success or failure.</p>
+                        <p>
+                          Returns a [TomRemoteLogResult] indicating success or failure. On failure the caught error is folded into [TomRemoteLogResult.errorMessage] and the refusal is recorded locally by [_reportRefusal]. Two independent things can fail here — the message can be undecodable (a malformed [TomRemoteLogMessage.timeStamp]) or [localOutput] can be broken — and the caller is a remote process with nothing else to inspect, so a generic "failed" tells it neither what went wrong nor whether retrying could help.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomRemoteLogServer._reportRefusal" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void _reportRefusal(TomRemoteLogMessage m, String reason)</code></div>
+                      <div class="api-doc">
+                        <p>Records a refused record in this server's own log stream.</p>
+                        <p>
+                          Without this the refusal is visible only to the client that caused it: the operator of the collector just sees a record never arrive.
+                        </p>
+                        <p>
+                          The refusal is the <em>server's</em> event, so it is emitted at [TomLogLevel.error] against [TomLogLevel.errors] rather than against 
+                          <code>m.loggerLevel</code>. That field is client-supplied and defaults to <code>0</code> — log nothing — so honouring it would let a malformed message suppress the record of its own rejection. [DateTime.now] for the same class of reason: parsing 
+                          <code>m.timeStamp</code> is one of the two things that can fail here, and the refusal happened now regardless of when the record claims to have been written.
+                        </p>
                       </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
                     <div id="TomRemoteLogServer.localOutput" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static TomLogOutput localOutput</code></div>
+                      <div class="api-member-head"><code class="api-signature">static TomLogOutput? localOutput</code></div>
                       <div class="api-doc">
-                        <p>The output destination for received log messages.</p>
-                        <p>Defaults to the current [tomLog.logOutput] at initialization time.</p>
+                        <p>Overrides where received log messages are written.</p>
+                        <p>
+                          <code>null</code> — the default — means the collector writes to the application's own sink, read from 
+                          <code>tomLog.logOutput</code> as each record arrives. Assign a [TomLogOutput] to send received records somewhere else; assign 
+                          <code>null</code> again to go back to following the application.
+                        </p>
+                        <p>
+                          Nullable rather than initialised to <code>tomLog.logOutput</code>, and that is the point. Dart initialises a static lazily, on first access, so such a default captures whatever the application's sink happens to be at the moment something first touches the field — an unspecified time that depends on program ordering rather than on intent. An application that configures its logging during startup would get the new sink only if nothing had read the field first; otherwise the collector writes to the original sink for the life of the process and nothing reports the divergence. "The local sink" means the sink the application currently has, which is what this field's description says.
+                        </p>
+                        <p>[effectiveOutput] answers where records actually go.</p>
+                      </div>
+                    </div>
+                    <div id="TomRemoteLogServer.effectiveOutput" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static TomLogOutput effectiveOutput</code></div>
+                    </div>
+                    <div id="TomRemoteLogServer._maxFieldLength" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static int _maxFieldLength</code></div>
+                      <div class="api-doc">
+                        <p>Maximum length of any single sanitized remote-log field, in UTF-16 code units.</p>
+                        <p>
+                          Code units rather than runes because that is the unit the cap is meant to bound — what the field costs the sink — and the unit 
+                          <code>String.length</code> reports, so the value a caller measures is the value checked here.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomRemoteLogServer._truncationMarker" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String _truncationMarker</code></div>
+                      <div class="api-doc">
+                        <p>Appended in place of the cut text when a field exceeds [_maxFieldLength].</p>
+                        <p>
+                          Counted against the cap rather than added to it, so the returned field is never longer than [_maxFieldLength].
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomRemoteLogServer._streamName" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String _streamName(TomRemoteLogMessage m)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The stream name a record is filed under: the sender and the isolate that wrote it, or the isolate alone when the sender said nothing.
+                        </p>
+                        <p>
+                          This is what a collector's per-client files are named after, so it is the only thing separating two servers of one deployment. Dropping the separator for an unnamed sender is not cosmetic: 
+                          <code>_main</code> and <code>auth_main</code> sort apart while looking like the same shape, and a reader of the directory cannot tell whether the empty half was a sender called nothing or a field that never arrived. 
+                          <code>main</code> says plainly that only the isolate is known.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomRemoteLogServer._sanitize" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String _sanitize(String value)</code></div>
+                      <div class="api-doc">
+                        <p>Removes control characters from an untrusted remote-log field and bounds its length.</p>
+                        <p>
+                          A remote log message arrives from another process and is reconstructed into this server's local log stream. Without sanitization a client could embed CR/LF to forge additional log lines (log spoofing) or ESC and other terminal control codes to inject escape sequences into a console viewing the log — CWE-117 (improper output neutralization for logs). This strips the C0 controls (<code>0x00</code>–<code>0x1F</code>, including CR/LF/TAB/ESC) and the C1 controls (<code>0x7F</code>–<code>0x9F</code>), and caps the field at [_maxFieldLength] so a single oversized field cannot exhaust the sink.
+                        </p>
+                        <p>
+                          A capped field ends in [_truncationMarker]: a silently shortened record reads as a complete one that happens to end where it does, and the reader has no way to tell a client that sent 8 KB from one that sent 8 MB. Only length truncation is marked — dropping a control character neutralizes the field without shortening what it says.
+                        </p>
+                        <p>
+                          Iteration is by rune so a surrogate pair is never split, but each rune's width is added to the running total 
+                          <em>before</em> it is written, so the cap cannot be overshot by the second half of an astral character. Runes are buffered in two parts: [head] holds what still fits once the marker is reserved, [tail] the rest, which is kept only if the input ends before anything has to be cut.
+                        </p>
                       </div>
                     </div>
                   </div>

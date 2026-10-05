@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1387,6 +1393,7 @@
             <div class="treewrap">
               <div class="treepane">
                 <div class="treenodes">
+                  <a class="leaf" href="#AmbiguousBridgedNameException">AmbiguousBridgedNameException</a>
                   <a class="leaf" href="#ArgumentD4rtException">ArgumentD4rtException</a>
                   <a class="leaf" href="#BreakException">BreakException</a>
                   <a class="leaf" href="#ContinueException">ContinueException</a>
@@ -1395,6 +1402,7 @@
                   <a class="leaf" href="#D4rtDiag">D4rtDiag</a>
                   <a class="leaf" href="#D4rtException">D4rtException</a>
                   <a class="leaf" href="#ErrorReporter">ErrorReporter</a>
+                  <a class="leaf" href="#GeneratorCancelledSignal">GeneratorCancelledSignal</a>
                   <a class="leaf" href="#InternalInterpreterD4rtException">InternalInterpreterD4rtException</a>
                   <a class="leaf" href="#PatternMatchD4rtException">PatternMatchD4rtException</a>
                   <a class="leaf" href="#Ranged4rtException">Ranged4rtException</a>
@@ -1402,13 +1410,74 @@
                   <a class="leaf" href="#RuntimeD4rtException">RuntimeD4rtException</a>
                   <a class="leaf" href="#SourceCodeD4rtException">SourceCodeD4rtException</a>
                   <a class="leaf" href="#StateD4rtException">StateD4rtException</a>
+                  <a class="leaf" href="#UndefinedMemberD4rtException">UndefinedMemberD4rtException</a>
+                  <a class="leaf" href="#UndefinedNameD4rtException">UndefinedNameD4rtException</a>
+                  <a class="leaf" href="#UndefinedStaticMemberD4rtException">UndefinedStaticMemberD4rtException</a>
                   <a class="leaf" href="#UnimplementedD4rtException">UnimplementedD4rtException</a>
                   <a class="leaf" href="#UnsupportedD4rtException">UnsupportedD4rtException</a>
+                  <a class="leaf" href="#isInterpreterControlFlowSignal">isInterpreterControlFlowSignal</a>
+                  <a class="leaf" href="#rewrapPreservingMemberSignal">rewrapPreservingMemberSignal</a>
+                  <a class="leaf" href="#throwAsHostFacingError">throwAsHostFacingError</a>
+                  <a class="leaf" href="#wrapDirectiveError">wrapDirectiveError</a>
                 </div>
               </div>
               <div class="reader">
                 <h2 class="api-library-title">package:tom_d4rt/src/exceptions.dart</h2>
                 <code class="api-import">import 'package:tom_d4rt/src/exceptions.dart';</code>
+                <section id="AmbiguousBridgedNameException" class="api-declaration">
+                  <h3 class="api-decl-title">class AmbiguousBridgedNameException</h3>
+                  <code class="api-signature">class AmbiguousBridgedNameException extends D4rtException</code>
+                  <div class="api-doc">
+                    <p>
+                      Thrown when a script names a bridged class by its simple name and two different libraries in scope declare a class under that name.
+                    </p>
+                    <p>
+                      This mirrors Dart's own ambiguous-import rule. Once <code>package:tom_doc_scanner/…</code> and <code>package:tom_md2latex/…</code>
+                       are both imported unprefixed, the bare name <code>MarkdownParser</code> designates nothing in particular; Dart rejects the reference and asks for a prefix. D4rt does the same, because the alternative — binding the name to whichever bridge happened to register last — silently picks a class the author never named, and the script then fails somewhere else (or, worse, succeeds against the wrong implementation).
+                    </p>
+                    <p>
+                      [candidatesByQualifier] maps each qualifier a script can use (the package name of the declaring library) to the source URI that qualifier resolves to. Writing 
+                      <code>tom_doc_scanner.MarkdownParser</code> selects one unambiguously.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="AmbiguousBridgedNameException.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">AmbiguousBridgedNameException.new(String name, Map&lt;String, String&gt; candidatesByQualifier)</code>
+                      </div>
+                      <div class="api-doc"><p>Creates the ambiguity error for [name] over [candidatesByQualifier].</p></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="AmbiguousBridgedNameException.name" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String name</code></div>
+                      <div class="api-doc"><p>The simple name that resolves to more than one bridged class.</p></div>
+                    </div>
+                    <div id="AmbiguousBridgedNameException.candidatesByQualifier" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Map&lt;String, String&gt; candidatesByQualifier</code></div>
+                      <div class="api-doc"><p>Qualifier → source URI, for every candidate reachable by qualification.</p></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="AmbiguousBridgedNameException.toString" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">String toString()</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="AmbiguousBridgedNameException._buildMessage" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static String _buildMessage(String name, Map&lt;String, String&gt; candidatesByQualifier)</code>
+                      </div>
+                    </div>
+                  </div>
+                </section>
                 <section id="ArgumentD4rtException" class="api-declaration">
                   <h3 class="api-decl-title">class ArgumentD4rtException</h3>
                   <code class="api-signature">class ArgumentD4rtException extends D4rtException</code>
@@ -1676,6 +1745,19 @@
                         </p>
                       </div>
                     </div>
+                    <div id="D4rtException.hasDirectiveContext" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool hasDirectiveContext</code></div>
+                      <div class="api-doc">
+                        <p>Whether [message] already names which module failed to load which target.</p>
+                        <p>
+                          DFUB13. <code>loadModule</code> recurses, so every frame on the way out could prepend its own "Failed to load ..." prefix to the same underlying error. Only the innermost frame knows the file that actually contains the bad directive, so [wrapDirectiveError] sets this when it adds context and consults it to stay silent on every outer frame.
+                        </p>
+                        <p>
+                          It lives on the base class rather than on one subtype because the two module loaders report a missing module with 
+                          <em>different</em> exception types — the filesystem loader raises [SourceCodeD4rtException], the bundle loader raises [RuntimeD4rtException] — and both need the same once-only rule.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
@@ -1802,6 +1884,36 @@
                     </div>
                   </div>
                 </section>
+                <section id="GeneratorCancelledSignal" class="api-declaration">
+                  <h3 class="api-decl-title">class GeneratorCancelledSignal</h3>
+                  <code class="api-signature">class GeneratorCancelledSignal</code>
+                  <div class="api-doc">
+                    <p>SCF4: the unwind that ends an <code>async*</code> body whose subscription was cancelled.</p>
+                    <p>
+                      Dart finishes a cancelled generator as if by <code>return</code> at the pending <code>yield</code>: its 
+                      <code>finally</code> blocks run, its <code>catch</code> clauses do not, and nothing after the yield executes. The state machine has one route that already behaves that way — the SCC31 "no clause may claim it" route — so this rides it: [InterpreterVisitor.selectCatchClause] and the synchronous try path decline to match it, 
+                      <code>finally</code> still runs, and the generator's stream drops it rather than reporting it, since nobody is listening.
+                    </p>
+                    <p>
+                      Not a [RuntimeD4rtException]: nothing may treat it as an ordinary runtime condition and try the next strategy, which is exactly what that type is caught for.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="GeneratorCancelledSignal.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">const GeneratorCancelledSignal.new()</code></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="GeneratorCancelledSignal.toString" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">String toString()</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
                 <section id="InternalInterpreterD4rtException" class="api-declaration">
                   <h3 class="api-decl-title">class InternalInterpreterD4rtException</h3>
                   <code class="api-signature">class InternalInterpreterD4rtException extends D4rtException</code>
@@ -1919,11 +2031,27 @@
                   <div class="api-members">
                     <div id="RuntimeD4rtException.new" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">RuntimeD4rtException.new(String message, {Object? originalException})</code>
+                        <code class="api-signature">
+                          RuntimeD4rtException.new(String message, {Object? originalException, StackTrace? originalStackTrace})
+                        </code>
                       </div>
                       <div class="api-doc">
                         <p>
-                          Creates a new runtime error with the given message. When [originalException] is supplied, the wrapped native exception stays catchable by type.
+                          Creates a new runtime error with the given message. When [originalException] is supplied, the wrapped native exception stays catchable by type; supply [originalStackTrace] from the same 
+                          <code>catch</code> clause so the trace survives the wrapping too.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="RuntimeD4rtException.resolutionFailure" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          RuntimeD4rtException.resolutionFailure(String message, {Object? originalException, StackTrace? originalStackTrace})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>A runtime error meaning THE NAME DID NOT RESOLVE.</p>
+                        <p>
+                          Use this only where the failure is that a member, operator, constructor or variable is ABSENT. Do NOT use it where the name resolved and the operation then failed for another reason — an ill-typed operand, a null receiver, an unsupported target type. The audit reads this flag as "confirmed missing", so a mis-tagged site makes the tool invent gaps, which is the one direction it must never move in.
                         </p>
                       </div>
                     </div>
@@ -1937,6 +2065,38 @@
                           When this runtime error wraps a <em>native</em> exception thrown from a bridged adapter (method, static method, getter, setter, operator, constructor), the original exception object is preserved here. This lets a typed 
                           <code>on NativeType</code> / bare <code>catch</code> clause in interpreted code dispatch against the real exception type rather than this 
                           <code>RuntimeError</code> wrapper. (OPEN B.5 — U13/U24.)
+                        </p>
+                      </div>
+                    </div>
+                    <div id="RuntimeD4rtException.originalStackTrace" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final StackTrace? originalStackTrace</code></div>
+                      <div class="api-doc">
+                        <p>The stack trace that accompanied [originalException] at the point the bridged adapter threw it.</p>
+                        <p>
+                          Recovering the <em>value</em> was never enough on its own. The wrapper is constructed in the interpreter's own 
+                          <code>catch</code> block, so an interpreted <code>catch (e, st)</code> used to receive the trace of the wrap site rather than of the throw — which makes 
+                          <code>Error.throwWithStackTrace</code> inert, since preserving an earlier trace is the only thing that member does. Carrying the trace alongside the value lets 
+                          <code>visitTryStatement</code> hand the script what actually happened.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="RuntimeD4rtException.isResolutionFailure" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final bool isResolutionFailure</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Whether this error means A NAME DID NOT RESOLVE — a member, operator, constructor or variable that the receiver does not have — as opposed to something failing inside a member that was found.
+                        </p>
+                        <p>
+                          SCE77. The gap audit decides whether a member exists by classifying the error the interpreter produced, and it did that by MATCHING THE TEXT against a hand-written list of wordings. Nothing connected that list to the places the interpreter throws from, so a wording the list did not know made a whole column silently unfalsifiable: the probe ran, the error arrived, and it was scored as 
+                          <em>reachable</em>. That happened twice in consecutive todos — SCD36's <code>Cannot access property 'x' on target of type _Foo</code>
+                           left the return-type pass reporting 0 of 411 while blind to every gap it existed to find, and SCD39's operator wording did the same to the operator column. Both were found by planting a defect; no passing test could have found either.
+                        </p>
+                        <p>
+                          This flag is the tie. It is set by [RuntimeD4rtException.resolutionFailure] at the throw site, so the set of resolution failures is STRUCTURAL rather than textual and a reworded message cannot silently leave it.
+                        </p>
+                        <p>
+                          WHY A FLAG AND A NAMED CONSTRUCTOR RATHER THAN A SUBTYPE. Every <code>catch</code> clause and every <code>is RuntimeD4rtException</code>
+                           test in both trees keeps working unchanged, which SCE67 established is load-bearing: the supertype there was ADDED, not swapped, precisely because the hierarchy is consulted for control flow in eight places per visitor. A new subtype would have changed what those sites see.
                         </p>
                       </div>
                     </div>
@@ -2009,6 +2169,162 @@
                     </div>
                   </div>
                 </section>
+                <section id="UndefinedMemberD4rtException" class="api-declaration">
+                  <h3 class="api-decl-title">class UndefinedMemberD4rtException</h3>
+                  <code class="api-signature">class UndefinedMemberD4rtException extends RuntimeD4rtException implements NoSuchMethodError</code>
+                  <div class="api-doc">
+                    <p>Thrown when a member lookup finds no member of that name on the receiver.</p>
+                    <p>
+                      <strong>This is a control-flow signal, and that is the reason it exists.</strong> Eight sites in each mirrored visitor have to distinguish "the member is genuinely absent, so try extension-method resolution" from "the member was found and something inside it failed, so propagate that". Before SCC28 they made that decision with 
+                      <code>e.message.contains("Undefined property '$name'")</code> — a formatted, human-readable diagnostic used as a branch condition. The wording was therefore load-bearing: rewording it, in either tree, silently disabled extension methods for every receiver kind routed through the edited site, with no analyzer error and a 
+                      <em>wrong answer</em> rather than a crash as the symptom.
+                    </p>
+                    <p>
+                      [memberName] carries what the message used to spell, so the message is free to change. It is compared exactly (<code>e.memberName == name</code>) where the old code asked for a substring, which also removes the case where a member whose name merely 
+                      <em>appeared</em> in an unrelated diagnostic took the extension branch.
+                    </p>
+                    <p>
+                      <strong>A subtype of [RuntimeD4rtException], deliberately.</strong> Between a raise site and the site that inspects it sit roughly forty 
+                      <code>on RuntimeD4rtException</code> clauses, most of which only re-wrap and re-throw. Making this a sibling type would have required changing all of them in one commit; making it a subtype let the conversion land raise site by raise site, with every intermediate state working. 
+                      <code>toString()</code> is inherited too, so the diagnostics are unchanged to the byte and no message assertion needed rewriting.
+                    </p>
+                    <p>
+                      Not to be confused with [D4rtNoSuchMethodError], which the <em>final</em> lookup failures raise — the ones reached after extension resolution and any user 
+                      <code>noSuchMethod</code> have had their chance. This type marks the intermediate failures, the ones that are still a question rather than an answer. 
+                      <strong>Catchable as <code>NoSuchMethodError</code>, like [D4rtNoSuchMethodError] (sce67).</strong> Asking a receiver for a member it does not have used to report two ways decided by the member KIND rather than by anything a script can see: a missing METHOD raised [D4rtNoSuchMethodError] and was catchable as the SDK type, a missing GETTER raised this and was not. So 
+                      <code>try { ... } on NoSuchMethodError catch (_)</code> handled one half of the same failure and missed the other. F-SCC8-5's reasoning — "a missing member is the same failure real Dart reports at runtime, and asserting the SDK supertype means a script can catch it the way it would catch the real one" — does not stop applying at getters.
+                    </p>
+                    <p>
+                      The supertype is ADDED, not swapped: this stays a [RuntimeD4rtException], so every existing <code>on RuntimeD4rtException</code>
+                       clause and every internal <code>is UndefinedMemberD4rtException</code> test is unaffected. Those internal tests are why the intermediate/final distinction below still holds — they select on this exact type, never on the SDK supertype.
+                    </p>
+                    <p>
+                      <strong>STATIC member absence is deliberately NOT given this supertype</strong>, and nor is [UndefinedNameD4rtException] (scc31). Real Dart rejects 
+                      <code>Klass.missing</code> and a bare undefined name at COMPILE time, so there is no runtime <code>NoSuchMethodError</code>
+                       for a script to catch; inventing one would make d4rt strictly more catchable than the platform, which is the mistake [D4rtRangeError] records for 
+                      <code>IndexError</code>. Instance access is different: d4rt receivers are effectively dynamic, and dynamic access to a missing member IS a runtime 
+                      <code>NoSuchMethodError</code> in real Dart.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="UndefinedMemberD4rtException.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">UndefinedMemberD4rtException.new(String message, {required String memberName, Object? receiver})</code>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="UndefinedMemberD4rtException.stackTrace" class="api-member"><div class="api-member-head"><code class="api-signature">StackTrace? stackTrace</code></div></div>
+                    <div id="UndefinedMemberD4rtException.memberName" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String memberName</code></div>
+                      <div class="api-doc"><p>The member that was not found. Compared by equality, never parsed.</p></div>
+                    </div>
+                    <div id="UndefinedMemberD4rtException.receiver" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Object? receiver</code></div>
+                      <div class="api-doc">
+                        <p>The object whose lookup failed, compared by IDENTITY at the decision sites.</p>
+                        <p>
+                          SCD87. [memberName] alone cannot separate "this receiver has no such member" from "a member that does exist ran, and something 
+                          <em>inside it</em> failed to find the same name on a different object". Both are genuine <code>UndefinedMemberD4rtException</code>s carrying the same name, so the caller's extension-lookup branch used to answer for the second — swallowing a real error and returning an unrelated value, with nothing logged.
+                        </p>
+                        <p>
+                          <strong>Identity, not a description.</strong> Two instances of the same class describe identically, so a receiver 
+                          <em>string</em> could not separate the failure raised for the object in hand from one raised for a different object of the same class deeper in the stack. 
+                          <code>identical</code> can.
+                        </p>
+                        <p>
+                          <strong>Null where no receiver object exists</strong> — a static or prefix lookup. A null receiver must never match: 
+                          <code>identical(null, target)</code> is false for any real target, so the branch is not taken and the failure propagates, which is the conservative direction.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="UndefinedNameD4rtException" class="api-declaration">
+                  <h3 class="api-decl-title">class UndefinedNameD4rtException</h3>
+                  <code class="api-signature">class UndefinedNameD4rtException extends RuntimeD4rtException</code>
+                  <div class="api-doc">
+                    <p>Thrown when a name a script reads resolves to no declaration at all.</p>
+                    <p>
+                      <strong>No interpreted <code>catch</code> clause may claim this.</strong> In real Dart an undefined identifier is a compile-time error: the program never runs, so there is no frame in which a handler could execute. D4rt discovers the same defect later, during execution, and used to raise a plain [RuntimeD4rtException] — which a bare 
+                      <code>catch (e)</code> in the script caught like any ordinary runtime condition. A typo therefore did not fail; it took whichever branch the handler wrote, and the script continued on a value the author never intended. That is the one error class where d4rt was 
+                      <em>more</em> permissive than Dart in a way that hides bugs instead of surfacing them.
+                    </p>
+                    <p>
+                      Both catch-dispatch sites — <code>visitTryStatement</code> and the async state machine's <code>_handleAsyncError</code>
+                       — check for this type and decline to match any clause, so the error unwinds past every handler to the host. 
+                      <code>finally</code> blocks still run: the property wanted is "no <em>catch clause</em> can swallow it", not "no cleanup happens".
+                    </p>
+                    <p>
+                      <strong>A subtype of [RuntimeD4rtException], deliberately</strong> — the same reasoning spelled out on [UndefinedMemberD4rtException]. 
+                      <code>Environment.get</code> throws on every miss and is called <em>speculatively</em> all over the interpreter and the module loader, each such caller catching [RuntimeD4rtException] to try the next lookup strategy. A sibling type would have made all of those stop catching, turning ordinary resolution fallbacks into hard failures.
+                    </p>
+                    <p>
+                      [name] carries what the message spells, so that code branching on this failure compares a field rather than parsing a diagnostic.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="UndefinedNameD4rtException.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">UndefinedNameD4rtException.new(String message, {required String name})</code>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="UndefinedNameD4rtException.name" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String name</code></div>
+                      <div class="api-doc"><p>The identifier that resolved to nothing. Compared by equality, never parsed.</p></div>
+                    </div>
+                  </div>
+                </section>
+                <section id="UndefinedStaticMemberD4rtException" class="api-declaration">
+                  <h3 class="api-decl-title">class UndefinedStaticMemberD4rtException</h3>
+                  <code class="api-signature">class UndefinedStaticMemberD4rtException extends RuntimeD4rtException</code>
+                  <div class="api-doc">
+                    <p>Thrown when a STATIC member lookup fails on a class, enum, bridged class or extension.</p>
+                    <p>
+                      SCD86. Sibling of [UndefinedMemberD4rtException] and deliberately NOT the same type, because the two failures answer different questions: instance-member absence gates extension-method lookup, static-member absence gates the compound-assignment fallback in 
+                      <code>visitAssignmentExpression</code>. Collapsing them would let one branch answer for the other — the same class of defect SCC28 removed when it stopped those branches reading diagnostic text.
+                    </p>
+                    <p>What it replaced was the last message test SCC28 left standing:</p>
+                    <pre><code>e.message.contains("Undefined static member")</code></pre>
+                    <p>
+                      That line was less fragile than the ones SCC28 converted — it carried no name check, so no rename could break it — but it was fragile in a way the source scan could not see. F-SCC28-1 matched on "Undefined property", so the static wording passed the scan, and a seventh raise site phrased differently would have passed it too while silently never taking this branch. The six existing sites compose four different sentences (<code>on class</code>, 
+                      <code>on enum</code>, <code>on bridged class</code>, <code>on extension</code>) and every one had to keep starting with those three words.
+                    </p>
+                    <p>
+                      [memberName] carries what the message spells, so the message is free to change. <strong>The decision site does not read it</strong>, and that is deliberate: the condition it replaced had no name check, so using one here would have narrowed the branch rather than typed it. It is carried for parity with [UndefinedMemberD4rtException] and so that any future site can ask by equality instead of by substring.
+                    </p>
+                    <p>
+                      A subtype of [RuntimeD4rtException] for the reason [UndefinedMemberD4rtException] documents: the <code>on RuntimeD4rtException</code>
+                       clauses between raise and inspection stay working, so the conversion could land site by site.
+                    </p>
+                    <p>
+                      <strong>NOT a <code>NoSuchMethodError</code>, and that is a decision (sce67).</strong> [UndefinedMemberD4rtException] was given that SDK supertype so a script can catch a missing INSTANCE member the way it catches real Dart's. This one was deliberately left out: real Dart rejects 
+                      <code>Klass.missing</code> at COMPILE time, so no runtime <code>NoSuchMethodError</code> exists for a script to catch, and adding one would make d4rt strictly more catchable than the platform — the mistake 
+                      <code>D4rtRangeError</code> records for <code>IndexError</code>. Same reasoning as [UndefinedNameD4rtException], different from the instance case because a d4rt receiver is effectively dynamic and dynamic member access really does raise at runtime.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="UndefinedStaticMemberD4rtException.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">UndefinedStaticMemberD4rtException.new(String message, {required String memberName})</code>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="UndefinedStaticMemberD4rtException.memberName" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String memberName</code></div>
+                      <div class="api-doc"><p>The static member that was not found. Compared by equality, never parsed.</p></div>
+                    </div>
+                  </div>
+                </section>
                 <section id="UnimplementedD4rtException" class="api-declaration">
                   <h3 class="api-decl-title">class UnimplementedD4rtException</h3>
                   <code class="api-signature">class UnimplementedD4rtException extends D4rtException</code>
@@ -2049,6 +2365,86 @@
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
+                  </div>
+                </section>
+                <section id="isInterpreterControlFlowSignal" class="api-declaration">
+                  <h3 class="api-decl-title">function isInterpreterControlFlowSignal</h3>
+                  <code class="api-signature">bool isInterpreterControlFlowSignal(Object e)</code>
+                  <div class="api-doc">
+                    <p>
+                      Whether [e] is one of the exceptions the interpreter uses to unwind its own stack, rather than a failure a script or a native callee produced.
+                    </p>
+                    <p>
+                      These four <code>implement Exception</code> because that is how a Dart exception travels, not because a host was ever meant to see one. 
+                      <code>execute()</code>'s boundary lets every other <code>Error</code> and <code>Exception</code> out unchanged, so a caller can 
+                      <code>catch</code> by the type the script actually raised; these are the exception to that rule. One arriving at a host means the interpreter lost track of a 
+                      <code>return</code>, <code>break</code> or <code>continue</code> — an interpreter bug, which is the case the "Unexpected error" wording was written for.
+                    </p>
+                    <p>
+                      [InternalInterpreterD4rtException] is deliberately absent. It carries a value interpreted code threw rather than a jump, and the boundary unwraps it one clause earlier so the host receives that value itself.
+                    </p>
+                  </div>
+                </section>
+                <section id="rewrapPreservingMemberSignal" class="api-declaration">
+                  <h3 class="api-decl-title">function rewrapPreservingMemberSignal</h3>
+                  <code class="api-signature">RuntimeD4rtException rewrapPreservingMemberSignal(RuntimeD4rtException e, String message)</code>
+                  <div class="api-doc">
+                    <p>Re-wraps [e] under a new [message], keeping the "member absent" signal when [e] carries one.</p>
+                    <p>
+                      Several sites add context to a member-lookup failure on the way out ("… (accessing property via PropertyAccess 'x')"). Before SCC28 those preserved the signal 
+                      <em>by accident</em>: they concatenated the original message into the new one, so an outer <code>contains("Undefined property 'x'")</code>
+                       still matched straight through the wrap. Now that the signal is a type, preserving it has to be deliberate — a plain [RuntimeD4rtException] here would leave the next frame out unable to tell an absent member from a failed one, which is precisely the extension-method regression SCC28 exists to prevent.
+                    </p>
+                    <p>
+                      The original [UndefinedMemberD4rtException.memberName] is carried over rather than replaced with the wrapping site's own name: the failure being described is still the inner one, and that is what the substring used to say too.
+                    </p>
+                  </div>
+                </section>
+                <section id="throwAsHostFacingError" class="api-declaration">
+                  <h3 class="api-decl-title">function throwAsHostFacingError</h3>
+                  <code class="api-signature">Never throwAsHostFacingError(Object e, StackTrace s)</code>
+                  <div class="api-doc">
+                    <p>
+                      Rethrows [e] in the shape a host calling <code>execute()</code> should receive, so that a <code>catch</code>
+                       clause outside the interpreter can name the same type a <code>catch</code> clause inside the script can.
+                    </p>
+                    <p>
+                      Two transformations, and the pair is what makes the boundary symmetric with the interpreter's own <code>visitTryStatement</code>:
+                    </p>
+                    <ul><li><strong>Unwrap.</strong> A native callee's error reaches here inside a</li></ul>
+                    <p>
+                      [RuntimeD4rtException] built by the bridged-call sites, which carry the thrown value in [RuntimeD4rtException.originalException]. 
+                      <code>visitTryStatement</code> already recovers it so interpreted <code>on FormatException</code> matches; without the same recovery here the host saw the wrapper instead, and the same failure was catchable by type inside a script but not outside it. 
+                      <em> </em><em>Classify.</em>* Anything that is an <code>Error</code> or an <code>Exception</code> then escapes as itself. What does not is a thrown value in neither hierarchy — the host has no type to name, so a diagnostic beats a bare 
+                      <code>toString()</code> — and an escaped control-flow signal, which is an interpreter fault.
+                    </p>
+                    <p>
+                      The wrapper's own message ("Native error during bridged method call …") is discarded with it. That context is not lost: the bridged-call sites log it at warn level as they wrap. It is the same trade the script side made, and making the two sides trade differently is what produced the asymmetry.
+                    </p>
+                    <p>
+                      [s] is the trace of the <code>catch</code> that called this. It is used only when the wrapper carries no [RuntimeD4rtException.originalStackTrace] — preferring the recorded one keeps 
+                      <code>Error.throwWithStackTrace</code> meaningful across the boundary, exactly as it is across an interpreted 
+                      <code>catch (e, st)</code>.
+                    </p>
+                  </div>
+                </section>
+                <section id="wrapDirectiveError" class="api-declaration">
+                  <h3 class="api-decl-title">function wrapDirectiveError</h3>
+                  <code class="api-signature">
+                    D4rtException wrapDirectiveError(String directiveType, Uri ownerUri, Uri targetUri, D4rtException error)
+                  </code>
+                  <div class="api-doc">
+                    <p>DFUB13 — names the module that ASKED for a target that failed to load.</p>
+                    <p>
+                      The loader's own diagnostic names the module it could not find. That is the symptom; the file the user has to edit is the one holding the directive, and in a barrel chain those are rarely the same file. [directiveType] is 
+                      <code>'import'</code> or <code>'export'</code>, [ownerUri] the module containing the directive, [targetUri] the module it pointed at.
+                    </p>
+                    <p>
+                      The concrete exception type is preserved so existing <code>on ...</code> clauses keep matching — only the message gains a prefix. A type this function cannot reconstruct is returned unchanged rather than downgraded to a base type.
+                    </p>
+                    <p>
+                      Returns [error] unchanged when it already carries context (see [D4rtException.hasDirectiveContext]) so a deep import chain yields one prefix rather than one per frame.
+                    </p>
                   </div>
                 </section>
               </div>

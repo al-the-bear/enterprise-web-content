@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1410,20 +1416,37 @@
                     <code>requires2FA</code> is true, client prompts for second factor 4. Tokens are stored and used for subsequent requests
                   </p>
                   <h2>Example</h2>
-                  <pre><code>// Create authentication request
+                  <p>
+                    This library declares only the DTOs; the exchange runs over <code>TomServerEndpoint</code> from the <code>http_connection</code>
+                     module. A login addresses <code>TomClientRemoteContext.current!.authenticationUri</code> — the authentication server, which differs from the API base URI only in a split deployment — and sends no bearer token, because establishing one is the point of the call.
+                  </p>
+                  <pre><code>final endpoint =
+    TomServerEndpoint&lt;TomAuthenticationMessage, TomAuthenticationResult&gt;(
+      TomServerChannel('auth.example.com', 443),
+      TomServerCallSpecs(
+        'POST',
+        Uri.parse('https://auth.example.com/authenticate'),
+        includeBearerAuthentication: false,
+      ),
+    );
+
+// Create authentication request
 var message = TomAuthenticationMessage()
   ..userName = 'john.doe'
   ..password = 'secret'
   ..application = 'myapp';
 
 // Process result
-var result = await authService.authenticate(message);
-if (result.error.isEmpty) {
+var (result, error) = await endpoint.send(message);
+if (!(error?.hasError ?? false) &amp;&amp; result.error.isEmpty) {
   TomBearerAuthentication.setTokens(
     result.authenticationToken,
     result.authorizationToken,
   );
 }</code></pre>
+                  <p>
+                    Note the two failure channels: <code>error</code> reports that the <em>call</em> did not succeed (refused connection, expired deadline, HTTP error), while [TomAuthenticationResult.error] reports that the call succeeded and the server declined the credentials. Both have to be checked.
+                  </p>
                   <p>
                     See also: - [TomBearerAuthentication] for token management - [TomPrincipal] for the authenticated user context
                   </p>
@@ -1486,11 +1509,21 @@ if (result.error.isEmpty) {
                     </div>
                     <div id="TomAuthenticationMessage.clientCountry" class="api-member">
                       <div class="api-member-head"><code class="api-signature">String clientCountry</code></div>
-                      <div class="api-doc"><p>The client's country (ISO 3166-1 alpha-2 code).</p></div>
+                      <div class="api-doc">
+                        <p>
+                          The client's country (ISO 3166-1 alpha-2 code), or [TomClientContext.noCountry] for none — see there for why 
+                          <code>XX</code> and what a consumer must do with it.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomAuthenticationMessage.clientTimezone" class="api-member">
                       <div class="api-member-head"><code class="api-signature">String clientTimezone</code></div>
-                      <div class="api-doc"><p>The client's timezone identifier.</p></div>
+                      <div class="api-doc">
+                        <p>The client's timezone identifier — what the <em>device</em> is set to.</p>
+                        <p>
+                          The device's own setting, not the user's choice: the two are separate claims and both reach the token ([TomPrincipal.clientTimezone] and [TomPrincipal.timezone]). A client fills this from the platform, and never from a stored preference — the preference is server-side ([TomUserPreferenceKeys.timezone]) and the server applies it after the login has produced a principal, which is the earliest point at which it can be read.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>
@@ -1508,17 +1541,42 @@ if (result.error.isEmpty) {
                     </p>
                     <h2>Two-Factor Authentication</h2>
                     <p>
-                      If [requires2FA] is true, the client must: 1. Present the appropriate 2FA challenge based on [twoFactorType] 2. Submit the 2FA code to complete authentication 3. Receive new tokens upon successful 2FA
+                      A login that owes a second factor can be in one of <em>two</em> states, and they are answered by different calls, so they are reported by different flags:
+                    </p>
+                    <ul><li>[requires2FA] — the user has a factor and must now <strong>use</strong> it. The</li></ul>
+                    <p>
+                      challenge's mechanism is [twoFactorType]; the client collects the code and calls the server's second pass. - [requires2FAEnrolment] — the user has no usable factor and must first 
+                      <strong>set one up</strong>. [availableTwoFactorMethods] is the choice to render, and [twoFactorEnrolmentSkippable] says whether declining is allowed.
+                    </p>
+                    <p>
+                      The two are deliberately separate flags rather than one overloaded field. A client written before enrolment existed reads [requires2FA] and [twoFactorType] exactly as it always did; it simply never sees the enrolment state, and the interim token it would try to use is refused by the server — which is the safe way for an out-of-date client to fail.
+                    </p>
+                    <p>
+                      In both states the result carries an <strong>interim</strong> token pair: it identifies the user for the next call in the flow but grants no session, because its claims still say a factor is owed.
                     </p>
                     <h2>Example</h2>
-                    <pre><code>var result = await authService.login(message);
+                    <p>
+                      <code>loginEndpoint</code> is the <code>TomServerEndpoint&lt;TomAuthenticationMessage, TomAuthenticationResult&gt;</code>
+                       built as shown in this library's documentation; only its result is of interest here.
+                    </p>
+                    <pre><code>var (result, error) = await loginEndpoint.send(message);
+
+if (error?.hasError ?? false) {
+  showError(error!.errorKey);
+  return;
+}
 
 if (result.error.isNotEmpty) {
   showError(result.error);
   return;
 }
 
-if (result.requires2FA) {
+if (result.requires2FAEnrolment) {
+  showEnrolmentChooser(
+    result.availableTwoFactorMethods,
+    canSkip: result.twoFactorEnrolmentSkippable,
+  );
+} else if (result.requires2FA) {
   show2FADialog(result.twoFactorType);
 } else {
   navigateToHome();
@@ -1566,6 +1624,38 @@ if (result.requires2FA) {
                     <div id="TomAuthenticationResult.twoFactorType" class="api-member">
                       <div class="api-member-head"><code class="api-signature">String twoFactorType</code></div>
                       <div class="api-doc"><p>The type of 2FA required (e.g., 'totp', 'sms', 'email').</p></div>
+                    </div>
+                    <div id="TomAuthenticationResult.requires2FAEnrolment" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool requires2FAEnrolment</code></div>
+                      <div class="api-doc">
+                        <p>Indicates that the user owes a second factor but has none set up yet.</p>
+                        <p>
+                          Distinct from [requires2FA]: that one says <em>answer a challenge</em>, this one says <em>choose a mechanism and enrol it</em>. They are never both true — a login is either being challenged or being enrolled — and a client that understands only [requires2FA] therefore cannot mistake one for the other.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAuthenticationResult.availableTwoFactorMethods" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">List&lt;Tom2FAMethodDescriptor&gt; availableTwoFactorMethods</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The mechanisms offered for set-up, in preference order, when [requires2FAEnrolment] is true; empty otherwise.
+                        </p>
+                        <p>
+                          Already narrowed to what this principal's policy permits <em>and</em> this deployment can actually enrol, so the client renders the list as given rather than filtering it — a client-side filter would be a second place for the two answers to disagree.
+                        </p>
+                        <p>
+                          The entries carry resource keys, not text (G-RES-1): the tier that renders resolves them against the user's locale.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAuthenticationResult.twoFactorEnrolmentSkippable" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool twoFactorEnrolmentSkippable</code></div>
+                      <div class="api-doc">
+                        <p>Whether the user may decline the enrolment offer and complete the login without a second factor.</p>
+                        <p>
+                          True under an <code>optional</code> policy, and under a <code>required</code> one while grace logins remain. The client shows a "not now" affordance only when this is set; the server checks the same fact again from its own signed token, so a client that shows one anyway achieves nothing.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>

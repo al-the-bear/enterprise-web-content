@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1389,11 +1395,11 @@
                 <div class="treenodes">
                   <a class="leaf" href="#TomErrorBoundary">TomErrorBoundary</a>
                   <a class="leaf" href="#_DefaultErrorFallback">_DefaultErrorFallback</a>
-                  <a class="leaf" href="#_ErrorBoundaryHost">_ErrorBoundaryHost</a>
-                  <a class="leaf" href="#_ErrorBoundaryHostState">_ErrorBoundaryHostState</a>
                   <a class="leaf" href="#_ErrorReporter">_ErrorReporter</a>
                   <a class="leaf" href="#_ErrorReporterState">_ErrorReporterState</a>
+                  <a class="leaf" href="#_GlobalHook">_GlobalHook</a>
                   <a class="leaf" href="#_TomErrorBoundaryState">_TomErrorBoundaryState</a>
+                  <a class="leaf" href="#_Stage">_Stage</a>
                   <a class="leaf" href="#TomErrorBoundaryFallbackBuilder">TomErrorBoundaryFallbackBuilder</a>
                 </div>
               </div>
@@ -1401,19 +1407,18 @@
                 <h2 class="api-library-title">package:tom_flutter_ui/src/custom/tom_error_boundary.dart</h2>
                 <code class="api-import">import 'package:tom_flutter_ui/src/custom/tom_error_boundary.dart';</code>
                 <div class="api-doc">
-                  <p>Phase 6 — <code>TomErrorBoundary</code>.</p>
                   <p>
-                    Catches widget-build errors raised inside [child] (and any descendant builder error reported through the [FlutterError.onError] hook) and renders a fallback UI instead of letting the error propagate up to the global error widget.
+                    Catches widget-build errors raised anywhere in the guarded subtree and renders a fallback UI instead of letting them reach the global error widget.
                   </p>
                   <p>
-                    Today every demo re-implements a version of this — Phase 6 promotes it to a first-class framework piece.
-                  </p>
-                  <p>The widget intercepts errors at two layers:</p>
-                  <p>
-                    1. The [FlutterError.onError] hook is wrapped while the boundary is mounted. Errors flagged with the boundary's [_TomErrorBoundaryMarker] library are caught; everything else is forwarded to the previous handler (so global error reporting still works). 2. The [child] is wrapped in an [ErrorWidget.builder] that captures framework-time build errors that produce [ErrorWidget] in release mode but throw in debug; the overlay is repainted via [setState].
+                    Interception is one mechanism, and the indirection in it is what makes <em>nested</em> boundaries correct. [ErrorWidget.builder] is global, so it cannot belong to a boundary: with several mounted, whichever installed last would own the hook and would receive every subtree's errors. Instead the builder is installed once — ref-counted across all mounted boundaries, so the original is preserved for as long as any boundary is in the tree, whether or not it is currently showing a fallback — and it returns a reporter widget at the failing slot. That reporter is built 
+                    <em>in the failing subtree</em>, so it can walk up the element tree to the nearest enclosing boundary and hand the error to that one. Mount order stops mattering, and a list of dozens of boundaries contains each row's failure to its own row.
                   </p>
                   <p>
-                    The fallback UI is configurable via [fallbackBuilder]; when omitted, a Material-themed error card is shown.
+                    A boundary guards its own subtree and nothing else. The global slot has one occupant, so while any boundary is mounted its hook also sees errors raised outside every boundary; those are handed to the builder that was in the slot beforehand — Flutter's red box in debug, the application's own widget in release — so mounting a boundary changes nothing outside it. Anything else would turn one guarded row into a process-wide suppression of error reporting.
+                  </p>
+                  <p>
+                    The fallback UI is configurable via [TomErrorBoundary.fallbackBuilder]; when omitted, a Material-themed error card is shown.
                   </p>
                 </div>
                 <section id="TomErrorBoundary" class="api-declaration">
@@ -1444,6 +1449,10 @@
                         <p>
                           Optional fallback builder. When <code>null</code>, the boundary renders a Material-themed error card.
                         </p>
+                        <p>
+                          It is caller code and can throw. If it does, the boundary shows the default card instead, still reporting the child's original error; if the default card fails as well, the error goes to the 
+                          <code>ErrorWidget.builder</code> that was installed before any boundary. Each step is taken once per failure, so the boundary settles, and [onError] fires once for each.
+                        </p>
                       </div>
                     </div>
                     <div id="TomErrorBoundary.onError" class="api-member">
@@ -1461,6 +1470,33 @@
                       <div class="api-member-head">
                         <code class="api-signature">State&lt;TomErrorBoundary&gt; createState()</code>
                         <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="TomErrorBoundary.debugDefaultFallback" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static Widget Function(BuildContext, FlutterErrorDetails, void Function())?? debugDefaultFallback</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Replaces the default card, so a test can make it fail.</p>
+                        <p>
+                          The card cannot fail for a caller's reason — it reads the theme and prints the error — so the path a boundary takes when it does (handing the error to the builder installed before any boundary) is unreachable from outside without this. 
+                          <code>null</code>, the only value an application ever sees, means the real card.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomErrorBoundary.debugReleaseGlobalHook" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static void debugReleaseGlobalHook()</code></div>
+                      <div class="api-doc">
+                        <p>Releases the global [ErrorWidget.builder] hook and forgets every mounted boundary.</p>
+                        <p>
+                          The hook is process-wide, and so is the count that owns it: a boundary whose <code>dispose</code> never runs leaves the slot held for the rest of the process, and everything after it inherits an error widget belonging to a widget that is gone. A test that tears down its binding, or that pumps a boundary and then abandons the tree, has no other way back.
+                        </p>
+                        <p>
+                          Nothing in an application should need this: there, boundaries are disposed by the framework and the count returns to zero on its own.
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -1495,83 +1531,25 @@
                     </div>
                   </div>
                 </section>
-                <section id="_ErrorBoundaryHost" class="api-declaration">
-                  <h3 class="api-decl-title">class _ErrorBoundaryHost</h3>
-                  <code class="api-signature">class _ErrorBoundaryHost extends StatefulWidget</code>
-                  <div class="api-doc">
-                    <p>
-                      Wraps the guarded subtree with an [ErrorWidget.builder] that returns a [_ErrorReporter] in place of the failing widget. The reporter then walks up the element tree to find the 
-                      <em>nearest</em> enclosing [_TomErrorBoundaryState] and forwards the error to it.
-                    </p>
-                    <p>
-                      This element-tree routing — rather than the more obvious "current host's <code>widget.onError</code> is called by the global hook" approach — is what makes nested boundaries correct. The global [ErrorWidget.builder] is, well, global: when boundary A and B are both mounted, whichever called 
-                      <code>initState</code> <em>last</em> owns the hook. If A throws while B is the active hook, B's <code>onError</code>
-                       would fire — routing A's error to B. Per-row containment in a list (where dozens of boundaries are mounted simultaneously) becomes impossible. By having the hook return a placeholder widget that looks up the boundary via 
-                      <code>findAncestorStateOfType</code>, the error always reaches the <em>enclosing</em> boundary, regardless of mount order.
-                    </p>
-                    <p>
-                      Boundary ref-counting: <code>_ErrorBoundaryHostState</code> increments [_activeBoundaries] in <code>initState</code>
-                       and decrements in <code>dispose</code>. The global hook is installed when the count goes 0→1 and restored when it goes 1→0 — so the original builder is preserved across the entire lifetime of the outermost boundary, not stomped each time a new boundary mounts.
-                    </p>
-                  </div>
-                  <h4 class="api-group-title">Constructors</h4>
-                  <div class="api-members">
-                    <div id="_ErrorBoundaryHost.new" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">const _ErrorBoundaryHost.new({required Widget child})</code></div>
-                    </div>
-                  </div>
-                  <h4 class="api-group-title">Properties</h4>
-                  <div class="api-members">
-                    <div id="_ErrorBoundaryHost.child" class="api-member"><div class="api-member-head"><code class="api-signature">final Widget child</code></div></div>
-                  </div>
-                  <h4 class="api-group-title">Methods</h4>
-                  <div class="api-members">
-                    <div id="_ErrorBoundaryHost.createState" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">State&lt;_ErrorBoundaryHost&gt; createState()</code>
-                        <span class="api-badge api-badge--override">override</span>
-                      </div>
-                    </div>
-                  </div>
-                </section>
-                <section id="_ErrorBoundaryHostState" class="api-declaration">
-                  <h3 class="api-decl-title">class _ErrorBoundaryHostState</h3>
-                  <code class="api-signature">class _ErrorBoundaryHostState extends State&lt;_ErrorBoundaryHost&gt;</code>
-                  <h4 class="api-group-title">Constructors</h4>
-                  <div class="api-members">
-                    <div id="_ErrorBoundaryHostState.new" class="api-member"><div class="api-member-head"><code class="api-signature">_ErrorBoundaryHostState.new()</code></div></div>
-                  </div>
-                  <h4 class="api-group-title">Methods</h4>
-                  <div class="api-members">
-                    <div id="_ErrorBoundaryHostState.initState" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">void initState()</code>
-                        <span class="api-badge api-badge--override">override</span>
-                      </div>
-                    </div>
-                    <div id="_ErrorBoundaryHostState.dispose" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">void dispose()</code>
-                        <span class="api-badge api-badge--override">override</span>
-                      </div>
-                    </div>
-                    <div id="_ErrorBoundaryHostState.build" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">Widget build(BuildContext context)</code>
-                        <span class="api-badge api-badge--override">override</span>
-                      </div>
-                    </div>
-                  </div>
-                </section>
                 <section id="_ErrorReporter" class="api-declaration">
                   <h3 class="api-decl-title">class _ErrorReporter</h3>
                   <code class="api-signature">class _ErrorReporter extends StatefulWidget</code>
                   <div class="api-doc">
+                    <p>Replaces the throwing widget at the failing slot, and decides whose error it is.</p>
                     <p>
-                      Replaces the throwing widget at the failing slot. On mount it finds the nearest [_TomErrorBoundaryState] ancestor and forwards the captured [FlutterErrorDetails] — the boundary then schedules a post-frame setState to swap in its fallback UI.
+                      The hook returns a widget rather than calling a boundary directly, and that indirection is what makes nested boundaries correct. [ErrorWidget.builder] is global: with boundaries A and B both mounted, one of them owns the slot, and a hook that called its owner would route A's error to B. Per-row containment in a list of dozens of boundaries would be impossible. Because this widget is built 
+                      <em>in the failing subtree</em>, it can walk up to the nearest enclosing boundary, and mount order stops mattering.
                     </p>
                     <p>
-                      Stays as a zero-size placeholder until the boundary rebuilds and replaces the entire boundary subtree with the fallback widget; the placeholder never appears in the tree once that happens.
+                      Inside a boundary, it forwards the captured [FlutterErrorDetails] to the nearest enclosing one — which then schedules a post-frame setState to swap in its fallback UI — and stays a zero-size placeholder until that happens.
+                    </p>
+                    <p>
+                      <strong>Outside every boundary, it renders what the error would have rendered had no boundary been mounted</strong>: the builder [_GlobalHook] saved, which is Flutter's red box in debug and whatever the application installed in release. The global slot has one occupant, so the boundary that took it also receives errors it has no business handling; returning a blank for those would make mounting a single boundary anywhere — one row of one list — silently disable error reporting for the whole process.
+                    </p>
+                    <p>
+                      That is why the ancestor lookup happens in [build] rather than in a post-frame callback. Whose error it is has to be answered 
+                      <em>while the failing slot is being built</em>, because the answer decides what that slot renders. Only the boundary's 
+                      <code>setState</code> still has to wait for the frame to finish, and only when there is a boundary to call it on.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1605,16 +1583,78 @@
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
-                    <div id="_ErrorReporterState.initState" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">void initState()</code>
-                        <span class="api-badge api-badge--override">override</span>
-                      </div>
-                    </div>
                     <div id="_ErrorReporterState.build" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">Widget build(BuildContext context)</code>
                         <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="_GlobalHook" class="api-declaration">
+                  <h3 class="api-decl-title">class _GlobalHook</h3>
+                  <code class="api-signature">class _GlobalHook</code>
+                  <div class="api-doc">
+                    <p>The process-wide state behind [ErrorWidget.builder], in one place that can be put back.</p>
+                    <p>
+                      It is process-wide because the slot it manages is: there is one [ErrorWidget.builder] per isolate, and the count is what lets several boundaries share it without the second one stomping what the first found.
+                    </p>
+                    <p>
+                      Holding it as two bare library variables made it unrecoverable. A boundary whose <code>dispose</code>
+                       never runs — a test that tears down its binding, say — pins the count above zero for the rest of the process, so the slot is never handed back and everything that runs afterwards inherits a hook belonging to a widget that no longer exists. That is the failure that shows up somewhere else entirely, and there was no way back from it.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="_GlobalHook._" class="api-member"><div class="api-member-head"><code class="api-signature">_GlobalHook._()</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="_GlobalHook._active" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static int _active</code></div>
+                      <div class="api-doc"><p>Mounted boundaries. The hook is installed on 0→1 and released on 1→0.</p></div>
+                    </div>
+                    <div id="_GlobalHook._run" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static int _run</code></div>
+                      <div class="api-doc">
+                        <p>Which run of the hook [_active] is counting.</p>
+                        <p>
+                          Bumped by [reset], so shares taken out before it can be recognised and ignored when they are handed back.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="_GlobalHook._saved" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Widget Function(FlutterErrorDetails)?? _saved</code></div>
+                      <div class="api-doc">
+                        <p>What held the slot before the first boundary took it.</p>
+                        <p>
+                          Non-null exactly while [_active] is above zero — set on the way up, cleared on the way down. [_ErrorReporter] reads it for every error raised outside all boundaries.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="_GlobalHook.saved" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Widget Function(FlutterErrorDetails)?? saved</code></div>
+                    </div>
+                    <div id="_GlobalHook.acquire" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static int acquire()</code></div>
+                      <div class="api-doc"><p>Takes a share of the hook, and returns the run it belongs to.</p></div>
+                    </div>
+                    <div id="_GlobalHook.release" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static void release(int run)</code></div>
+                      <div class="api-doc">
+                        <p>Hands back a share taken out in [run].</p>
+                        <p>
+                          A share from an earlier run was written off by the [reset] that ended it, so returning it would take the slot away from whoever holds it now.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="_GlobalHook.reset" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static void reset()</code></div>
+                      <div class="api-doc">
+                        <p>Puts the slot back and forgets every mounted boundary.</p>
+                        <p>
+                          For a test that cannot rely on <code>dispose</code> having run — the count is process-wide, so one leak would otherwise be inherited by every test after it in the same process.
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -1628,19 +1668,119 @@
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="_TomErrorBoundaryState._captured" class="api-member"><div class="api-member-head"><code class="api-signature">FlutterErrorDetails? _captured</code></div></div>
+                    <div id="_TomErrorBoundaryState._hookRun" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final int _hookRun</code></div>
+                      <div class="api-doc">
+                        <p>The hook is owned by the <strong>boundary</strong>, for its whole lifetime.</p>
+                        <p>
+                          The tempting alternative — owning it on a host widget the boundary renders only while it has caught nothing — makes a boundary stop guarding the moment it captures: the capture unmounts the host, drops the count, and, if this is the last boundary, puts the previous builder back. What it stops guarding includes its own 
+                          <code>fallbackBuilder</code>, which is caller code and can throw. In a list of guarded rows the count would fall with each row that failed, and when the last healthy row failed the order of the remaining captures would decide whether the final error was caught or dropped.
+                        </p>
+                        <p>
+                          Tying the install and the release to the boundary being in the tree is what "this subtree is guarded" means. Which run of the global hook this boundary's share belongs to.
+                        </p>
+                        <p>
+                          A reset starts a new run, so a boundary that acquired before it releases nothing: its share was already written off. Without this, a leaked boundary disposing later would decrement a count it no longer has a claim on, and hand back the slot from under whichever boundary holds it now.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="_TomErrorBoundaryState._stage" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">_Stage _stage</code></div>
+                      <div class="api-doc">
+                        <p>How far this boundary has had to fall back for the error it holds.</p>
+                        <p>
+                          It only moves forward until [_retry], and each step is taken on an error raised by the step before it, so a failure can advance it at most three times and the boundary settles in bounded time whatever the caller's code does.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="_TomErrorBoundaryState._captured" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">FlutterErrorDetails? _captured</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The error the child raised — what every fallback reports, even when the fallback itself failed later, because it is the one the user's action ran into.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="_TomErrorBoundaryState._outward" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">FlutterErrorDetails? _outward</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The error that took the boundary to [_Stage.outward]: the default card's own failure, handed to the builder the boundary found installed.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
+                    <div id="_TomErrorBoundaryState.initState" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">void initState()</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="_TomErrorBoundaryState.dispose" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">void dispose()</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
                     <div id="_TomErrorBoundaryState._retry" class="api-member"><div class="api-member-head"><code class="api-signature">void _retry()</code></div></div>
                     <div id="_TomErrorBoundaryState._captureError" class="api-member">
                       <div class="api-member-head"><code class="api-signature">void _captureError(FlutterErrorDetails details)</code></div>
+                      <div class="api-doc">
+                        <p>Takes an error raised under this boundary and moves to the next stage.</p>
+                        <p>The stage the error came from decides where it goes:</p>
+                        <ul><li>from the child — show the caller's <code>fallbackBuilder</code>, or the default</li></ul>
+                        <p>
+                          card when there is none; <em> from the caller's <code>fallbackBuilder</code> — show the default card, with the child's </em>
+                          original<em> error. A fallback that throws is a bug in caller code, but the user still needs to be told the first thing went wrong; 
+                          </em> from the default card — hand the card's error to the builder that was installed before any boundary, as though this one were not there. There is no default left to fall back to.
+                        </p>
+                      </div>
                     </div>
                     <div id="_TomErrorBoundaryState.build" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">Widget build(BuildContext context)</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="_Stage" class="api-declaration">
+                  <h3 class="api-decl-title">enum _Stage</h3>
+                  <code class="api-signature">enum _Stage</code>
+                  <div class="api-doc"><p>Where a [TomErrorBoundary] is in handling the error it caught.</p></div>
+                  <h4 class="api-group-title">Values</h4>
+                  <div class="api-members">
+                    <div id="_Stage.child" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">child</code></div>
+                      <div class="api-doc"><p>Nothing caught; the child is shown.</p></div>
+                    </div>
+                    <div id="_Stage.custom" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">custom</code></div>
+                      <div class="api-doc"><p>The child failed; the caller's <code>fallbackBuilder</code> is shown.</p></div>
+                    </div>
+                    <div id="_Stage.fallback" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">fallback</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The child failed and either there is no <code>fallbackBuilder</code> or it failed too; the default card is shown.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="_Stage.outward" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">outward</code></div>
+                      <div class="api-doc"><p>The default card failed as well; the error goes to the builder installed before any boundary.</p></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="_Stage.new" class="api-member"><div class="api-member-head"><code class="api-signature">const _Stage.new()</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="_Stage.values" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static List&lt;_Stage&gt; values</code></div>
                     </div>
                   </div>
                 </section>

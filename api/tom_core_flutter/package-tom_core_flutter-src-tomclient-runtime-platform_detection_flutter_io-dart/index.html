@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1393,12 +1399,15 @@
                 <code class="api-import">import 'package:tom_core_flutter/src/tomclient/runtime/platform_detection_flutter_io.dart';</code>
                 <section id="TomFlutterPlatformUtils" class="api-declaration">
                   <h3 class="api-decl-title">class TomFlutterPlatformUtils</h3>
-                  <code class="api-signature">class TomFlutterPlatformUtils extends TomFallbackPlatformUtils</code>
+                  <code class="api-signature">class TomFlutterPlatformUtils extends TomFlutterPlatformUtilsBase</code>
                   <div class="api-doc">
                     <p>Native (<code>dart:io</code>) [TomPlatformUtils] for desktop and mobile targets.</p>
                     <p>
-                      Imports the process environment into the kernel's env vars at construction, reports platform predicates from Flutter's [defaultTargetPlatform]/[kIsWeb], and provides an [IOClient] (permissive certificate handling for localhost only). Selected by the conditional import in 
+                      Imports the process environment into [getTomEnvVars] at construction, and provides an [IOClient] whose certificate handling is [TomBadCertificatePolicy] — permissive for the loopback hosts it names and refusing for everything else. Selected by the conditional import in 
                       <code>platform_detection_client.dart</code>.
+                    </p>
+                    <p>
+                      The platform predicates are [TomFlutterPlatformUtilsBase]'s — all three variants answer them identically, from the same two Flutter symbols.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1407,88 +1416,42 @@
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
-                    <div id="TomFlutterPlatformUtils.isDesktop" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">bool isDesktop()</code>
-                        <span class="api-badge api-badge--override">override</span>
-                      </div>
-                    </div>
-                    <div id="TomFlutterPlatformUtils.isMobile" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">bool isMobile()</code>
-                        <span class="api-badge api-badge--override">override</span>
-                      </div>
-                    </div>
-                    <div id="TomFlutterPlatformUtils.isWeb" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">bool isWeb()</code>
-                        <span class="api-badge api-badge--override">override</span>
-                      </div>
-                    </div>
-                    <div id="TomFlutterPlatformUtils.isFuchsia" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">bool isFuchsia()</code>
-                        <span class="api-badge api-badge--override">override</span>
-                      </div>
-                    </div>
-                    <div id="TomFlutterPlatformUtils.isWindows" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">bool isWindows()</code>
-                        <span class="api-badge api-badge--override">override</span>
-                      </div>
-                    </div>
-                    <div id="TomFlutterPlatformUtils.isLinux" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">bool isLinux()</code>
-                        <span class="api-badge api-badge--override">override</span>
-                      </div>
-                    </div>
-                    <div id="TomFlutterPlatformUtils.isMacOs" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">bool isMacOs()</code>
-                        <span class="api-badge api-badge--override">override</span>
-                      </div>
-                    </div>
-                    <div id="TomFlutterPlatformUtils.isAndroid" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">bool isAndroid()</code>
-                        <span class="api-badge api-badge--override">override</span>
-                      </div>
-                    </div>
-                    <div id="TomFlutterPlatformUtils.isIos" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">bool isIos()</code>
-                        <span class="api-badge api-badge--override">override</span>
-                      </div>
-                    </div>
-                    <div id="TomFlutterPlatformUtils.out" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">void out(String s)</code>
-                        <span class="api-badge api-badge--override">override</span>
-                      </div>
-                    </div>
-                    <div id="TomFlutterPlatformUtils.outError" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">void outError(String s)</code>
-                        <span class="api-badge api-badge--override">override</span>
-                      </div>
-                    </div>
                     <div id="TomFlutterPlatformUtils.httpClient" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">Client httpClient()</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
-                    </div>
-                    <div id="TomFlutterPlatformUtils.getBrowserLocation" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">String? getBrowserLocation()</code>
-                        <span class="api-badge api-badge--override">override</span>
+                      <div class="api-doc">
+                        <p>An [IOClient] over <code>dart:io</code>'s [HttpClient], on <strong>every</strong> native target.</p>
+                        <p>
+                          <strong>One client for all of them, deliberately.</strong> Apple targets could have <code>cupertino_http</code>'s 
+                          <code>CupertinoClient</code>, which is backed by <code>URLSession</code> and brings the system proxy configuration, the platform certificate store and background transfers with it. That was considered and declined: it is a dependency carrying a native plugin, and a second HTTP path that no Linux or Windows host can exercise — bought for a benefit no consumer of this framework currently needs, since none ships to iOS or macOS.
+                        </p>
+                        <p>
+                          If an Apple target appears, the shape to add is a runtime branch on [defaultTargetPlatform] <em>here</em>, inside this variant. Not a fourth compile-time variant: 
+                          <code>dart:io</code> is available on iOS and macOS, so the conditional import that selects between native, web and neutral cannot separate an Apple target from any other native one.
+                        </p>
+                        <p>The certificate policy is [TomBadCertificatePolicy], read per handshake.</p>
                       </div>
                     </div>
                     <div id="TomFlutterPlatformUtils.getIsolateName" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">String getIsolateName()</code>
                         <span class="api-badge api-badge--override">override</span>
+                      </div>
+                      <div class="api-doc">
+                        <p>This isolate's <code>debugName</code>, or <code>"main"</code> when it reports none.</p>
+                        <p>
+                          <strong>A label, not an identifier.</strong> Nothing makes it unique, and whether it discriminates depends on who spawned the isolate and how:
+                        </p>
+                        <ul><li>The root isolate's <code>debugName</code> is already <code>"main"</code>, so the fallback</li></ul>
+                        <p>
+                          coincides with it rather than colliding with it. The <code>??</code> is for a runtime that reports none. - 
+                          <code>Isolate.spawn</code> defaults <code>debugName</code> to the <strong>entry point's function name</strong>, so several isolates spawned from 
+                          <em>one</em> entry point all answer the same thing — which is exactly the worker-pool shape, and exactly when a reader most wants to tell two lines apart. - An explicit 
+                          <code>debugName</code> is the remedy, and the framework's own <code>TomWorkerPool</code> passes one — every worker it spawns gets a numbered name, so framework concurrency is already distinguishable.
+                        </p>
+                        <p>The other two variants answer a constant, so on those targets the name never discriminates at all.</p>
                       </div>
                     </div>
                     <div id="TomFlutterPlatformUtils.toString" class="api-member">

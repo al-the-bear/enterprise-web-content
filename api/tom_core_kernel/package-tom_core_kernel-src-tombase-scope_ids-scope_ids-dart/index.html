@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1387,18 +1393,22 @@
             <div class="treewrap">
               <div class="treepane">
                 <div class="treenodes">
-                  <a class="leaf" href="#InScopeBuilder">InScopeBuilder</a>
+                  <a class="leaf" href="#ScopeCapture">ScopeCapture</a>
                   <a class="leaf" href="#TomScope">TomScope</a>
                   <a class="leaf" href="#TomScopeBase">TomScopeBase</a>
+                  <a class="leaf" href="#TomScopeException">TomScopeException</a>
                   <a class="leaf" href="#TomScopeMixin">TomScopeMixin</a>
+                  <a class="leaf" href="#_requireScopeIdentity">_requireScopeIdentity</a>
+                  <a class="leaf" href="#_requireUsableScopeId">_requireUsableScopeId</a>
+                  <a class="leaf" href="#_runScoped">_runScoped</a>
                 </div>
               </div>
               <div class="reader">
                 <h2 class="api-library-title">package:tom_core_kernel/src/tombase/scope_ids/scope_ids.dart</h2>
                 <code class="api-import">import 'package:tom_core_kernel/src/tombase/scope_ids/scope_ids.dart';</code>
-                <section id="InScopeBuilder" class="api-declaration">
-                  <h3 class="api-decl-title">class InScopeBuilder</h3>
-                  <code class="api-signature">class InScopeBuilder</code>
+                <section id="ScopeCapture" class="api-declaration">
+                  <h3 class="api-decl-title">class ScopeCapture</h3>
+                  <code class="api-signature">class ScopeCapture</code>
                   <div class="api-doc">
                     <p>
                       Captures a [TomScope] at construction time and wraps callback functions so they execute within that scope when called later.
@@ -1410,92 +1420,105 @@
                     <pre><code>class TomFoo extends TomNodeBase {
   final WidgetBuilder _builder;
   TomFoo({required WidgetBuilder builder, super.scope})
-      : _builder = InScopeBuilder(scope: scope).wrap1(builder);
+      : _builder = ScopeCapture(scope: scope).wrap1(builder);
 }</code></pre>
+                    <h2>Why a family of fixed arities</h2>
+                    <p>
+                      [run] is the whole mechanism; <code>wrap0</code>…<code>wrap5</code> and their nullable <code>…n</code>
+                       twins are sugar for the positional shapes that recur. The family is written out by hand because Dart has no variadic generics: no single method can accept "a function of any signature" and return one of the 
+                      <em>same</em> signature with its static types intact. <code>Function.apply</code> would accept the function, but the result is untyped, and every call site would lose the compiler's checking of the callback it passed.
+                    </p>
+                    <p>
+                      Anything else — a sixth argument, or named parameters like Flutter's <code>InputCounterWidgetBuilder</code>
+                       — is a closure of the target type around [run]:
+                    </p>
+                    <pre><code>final capture = ScopeCapture(scope: scope);
+final InputCounterWidgetBuilder counter =
+    (context, {required currentLength, required maxLength,
+        required isFocused}) =&gt;
+        capture.run(() =&gt; build(context, currentLength: currentLength,
+            maxLength: maxLength, isFocused: isFocused));</code></pre>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
-                    <div id="InScopeBuilder.new" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">InScopeBuilder.new({TomScope? scope})</code></div>
+                    <div id="ScopeCapture.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">ScopeCapture.new({TomScope? scope})</code></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="InScopeBuilder._scope" class="api-member"><div class="api-member-head"><code class="api-signature">final TomScope _scope</code></div></div>
+                    <div id="ScopeCapture._scope" class="api-member"><div class="api-member-head"><code class="api-signature">final TomScope _scope</code></div></div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
-                    <div id="InScopeBuilder.wrap0" class="api-member">
+                    <div id="ScopeCapture.run" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">R run&lt;R&gt;(R Function() body)</code></div>
+                      <div class="api-doc">
+                        <p>Runs [body] in the captured scope and returns its result.</p>
+                        <p>
+                          The general form every <code>wrapN</code> builds on: wrap a callback of any shape by forwarding its arguments inside [body]. Throws [TomScopeException] — without running [body] — when the captured scope is a [TomScopeMixin] whose [TomScopeMixin.initScope] never ran.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="ScopeCapture.wrap0" class="api-member">
                       <div class="api-member-head"><code class="api-signature">R Function() wrap0&lt;R&gt;(R Function() fn)</code></div>
                       <div class="api-doc"><p>Wraps a 0-argument callback.</p></div>
                     </div>
-                    <div id="InScopeBuilder.wrap1" class="api-member">
+                    <div id="ScopeCapture.wrap1" class="api-member">
                       <div class="api-member-head"><code class="api-signature">R Function(A) wrap1&lt;R, A&gt;(R Function(A) fn)</code></div>
                       <div class="api-doc"><p>Wraps a 1-argument callback.</p></div>
                     </div>
-                    <div id="InScopeBuilder.wrap2" class="api-member">
+                    <div id="ScopeCapture.wrap2" class="api-member">
                       <div class="api-member-head"><code class="api-signature">R Function(A, B) wrap2&lt;R, A, B&gt;(R Function(A, B) fn)</code></div>
                       <div class="api-doc"><p>Wraps a 2-argument callback.</p></div>
                     </div>
-                    <div id="InScopeBuilder.wrap3" class="api-member">
+                    <div id="ScopeCapture.wrap3" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">R Function(A, B, C) wrap3&lt;R, A, B, C&gt;(R Function(A, B, C) fn)</code>
                       </div>
                       <div class="api-doc"><p>Wraps a 3-argument callback.</p></div>
                     </div>
-                    <div id="InScopeBuilder.wrap4" class="api-member">
+                    <div id="ScopeCapture.wrap4" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">R Function(A, B, C, D) wrap4&lt;R, A, B, C, D&gt;(R Function(A, B, C, D) fn)</code>
                       </div>
                       <div class="api-doc"><p>Wraps a 4-argument callback.</p></div>
                     </div>
-                    <div id="InScopeBuilder.wrap5" class="api-member">
+                    <div id="ScopeCapture.wrap5" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">R Function(A, B, C, D, E) wrap5&lt;R, A, B, C, D, E&gt;(R Function(A, B, C, D, E) fn)</code>
                       </div>
                       <div class="api-doc"><p>Wraps a 5-argument callback.</p></div>
                     </div>
-                    <div id="InScopeBuilder.wrap0n" class="api-member">
+                    <div id="ScopeCapture.wrap0n" class="api-member">
                       <div class="api-member-head"><code class="api-signature">R Function()?? wrap0n&lt;R&gt;(R Function()?? fn)</code></div>
                       <div class="api-doc"><p>Wraps a nullable 0-argument callback. Returns null if [fn] is null.</p></div>
                     </div>
-                    <div id="InScopeBuilder.wrap1n" class="api-member">
+                    <div id="ScopeCapture.wrap1n" class="api-member">
                       <div class="api-member-head"><code class="api-signature">R Function(A)?? wrap1n&lt;R, A&gt;(R Function(A)?? fn)</code></div>
                       <div class="api-doc"><p>Wraps a nullable 1-argument callback. Returns null if [fn] is null.</p></div>
                     </div>
-                    <div id="InScopeBuilder.wrap2n" class="api-member">
+                    <div id="ScopeCapture.wrap2n" class="api-member">
                       <div class="api-member-head"><code class="api-signature">R Function(A, B)?? wrap2n&lt;R, A, B&gt;(R Function(A, B)?? fn)</code></div>
                       <div class="api-doc"><p>Wraps a nullable 2-argument callback. Returns null if [fn] is null.</p></div>
                     </div>
-                    <div id="InScopeBuilder.wrap3n" class="api-member">
+                    <div id="ScopeCapture.wrap3n" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">R Function(A, B, C)?? wrap3n&lt;R, A, B, C&gt;(R Function(A, B, C)?? fn)</code>
                       </div>
                       <div class="api-doc"><p>Wraps a nullable 3-argument callback. Returns null if [fn] is null.</p></div>
                     </div>
-                    <div id="InScopeBuilder.wrap4n" class="api-member">
+                    <div id="ScopeCapture.wrap4n" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">R Function(A, B, C, D)?? wrap4n&lt;R, A, B, C, D&gt;(R Function(A, B, C, D)?? fn)</code>
                       </div>
                       <div class="api-doc"><p>Wraps a nullable 4-argument callback. Returns null if [fn] is null.</p></div>
                     </div>
-                    <div id="InScopeBuilder.wrap5n" class="api-member">
+                    <div id="ScopeCapture.wrap5n" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">R Function(A, B, C, D, E)?? wrap5n&lt;R, A, B, C, D, E&gt;(R Function(A, B, C, D, E)?? fn)</code>
                       </div>
                       <div class="api-doc"><p>Wraps a nullable 5-argument callback. Returns null if [fn] is null.</p></div>
-                    </div>
-                    <div id="InScopeBuilder.wrapCounter" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">
-                          R Function(A, {required B currentLength, required D isFocused, required C maxLength}) wrapCounter&lt;R, A, B, C, D&gt;(R Function(A, {required B currentLength, required D isFocused, required C maxLength}) fn)
-                        </code>
-                      </div>
-                      <div class="api-doc">
-                        <p>
-                          Wraps a callback with one positional and named parameters. Use for Flutter's [InputCounterWidgetBuilder] and similar typedefs that use named parameters.
-                        </p>
-                      </div>
                     </div>
                   </div>
                 </section>
@@ -1539,18 +1562,52 @@
                   <div class="api-members">
                     <div id="TomScope.defaultScope" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static TomScope defaultScope</code></div>
-                      <div class="api-doc"><p>The root scope used when no scope is installed on the current zone.</p></div>
+                      <div class="api-doc">
+                        <p>The root scope used when no scope is installed on the current zone.</p>
+                        <p>
+                          Immutable by design: it is the root of every scope path, so reassigning it at runtime would change resource resolution for the whole process. Use [withScope] or [runInScope] instead — they install a scope on a child zone, so the change reaches that body and the callbacks it schedules, never the caller or the rest of the process.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomScope.current" class="api-member"><div class="api-member-head"><code class="api-signature">static TomScope current</code></div></div>
                     <div id="TomScope.withScope" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static T withScope&lt;T&gt;(String scope, T Function() body)</code></div>
-                      <div class="api-doc"><p>Runs [body] in a new child scope named [scope], parented to [current].</p></div>
+                      <div class="api-doc">
+                        <p>Runs [body] in a new child scope named [scope], parented to [current].</p>
+                        <p>
+                          Every call builds a new scope, so a name never recognises itself: <code>withScope('app', () =&gt; withScope('app', ...))</code>
+                           nests a second <code>app</code> and resolves to <code>app.app</code>. Two nested bodies that each asked for a scope named 
+                          <code>app</code> are two namespaces, and merging them by name would hand the inner one the outer one's keys — a tree node whose key equals its parent's would share its parent's resources. The identity short-circuit belongs to [runInScope], which is given an instance it can recognise; code that may be nested inside itself should hold its scope and install it with [runInScope].
+                        </p>
+                        <p>
+                          The scope rides on a child [Zone], which bounds <em>reachability</em>, not lifetime. The caller's own continuation after this call never sees the scope — but anything [body] schedules (a 
+                          <code>Future</code>, <code>Timer</code> or stream subscription) inherits the zone and observes the scope whenever it later runs. A fire-and-forget 
+                          <code>Future</code> started here therefore keeps this scope for its entire life, however long that outlasts [body].
+                        </p>
+                        <p>
+                          Zone inheritance covers callbacks the async machinery schedules; it does not cover a closure that is merely 
+                          <em>stored</em> here and invoked directly by someone else later, which runs in the invoker's scope. Wrap those with [ScopeCapture].
+                        </p>
+                      </div>
                     </div>
                     <div id="TomScope.buildScopePath" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static String buildScopePath(TomScope scope)</code></div>
                       <div class="api-doc">
                         <p>
                           Builds the scope path for any TomScope instance. Returns a dot-separated string (e.g., "app.checkout.orderForm").
+                        </p>
+                        <p>
+                          <strong>The parent chain must be acyclic.</strong> The walk is iterative and unguarded, so a loop does not raise 
+                          <code>StackOverflowError</code> — it spins silently, appending segments until the heap is exhausted and the isolate dies. In a server that is the whole process.
+                        </p>
+                        <p>
+                          No guard is needed for scopes this module builds, because none of them can form a loop: [withScope] and the [TomScopeBase] constructor take a parent that already exists, and [TomScopeMixin.initScope] refuses one that is not yet initialised and then writes the link once. Every parent is therefore strictly older than its child, and a chain that only ever moves backwards in time cannot return to where it started.
+                        </p>
+                        <p>
+                          The requirement binds anything that implements [TomScope] by hand: such a type supplies its own [parent], outside that argument and outside any check this module can make.
+                        </p>
+                        <p>
+                          The path is rebuilt on every call; nothing is cached. The walk is linear in the depth and costs a fraction of a microsecond at the depths scopes reach in practice — more than the map lookup a caller then does with the result, but small beside anything a lookup is done for. Rebuilding is also what keeps the answer right for every [TomScope]: a scope that mixes in [TomScopeMixin] has a write-once identity, but this method accepts any implementation, including one whose [id] or [parent] is computed, and a cached path would outlive a change to either.
                         </p>
                       </div>
                     </div>
@@ -1569,19 +1626,50 @@
                     </div>
                   </div>
                 </section>
+                <section id="TomScopeException" class="api-declaration">
+                  <h3 class="api-decl-title">class TomScopeException</h3>
+                  <code class="api-signature">class TomScopeException extends TomException</code>
+                  <div class="api-doc">
+                    <p>Raised when a scope cannot be built or used as one.</p>
+                    <p>
+                      Keys are <code>scope_ids.&lt;operation&gt;.&lt;condition&gt;</code>: <code>scope_ids.init_scope.empty_id</code>, 
+                      <code>scope_ids.init_scope.separator_in_id</code>, <code>scope_ids.init_scope.already_initialised</code>
+                       and <code>scope_ids.use_scope.no_identity</code>.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomScopeException.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          TomScopeException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, StackTrace? stack, Object? rootException, bool autoLog = false, String? uuid, TomServerCallError? serverCallError})
+                        </code>
+                      </div>
+                    </div>
+                  </div>
+                </section>
                 <section id="TomScopeMixin" class="api-declaration">
                   <h3 class="api-decl-title">mixin TomScopeMixin</h3>
                   <code class="api-signature">mixin TomScopeMixin on Object implements TomScope</code>
                   <div class="api-doc">
                     <p>Reusable [TomScope] implementation backing [TomScopeBase].</p>
                     <p>
-                      Mix into a class and call [initScope] once during construction to set the scope's identity. The backing fields are write-once.
+                      Mix into a class and call [initScope] exactly once to set the scope's identity — usually from the constructor. The backing fields are write-once, and [initScope] is the only thing that writes them.
                     </p>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
                     <div id="TomScopeMixin._id" class="api-member"><div class="api-member-head"><code class="api-signature">final String _id</code></div></div>
                     <div id="TomScopeMixin._parent" class="api-member"><div class="api-member-head"><code class="api-signature">final TomScope? _parent</code></div></div>
+                    <div id="TomScopeMixin._hasIdentity" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool _hasIdentity</code></div>
+                      <div class="api-doc">
+                        <p>Whether [initScope] has run.</p>
+                        <p>
+                          Tracked separately because Dart offers no way to ask a <code>late</code> field whether it has been written — reading it to find out throws, and writing it twice throws, and both errors name a VM-mangled private field rather than the scope or the call that was wrong. This flag is what lets the module refuse both mistakes in its own words.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomScopeMixin.id" class="api-member"><div class="api-member-head"><code class="api-signature">String id</code></div></div>
                     <div id="TomScopeMixin.parent" class="api-member"><div class="api-member-head"><code class="api-signature">TomScope? parent</code></div></div>
                   </div>
@@ -1589,7 +1677,25 @@
                   <div class="api-members">
                     <div id="TomScopeMixin.initScope" class="api-member">
                       <div class="api-member-head"><code class="api-signature">void initScope({required String scopeId, TomScope? parentScope})</code></div>
-                      <div class="api-doc"><p>Initialises this scope's identity. Call exactly once during construction.</p></div>
+                      <div class="api-doc">
+                        <p>Initialises this scope's identity.</p>
+                        <p>
+                          The single write-once entry point: call it exactly once, from the constructor or — for a scope whose parent is only known later — on the constructed instance. [TomScopeBase] and [TomScope.withScope] both route here, so the checks below hold for every scope the module builds.
+                        </p>
+                        <p>
+                          [scopeId] must be non-empty and must not contain <code>.</code>, because ids are joined with <code>.</code>
+                           to form the scope path. Both are refused with a [TomScopeException]: an id that carries the separator forges a segment boundary, so the scope renders as a path belonging to a different, deeper chain — and the path is what resource and authorization lookups are keyed on. Ids written as literals in source can never trip this; ids derived from data are exactly what the check is for.
+                        </p>
+                        <p>
+                          [parentScope] must already have an identity of its own. Checking it here rather than when the path is built is what keeps the check O(1): an initialised scope then has a fully initialised chain by induction, since the identity is write-once and a parent cannot lose one later.
+                        </p>
+                        <p>
+                          The same rule is also what keeps the chain <strong>acyclic</strong>, which [TomScope.buildScopePath] relies on and does not verify. Requiring the parent to be initialised already makes it strictly older than its child, and writing the link once means it stays that way — so following parents always moves backwards in time and can never arrive back at where it started. Closing a loop would need this call to accept a scope that is not yet initialised, or to run a second time on a scope that already is; neither is allowed.
+                        </p>
+                        <p>
+                          A second call is refused with <code>scope_ids.init_scope.already_initialised</code>, naming the class, the id the scope already has and the one the call tried to give it — even when the two agree, since a scope whose identity two callers both write has two owners. An unusable [scopeId] is reported first: it is the mistake that survives fixing the double call.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomScopeMixin.getScopePath" class="api-member">
                       <div class="api-member-head">
@@ -1603,6 +1709,50 @@
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
+                  </div>
+                </section>
+                <section id="_requireScopeIdentity" class="api-declaration">
+                  <h3 class="api-decl-title">function _requireScopeIdentity</h3>
+                  <code class="api-signature">void _requireScopeIdentity(TomScope? scope, String attemptedAction)</code>
+                  <div class="api-doc">
+                    <p>
+                      Refuses a [TomScopeMixin] instance whose [TomScopeMixin.initScope] has never run, naming the class and the missing call.
+                    </p>
+                    <p>
+                      [attemptedAction] opens the message, so the reader learns what was refused before why. Anything that is not an uninitialised mixin passes: a hand-rolled 
+                      <code>implements TomScope</code> has no initialisation window this module knows about.
+                    </p>
+                    <p>
+                      Without this, a half-built instance installs silently and the failure surfaces at whichever later call first asks for a path — a resource lookup or an authorization check, on a stack that mentions neither scopes nor the constructor that skipped [TomScopeMixin.initScope].
+                    </p>
+                  </div>
+                </section>
+                <section id="_requireUsableScopeId" class="api-declaration">
+                  <h3 class="api-decl-title">function _requireUsableScopeId</h3>
+                  <code class="api-signature">void _requireUsableScopeId(String scopeId)</code>
+                  <div class="api-doc">
+                    <p>Refuses a scope id that cannot survive being joined into a path.</p>
+                    <p>
+                      The path is this module's entire output — a prefix for resource and authorization lookups — and it is built by joining ids with [_scopePathSeparator]. An id containing the separator therefore forges a segment boundary: 
+                      <code>'a.b'</code> under no parent renders exactly as the unrelated chain <code>'a'</code> → <code>'b'</code>, so a scope named from data (a tenant, a row key, a user-supplied label) can name another scope's resources. An empty id is the same defect seen from the other end — it renders as a bare 
+                      <code>''</code> at the root, which consumers are told to read as "no scope at all", or as a doubled separator further down.
+                    </p>
+                    <p>Checked once per scope, at the only place an id is ever accepted, rather than on every path build.</p>
+                  </div>
+                </section>
+                <section id="_runScoped" class="api-declaration">
+                  <h3 class="api-decl-title">function _runScoped</h3>
+                  <code class="api-signature">T _runScoped&lt;T&gt;(TomScope scope, T Function() body)</code>
+                  <div class="api-doc">
+                    <p>
+                      Shared scope-installation policy for [TomScope.withScope], [TomScope.runInScope] and [TomScopeMixin.runInScope].
+                    </p>
+                    <p>
+                      Every install goes through here, which is what makes the identity check below a property of the module rather than of one call site.
+                    </p>
+                    <p>
+                      If [scope] is already the current zone scope (identical reference), [body] runs directly without creating a new zone — this prevents duplicate scope nesting. Otherwise [body] runs in a child zone carrying [scope]. [TomScope.withScope] never takes the first branch: the scope it passes is one it has just built, so it nests on every call.
+                    </p>
                   </div>
                 </section>
               </div>

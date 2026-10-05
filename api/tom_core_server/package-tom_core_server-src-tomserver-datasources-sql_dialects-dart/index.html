@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1387,38 +1393,15 @@
             <div class="treewrap">
               <div class="treepane">
                 <div class="treenodes">
-                  <a class="leaf" href="#TomSqlDialect">TomSqlDialect</a>
                   <a class="leaf" href="#TomStandardSqlDialect">TomStandardSqlDialect</a>
+                  <a class="leaf" href="#TomAggregateFunction">TomAggregateFunction</a>
+                  <a class="leaf" href="#TomSqlTypeFamily">TomSqlTypeFamily</a>
                   <a class="leaf" href="#SqlString">SqlString</a>
                 </div>
               </div>
               <div class="reader">
                 <h2 class="api-library-title">package:tom_core_server/src/tomserver/datasources/sql_dialects.dart</h2>
                 <code class="api-import">import 'package:tom_core_server/src/tomserver/datasources/sql_dialects.dart';</code>
-                <section id="TomSqlDialect" class="api-declaration">
-                  <h3 class="api-decl-title">class TomSqlDialect</h3>
-                  <code class="api-signature">class TomSqlDialect</code>
-                  <div class="api-doc">
-                    <p>
-                      Annotation marking a [TomStandardSqlDialect] subclass as the dialect for a named [dataSourceType] (e.g. 
-                      <code>"mariadb"</code>). Used by reflection-based dialect discovery to pick the right dialect for a data source.
-                    </p>
-                  </div>
-                  <h4 class="api-group-title">Constructors</h4>
-                  <div class="api-members">
-                    <div id="TomSqlDialect.new" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">const TomSqlDialect.new(String dataSourceType)</code></div>
-                      <div class="api-doc"><p>Binds this dialect to [dataSourceType].</p></div>
-                    </div>
-                  </div>
-                  <h4 class="api-group-title">Properties</h4>
-                  <div class="api-members">
-                    <div id="TomSqlDialect.dataSourceType" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final String dataSourceType</code></div>
-                      <div class="api-doc"><p>The data-source type this dialect serves (matches a driver's <code>type</code>).</p></div>
-                    </div>
-                  </div>
-                </section>
                 <section id="TomStandardSqlDialect" class="api-declaration">
                   <h3 class="api-decl-title">class TomStandardSqlDialect</h3>
                   <code class="api-signature">class TomStandardSqlDialect</code>
@@ -1431,15 +1414,57 @@
                       <code>table.column</code>). The operators in the object-persistence query builder call back into the active dialect via [TomOperator.generate], so a driver can subclass this dialect to override any fragment for its database (see [MariadbSqlDialect]).
                     </p>
                     <p>
-                      The literal renderers interpolate values directly into the SQL string; for untrusted input prefer the parameterised form ([p]) so the driver binds the value. (Escaping of directly-interpolated literals is a tracked follow-up.)
+                      The literal renderers interpolate values directly into the SQL string; string literals are escaped ([text] doubles single quotes and backslashes) so an embedded quote cannot break out of the literal. For untrusted input still prefer the parameterised form ([p]) so the driver binds the value and nothing is embedded in the SQL text at all.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomStandardSqlDialect.new" class="api-member"><div class="api-member-head"><code class="api-signature">TomStandardSqlDialect.new()</code></div></div>
                   </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="TomStandardSqlDialect.likeEscapeCharacter" class="api-member"><div class="api-member-head"><code class="api-signature">String likeEscapeCharacter</code></div></div>
+                  </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
+                    <div id="TomStandardSqlDialect.typeFamily" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomSqlTypeFamily typeFamily(String sqlType)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Classifies a column type as written in DDL — <code>VARCHAR(255)</code>, <code>BIGINT UNSIGNED</code>, 
+                          <code>DECIMAL(10,2)</code> — into the family it stores.
+                        </p>
+                        <p>
+                          The base word decides; the parenthesised arguments and any trailing attributes are ignored, since no width or precision is expressible on the Dart side and so none can be compared. An unrecognised type yields [TomSqlTypeFamily.unknown] rather than a guess — the convergence check treats that as "no opinion" instead of reporting a divergence it cannot justify.
+                        </p>
+                        <p>
+                          A dialect with different type names overrides this and falls back to <code>super.typeFamily</code> for the standard ones (see [MariadbSqlDialect]).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomStandardSqlDialect.baseTypeName" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String baseTypeName(String sqlType)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The upper-cased leading word of a DDL type — <code>VARCHAR(255)</code> → <code>VARCHAR</code>, <code>DOUBLE PRECISION</code>
+                           → <code>DOUBLE</code>, `<code> </code>int<code> </code><code> → </code>INT`.
+                        </p>
+                        <p>Exposed so an overriding [typeFamily] can reuse the same normalisation instead of restating it.</p>
+                      </div>
+                    </div>
+                    <div id="TomStandardSqlDialect.typeArguments" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">List&lt;String&gt; typeArguments(String sqlType)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The comma-separated arguments of a DDL type's parenthesis, or an empty list when it has none — <code>VARCHAR(255)</code>
+                           → <code>['255']</code>, <code>DECIMAL(10, 2)</code> → <code>['10', '2']</code>.
+                        </p>
+                        <p>
+                          Exposed for the same reason as [baseTypeName]: a dialect whose type classification depends on the argument (<code>TINYINT(1)</code>
+                           is MariaDB's boolean) should not have to re-tokenise the type itself.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomStandardSqlDialect.isNull" class="api-member">
                       <div class="api-member-head"><code class="api-signature">String isNull&lt;T&gt;(TomOperator&lt;T&gt; what)</code></div>
                       <div class="api-doc"><p>Renders <code>&lt;what&gt; IS NULL</code>.</p></div>
@@ -1464,17 +1489,47 @@
                         </p>
                       </div>
                     </div>
+                    <div id="TomStandardSqlDialect.escapeLikePattern" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String escapeLikePattern(String literal)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Escapes [literal] so a <code>LIKE</code> pattern built from it matches those characters <em>literally</em>
+                           — <code>%</code>, <code>_</code> and [likeEscapeCharacter] itself.
+                        </p>
+                        <p>
+                          <code>LIKE</code> is the one predicate whose right-hand operand is a small language rather than a value, so a caller who means "contains the text the user typed" has to say so: 
+                          <code>WHERE note LIKE :p</code> with <code>p</code> bound to <code>%50%%</code> matches every note containing 
+                          <code>50</code> followed by anything, not the notes mentioning <code>50%</code>. Neither binding nor [text] can prevent that — both make the value 
+                          <em>safe</em>, and a wildcard in a pattern is not unsafe, it is the pattern working as specified.
+                        </p>
+                        <p>So the wildcards stay the caller's to place, and this escapes what is between them:</p>
+                        <pre><code>params['p'] = '%${dialect.escapeLikePattern(searchBox.text)}%';</code></pre>
+                        <p>
+                          The escape character is doubled first, or a pattern already containing one would consume the escape this adds.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomStandardSqlDialect.like" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">String like(TomOperator&lt;TomDbString&gt; text, TomOperator&lt;TomDbString&gt; test)</code>
                       </div>
-                      <div class="api-doc"><p>Renders <code>&lt;text&gt; LIKE &lt;test&gt;</code>.</p></div>
+                      <div class="api-doc">
+                        <p>Renders <code>&lt;text&gt; LIKE &lt;test&gt; ESCAPE '&lt;likeEscapeCharacter&gt;'</code>.</p>
+                        <p>
+                          The <code>ESCAPE</code> clause is always written. Standard SQL defines <em>no</em> default escape character for 
+                          <code>LIKE</code>, so without it whether [escapeLikePattern]'s output works is a property of the driver rather than of this rendering — and it happens to work on MariaDB, which is the way a dependency on an undocumented default survives being noticed.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomStandardSqlDialect.notLike" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">String notLike(TomOperator&lt;TomDbString&gt; text, TomOperator&lt;TomDbString&gt; test)</code>
                       </div>
-                      <div class="api-doc"><p>Renders <code>&lt;text&gt; NOT LIKE &lt;test&gt;</code>.</p></div>
+                      <div class="api-doc">
+                        <p>
+                          Renders <code>&lt;text&gt; NOT LIKE &lt;test&gt; ESCAPE '&lt;likeEscapeCharacter&gt;'</code> — see [like] for why the clause is always written.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomStandardSqlDialect.regexp" class="api-member">
                       <div class="api-member-head">
@@ -1536,7 +1591,12 @@
                     </div>
                     <div id="TomStandardSqlDialect.text" class="api-member">
                       <div class="api-member-head"><code class="api-signature">String text(String text)</code></div>
-                      <div class="api-doc"><p>Renders a string literal, single-quoted. (Not escaped — see [p] for untrusted input.)</p></div>
+                      <div class="api-doc">
+                        <p>
+                          Renders a string literal, single-quoted, escaping any embedded backslash (<code>\</code> → <code>\\</code>) and single quote (<code>'</code>
+                           → <code>''</code>) so the value cannot terminate the literal early and inject trailing SQL. For untrusted input still prefer the parameterised form ([p]), which binds the value out-of-band.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomStandardSqlDialect.intOp" class="api-member">
                       <div class="api-member-head"><code class="api-signature">String intOp(int value)</code></div>
@@ -1552,11 +1612,44 @@
                     </div>
                     <div id="TomStandardSqlDialect.dateTimeOp" class="api-member">
                       <div class="api-member-head"><code class="api-signature">String dateTimeOp(DateTime value)</code></div>
-                      <div class="api-doc"><p>Renders a timestamp literal as a single-quoted ISO-8601 string.</p></div>
+                      <div class="api-doc">
+                        <p>
+                          Renders a timestamp literal as the single-quoted UTC <code>DATETIME(6)</code> text [sqlInstant] defines.
+                        </p>
+                        <p>
+                          The same rendering the bind boundary applies, for the same two reasons. An ISO-8601 string carries a 
+                          <code>T</code> separator and, for a UTC value, a trailing <code>Z</code>; a <code>DATETIME</code> column accepts neither ("Incorrect datetime value", error 1292), so the literal path could not carry a UTC instant at all. And a local value rendered verbatim writes the 
+                          <em>emitting node's</em> wall clock, which is not a moment another node can read back.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomStandardSqlDialect.dateOp" class="api-member">
                       <div class="api-member-head"><code class="api-signature">String dateOp(DateTime value)</code></div>
-                      <div class="api-doc"><p>Renders a date literal as single-quoted <code>YYYY-M-D</code>.</p></div>
+                      <div class="api-doc">
+                        <p>Renders a date literal as single-quoted, fixed-width <code>YYYY-MM-DD</code>.</p>
+                        <p>
+                          Every component is zero-padded, so the literal is the same length whatever the date. MariaDB accepts a ragged 
+                          <code>2026-1-2</code> too, so padding is not what makes the value storable — it is what makes generated SQL comparable as text, and it keeps the module to one date spelling rather than a second one invented here.
+                        </p>
+                        <p>
+                          Unlike [dateTimeOp], the components are taken <strong>as labelled</strong>: no UTC conversion is applied, so a value naming the 5th renders as the 5th in every zone. That is the difference between the two renderers, and the reason this one reaches for [sqlDate] rather than [sqlInstant].
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomStandardSqlDialect.timeOp" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String timeOp(DateTime value)</code></div>
+                      <div class="api-doc">
+                        <p>Renders a time-of-day literal as single-quoted, fixed-width <code>HH:MM:SS</code>.</p>
+                        <p>
+                          The date half of [value] is discarded, which is the whole point: a <code>TIME</code> column stores a position within a day, and MariaDB reads a datetime-shaped string for one as a truncation error rather than as the time it contains.
+                        </p>
+                        <p>
+                          Like [dateOp] and unlike [dateTimeOp], the components are taken <strong>as labelled</strong>: no UTC conversion is applied, so a value naming 14:30 renders as 14:30 in every zone. A [TomZonedTime] therefore renders the reading its own anchoring carries, exactly as a [TomZonedDate] does through [dateOp] — the two halves of a split timestamp are treated the same way, which is the only way a query over both can be reasoned about.
+                        </p>
+                        <p>
+                          Sub-second precision is dropped — see [sqlTimeOfDay], which this quotes rather than restates so that an inlined literal and a bound value cannot spell the same time differently.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomStandardSqlDialect.iterableOp" class="api-member">
                       <div class="api-member-head"><code class="api-signature">String iterableOp(Iterable&lt;dynamic&gt; values)</code></div>
@@ -1571,8 +1664,11 @@
                       <div class="api-doc">
                         <p>
                           Renders [o] as the appropriate SQL literal, dispatching on its runtime type (<code>null</code> → <code>NULL</code>, 
-                          <code>String</code> → quoted, numbers/bool → bare, [TomZonedDate] → date, [DateTime] → timestamp, [Iterable] → list, anything else → its quoted 
+                          <code>String</code> → quoted, numbers/bool → bare, [TomZonedDate] → date, [TomZonedTime] → time, [DateTime] → timestamp, [Iterable] → list, anything else → its quoted 
                           <code>toString()</code>).
+                        </p>
+                        <p>
+                          Both kernel temporal types are tested before the plain [DateTime] they extend; either arm placed after it would be unreachable, and the value would be written as a full instant into a column that holds half of one.
                         </p>
                       </div>
                     </div>
@@ -1581,6 +1677,45 @@
                       <div class="api-doc">
                         <p>
                           Renders a positional parameter placeholder <code>:&lt;parameterName&gt;</code> for a prepared statement (the driver binds the value, avoiding injection).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomStandardSqlDialect.aggregate" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">String aggregate(TomAggregateFunction function, String? operand, {bool distinct = false})</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Renders an aggregate call — <code>COUNT(*)</code>, <code>SUM(t.c)</code>, <code>COUNT(DISTINCT t.c)</code>.
+                        </p>
+                        <p>
+                          [operand] is the already-rendered argument, or <code>null</code> for the one argument-less form, <code>COUNT(*)</code>. [distinct] inserts the 
+                          <code>DISTINCT</code> qualifier; it is meaningless for <code>COUNT(*)</code> (there is no expression to de-duplicate) and is ignored there.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomStandardSqlDialect.aliased" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String aliased(String expression, String alias)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Renders <code>&lt;expression&gt; AS &lt;alias&gt;</code> — the projection form that names a grouped query's result column so the row mapper can find it.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomStandardSqlDialect.groupByClause" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String groupByClause(List&lt;String&gt; columnExprs)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Renders <code> GROUP BY &lt;columns...&gt;</code>, or the empty string when [columnExprs] is empty (an aggregate over the whole result set groups by nothing).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomStandardSqlDialect.havingClause" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String havingClause(String? predicate)</code></div>
+                      <div class="api-doc">
+                        <p>Renders <code> HAVING &lt;predicate&gt;</code>, or the empty string when there is none.</p>
+                        <p>
+                          <code>HAVING</code> filters <em>groups</em> after aggregation, where <code>WHERE</code> filters rows before it — which is why the two predicates stay separate all the way down to here rather than being ANDed together upstream.
                         </p>
                       </div>
                     </div>
@@ -1619,6 +1754,131 @@
                         <code class="api-signature">String dateF(String fieldName, DbCol&lt;dynamic&gt; column, Type dbType)</code>
                       </div>
                       <div class="api-doc"><p>Renders a qualified reference to a date [column] as <code>table.column</code>.</p></div>
+                    </div>
+                    <div id="TomStandardSqlDialect.timeF" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">String timeF(String fieldName, DbCol&lt;dynamic&gt; column, Type dbType)</code>
+                      </div>
+                      <div class="api-doc"><p>Renders a qualified reference to a time-of-day [column] as <code>table.column</code>.</p></div>
+                    </div>
+                  </div>
+                </section>
+                <section id="TomAggregateFunction" class="api-declaration">
+                  <h3 class="api-decl-title">enum TomAggregateFunction</h3>
+                  <code class="api-signature">enum TomAggregateFunction</code>
+                  <div class="api-doc">
+                    <p>The aggregate functions the typed query layer can express.</p>
+                    <p>
+                      Naming the vocabulary here rather than in the expression tree keeps the set of functions a dialect must be able to render in one place: a driver that needs a different spelling overrides [TomStandardSqlDialect.aggregate] and switches on this enum, and the compiler tells it when a member is added.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Values</h4>
+                  <div class="api-members">
+                    <div id="TomAggregateFunction.count" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">count</code></div>
+                      <div class="api-doc"><p><code>COUNT</code> — the number of rows (or of non-null operand values).</p></div>
+                    </div>
+                    <div id="TomAggregateFunction.sum" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">sum</code></div>
+                      <div class="api-doc"><p><code>SUM</code> — the total of the operand across the group.</p></div>
+                    </div>
+                    <div id="TomAggregateFunction.avg" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">avg</code></div>
+                      <div class="api-doc"><p><code>AVG</code> — the mean of the operand across the group.</p></div>
+                    </div>
+                    <div id="TomAggregateFunction.min" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">min</code></div>
+                      <div class="api-doc"><p><code>MIN</code> — the smallest operand value in the group.</p></div>
+                    </div>
+                    <div id="TomAggregateFunction.max" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">max</code></div>
+                      <div class="api-doc"><p><code>MAX</code> — the largest operand value in the group.</p></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomAggregateFunction.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">const TomAggregateFunction.new()</code></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="TomAggregateFunction.sqlName" class="api-member"><div class="api-member-head"><code class="api-signature">String sqlName</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="TomAggregateFunction.values" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static List&lt;TomAggregateFunction&gt; values</code></div>
+                    </div>
+                  </div>
+                </section>
+                <section id="TomSqlTypeFamily" class="api-declaration">
+                  <h3 class="api-decl-title">enum TomSqlTypeFamily</h3>
+                  <code class="api-signature">enum TomSqlTypeFamily</code>
+                  <div class="api-doc">
+                    <p>The coarse type classes a stored column can belong to.</p>
+                    <p>
+                      Named here, beside [TomAggregateFunction], for the same reason: it is a SQL vocabulary a dialect switches on ([TomStandardSqlDialect.typeFamily]), so a database whose type names differ overrides one method and the compiler tells it when a member is added.
+                    </p>
+                    <p>
+                      Deliberately coarse — it exists so that a Dart type and a SQL type name can be compared at all (the schema-convergence check reduces both sides to it). Widths, precisions, signedness and defaults are not represented, because the Dart side never states them.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Values</h4>
+                  <div class="api-members">
+                    <div id="TomSqlTypeFamily.integer" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">integer</code></div>
+                      <div class="api-doc">
+                        <p>Whole numbers — <code>INT</code>, <code>BIGINT</code>, <code>SMALLINT</code>, <code>SERIAL</code>, …</p>
+                      </div>
+                    </div>
+                    <div id="TomSqlTypeFamily.decimal" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">decimal</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Approximate and exact fractional numbers — <code>DOUBLE</code>, <code>DECIMAL</code>, <code>FLOAT</code>, …
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomSqlTypeFamily.text" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">text</code></div>
+                      <div class="api-doc">
+                        <p>Character data — <code>VARCHAR</code>, <code>TEXT</code>, <code>ENUM</code>, <code>JSON</code>, …</p>
+                      </div>
+                    </div>
+                    <div id="TomSqlTypeFamily.boolean" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">boolean</code></div>
+                      <div class="api-doc"><p>Truth values — <code>BOOLEAN</code>, and on MariaDB <code>TINYINT(1)</code>.</p></div>
+                    </div>
+                    <div id="TomSqlTypeFamily.dateTime" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">dateTime</code></div>
+                      <div class="api-doc"><p>A date <em>and</em> a time of day — <code>DATETIME</code>, <code>TIMESTAMP</code>.</p></div>
+                    </div>
+                    <div id="TomSqlTypeFamily.date" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">date</code></div>
+                      <div class="api-doc"><p>A calendar date with no time — <code>DATE</code>.</p></div>
+                    </div>
+                    <div id="TomSqlTypeFamily.time" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">time</code></div>
+                      <div class="api-doc"><p>A time of day with no date — <code>TIME</code>.</p></div>
+                    </div>
+                    <div id="TomSqlTypeFamily.binary" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">binary</code></div>
+                      <div class="api-doc"><p>Raw bytes — <code>BLOB</code>, <code>VARBINARY</code>, …</p></div>
+                    </div>
+                    <div id="TomSqlTypeFamily.unknown" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">unknown</code></div>
+                      <div class="api-doc"><p>A type the active dialect does not classify.</p></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomSqlTypeFamily.new" class="api-member"><div class="api-member-head"><code class="api-signature">const TomSqlTypeFamily.new()</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="TomSqlTypeFamily.values" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static List&lt;TomSqlTypeFamily&gt; values</code></div>
                     </div>
                   </div>
                 </section>

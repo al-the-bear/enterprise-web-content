@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1395,12 +1401,14 @@
                 <h2 class="api-library-title">package:tom_flutter_ui/src/custom/tom_skeleton_loader.dart</h2>
                 <code class="api-import">import 'package:tom_flutter_ui/src/custom/tom_skeleton_loader.dart';</code>
                 <div class="api-doc">
-                  <p>Phase 6 — <code>TomSkeletonLoader</code>.</p>
                   <p>
                     Shimmer / skeleton placeholder for async-loading surfaces. Renders a soft animated shimmer over a coloured rectangle (or a child widget when supplied), giving downstream apps a consistent loading idiom without taking a third-party dependency.
                   </p>
                   <p>
-                    The shimmer is driven by a [SingleTickerProviderStateMixin]-backed [AnimationController] that cycles a horizontal gradient from left to right at the configured [period]. When [child] is non-null the shimmer is masked to the child silhouette via [ShaderMask], which lets callers compose skeletons out of plain widgets (<code>Container</code>, 
+                    The shimmer is driven by a [SingleTickerProviderStateMixin]-backed [AnimationController] that cycles a horizontal gradient from left to right at the configured [TomSkeletonLoader.period]. It runs while [TomSkeletonLoader.enabled] is true 
+                    <strong>and</strong> the environment allows motion: <code>MediaQuery</code>'s disable-animations flag and an enclosing 
+                    <code>TickerMode(enabled: false)</code> each stop it, which is also what lets a test <code>pumpAndSettle</code>
+                     with a skeleton on screen. When [TomSkeletonLoader.child] is non-null the shimmer is masked to the child silhouette via [ShaderMask], which lets callers compose skeletons out of plain widgets (<code>Container</code>, 
                     <code>Row</code> of <code>SizedBox</code>, etc.).
                   </p>
                 </div>
@@ -1425,6 +1433,9 @@
                       <div class="api-doc">
                         <p>
                           Optional child whose silhouette receives the shimmer mask. When <code>null</code>, the loader renders a [width] × [height] rounded rectangle painted with the base colour.
+                        </p>
+                        <p>
+                          Only the silhouette survives: the mask repaints the child in the shimmer colours, so its own colours never show while [enabled] is true. Pass a placeholder shape, not real content — and see [enabled], which passes the child through untouched.
                         </p>
                       </div>
                     </div>
@@ -1461,8 +1472,37 @@
                     <div id="TomSkeletonLoader.enabled" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final bool enabled</code></div>
                       <div class="api-doc">
+                        <p>Whether the shimmer animation runs.</p>
                         <p>
-                          Whether the shimmer animation runs. When <code>false</code> the placeholder is rendered as a static rectangle (useful for tests / reduced- motion settings).
+                          <code>false</code> removes the [ShaderMask] rather than merely freezing it, and the mask is what <em>paints</em>
+                           the skeleton — so the widget's two forms stop in different places:
+                        </p>
+                        <ul><li>with no [child], the [width] × [height] rectangle it draws itself</li></ul>
+                        <p>
+                          remains, filled with [baseColor]. A static placeholder. <em> with a [child], the child is returned exactly as passed, </em>
+                          <em>in its own colours</em>*. Nothing is masked over it and no grey box is drawn, so whether the result still reads as a placeholder depends entirely on what the caller supplied.
+                        </p>
+                        <p>
+                          The difference is easy to miss because it is invisible while <code>enabled</code> is true: the mask overpaints a child's colours with [baseColor] / [highlightColor], so a red child shimmers grey like every other skeleton and only reveals itself as red once disabled.
+                        </p>
+                        <p>
+                          Always right for tests, where a repeating animation never lets <code>pumpAndSettle</code> finish. For reduced motion, only the childless form is a placeholder on its own; a [child] must already be a silhouette — which is how [child] is meant to be used — and not the real content, or the caller gets the finished content instead.
+                        </p>
+                        <p>
+                          Two ambient switches reach the same state without touching this flag, and both are worth knowing because this widget is often built by something else — 
+                          <code>TomInfiniteScroll</code>'s default skeleton, say, where the caller never names it:
+                        </p>
+                        <ul>
+                          <li><code>MediaQuery</code>'s <strong>disable-animations</strong> accessibility flag. A user who</li>
+                        </ul>
+                        <p>
+                          has asked for reduced motion gets the static form; a test gets it by wrapping the subtree in a <code>MediaQuery</code>
+                           whose data carries <code>disableAnimations: true</code>. <em> </em><em>[TickerMode]</em>*. <code>TickerMode(enabled: false)</code>
+                           above the subtree mutes the ticker, which is the framework's own way to freeze an animation wholesale and needs nothing from this widget.
+                        </p>
+                        <p>
+                          Either lets <code>pumpAndSettle</code> return with a skeleton on screen. Without one, it cannot: a repeating animation schedules frames forever, so the binding never reaches a quiescent one — the same as Flutter's own indeterminate 
+                          <code>CircularProgressIndicator</code>.
                         </p>
                       </div>
                     </div>
@@ -1491,6 +1531,16 @@
                     <div id="_TomSkeletonLoaderState._controller" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final AnimationController _controller</code></div>
                     </div>
+                    <div id="_TomSkeletonLoaderState._motionAllowed" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool _motionAllowed</code></div>
+                      <div class="api-doc">
+                        <p>Whether the ambient environment allows motion.</p>
+                        <p>
+                          Read from <code>MediaQuery</code> rather than checked at each use, because the answer decides both what [build] returns and whether the controller is running — and a controller left repeating keeps scheduling frames whatever the build returns.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="_TomSkeletonLoaderState._shimmering" class="api-member"><div class="api-member-head"><code class="api-signature">bool _shimmering</code></div></div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
@@ -1500,6 +1550,13 @@
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
+                    <div id="_TomSkeletonLoaderState.didChangeDependencies" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">void didChangeDependencies()</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="_TomSkeletonLoaderState._syncTicker" class="api-member"><div class="api-member-head"><code class="api-signature">void _syncTicker()</code></div></div>
                     <div id="_TomSkeletonLoaderState.didUpdateWidget" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">void didUpdateWidget(TomSkeletonLoader oldWidget)</code>

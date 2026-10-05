@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1391,6 +1397,11 @@
                   <a class="leaf" href="#TomZonedDate">TomZonedDate</a>
                   <a class="leaf" href="#TomZonedDateTime">TomZonedDateTime</a>
                   <a class="leaf" href="#TomZonedTime">TomZonedTime</a>
+                  <a class="leaf" href="#_inOwnFrame">_inOwnFrame</a>
+                  <a class="leaf" href="#_offsetMinutesOf">_offsetMinutesOf</a>
+                  <a class="leaf" href="#_readSerializedForm">_readSerializedForm</a>
+                  <a class="leaf" href="#_serializedForm">_serializedForm</a>
+                  <a class="leaf" href="#_zoneOf">_zoneOf</a>
                 </div>
               </div>
               <div class="reader">
@@ -1406,7 +1417,7 @@
                     </p>
                     <h2>Serialization Format</h2>
                     <p>
-                      TomTimezoned values serialize to a string format that includes: - ISO 8601 datetime (always in UTC) - UTC offset at the time of serialization - Timezone name
+                      TomTimezoned values serialize to a string format that includes: - ISO 8601 datetime (always in UTC) - UTC offset the zone had at that instant — the one the value's local fields are computed with, so it does not depend on when the string was written. It is informational: parsing reads the instant and the zone name, never the offset - Timezone name
                     </p>
                     <p>
                       Format: <code>ISO8601_OFFSET_TIMEZONE</code> Example: <code>2024-06-15T05:30:00.000Z_+09:00_Asia/Tokyo</code>
@@ -1418,6 +1429,53 @@
                     <p>
                       Each has its own serialization prefix for identification: - <code>@D@</code> for dates - <code>@T@</code>
                        for times - <code>@X@</code> for datetimes
+                    </p>
+                    <h2>Equality is the instant alone</h2>
+                    <p>
+                      <code>==</code> and <code>hashCode</code> are [DateTime]'s: two values are equal when they name the same UTC instant. Neither the runtime type nor the [timezone] takes part, and nothing here overrides that — it is what a 
+                      <code>DateTime</code> user expects, and a zoned value is a <code>DateTime</code>.
+                    </p>
+                    <p>
+                      Three consequences, each of which surfaces as a deduplication surprise rather than as a compile error:
+                    </p>
+                    <ul><li>A [TomZonedDate] equals a [TomZonedDateTime] at the same instant. Tokyo's</li></ul>
+                    <p>
+                      midnight on the 15th <em>is</em> 15:00Z on the 14th, so the date and that datetime are one value, share a hash code, and collapse in a 
+                      <code>Set</code> or a <code>Map</code> key. - The same instant in two zones is one value: "now in Tokyo" equals "now in Berlin". A 
+                      <code>Set&lt;TomZonedDateTime&gt;</code> therefore does not keep one entry per zone. - A plain <code>DateTime.utc(...)</code>
+                       at that instant is equal to all of them.
+                    </p>
+                    <p>
+                      What equality drops is still on the value, so compare that instead when the question is "the same <em>value</em>" rather than "the same moment": 
+                      <code>runtimeType</code>, [timezone], or the serialized form, which carries the type prefix, the offset and the zone name and therefore differs for every case above.
+                    </p>
+                    <h2>Conversion lives on the subclasses</h2>
+                    <p>
+                      None of the <code>convertToTz*</code> methods is declared here, so a value obtained from [TomTimezoned.now], [TomTimezoned.parseFromString] or the default factory cannot be converted at that type: the call does not compile.
+                    </p>
+                    <p>
+                      That is a decision, not a limitation of the language. Dart permits an override to narrow its return type, so a base declaration that each subclass narrowed to its own type would compile perfectly well. The reason against it is that 
+                      <em>which</em> conversion is meaningful depends on what the value is, and the three types do not agree:
+                    </p>
+                    <ul><li>[TomZonedDate] has [TomZonedDate.convertToTzSameInstant] and</li></ul>
+                    <p>
+                      [TomZonedDate.convertToTzSameDate]. - [TomZonedTime] has [TomZonedTime.convertToTzSameInstant] and [TomZonedTime.convertToTzSameTime]. - [TomZonedDateTime] has only [TomZonedDateTime.convertToTzSameInstant]. It names an instant, so a re-anchoring counterpart would have nothing to move.
+                    </p>
+                    <p>
+                      A value held at this type has no declared kind, so the only method that could be hoisted is the instant-preserving one — and preserving the instant is the wrong answer for a date and for a time, which is precisely why those two carry a second conversion. Hoisting it would install that wrong default on every value whose kind the reader has not yet established, and it would do so silently, because it would compile.
+                    </p>
+                    <p>
+                      So the compile error is the type system asking which kind of value this is. Answering it costs one line:
+                    </p>
+                    <pre><code>final base = TomTimezoned.now();
+
+// The instant and the zone are all a conversion needs.
+final moved = TomZonedDateTime.fromDateTime(base, base.timezone)
+    .convertToTzSameInstant(newYork);</code></pre>
+                    <h2>What this type is for</h2>
+                    <p>
+                      Holding a value at [TomTimezoned] is right where the kind genuinely does not matter: as the supertype every zoned value shares — 
+                      <code>TomOTimezoned</code> binds its type parameter to it — for the accessors above, and for a serialization round trip that carries a value through without asking what it is.
                     </p>
                     <h2>Usage</h2>
                     <pre><code>// Create from local time with timezone
@@ -1591,7 +1649,9 @@ print(localDt.hour); // 14 (local time in New York)</code></pre>
                       <div class="api-member-head"><code class="api-signature">static bool isTomTimezonedString(String s)</code></div>
                       <div class="api-doc">
                         <p>Checks if a string is in valid [TomTimezoned] format.</p>
-                        <p>Returns <code>true</code> if the string matches the expected serialization format.</p>
+                        <p>
+                          Returns <code>true</code> if the string matches the expected serialization format. This judges shape only; a well-formed string may still name a zone the timezone database does not know, which [parseFromString] rejects.
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -1602,7 +1662,7 @@ print(localDt.hour); // 14 (local time in New York)</code></pre>
                   <div class="api-doc">
                     <p>A timezone-aware date value (without time components).</p>
                     <p>
-                      [TomZonedDate] represents a calendar date associated with a specific timezone. All time components (hour, minute, second, etc.) are set to zero in the local timezone.
+                      [TomZonedDate] represents a calendar date associated with a specific timezone. The value is anchored to the first instant of that day in the local timezone — normally midnight, and 01:00 on the few zone-days where a spring-forward transition means midnight never happens.
                     </p>
                     <h2>Serialization</h2>
                     <p>Serializes with the <code>@D@</code> prefix:</p>
@@ -1613,6 +1673,10 @@ print(localDt.hour); // 14 (local time in New York)</code></pre>
 final tokyo = TomTimezone.fromName('Asia/Tokyo');
 final date = TomZonedDate(year: 2024, month: 6, day: 15, timezone: tokyo);
 print(date.localDay); // 15 (local day in Tokyo)
+
+// Equality is the instant alone, so this date equals the datetime naming
+// the same moment, whatever zone either carries — see
+// [TomTimezoned]'s "Equality is the instant alone".
 
 // Parse from string
 final parsed = TomZonedDate.parseFromString('@D@2024-06-14T15:00:00.000Z_+09:00_Asia/Tokyo');
@@ -1627,7 +1691,7 @@ print(parsed.localDay); // 15 (local day in Tokyo)</code></pre>
                       <div class="api-doc">
                         <p>Creates a [TomZonedDate] with the specified date components in the local timezone.</p>
                         <p>
-                          Time components are automatically set to midnight (00:00:00) in the local timezone. The values are then converted to UTC for internal storage.
+                          Time components are set to the start of that day in the local timezone and the result is converted to UTC for internal storage. The start of the day is midnight except where the zone springs forward at midnight — Chile on 2024-09-08, Cuba, Lebanon, Egypt and the Azores each do this once a year — in which case it is 01:00, because midnight does not exist there that day. [isDate] accounts for this, so such a value is still a date.
                         </p>
                         <p>
                           [year] The year in local time (defaults to 1970). [month] The month 1-12 in local time (defaults to 1). [day] The day 1-31 in local time (defaults to 1). [timezone] The timezone for the local time values (defaults to UTC).
@@ -1647,15 +1711,24 @@ print(parsed.localDay); // 15 (local day in Tokyo)</code></pre>
                         <code class="api-signature">factory TomZonedDate.fromDateTime(DateTime dtx, [TomTimezone? timezone])</code>
                       </div>
                       <div class="api-doc">
-                        <p>Creates a [TomZonedDate] from an existing [DateTime].</p>
-                        <p>The DateTime is assumed to already be in UTC. The date portion from the UTC DateTime is used.</p>
-                        <p>[dtx] The DateTime to extract the date from. [timezone] The timezone to associate (defaults to UTC).</p>
+                        <p>Creates a [TomZonedDate] for the calendar day on which [dtx] falls in [timezone].</p>
+                        <p>
+                          [dtx] names an instant; a date names a calendar day. The instant is read in [timezone] to find out which day it is 
+                          <em>there</em>, and the result is anchored to the start of that day — the same value the primary constructor produces for those date components, including its handling of a midnight that a spring-forward transition skips. Any time-of-day carried by [dtx] is therefore discarded, which is what makes the result a date rather than a timestamp that happens to be typed as one.
+                        </p>
+                        <p>
+                          The day depends on the timezone: 22:30 UTC is already the next day in Berlin, so passing that instant with 
+                          <code>Europe/Berlin</code> yields the later day, not the UTC one.
+                        </p>
+                        <p>
+                          [dtx] The instant to take the calendar day from; may be local or UTC. [timezone] The timezone the day is read in (defaults to UTC).
+                        </p>
                         <p>Example:</p>
-                        <pre><code>final now = DateTime.now();
-final todayInTokyo = TomZonedDate.fromDateTime(
-  now,
+                        <pre><code>final todayInTokyo = TomZonedDate.fromDateTime(
+  DateTime.now(),
   TomTimezone.fromName('Asia/Tokyo'),
-);</code></pre>
+);
+print(todayInTokyo.localHour); // 0</code></pre>
                       </div>
                     </div>
                     <div id="TomZonedDate.parseFromString" class="api-member">
@@ -1698,8 +1771,8 @@ print(date.localDay);   // 15</code></pre>
                         </p>
                       </div>
                     </div>
-                    <div id="TomZonedDate.convertToTimezone" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">TomZonedDate convertToTimezone(TomTimezone targetTimezone)</code></div>
+                    <div id="TomZonedDate.convertToTzSameInstant" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomZonedDate convertToTzSameInstant(TomTimezone targetTimezone)</code></div>
                       <div class="api-doc">
                         <p>Converts this date to another timezone.</p>
                         <p>
@@ -1715,8 +1788,31 @@ final dateInTokyo = TomZonedDate(
   timezone: tokyo,
 );
 
-final dateInNY = dateInTokyo.convertToTimezone(nyTz);
-print(dateInNY.timezone.timezone); // 'America/New_York'</code></pre>
+final dateInNY = dateInTokyo.convertToTzSameInstant(nyTz);
+print(dateInNY.timezone.timezone); // 'America/New_York'
+print(dateInNY.localDay);          // 14 — not 15
+print(dateInNY.localHour);         // 11 — a date carrying a time of day</code></pre>
+                        <p>
+                          <strong>The result is not a well-formed date</strong>, and the name says which question was asked. Midnight on the 15th in Tokyo 
+                          <em>is</em> 11:00 on the 14th in New York, so preserving the instant necessarily moves the local day and gives the value a time of day — the two things [TomZonedDate]'s anchoring otherwise guarantees it has not got. That is the honest answer to "when was this, for someone over there", and it is the wrong answer to "what date is this, expressed over there": a public holiday is the same date everywhere. For that, use [convertToTzSameDate], which is closed over the type.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomZonedDate.convertToTzSameDate" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomZonedDate convertToTzSameDate(TomTimezone targetTimezone)</code></div>
+                      <div class="api-doc">
+                        <p>The same calendar day, expressed in [targetTimezone].</p>
+                        <p>
+                          The counterpart to [convertToTzSameInstant], and the one that is <em>closed</em> over this type: the day, month and year are carried across unchanged and re-anchored to midnight in the new zone, so the result is a well-formed [TomZonedDate] again. The instant moves, necessarily — midnight on the 15th in Tokyo and midnight on the 15th in New York are fourteen hours apart — and that is the point. A date is a label on a calendar, not a moment: a public holiday, a birthday and an invoice date are the same date wherever they are read.
+                        </p>
+                        <pre><code>final dateInTokyo = TomZonedDate(
+  year: 2024, month: 6, day: 15,
+  timezone: tokyo,
+);
+
+final dateInNY = dateInTokyo.convertToTzSameDate(nyTz);
+print(dateInNY.localDay);  // 15 — the same date
+print(dateInNY.localHour); // 0  — still anchored to midnight</code></pre>
                       </div>
                     </div>
                   </div>
@@ -1734,17 +1830,36 @@ print(dateInNY.timezone.timezone); // 'America/New_York'</code></pre>
                       <div class="api-doc">
                         <p>Checks if a string is in valid [TomZonedDate] format.</p>
                         <p>
-                          Returns <code>true</code> if the string starts with <code>@D@</code> and matches the expected serialization format.
+                          Returns <code>true</code> if the string starts with <code>@D@</code> and matches the expected serialization format. This judges shape only; a well-formed string may still name a zone the timezone database does not know, which [parseFromString] rejects.
                         </p>
                       </div>
                     </div>
                     <div id="TomZonedDate.isDate" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static bool isDate(DateTime dt)</code></div>
                       <div class="api-doc">
-                        <p>Checks if a [DateTime] represents a date-only value.</p>
+                        <p>Checks whether [dt] sits at the start of a calendar day.</p>
                         <p>
-                          Returns <code>true</code> if all time components (hour, minute, second, millisecond, microsecond) are zero.
+                          A value that knows its zone — a [TomTimezoned], or any <code>TZDateTime</code> — is read in that zone and compared against the first instant of the local day, so every well-formed [TomZonedDate] passes wherever it is anchored.
                         </p>
+                        <p>
+                          The first instant of a day is usually local midnight but not always: a few zones spring forward <em>at</em>
+                           midnight, and on those days the day begins at 01:00 because 00:00 never happens. [TomZonedDate] is built by asking the timezone database for that instant, so a predicate insisting on zero components would reject values its own constructor produces.
+                        </p>
+                        <p>
+                          A plain [DateTime] carries no zone to be read in, so it is judged as it stands: <code>true</code> when its time components are all zero.
+                        </p>
+                        <p>Example:</p>
+                        <pre><code>final tokyo = TomTimezone.fromName('Asia/Tokyo');
+final date = TomZonedDate(year: 2024, month: 6, day: 15, timezone: tokyo);
+print(date.hour);                 // 15 — midnight in Tokyo, stored as UTC
+print(TomZonedDate.isDate(date)); // true
+
+// Chile springs forward at midnight on 2024-09-08.
+final santiago = TomTimezone.fromName('America/Santiago');
+final skipped =
+    TomZonedDate(year: 2024, month: 9, day: 8, timezone: santiago);
+print(skipped.localHour);            // 1 — the day starts an hour late
+print(TomZonedDate.isDate(skipped)); // true</code></pre>
                       </div>
                     </div>
                   </div>
@@ -1778,7 +1893,7 @@ print(dt.hour);      // 5 (UTC time)
 
 // Convert to another timezone
 final ny = TomTimezone.fromName('America/New_York');
-final dtNy = dt.convertToTimezone(ny);
+final dtNy = dt.convertToTzSameInstant(ny);
 print(dtNy.localHour); // 1 (local time in New York)</code></pre>
                     <h2>DST Handling</h2>
                     <p>
@@ -1792,6 +1907,10 @@ final summer = TomZonedDateTime(
   timezone: ny,
 );
 print(summer.hour); // 16 (12 + 4 hours for EDT)
+
+// Equality is the instant alone: the same moment in another zone, or as a
+// TomZonedDate, is an equal value — see [TomTimezoned]'s "Equality is the
+// instant alone".
 
 // Winter (EST: UTC-5)
 final winter = TomZonedDateTime(
@@ -1881,8 +2000,10 @@ print(dt.timezone.timezone); // 'Asia/Tokyo'</code></pre>
                         </p>
                       </div>
                     </div>
-                    <div id="TomZonedDateTime.convertToTimezone" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">TomZonedDateTime convertToTimezone(TomTimezone targetTimezone)</code></div>
+                    <div id="TomZonedDateTime.convertToTzSameInstant" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">TomZonedDateTime convertToTzSameInstant(TomTimezone targetTimezone)</code>
+                      </div>
                       <div class="api-doc">
                         <p>Converts this datetime to another timezone.</p>
                         <p>
@@ -1899,7 +2020,7 @@ final meetingInTokyo = TomZonedDateTime(
   timezone: tokyo,
 );
 
-final meetingInNY = meetingInTokyo.convertToTimezone(nyTz);
+final meetingInNY = meetingInTokyo.convertToTzSameInstant(nyTz);
 print(meetingInNY.timezone.timezone); // 'America/New_York'
 print(meetingInNY.localHour); // 1 (local time in New York)
 print(meetingInNY.hour); // 5 (UTC - same as original)</code></pre>
@@ -1917,7 +2038,12 @@ print(meetingInNY.hour); // 5 (UTC - same as original)</code></pre>
                     </div>
                     <div id="TomZonedDateTime.isTomZonedDateTimeString" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static bool isTomZonedDateTimeString(String s)</code></div>
-                      <div class="api-doc"><p>Checks if a string is in valid [TomZonedDateTime] format.</p></div>
+                      <div class="api-doc">
+                        <p>Checks if a string is in valid [TomZonedDateTime] format.</p>
+                        <p>
+                          This judges shape only; a well-formed string may still name a zone the timezone database does not know, which [parseFromString] rejects.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomZonedDateTime.isTomDateTime" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static bool isTomDateTime(DateTime dt)</code></div>
@@ -1945,6 +2071,10 @@ print(meetingInNY.hour); // 5 (UTC - same as original)</code></pre>
 final tokyo = TomTimezone.fromName('Asia/Tokyo');
 final time = TomZonedTime(hour: 14, minute: 30, timezone: tokyo);
 print(time.localHour); // 14 (local time in Tokyo)
+
+// A time is an instant on 1970-01-01, and equality is the instant alone:
+// it equals any zoned value naming that moment, whatever its type or zone
+// — see [TomTimezoned]'s "Equality is the instant alone".
 print(time.hour);      // 5 (UTC time)
 
 // Parse from string
@@ -1981,9 +2111,17 @@ final parsed = TomZonedTime.parseFromString('@T@1970-01-01T05:30:00.000Z_+09:00_
                         <code class="api-signature">factory TomZonedTime.fromDateTime(DateTime dtx, [TomTimezone? timezone])</code>
                       </div>
                       <div class="api-doc">
-                        <p>Creates a [TomZonedTime] from an existing [DateTime].</p>
-                        <p>The time portion from the UTC-converted DateTime is used.</p>
-                        <p>[dtx] The DateTime to extract the time from. [timezone] The timezone to associate (defaults to UTC).</p>
+                        <p>Creates a [TomZonedTime] for the wall-clock time [dtx] shows in [timezone].</p>
+                        <p>
+                          [dtx] names an instant; a time names a position within a day. The instant is read in [timezone] to find the clock reading 
+                          <em>there</em>, and the date it fell on is replaced by the epoch anchor — the same value the primary constructor produces for those time components. Discarding the date is what makes the result a time of day rather than a timestamp that happens to be typed as one.
+                        </p>
+                        <p>
+                          The reading depends on the timezone: 13:47 UTC is 15:47 in Berlin during CEST, and it is the Berlin reading that a Berlin time-of-day means.
+                        </p>
+                        <p>
+                          [dtx] The instant to take the clock reading from; may be local or UTC. [timezone] The timezone the reading is taken in (defaults to UTC).
+                        </p>
                       </div>
                     </div>
                     <div id="TomZonedTime.parseFromString" class="api-member">
@@ -2019,14 +2157,28 @@ final parsed = TomZonedTime.parseFromString('@T@1970-01-01T05:30:00.000Z_+09:00_
                         </p>
                       </div>
                     </div>
-                    <div id="TomZonedTime.convertToTimezone" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">TomZonedTime convertToTimezone(TomTimezone targetTimezone)</code></div>
+                    <div id="TomZonedTime.convertToTzSameInstant" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomZonedTime convertToTzSameInstant(TomTimezone targetTimezone)</code></div>
                       <div class="api-doc">
-                        <p>Converts this time to another timezone.</p>
+                        <p>The same instant, read in [targetTimezone].</p>
                         <p>
-                          Returns a new [TomZonedTime] representing the same instant in time but displayed in a different timezone.
+                          <strong>The result is not a well-formed time</strong>, and the name says which question was asked. Preserving the instant moves the local clock reading, and can move the local date off 1970-01-01 — which is exactly what [isTime] tests for, so the returned value fails it. That is the honest answer to "what time was that, over there", and the wrong answer to "what does 09:00 mean over there": a 09:00 standup is 09:00 wherever it is run. For that, use [convertToTzSameTime], which is closed over the type.
                         </p>
-                        <p>[targetTimezone] The timezone to convert to.</p>
+                        <p>[targetTimezone] The timezone to read the instant in.</p>
+                      </div>
+                    </div>
+                    <div id="TomZonedTime.convertToTzSameTime" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomZonedTime convertToTzSameTime(TomTimezone targetTimezone)</code></div>
+                      <div class="api-doc">
+                        <p>The same clock reading, expressed in [targetTimezone].</p>
+                        <p>
+                          The counterpart to [convertToTzSameInstant], and the one that is <em>closed</em> over this type: the hour, minute and sub-second components are carried across unchanged and re-anchored to 1970-01-01 in the new zone, so the result satisfies [isTime] again. The instant moves, and that is the point. A time of day is a reading on a clock, not a moment: a 09:00 standup is 09:00 wherever it is run, and a shift that starts at 22:00 starts at 22:00 in every office that runs it.
+                        </p>
+                        <pre><code>final standupTokyo = TomZonedTime(hour: 9, timezone: tokyo);
+
+final standupNY = standupTokyo.convertToTzSameTime(nyTz);
+print(standupNY.localHour);           // 9 — the same clock reading
+print(TomZonedTime.isTime(standupNY)); // true</code></pre>
                       </div>
                     </div>
                     <div id="TomZonedTime.inTimezoneOn" class="api-member">
@@ -2064,15 +2216,88 @@ print(standupOnMarch10); // 2024-03-10 09:00:00.000-0400 (EDT after DST)</code><
                     </div>
                     <div id="TomZonedTime.isTomZonedTimeString" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static bool isTomZonedTimeString(String s)</code></div>
-                      <div class="api-doc"><p>Checks if a string is in valid [TomZonedTime] format.</p></div>
+                      <div class="api-doc">
+                        <p>Checks if a string is in valid [TomZonedTime] format.</p>
+                        <p>
+                          This judges shape only; a well-formed string may still name a zone the timezone database does not know, which [parseFromString] rejects.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomZonedTime.isTime" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static bool isTime(DateTime dt)</code></div>
                       <div class="api-doc">
-                        <p>Checks if a [DateTime] represents a time-only value.</p>
+                        <p>Checks whether [dt] represents a time-only value.</p>
                         <p>Returns <code>true</code> if the date components are 1970-01-01 (Unix epoch).</p>
+                        <p>
+                          A [TomTimezoned] is read in the timezone it carries, which is the frame its anchoring is defined in — so every well-formed [TomZonedTime] passes, wherever it is anchored. Any other [DateTime] is read as it stands.
+                        </p>
+                        <p>Example:</p>
+                        <pre><code>final tokyo = TomTimezone.fromName('Asia/Tokyo');
+final time = TomZonedTime(hour: 0, minute: 30, timezone: tokyo);
+print(time.year);                 // 1969 — 00:30 Tokyo is the day before
+print(TomZonedTime.isTime(time)); // true</code></pre>
                       </div>
                     </div>
+                  </div>
+                </section>
+                <section id="_inOwnFrame" class="api-declaration">
+                  <h3 class="api-decl-title">function _inOwnFrame</h3>
+                  <code class="api-signature">DateTime _inOwnFrame(DateTime dt)</code>
+                  <div class="api-doc">
+                    <p>Returns [dt] as its own timezone sees it.</p>
+                    <p>
+                      A [TomTimezoned] stores UTC while its anchoring — midnight for a date, the epoch for a time — is defined in the zone it carries, so the components it inherits from [DateTime] are a storage detail and the wrong thing to classify it by. 
+                      <code>toDateTime()</code> is the value in the frame its anchoring was stated in. Any other [DateTime] carries a single frame, which is therefore already the right one.
+                    </p>
+                  </div>
+                </section>
+                <section id="_offsetMinutesOf" class="api-declaration">
+                  <h3 class="api-decl-title">function _offsetMinutesOf</h3>
+                  <code class="api-signature">int _offsetMinutesOf(String offsetSection)</code>
+                  <div class="api-doc">
+                    <p>The minutes east of UTC that [offsetSection] names.</p>
+                    <p>
+                      Reads what [_offsetSection] matches and nothing else: <code>Z</code>, or <code>+HH:MM</code> / <code>-HH:MM</code>. The pattern has already accepted the string by the time this is called, so there is no malformed case left to report.
+                    </p>
+                  </div>
+                </section>
+                <section id="_readSerializedForm" class="api-declaration">
+                  <h3 class="api-decl-title">function _readSerializedForm</h3>
+                  <code class="api-signature">
+                    ({DateTime instant, TomTimezone timezone}) _readSerializedForm(RegExp pattern, String formattedString, String typeName)
+                  </code>
+                  <div class="api-doc">
+                    <p>Reads the sections of a serialized value that carry information.</p>
+                    <p>
+                      The zone decides where this runtime knows it, and serializing restates the offset from the zone: an incoming offset is not evidence about a zone the database holds, since the database also holds what that zone did at the instant, and it revises historical offsets. The offset is read only for a zone the database does not hold, where it is the only reading the string carries — see [TomTimezone.fixedOffset].
+                    </p>
+                    <p>
+                      [pattern] The form for the expected prefix, from [_serializedForm]. [formattedString] The string to read. [typeName] Names the expected type in the exception, so a failure says which format the string failed to be.
+                    </p>
+                    <p>
+                      Throws [FormatException] if the string is not in the form, or names a zone the timezone database does not know.
+                    </p>
+                  </div>
+                </section>
+                <section id="_serializedForm" class="api-declaration">
+                  <h3 class="api-decl-title">function _serializedForm</h3>
+                  <code class="api-signature">RegExp _serializedForm(String prefix)</code>
+                  <div class="api-doc">
+                    <p>Builds the pattern matching a serialized value carrying [prefix].</p>
+                    <p>
+                      One definition of the format, from which every type's pattern is derived — the alternative is a copy per type per use, and a copy that drifts is a string one half of the library will accept and the other half will refuse.
+                    </p>
+                    <p>Group 1 is the instant, group 2 the offset, group 3 the zone name.</p>
+                  </div>
+                </section>
+                <section id="_zoneOf" class="api-declaration">
+                  <h3 class="api-decl-title">function _zoneOf</h3>
+                  <code class="api-signature">Location? _zoneOf(DateTime dt)</code>
+                  <div class="api-doc">
+                    <p>The IANA zone [dt] knows itself to be in, or <code>null</code> if it carries none.</p>
+                    <p>
+                      A [TomTimezoned] stores UTC and keeps its zone alongside; a [tz.TZDateTime] carries its location directly. A plain [DateTime] knows only whether it is UTC or "local", neither of which the timezone database can be asked questions about, so such values can only be judged on their components.
+                    </p>
                   </div>
                 </section>
               </div>

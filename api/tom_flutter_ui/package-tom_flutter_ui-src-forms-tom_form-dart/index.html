@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1387,14 +1393,8 @@
             <div class="treewrap">
               <div class="treepane">
                 <div class="treenodes">
-                  <a class="leaf" href="#TestFormClassic">TestFormClassic</a>
                   <a class="leaf" href="#TomField">TomField</a>
                   <a class="leaf" href="#TomForm">TomForm</a>
-                  <a class="leaf" href="#TomFormDoubleInputClassic">TomFormDoubleInputClassic</a>
-                  <a class="leaf" href="#TomFormEmailStringInputClassic">TomFormEmailStringInputClassic</a>
-                  <a class="leaf" href="#TomFormIntInputClassic">TomFormIntInputClassic</a>
-                  <a class="leaf" href="#TomFormPasswordStringInputClassic">TomFormPasswordStringInputClassic</a>
-                  <a class="leaf" href="#TomFormStringInputClassic">TomFormStringInputClassic</a>
                   <a class="leaf" href="#TomTextFormFieldBase">TomTextFormFieldBase</a>
                   <a class="leaf" href="#_FormChangeNotifier">_FormChangeNotifier</a>
                 </div>
@@ -1402,42 +1402,6 @@
               <div class="reader">
                 <h2 class="api-library-title">package:tom_flutter_ui/src/forms/tom_form.dart</h2>
                 <code class="api-import">import 'package:tom_flutter_ui/src/forms/tom_form.dart';</code>
-                <section id="TestFormClassic" class="api-declaration">
-                  <h3 class="api-decl-title">class TestFormClassic</h3>
-                  <code class="api-signature">class TestFormClassic extends TomForm&lt;InvalidType&gt;</code>
-                  <div class="api-doc"><p>Legacy test form demonstrating the classic form field system.</p></div>
-                  <h4 class="api-group-title">Constructors</h4>
-                  <div class="api-members">
-                    <div id="TestFormClassic.new" class="api-member"><div class="api-member-head"><code class="api-signature">TestFormClassic.new()</code></div></div>
-                  </div>
-                  <h4 class="api-group-title">Properties</h4>
-                  <div class="api-members">
-                    <div id="TestFormClassic.email" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final TomFormEmailStringInputClassic email</code></div>
-                    </div>
-                    <div id="TestFormClassic.password" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final TomFormPasswordStringInputClassic password</code></div>
-                    </div>
-                    <div id="TestFormClassic.username" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final TomFormStringInputClassic username</code></div>
-                    </div>
-                    <div id="TestFormClassic.age" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final TomFormIntInputClassic age</code></div>
-                    </div>
-                    <div id="TestFormClassic.rating" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final TomFormDoubleInputClassic rating</code></div>
-                    </div>
-                  </div>
-                  <h4 class="api-group-title">Methods</h4>
-                  <div class="api-members">
-                    <div id="TestFormClassic.createFormElements" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">void createFormElements()</code>
-                        <span class="api-badge api-badge--override">override</span>
-                      </div>
-                    </div>
-                  </div>
-                </section>
                 <section id="TomField" class="api-declaration">
                   <h3 class="api-decl-title">class TomField</h3>
                   <code class="api-signature">abstract class TomField&lt;T&gt;</code>
@@ -1453,7 +1417,29 @@
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="TomField.scope" class="api-member"><div class="api-member-head"><code class="api-signature">String scope</code></div></div>
+                    <div id="TomField.constructionScope" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final InvalidType constructionScope</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The frame this field resolves in: its form's [TomForm.constructionScope], or the ambient scope when it has no form.
+                        </p>
+                        <p>
+                          Named once and read everywhere, because [basePath] and the group path are a <code>&lt;prefix&gt;.&lt;id&gt;</code>
+                           pair and a prefix that differs between them looks up a ceiling belonging to some other member. Capturing it at construction — rather than reading [TomScope.current] per lookup, as the group composition used to — is what makes the answer independent of where it is read from: a field is a long-lived object consulted from screens, from its group's inspection and from tests alike, and only the zone it was built in describes where it actually lives.
+                        </p>
+                        <p>
+                          It is the <strong>form's</strong> frame, not the form's [TomForm.basePath]. A form is both a field container and a [TomActionController], so one group routinely holds a field and an action of the same form; resolving the field's group one segment deeper would give that single group two different ceilings depending on which member asked. The form id stays in [basePath] as the field's namespace, exactly as the controller id does in [TomAction.canonicalPath].
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomField.scope" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String scope</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The path prefix [basePath] is built on: <code>&lt;frame&gt;.&lt;formId&gt;</code> for a field that has a form, the frame alone for one that does not.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomField.basePath" class="api-member"><div class="api-member-head"><code class="api-signature">final String basePath</code></div></div>
                     <div id="TomField.tomId" class="api-member">
                       <div class="api-member-head">
@@ -1520,12 +1506,28 @@
                     <div id="TomField.isVisible" class="api-member"><div class="api-member-head"><code class="api-signature">bool isVisible</code></div></div>
                     <div id="TomField.resolvedLabel" class="api-member"><div class="api-member-head"><code class="api-signature">String resolvedLabel</code></div></div>
                     <div id="TomField.resolvedErrorMessage" class="api-member"><div class="api-member-head"><code class="api-signature">String resolvedErrorMessage</code></div></div>
+                    <div id="TomField._codeValidators" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final List&lt;Object&gt; _codeValidators</code></div>
+                      <div class="api-doc">
+                        <p>Validators passed to the constructor in code.</p>
+                        <p>
+                          Kept separate from [validators] so the effective list can merge these with any resource-declared validators (C-11) resolved lazily.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomField.validators" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final List&lt;Object&gt; validators</code></div>
                       <div class="api-doc">
-                        <p>Validators applied to this field.</p>
                         <p>
-                          Accepts both [Validator&lt;T&gt;] (fast) and [SlowValidator&lt;T&gt;] (slow). Fast validators run without showing a pending spinner. Slow validators (e.g., remote API calls) show a spinner and trigger after a longer debounce.
+                          Validators applied to this field: the code-declared validators followed by any resource-declared validators (C-11).
+                        </p>
+                        <p>
+                          Accepts both [TomValidator&lt;T&gt;] (fast) and [SlowValidator&lt;T&gt;] (slow). Fast validators run without showing a pending spinner. Slow validators (e.g., remote API calls) show a spinner and trigger after a longer debounce.
+                        </p>
+                        <p>
+                          Resource-declared validators are named in the field's resource bundle under <code>&lt;basePath&gt;.validators</code>
+                           (e.g. <code>required,minLength:8,strongPassword</code>) and resolved by [TomValidatorRegistry.instance] into validator instances. The lookup is 
+                          <code>late</code> so it runs after the field's [basePath] is derived and the app resource provider is configured, not during construction (fields are frequently constructed during reflection-driven member enumeration, before resources are installed).
                         </p>
                       </div>
                     </div>
@@ -1620,16 +1622,23 @@
                       <div class="api-doc">
                         <p>Resolve the effective authorization state for this field.</p>
                         <p>
-                          CRITICAL: All four layers must be evaluated. Skipping any layer (especially group auth) is a severe bug.
+                          The layers and their order live in [TomAuthLayers.resolve], shared with the two widget-side resolvers (<code>TomPolicyNodeBase.resolveEffectiveAuth</code>
+                           and <code>TomWidgetMixin.getAuth</code>) and matching <code>tom_ui_widgets_forms.md</code> §19. A field is the only element that supplies the 
+                          <code>narrowBy</code> layer: its enclosing form is an implicit group that can only narrow.
                         </p>
                         <p>
-                          Resolution order (§19): 1. Resource-based authorization via basePath 2. Group authorization (applies group's auth via narrowing) 3. Form authorization (implicit group — always narrows) 4. Per-widget authorizer 5. Build-time UI state controller
+                          The group resolves in [constructionScope], the frame [basePath] was built from. Read against the ambient scope instead, the ceiling lands on whichever same-named group the 
+                          <em>reader</em> happens to stand in — or, at the root, on no group rule at all.
                         </p>
                       </div>
                     </div>
-                    <div id="TomField._resolveErrorKey" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">String _resolveErrorKey(String key, Map&lt;String, Object?&gt;? params)</code>
+                    <div id="TomField._resolveResourceDeclaredValidators" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">List&lt;Object&gt; _resolveResourceDeclaredValidators()</code></div>
+                      <div class="api-doc">
+                        <p>Resolves the field's resource-declared validators (C-11).</p>
+                        <p>
+                          Reads <code>&lt;basePath&gt;.validators</code> from resources; when absent or blank the field has no resource-declared validators. Otherwise the comma-separated declaration is resolved by name through [TomValidatorRegistry].
+                        </p>
                       </div>
                     </div>
                     <div id="TomField.validate" class="api-member">
@@ -1649,14 +1658,6 @@
                       <div class="api-member-head">
                         <code class="api-signature">String toString()</code>
                         <span class="api-badge api-badge--override">override</span>
-                      </div>
-                    </div>
-                  </div>
-                  <h4 class="api-group-title">Static</h4>
-                  <div class="api-members">
-                    <div id="TomField._applyParams" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">static String _applyParams(String template, Map&lt;String, Object?&gt;? params)</code>
                       </div>
                     </div>
                   </div>
@@ -1697,7 +1698,7 @@
                       <div class="api-doc">
                         <p>
                           Back-reference set by a [TomFormChildContainer] (today: <code>TomListForm</code>) when it instantiates this form as one of its rows. Lets the form detect it has an ancestor in the form tree even when the user didn't pass an explicit [parentForm] — required so a user-initiated 
-                          <code>save()</code> on a nested form can know it must NOT clobber the outer form's transactional baseline (see [hasFormAncestor] / [_resolveCommitBaselines]).
+                          <code>save()</code> on a nested form can know it must NOT clobber the outer form's transactional baseline (see [hasFormAncestor], and the nested-save semantics documented on [save]).
                         </p>
                       </div>
                     </div>
@@ -1748,13 +1749,14 @@
                         <code class="api-signature">final List&lt;TomAction&lt;TomActionContext, TomActionUndo&gt;&gt; _actions</code>
                       </div>
                     </div>
-                    <div id="TomForm.authorizationGroup" class="api-member">
+                    <div id="TomForm.tomGroup" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">InvalidType authorizationGroup</code>
+                        <code class="api-signature">InvalidType tomGroup</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
                     <div id="TomForm.controllerId" class="api-member"><div class="api-member-head"><code class="api-signature">String controllerId</code></div></div>
+                    <div id="TomForm.constructionScope" class="api-member"><div class="api-member-head"><code class="api-signature">InvalidType constructionScope</code></div></div>
                     <div id="TomForm.canonicalPrefix" class="api-member"><div class="api-member-head"><code class="api-signature">String canonicalPrefix</code></div></div>
                     <div id="TomForm.authState" class="api-member"><div class="api-member-head"><code class="api-signature">InvalidType authState</code></div></div>
                     <div id="TomForm.actions" class="api-member">
@@ -1801,11 +1803,23 @@
                         <code class="api-signature">void registerAction(TomAction&lt;TomActionContext, TomActionUndo&gt; action)</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
+                      <div class="api-doc">
+                        <p>Registers an action with this form.</p>
+                        <p>
+                          Throws [StateError] on a duplicate [TomAction.actionId], through the same [TomActionController.addUniquely] the controller uses — a form's actions share 
+                          <code>basePath</code> exactly as a controller's share <code>canonicalPrefix</code>, so a duplicate collides here in the same way.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomForm.findAction" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">TomAction&lt;TomActionContext, TomActionUndo&gt;? findAction(String actionId)</code>
                         <span class="api-badge api-badge--override">override</span>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Finds an action by its [TomAction.actionId], or null when this form has none. At most one can match: [registerAction] refuses a duplicate id.
+                        </p>
                       </div>
                     </div>
                     <div id="TomForm.prepareForSelfObservation" class="api-member">
@@ -1842,7 +1856,7 @@
                       <div class="api-member-head"><code class="api-signature">void _attachBindingObserver(InvalidType target)</code></div>
                       <div class="api-doc">
                         <p>
-                          Round-6 (a): subscribe to the bound TomClass so external mutations (e.g. a sibling [TomForm] bound to the same target committing an edit) re-snapshot this form's fields. Without this, two scaffolds targeting the same data object only stay in sync for the side that initiated the edit.
+                          Subscribes to the bound TomClass so external mutations (e.g. a sibling [TomForm] bound to the same target committing an edit) re-snapshot this form's fields. Without this, two scaffolds targeting the same data object only stay in sync for the side that initiated the edit.
                         </p>
                       </div>
                     </div>
@@ -1967,119 +1981,29 @@
                     <div id="TomForm.dispose" class="api-member"><div class="api-member-head"><code class="api-signature">void dispose()</code></div></div>
                   </div>
                 </section>
-                <section id="TomFormDoubleInputClassic" class="api-declaration">
-                  <h3 class="api-decl-title">class TomFormDoubleInputClassic<span class="api-badge api-badge--deprecated">deprecated</span></h3>
-                  <code class="api-signature">class TomFormDoubleInputClassic extends TomTextFormFieldBase&lt;double&gt;</code>
-                  <div class="api-doc">
-                    <p>
-                      <strong>Legacy</strong> double/decimal form field with double conversion and optional min/max validation.
-                    </p>
-                  </div>
-                  <h4 class="api-group-title">Constructors</h4>
-                  <div class="api-members">
-                    <div id="TomFormDoubleInputClassic.new" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">
-                          TomFormDoubleInputClassic.new(String tomId, double initialValue, {TomForm&lt;InvalidType&gt;? form, double? min, double? max, String? labelText, String? helperText, String? hintText, Widget? prefixIcon, Widget? suffixIcon, bool? enabled, String? Function(String)?? inputValidator, String? Function(String)?? valueValidator})
-                        </code>
-                      </div>
-                    </div>
-                  </div>
-                  <h4 class="api-group-title">Properties</h4>
-                  <div class="api-members">
-                    <div id="TomFormDoubleInputClassic.min" class="api-member"><div class="api-member-head"><code class="api-signature">final double? min</code></div></div>
-                    <div id="TomFormDoubleInputClassic.max" class="api-member"><div class="api-member-head"><code class="api-signature">final double? max</code></div></div>
-                  </div>
-                </section>
-                <section id="TomFormEmailStringInputClassic" class="api-declaration">
-                  <h3 class="api-decl-title">class TomFormEmailStringInputClassic<span class="api-badge api-badge--deprecated">deprecated</span></h3>
-                  <code class="api-signature">class TomFormEmailStringInputClassic extends TomTextFormFieldBase&lt;String&gt;</code>
-                  <div class="api-doc">
-                    <p><strong>Legacy</strong> email form field with built-in email validation.</p>
-                    <p>Prefer [TomFormStringInput] with email validators for new code.</p>
-                  </div>
-                  <h4 class="api-group-title">Constructors</h4>
-                  <div class="api-members">
-                    <div id="TomFormEmailStringInputClassic.new" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">
-                          TomFormEmailStringInputClassic.new(String tomId, String initialValue, {TomForm&lt;InvalidType&gt;? form, bool obscureText = false, String? labelText, String? helperText, String? hintText, Widget? prefixIcon, Widget? suffixIcon, bool? enabled, String? Function(String)?? inputValidator})
-                        </code>
-                      </div>
-                    </div>
-                  </div>
-                  <h4 class="api-group-title">Static</h4>
-                  <div class="api-members">
-                    <div id="TomFormEmailStringInputClassic.isValidEmail" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static bool isValidEmail(String s)</code></div>
-                    </div>
-                  </div>
-                </section>
-                <section id="TomFormIntInputClassic" class="api-declaration">
-                  <h3 class="api-decl-title">class TomFormIntInputClassic<span class="api-badge api-badge--deprecated">deprecated</span></h3>
-                  <code class="api-signature">class TomFormIntInputClassic extends TomTextFormFieldBase&lt;int&gt;</code>
-                  <div class="api-doc">
-                    <p><strong>Legacy</strong> integer form field with int conversion and optional min/max validation.</p>
-                  </div>
-                  <h4 class="api-group-title">Constructors</h4>
-                  <div class="api-members">
-                    <div id="TomFormIntInputClassic.new" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">
-                          TomFormIntInputClassic.new(String tomId, int initialValue, {TomForm&lt;InvalidType&gt;? form, int? min, int? max, String? labelText, String? helperText, String? hintText, Widget? prefixIcon, Widget? suffixIcon, bool? enabled, String? Function(String)?? inputValidator, String? Function(String)?? valueValidator})
-                        </code>
-                      </div>
-                    </div>
-                  </div>
-                  <h4 class="api-group-title">Properties</h4>
-                  <div class="api-members">
-                    <div id="TomFormIntInputClassic.min" class="api-member"><div class="api-member-head"><code class="api-signature">final int? min</code></div></div>
-                    <div id="TomFormIntInputClassic.max" class="api-member"><div class="api-member-head"><code class="api-signature">final int? max</code></div></div>
-                  </div>
-                </section>
-                <section id="TomFormPasswordStringInputClassic" class="api-declaration">
-                  <h3 class="api-decl-title">
-                    class TomFormPasswordStringInputClassic<span class="api-badge api-badge--deprecated">deprecated</span>
-                  </h3>
-                  <code class="api-signature">class TomFormPasswordStringInputClassic extends TomTextFormFieldBase&lt;String&gt;</code>
-                  <div class="api-doc">
-                    <p><strong>Legacy</strong> password form field with obscured text.</p>
-                    <p>Prefer [TomFormStringInput] with <code>obscureText: true</code> for new code.</p>
-                  </div>
-                  <h4 class="api-group-title">Constructors</h4>
-                  <div class="api-members">
-                    <div id="TomFormPasswordStringInputClassic.new" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">
-                          TomFormPasswordStringInputClassic.new(String tomId, String initialValue, {TomForm&lt;InvalidType&gt;? form, String? labelText, String? helperText, String? hintText, Widget? prefixIcon, Widget? suffixIcon, bool? enabled, String? Function(String)?? inputValidator, String? Function(String)?? valueValidator})
-                        </code>
-                      </div>
-                    </div>
-                  </div>
-                </section>
-                <section id="TomFormStringInputClassic" class="api-declaration">
-                  <h3 class="api-decl-title">class TomFormStringInputClassic<span class="api-badge api-badge--deprecated">deprecated</span></h3>
-                  <code class="api-signature">class TomFormStringInputClassic extends TomTextFormFieldBase&lt;String&gt;</code>
-                  <div class="api-doc">
-                    <p><strong>Legacy</strong> standard string form field for text input.</p>
-                    <p>Prefer [TomFormStringInput] from Phase 1 for new code.</p>
-                  </div>
-                  <h4 class="api-group-title">Constructors</h4>
-                  <div class="api-members">
-                    <div id="TomFormStringInputClassic.new" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">
-                          TomFormStringInputClassic.new(String tomId, String initialValue, {TomForm&lt;InvalidType&gt;? form, bool obscureText = false, String? labelText, String? helperText, String? hintText, Widget? prefixIcon, Widget? suffixIcon, bool? enabled, String? Function(String)?? inputValidator, String? Function(String)?? valueValidator})
-                        </code>
-                      </div>
-                    </div>
-                  </div>
-                </section>
                 <section id="TomTextFormFieldBase" class="api-declaration">
                   <h3 class="api-decl-title">class TomTextFormFieldBase</h3>
                   <code class="api-signature">class TomTextFormFieldBase&lt;T&gt; extends TomField&lt;T&gt;</code>
                   <div class="api-doc">
                     <p>Base class for text-based form fields with TextEditingController support.</p>
+                    <h2>Converting between <code>T</code> and the text on screen</h2>
+                    <p>
+                      The controller holds a <code>String</code>; the field holds a <code>T</code>. Two converters bridge them, and they are deliberately not symmetric:
+                    </p>
+                    <ul><li><strong><code>T</code> → text</strong> always has a default — <code>toString()</code> — so</li></ul>
+                    <p>
+                      <code>valueToTextConverter</code> is optional for every <code>T</code>. <em> </em><em>text → <code>T</code></em>* has a default only for 
+                      <code>T == String</code>, where it is the identity. Nothing can parse an arbitrary <code>T</code> out of a string.
+                    </p>
+                    <p>
+                      So any use with a <code>T</code> other than <code>String</code> <strong>must</strong> pass <code>valueConverter</code>, and the constructor throws [ArgumentError] when it does not. The check is at construction rather than at the first keystroke because the requirement is knowable the moment the field is built, and a field that renders correctly and then dies on the user's first character is far harder to diagnose than one that refuses to exist.
+                    </p>
+                    <p>A subclass fixes both the type argument and the converter, so its own callers supply neither:</p>
+                    <pre><code>class Celsius extends TomTextFormFieldBase&lt;int&gt; {
+  Celsius(super.tomId, super.initialValue)
+    : super(valueConverter: (s) =&gt; int.tryParse(s) ?? 0);
+}</code></pre>
+                    <h2>Resource lookup</h2>
                     <p>
                       Individual [InputDecoration] parameters (e.g. [labelText], [helperText], [prefixIcon]) follow the resource lookup pattern: 1. Explicit parameter value (highest priority) 2. Resource lookup via scope path (<code>$scope.$tomId.$suffix</code>) 3. 
                       <code>null</code> / absent (lowest priority)
@@ -2107,7 +2031,14 @@
                     <div id="TomTextFormFieldBase._errorText" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final ValueNotifier&lt;String?&gt; _errorText</code></div>
                     </div>
-                    <div id="TomTextFormFieldBase._inputError" class="api-member"><div class="api-member-head"><code class="api-signature">String? _inputError</code></div></div>
+                    <div id="TomTextFormFieldBase._suppressInputListener" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool _suppressInputListener</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Re-entrancy guard: set while we programmatically revert the controller text so the listener does not re-validate (and wipe the error) on the revert pass.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomTextFormFieldBase._valueValidators" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final List&lt;String? Function(String)&gt; _valueValidators</code></div>
                     </div>
@@ -2144,17 +2075,33 @@
                     </div>
                     <div id="TomTextFormFieldBase._defaultFromTextConverter" class="api-member">
                       <div class="api-member-head"><code class="api-signature">T _defaultFromTextConverter(String value)</code></div>
+                      <div class="api-doc">
+                        <p>The text → <code>T</code> default, which exists only for <code>T == String</code>.</p>
+                        <p>
+                          The constructor rejects every other <code>T</code> that arrives without a <code>valueConverter</code>, so by the time this runs the cast is the 
+                          <code>String</code> identity and cannot fail.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomTextFormFieldBase._setControllerText" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void _setControllerText(String text)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Programmatically writes [text] into the controller, with the caret at the end, without triggering an input-validation pass. This is the 
+                          <em>only</em> way this class writes the controller: writing it fires [_onTextChanged], which treats what it finds as a keystroke — validating it, publishing the text-derived value, and possibly reverting the very text just written.
+                        </p>
+                        <p>
+                          Callers stay responsible for the value and the error message, because the two programmatic writers need opposite things from the error: the revert path ([_onTextChanged]) has just set the message this write exists to preserve, while [set] and [reset] must clear a message that now refers to text no longer on screen.
+                        </p>
+                        <p>
+                          [text] becomes the revert target of the next rejected keystroke, since it is by construction the last text this field accepted.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomTextFormFieldBase._onTextChanged" class="api-member"><div class="api-member-head"><code class="api-signature">void _onTextChanged()</code></div></div>
                     <div id="TomTextFormFieldBase._resolveIconOrNull" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Widget? _resolveIconOrNull(String key)</code></div>
                       <div class="api-doc"><p>Resolves an icon from resources, returning an [Icon] widget or <code>null</code>.</p></div>
-                    </div>
-                    <div id="TomTextFormFieldBase.reset" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">void reset()</code>
-                        <span class="api-badge api-badge--override">override</span>
-                      </div>
                     </div>
                     <div id="TomTextFormFieldBase.set" class="api-member">
                       <div class="api-member-head">

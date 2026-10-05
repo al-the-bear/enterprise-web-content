@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1397,7 +1403,9 @@
                     <p>
                       The <code>.env</code> file format supports: - Key-value pairs: <code>KEY=value</code> - Comments: Lines starting with 
                       <code>#</code> - Empty lines (ignored) - Quoted values: <code>KEY="value with spaces"</code> or <code>KEY='value'</code>
-                       - Inline comments: <code>KEY=value # comment</code> (only if not inside quotes)
+                       - Inline comments: <code>KEY=value # comment</code> — the space before the <code>#</code> is part of the rule, not of the example. A 
+                      <code>#</code> that follows anything else is one of the value's own characters, so <code>PW=pa#ss</code>, 
+                      <code>COLOR=#FF0000</code> and a URL fragment all survive unquoted. Inside quotes a <code>#</code> is always data.
                     </p>
                     <p>Example <code>.env</code> file:</p>
                     <pre><code># Database configuration
@@ -1446,6 +1454,29 @@ DEBUG=true</code></pre>
                         <p>This can be used to parse <code>.env</code> content from any source, not just files.</p>
                       </div>
                     </div>
+                    <div id="TomEnvFile._inlineCommentIndex" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static int _inlineCommentIndex(String rawValue)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The index in [rawValue] at which an inline comment starts, or <code>-1</code> when the line carries none.
+                        </p>
+                        <p>
+                          A comment opens at a <code>#</code> <strong>preceded by a space or a tab</strong>. That requirement is the rule rather than a convention borrowed from the example: a 
+                          <code>#</code> anywhere else is one of the value's own characters, and the values that carry one are entirely ordinary — a password (<code>PW=pa#ss</code>), a URL fragment, a CSS colour (<code>COLOR=#FF0000</code>), a channel name. Cutting at the first 
+                          <code>#</code> wherever it stood delivered each of them short, with no diagnostic and no reason for a reader following the documented format to suspect it. Quoting was the workaround and is now merely an option.
+                        </p>
+                        <p>
+                          [rawValue] is the text after the <code>=</code> <strong>before trimming</strong>, and it has to be: <code>COLOR=#FF0000</code>
+                           and <code>KEY= # note</code> are one string once trimmed, so a rule applied afterwards could not tell a value that begins with 
+                          <code>#</code> from a comment that follows a space. Read before the trim, the first has nothing in front of its 
+                          <code>#</code> and the second has a space.
+                        </p>
+                        <p>
+                          The <code>#</code> needs nothing after it: <code>KEY=value #</code> ends the value just as a full comment does. And a comment takes everything to the end of the line, so a second 
+                          <code>#</code> inside it is part of the comment.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomEnvFile._convertValue" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static Object? _convertValue(String value)</code></div>
                       <div class="api-doc">
@@ -1471,16 +1502,90 @@ DEBUG=true</code></pre>
   TomEnvFile.read('.env.local'),
   TomEnvFile.read('.env.${Platform.environment['ENV'] ?? 'dev'}'),
 ]);</code></pre>
+                        <p>
+                          <strong>Values are merged as they arrive; nothing is converted here.</strong> [read], [parse] and <code>TomArgs.parseArgsToMap</code>
+                           all convert on the way out, so a stack built from those is typed. A raw <code>Map&lt;String, String&gt;</code>
+                           is not — and Dart's covariance lets one pass as a <code>Map&lt;String, Object?&gt;</code> without complaint, so 
+                          <code>Platform.environment</code> merges silently and contributes every value as a <code>String</code>. Wrap it in 
+                          <code>TomArgs.convertToObjectMap</code> first, or an <code>int</code> or <code>bool</code> field will be refused by the reflector when the result reaches 
+                          <code>setValues</code>.
+                        </p>
                       </div>
                     </div>
-                    <div id="TomEnvFile.load" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static Map&lt;String, Object?&gt; load([String path = '.env'])</code></div>
+                    <div id="TomEnvFile.loadAndMerge" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static Map&lt;String, Object?&gt; loadAndMerge({String path = '.env', Map&lt;String, String&gt;? processEnvironment})
+                        </code>
+                      </div>
                       <div class="api-doc">
-                        <p>Loads environment variables from a <code>.env</code> file and adds them to the process environment.</p>
                         <p>
-                          Note: This only affects Dart code that reads from [Platform.environment] after this call. It does not modify the actual OS environment.
+                          [processEnvironment] (the OS environment by default) and the <code>.env</code> file at [path] as <strong>one typed map</strong>, the file layered on top.
                         </p>
-                        <p>Returns the loaded environment variables.</p>
+                        <p>
+                          The map a boot wants when it is going to bind the result: every value is converted, including the ones that came from the process environment. That wrap is the method's whole point — written by hand it is
+                        </p>
+                        <pre><code>TomEnvFile.merge([
+  TomArgs.convertToObjectMap(Platform.environment),  // easily forgotten
+  TomEnvFile.read(path),
+]);</code></pre>
+                        <p>
+                          and [merge] can only warn about the omission, because Dart's covariance lets a raw <code>Map&lt;String, String&gt;</code>
+                           pass as a <code>Map&lt;String, Object?&gt;</code> without complaint: the environment then contributes every value as text and an 
+                          <code>int</code> or <code>bool</code> field is refused at <code>setValues</code>.
+                        </p>
+                        <p>
+                          <strong>The <code>.env</code> file wins</strong>, which is the order <code>TomBaseServerConfiguration.getDefaultValues</code>
+                           and [resolveEnvironment] give the same two sources. One file, one rule.
+                        </p>
+                        <p>
+                          An empty assignment <strong>clears</strong> the variable rather than being dropped: <code>EMPTY=</code>
+                           in the file leaves the key present with a <code>null</code> value, so a process variable of that name is shadowed. That is what [read] makes of the line and what 
+                          <code>getDefaultValues</code> does with it, and a typed map can carry the distinction between "present and cleared" and "absent" — where [resolveEnvironment] cannot, since it must produce a 
+                          <code>Map&lt;String, String&gt;</code> for a substituter that treats empty as unset.
+                        </p>
+                        <p>
+                          A missing file contributes nothing ([read] returns <code>{}</code>), so the result is then the converted [processEnvironment] alone.
+                        </p>
+                        <p>
+                          Nothing is installed anywhere: <code>Platform.environment</code> is read-only, and the name says what the method returns rather than what it could not do. A caller that wants the 
+                          <code>SCREAMING_SNAKE_CASE</code> keys to also reach <code>lowerCamelCase</code> fields applies [TomArgs.resolveEnvironmentNames] 
+                          <strong>per source, before</strong> this merge — see <code>getDefaultValues</code>, which does exactly that; applying it to the merged result would let an alias derived from the process environment outrank an exact key from the file.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomEnvFile.resolveEnvironment" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static Map&lt;String, String&gt; resolveEnvironment({String path = '.env', Map&lt;String, String&gt;? processEnvironment})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          The effective environment for <code>${VAR}</code> expansion: [processEnvironment] (the OS environment by default) with the 
+                          <code>.env</code> file at [path] layered <strong>on top</strong>.
+                        </p>
+                        <p>
+                          This is the map <code>TomYaml.loadYamlFile</code>'s <code>environment</code> parameter wants. Without it a 
+                          <code>.env</code> reaches a server's <em>configuration keys</em> — because <code>TomBaseServerConfiguration.getDefaultValues</code>
+                           merges [read] — but not the <code>${VAR:default}</code> placeholders in its datasource and resource YAML, which expand from the OS environment alone. A boot that resolves this once and passes it down closes that gap.
+                        </p>
+                        <p>
+                          <strong>The <code>.env</code> file wins over the process environment</strong>, because that is the order 
+                          <code>getDefaultValues</code> already applies to the same two sources (config resources, then OS environment, then 
+                          <code>.env</code>, then CLI args). One file, one rule: a variable behaves the same whether it is read as a config key or expanded into a placeholder. Note this inverts Docker Compose's own precedence, where the shell wins over 
+                          <code>.env</code> — so a <code>.env</code> shared with a compose file resolves differently on the two sides for a key that is 
+                          <em>also</em> exported in the shell. Export nothing you also write in <code>.env</code>, and the question does not arise.
+                        </p>
+                        <p>
+                          Values are stringified because that is what <code>substituteEnvVars</code> takes, and nothing is lost by it: substitution writes its expansion back into the tree as text, so a substituted value is a 
+                          <code>String</code> whatever [read] typed it as. A key whose <code>.env</code> value is empty — [read] maps that to 
+                          <code>null</code> — is dropped rather than contributed as <code>''</code>; <code>substituteEnvVars</code>
+                           treats an empty value as unset, so the two resolve identically, and dropping keeps the map free of entries that mean nothing.
+                        </p>
+                        <p>
+                          A missing file contributes nothing ([read] returns <code>{}</code>), so the result is then [processEnvironment] unchanged.
+                        </p>
                       </div>
                     </div>
                   </div>

@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1393,13 +1399,47 @@
                   <h3 class="api-decl-title">class TomStyleResolvers</h3>
                   <code class="api-signature">class TomStyleResolvers</code>
                   <div class="api-doc">
-                    <p>Phase 3: Complex style resolution helpers for Tom UI widgets.</p>
+                    <p>Complex style resolution helpers for Tom UI widgets.</p>
                     <p>
-                      Provides resolution of complex Flutter objects (TextStyle, ButtonStyle, InputDecoration, MenuStyle, ShapeBorder, BorderRadius, Decoration, BoxConstraints, AlignmentGeometry, BorderSide, Offset, TableBorder) from JSON resource maps.
+                      Turns JSON resource maps into the composite Flutter objects a widget needs in order to render: text and button styles, input and menu decorations, borders and shapes, insets, and the small layout values around them.
                     </p>
-                    <p>These helpers are separate from [TomNodeBase] because they require Material library imports.</p>
+                    <p>
+                      The <code>parse…</code> members below are the list, and this paragraph deliberately does not repeat it. A second copy has to be kept in step by hand, and the copy that used to stand here named twelve types while nineteen parsers sat underneath it. What the comment states about its own members instead is a count — small enough that 
+                      <code>style_resolvers_layering_test.dart</code> can hold it to them.
+                    </p>
+                    <p>
+                      Separate from [TomCtr] because of what it takes in, not what it imports. Both classes import the Material library — 
+                      <code>tom_construction_helpers.dart</code> opens with that import too, and [TomCtr] returns <code>TextStyle</code>, 
+                      <code>InputBorder</code> and <code>WidgetStateProperty</code> — so imports could never have told them apart.
+                    </p>
+                    <p>
+                      The boundary is the resource provider. [TomCtr] is the one place that reads it, turning a <code>basePath</code>
+                       + <code>suffix</code> key into a raw value; this class turns an already-decoded value into a composite Flutter object. It is the 
+                      <em>provider</em> dependency that runs one way, not the reference between the two classes — the seventeen 
+                      <code>resolve…</code> members below each make exactly one <code>TomCtr</code> call and hand the result to the matching 
+                      <code>parse…</code>, while no <code>parse…</code> names [TomCtr] at all. That asymmetry, and not a one-way import, is what lets the parsing half be tested with no resources installed.
+                    </p>
+                    <p>
+                      Nineteen parsers live here; seventeen have their <code>resolve…</code> partner in this class, and [parseEdgeInsets] and [parseFontWeight] are resolved by [TomCtr.edgeInsets] and [TomCtr.textStyle] instead — long-established entry points with call sites throughout the widget layer, so their resource route stays where callers already find it. What must not return is the alternative [TomCtr] used to take: a private copy of each parser, kept in step by hand and already drifted apart by the time it was noticed.
+                    </p>
+                    <p>
+                      Which accessor a resolver reads through follows from its parser's own signature. Twelve parsers take a 
+                      <code>Map&lt;String, dynamic&gt;?</code>, so their resolvers read <code>TomCtr.map</code>. Seven take a bare 
+                      <code>dynamic</code>, because a radius may be a number, an alignment a name and a font weight either — [parseBorderRadius], [parseAlignment], [parseOffset], [parseVisualDensity], [parseScrollPhysics] and the two [TomCtr] resolves. Those read the raw value, or the scalar and list forms would be documented and unreachable from a resource. Four of the five with resolvers here additionally unwrap a map that carries the value under the property's own name.
+                    </p>
+                    <p>
+                      A new helper therefore belongs here when it assembles a Flutter object out of a decoded value, and in [TomCtr] when it reaches the provider for one — and in exactly one of the two, never both.
+                    </p>
+                    <p>
+                      Every <code>parse…</code> returns <code>null</code> when the input contributed nothing — absent, empty, or holding only keys and values it cannot use — and an object only when at least one key was read. There is no third outcome — an unusable entry is skipped rather than raised, so one mistyped value in a resource bundle never takes down a widget build.
+                    </p>
+                    <p>
+                      That distinction is what makes <code>parse…(map) ?? fallback</code> work. A map full of typos yields no object, so the fallback runs; were a default-constructed one returned instead, it would render plausibly — 
+                      <code>TextStyle()</code> inherits from the ambient theme — and the mistake would go unreported.
+                    </p>
                     <p>Usage in widgets:</p>
-                    <pre><code>final style = this.style ?? resolveButtonStyleOrNull(context, 'style');</code></pre>
+                    <pre><code>final style =
+    this.style ?? TomStyleResolvers.resolveButtonStyle(basePath, 'style');</code></pre>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
@@ -1420,7 +1460,9 @@
                           <code>decorationColor</code> (String): Color name or hex value - <code>decorationStyle</code> (String): "solid", "double", "dotted", "dashed", "wavy" - 
                           <code>overflow</code> (String): "clip", "fade", "ellipsis", "visible"
                         </p>
-                        <p>Returns <code>null</code> if no map is found or parsing fails.</p>
+                        <p>
+                          Returns <code>null</code> if the map is absent, empty, or contains no key this parser can use — never a default-constructed object.
+                        </p>
                       </div>
                     </div>
                     <div id="TomStyleResolvers.resolveTextStyle" class="api-member">
@@ -1446,9 +1488,19 @@
                           <code>tapTargetSize</code> (String): "padded", "shrinkWrap"
                         </p>
                         <p>
+                          The three size maps may name one dimension only, and each completes the other differently — an unspecified minimum is 
+                          <code>0</code>, an unspecified maximum is <code>double.infinity</code>, and a <code>fixedSize</code> missing either dimension is discarded, because "fixed" has no defensible completion:
+                        </p>
+                        <pre><code>parseButtonStyle({'minimumSize': {'height': 40}});  // Size(0, 40)
+parseButtonStyle({'maximumSize': {'height': 40}});  // Size(Infinity, 40)
+parseButtonStyle({'fixedSize':   {'height': 40}});  // null — no style</code></pre>
+                        <p>A size map naming neither dimension constrains nothing and is discarded in all three slots.</p>
+                        <p>
                           All color properties are wrapped in [WidgetStatePropertyAll] for simplicity. For state-dependent colors, use explicit [ButtonStyle] in code.
                         </p>
-                        <p>Returns <code>null</code> if no map is found or parsing fails.</p>
+                        <p>
+                          Returns <code>null</code> if the map is absent, empty, or contains no key this parser can use — never a default-constructed object.
+                        </p>
                       </div>
                     </div>
                     <div id="TomStyleResolvers.resolveButtonStyle" class="api-member">
@@ -1477,7 +1529,9 @@
                           <code>counterStyle</code> (Map): TextStyle specification - <code>prefixStyle</code> (Map): TextStyle specification - 
                           <code>suffixStyle</code> (Map): TextStyle specification
                         </p>
-                        <p>Returns <code>null</code> if no map is found or parsing fails.</p>
+                        <p>
+                          Returns <code>null</code> if the map is absent, empty, or contains no key this parser can use — never a default-constructed object.
+                        </p>
                       </div>
                     </div>
                     <div id="TomStyleResolvers.resolveInputDecoration" class="api-member">
@@ -1495,7 +1549,9 @@
                            (String): Color name or hex value - <code>surfaceTintColor</code> (String): Color name or hex value - 
                           <code>elevation</code> (double): Elevation value - <code>padding</code> (EdgeInsets format): Padding specification
                         </p>
-                        <p>Returns <code>null</code> if no map is found or parsing fails.</p>
+                        <p>
+                          Returns <code>null</code> if the map is absent, empty, or contains no key this parser can use — never a default-constructed object.
+                        </p>
                       </div>
                     </div>
                     <div id="TomStyleResolvers.resolveMenuStyle" class="api-member">
@@ -1514,7 +1570,9 @@
                           The resource map can contain: - <code>type</code> (String): "rounded", "beveled", "stadium", "circle", "continuous" (defaults to "rounded") - 
                           <code>borderRadius</code> (dynamic): BorderRadius specification - <code>side</code> (Map): BorderSide specification
                         </p>
-                        <p>Returns <code>null</code> if no map is found or parsing fails.</p>
+                        <p>
+                          Returns <code>null</code> if the map is absent, empty, or contains no key this parser can use — never a default-constructed object.
+                        </p>
                       </div>
                     </div>
                     <div id="TomStyleResolvers.resolveShapeBorder" class="api-member">
@@ -1534,7 +1592,9 @@
                            (double): Border width (default 1.0) - <code>style</code> (String): "solid" or "none" - <code>strokeAlign</code>
                            (double): -1.0 (inside), 0.0 (center), 1.0 (outside)
                         </p>
-                        <p>Returns <code>null</code> if no map is found or parsing fails.</p>
+                        <p>
+                          Returns <code>null</code> if the map is absent, empty, or contains no key this parser can use — never a default-constructed object.
+                        </p>
                       </div>
                     </div>
                     <div id="TomStyleResolvers.resolveBorderSide" class="api-member">
@@ -1552,14 +1612,22 @@
                           <code>bottomLeft</code>, <code>bottomRight</code> (each a number for circular radius) - Map with <code>all</code>
                            (number for uniform circular radius)
                         </p>
-                        <p>Returns <code>null</code> if value is null or parsing fails.</p>
+                        <p>
+                          Returns <code>null</code> if the value is absent, or is a form or a map out of which nothing usable can be read — never a default-constructed object.
+                        </p>
                       </div>
                     </div>
                     <div id="TomStyleResolvers.resolveBorderRadius" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">static BorderRadius? resolveBorderRadius(String basePath, String suffix)</code>
                       </div>
-                      <div class="api-doc"><p>Resolves a [BorderRadius] from resources at [basePath].[suffix].</p></div>
+                      <div class="api-doc">
+                        <p>Resolves a [BorderRadius] from resources at [basePath].[suffix].</p>
+                        <p>
+                          The resource may hold any form [parseBorderRadius] accepts — including a bare number — or a map carrying one of them under a 
+                          <code>radius</code> key.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomStyleResolvers.parseDecoration" class="api-member">
                       <div class="api-member-head">
@@ -1573,7 +1641,9 @@
                           <code>width</code> - <code>boxShadow</code> (List): List of shadow maps with <code>color</code>, <code>blurRadius</code>, 
                           <code>spreadRadius</code>, <code>offset</code> - <code>shape</code> (String): "rectangle" or "circle" (default "rectangle")
                         </p>
-                        <p>Returns <code>null</code> if no map is found or parsing fails.</p>
+                        <p>
+                          Returns <code>null</code> if the map is absent, empty, or contains no key this parser can use — never a default-constructed object.
+                        </p>
                       </div>
                     </div>
                     <div id="TomStyleResolvers.resolveDecoration" class="api-member">
@@ -1593,7 +1663,9 @@
                            (double): Maximum width (default infinity) - <code>minHeight</code> (double): Minimum height (default 0.0) - 
                           <code>maxHeight</code> (double): Maximum height (default infinity)
                         </p>
-                        <p>Returns <code>null</code> if no map is found or parsing fails.</p>
+                        <p>
+                          Returns <code>null</code> if the map is absent, empty, or contains no key this parser can use — never a default-constructed object.
+                        </p>
                       </div>
                     </div>
                     <div id="TomStyleResolvers.resolveBoxConstraints" class="api-member">
@@ -1609,26 +1681,42 @@
                         <p>
                           Supported formats: - String: named alignment ("topLeft", "center", "bottomRight", etc.) - Map: {x: double, y: double} for custom alignment
                         </p>
-                        <p>Returns <code>null</code> if value is null or parsing fails.</p>
+                        <p>
+                          Returns <code>null</code> if the value is absent, or is a form or a map out of which nothing usable can be read — never a default-constructed object.
+                        </p>
                       </div>
                     </div>
                     <div id="TomStyleResolvers.resolveAlignment" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">static AlignmentGeometry? resolveAlignment(String basePath, String suffix)</code>
                       </div>
-                      <div class="api-doc"><p>Resolves an [AlignmentGeometry] from resources at [basePath].[suffix].</p></div>
+                      <div class="api-doc">
+                        <p>Resolves an [AlignmentGeometry] from resources at [basePath].[suffix].</p>
+                        <p>
+                          The resource may hold any form [parseAlignment] accepts — including a name such as <code>topLeft</code>
+                           — or a map carrying one of them under an <code>alignment</code> key.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomStyleResolvers.parseOffset" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static Offset? parseOffset(dynamic value)</code></div>
                       <div class="api-doc">
                         <p>Resolves an [Offset] from a dynamic value.</p>
                         <p>Supported formats: - Map: {dx: double, dy: double} or {x: double, y: double} - List: [dx, dy]</p>
-                        <p>Returns <code>null</code> if value is null or parsing fails.</p>
+                        <p>
+                          Returns <code>null</code> if the value is absent, or is a form or a map out of which nothing usable can be read — never a default-constructed object.
+                        </p>
                       </div>
                     </div>
                     <div id="TomStyleResolvers.resolveOffset" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static Offset? resolveOffset(String basePath, String suffix)</code></div>
-                      <div class="api-doc"><p>Resolves an [Offset] from resources at [basePath].[suffix].</p></div>
+                      <div class="api-doc">
+                        <p>Resolves an [Offset] from resources at [basePath].[suffix].</p>
+                        <p>
+                          The resource may hold any form [parseOffset] accepts — including a two-element list such as <code>[3, 4]</code>. Alone among the five raw-value resolvers it unwraps no key, because 
+                          <code>{dx, dy}</code> is already one of those forms rather than a wrapper around one.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomStyleResolvers.parseTableBorder" class="api-member">
                       <div class="api-member-head">
@@ -1641,7 +1729,9 @@
                            (Map): BorderSide specifications - <code>horizontalInside</code>, <code>verticalInside</code> (Map): BorderSide specifications - 
                           <code>all</code> (Map): Uniform BorderSide for all sides
                         </p>
-                        <p>Returns <code>null</code> if no map is found or parsing fails.</p>
+                        <p>
+                          Returns <code>null</code> if the map is absent, empty, or contains no key this parser can use — never a default-constructed object.
+                        </p>
                       </div>
                     </div>
                     <div id="TomStyleResolvers.resolveTableBorder" class="api-member">
@@ -1657,14 +1747,22 @@
                         <p>
                           Supported formats: - String: "comfortable", "compact", "standard", "adaptivePlatformDensity" - Map: {horizontal: double, vertical: double}
                         </p>
-                        <p>Returns <code>null</code> if value is null or parsing fails.</p>
+                        <p>
+                          Returns <code>null</code> if the value is absent, or is a form or a map out of which nothing usable can be read — never a default-constructed object.
+                        </p>
                       </div>
                     </div>
                     <div id="TomStyleResolvers.resolveVisualDensity" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">static VisualDensity? resolveVisualDensity(String basePath, String suffix)</code>
                       </div>
-                      <div class="api-doc"><p>Resolves a [VisualDensity] from resources at [basePath].[suffix].</p></div>
+                      <div class="api-doc">
+                        <p>Resolves a [VisualDensity] from resources at [basePath].[suffix].</p>
+                        <p>
+                          The resource may hold any form [parseVisualDensity] accepts — including a name such as <code>compact</code>
+                           — or a map carrying one of them under a <code>visualDensity</code> key.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomStyleResolvers.parseIconThemeData" class="api-member">
                       <div class="api-member-head">
@@ -1678,7 +1776,9 @@
                            (double): Fill value (0.0 - 1.0) - <code>weight</code> (double): Icon weight - <code>grade</code> (double): Icon grade - 
                           <code>opticalSize</code> (double): Optical size
                         </p>
-                        <p>Returns <code>null</code> if no map is found or parsing fails.</p>
+                        <p>
+                          Returns <code>null</code> if the map is absent, empty, or contains no key this parser can use — never a default-constructed object.
+                        </p>
                       </div>
                     </div>
                     <div id="TomStyleResolvers.resolveIconThemeData" class="api-member">
@@ -1700,7 +1800,9 @@
                           <code>fontWeight</code> (String): "normal", "bold", "w100"-"w900" - <code>fontStyle</code> (String): "normal", "italic" - 
                           <code>forceStrutHeight</code> (bool): Whether to force strut height
                         </p>
-                        <p>Returns <code>null</code> if no map is found or parsing fails.</p>
+                        <p>
+                          Returns <code>null</code> if the map is absent, empty, or contains no key this parser can use — never a default-constructed object.
+                        </p>
                       </div>
                     </div>
                     <div id="TomStyleResolvers.resolveStrutStyle" class="api-member">
@@ -1720,7 +1822,9 @@
                           <code>applyHeightToLastDescent</code> (bool): Apply height to last descent (default true) - <code>leadingDistribution</code>
                            (String): "proportional" or "even"
                         </p>
-                        <p>Returns <code>null</code> if no map is found or parsing fails.</p>
+                        <p>
+                          Returns <code>null</code> if the map is absent, empty, or contains no key this parser can use — never a default-constructed object.
+                        </p>
                       </div>
                     </div>
                     <div id="TomStyleResolvers.resolveTextHeightBehavior" class="api-member">
@@ -1736,23 +1840,96 @@
                         <p>
                           Supported values: - "bouncing" / "bouncingScroll": [BouncingScrollPhysics] - "clamping" / "clampingScroll": [ClampingScrollPhysics] - "never" / "neverScrollable": [NeverScrollableScrollPhysics] - "always" / "alwaysScrollable": [AlwaysScrollableScrollPhysics] - "page": [PageScrollPhysics] - "fixedExtent": [FixedExtentScrollPhysics]
                         </p>
-                        <p>Returns <code>null</code> if value is null or unrecognized.</p>
+                        <p>Returns <code>null</code> if the value is absent or names no physics this parser knows.</p>
                       </div>
                     </div>
                     <div id="TomStyleResolvers.resolveScrollPhysics" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">static ScrollPhysics? resolveScrollPhysics(String basePath, String suffix)</code>
                       </div>
-                      <div class="api-doc"><p>Resolves a [ScrollPhysics] from resources at [basePath].[suffix].</p></div>
+                      <div class="api-doc">
+                        <p>Resolves a [ScrollPhysics] from resources at [basePath].[suffix].</p>
+                        <p>
+                          The resource may hold any form [parseScrollPhysics] accepts — including a name such as <code>bouncing</code>
+                           — or a map carrying one of them under a <code>physics</code> key.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomStyleResolvers.parseEdgeInsets" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static EdgeInsets? parseEdgeInsets(dynamic value)</code></div>
+                      <div class="api-doc">
+                        <p>Parses [EdgeInsets] from a decoded resource value.</p>
+                        <p>
+                          Accepts a number for uniform insets; a list of <code>[all]</code>, <code>[horizontal, vertical]</code>
+                           or <code>[left, top, right, bottom]</code>; or a map with an <code>all</code> key, or any of <code>horizontal</code>
+                           / <code>vertical</code> / <code>left</code> / <code>top</code> / <code>right</code> / <code>bottom</code>, where a side falls back to its axis and then to zero.
+                        </p>
+                        <p>
+                          Returns <code>null</code> when the value is absent, or is of a shape this parser does not read at all — a string, or a list of a length no form names.
+                        </p>
+                        <p>
+                          Within a shape it does read, a mistyped element or key contributes zero rather than discarding the value, at every list length and for every map key: 
+                          <code>[1, 'x', 3, 4]</code> gives <code>EdgeInsets.only(left: 1, right: 3, bottom: 4)</code> and <code>['x', 2]</code>
+                           gives <code>EdgeInsets.symmetric(vertical: 2)</code>.
+                        </p>
+                        <p>
+                          A recognised shape out of which <em>nothing</em> parsed — <code>['x']</code>, <code>{'all': 'x'}</code>, 
+                          <code>{'nonsense': 1}</code> — is not a value at all and returns <code>null</code>, like every other parser here. Zero insets and no insets are different answers: a caller writing 
+                          <code>?? fallback</code> reaches its fallback for a typo'd resource rather than rendering flush to the edge.
+                        </p>
+                        <p>[TomCtr.edgeInsets] is the resource route to this parser.</p>
+                      </div>
+                    </div>
+                    <div id="TomStyleResolvers.parseFontWeight" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static FontWeight? parseFontWeight(dynamic value)</code></div>
+                      <div class="api-doc">
+                        <p>Parses a [FontWeight] from a decoded resource value.</p>
+                        <p>
+                          Accepts the names <code>normal</code> and <code>bold</code> and <code>w100</code>…<code>w900</code> in any case, and the integers 
+                          <code>100</code>…<code>900</code>.
+                        </p>
+                        <p>Returns <code>null</code> if the value is absent or names no weight this parser knows.</p>
+                        <p>
+                          [TomCtr.textStyle] is the resource route to this parser; the map route is [parseTextStyle]'s <code>fontWeight</code>
+                           key.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomStyleResolvers._nothingContributed" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static bool _nothingContributed(List&lt;Object?&gt; values)</code></div>
+                      <div class="api-doc">
+                        <p>Whether a map yielded nothing a parser could use.</p>
+                        <p>
+                          Pass the parsed values, not the raw map entries: every helper in this class returns <code>null</code>
+                           for a key that is absent, unrecognised <em>or</em> present with an unusable value, so an all-<code>null</code>
+                           list means the map contributed nothing however it came to be wrong. Checking raw key presence instead would let 
+                          <code>{'fontSize': 'large'}</code> through as "specified".
+                        </p>
+                        <p>
+                          A parser that returned its object anyway would hand back one built entirely from Flutter's defaults, which the caller cannot tell from a deliberate style — [TomCtr.textStyle] answers the same question the same way for the resource-tree half of the module.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomStyleResolvers._parseDouble" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static double? _parseDouble(dynamic value)</code></div>
                     </div>
+                    <div id="TomStyleResolvers._asString" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String? _asString(dynamic value)</code></div>
+                    </div>
+                    <div id="TomStyleResolvers._asBool" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static bool? _asBool(dynamic value)</code></div>
+                    </div>
+                    <div id="TomStyleResolvers._asNum" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static num? _asNum(dynamic value)</code></div>
+                    </div>
+                    <div id="TomStyleResolvers._asStringMap" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Map&lt;String, dynamic&gt;? _asStringMap(dynamic value)</code></div>
+                    </div>
+                    <div id="TomStyleResolvers._asList" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static List&lt;dynamic&gt;? _asList(dynamic value)</code></div>
+                    </div>
                     <div id="TomStyleResolvers._parseColor" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static Color? _parseColor(dynamic value)</code></div>
-                    </div>
-                    <div id="TomStyleResolvers._parseFontWeight" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static FontWeight? _parseFontWeight(dynamic value)</code></div>
                     </div>
                     <div id="TomStyleResolvers._parseFontStyle" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static FontStyle? _parseFontStyle(dynamic value)</code></div>
@@ -1774,7 +1951,14 @@
                       </div>
                     </div>
                     <div id="TomStyleResolvers._parseBorderStyle" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static BorderStyle _parseBorderStyle(dynamic value)</code></div>
+                      <div class="api-member-head"><code class="api-signature">static BorderStyle? _parseBorderStyle(dynamic value)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Nullable like every other helper here, so [_nothingContributed] can see that an absent or unrecognised 
+                          <code>style</code> contributed nothing. The caller applies Flutter's own <code>BorderStyle.solid</code>
+                           default.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomStyleResolvers._parseBoxBorder" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static BoxBorder? _parseBoxBorder(dynamic value)</code></div>
@@ -1782,11 +1966,22 @@
                     <div id="TomStyleResolvers._parseBoxShadowList" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static List&lt;BoxShadow&gt;? _parseBoxShadowList(dynamic value)</code></div>
                     </div>
-                    <div id="TomStyleResolvers._parseEdgeInsets" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static EdgeInsets? _parseEdgeInsets(dynamic value)</code></div>
-                    </div>
                     <div id="TomStyleResolvers._parseSize" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static Size? _parseSize(dynamic value)</code></div>
+                      <div class="api-member-head"><code class="api-signature">static Size? _parseSize(dynamic value, {double? fallback})</code></div>
+                      <div class="api-doc">
+                        <p>Parses a <code>{width, height}</code> map, completing a missing dimension with [fallback].</p>
+                        <p>
+                          The fallback belongs to the caller because each of the three size slots on a [ButtonStyle] completes differently: an unspecified 
+                          <em>maximum</em> is no maximum (<code>double.infinity</code>), an unspecified <em>minimum</em> is no minimum (<code>0</code>), and a half-specified 
+                          <em>fixed</em> size has no defensible completion at all — callers say so by passing no fallback, and get 
+                          <code>null</code> back. One shared default cannot be right for all three; <code>double.infinity</code>
+                           used to be it, which turned <code>minimumSize: {height: 40}</code> into a button demanding every pixel of available width.
+                        </p>
+                        <p>
+                          A map naming neither dimension resolves to <code>null</code> whatever the fallback: it constrains nothing, and treating it as a contribution would let 
+                          <code>minimumSize: {}</code> alone produce a non-null [ButtonStyle].
+                        </p>
+                      </div>
                     </div>
                     <div id="TomStyleResolvers._wrapColor" class="api-member">
                       <div class="api-member-head">
@@ -1804,7 +1999,9 @@
                       </div>
                     </div>
                     <div id="TomStyleResolvers._wrapSize" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static WidgetStateProperty&lt;Size?&gt;? _wrapSize(dynamic value)</code></div>
+                      <div class="api-member-head">
+                        <code class="api-signature">static WidgetStateProperty&lt;Size?&gt;? _wrapSize(dynamic value, {double? fallback})</code>
+                      </div>
                     </div>
                     <div id="TomStyleResolvers._wrapTextStyle" class="api-member">
                       <div class="api-member-head">

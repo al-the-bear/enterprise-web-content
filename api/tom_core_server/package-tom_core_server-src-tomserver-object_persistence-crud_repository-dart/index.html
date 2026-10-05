@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1388,8 +1394,9 @@
               <div class="treepane">
                 <div class="treenodes">
                   <a class="leaf" href="#TomCountResult">TomCountResult</a>
+                  <a class="leaf" href="#TomFileRepository">TomFileRepository</a>
                   <a class="leaf" href="#TomRepository">TomRepository</a>
-                  <a class="leaf" href="#TomRepositoryType">TomRepositoryType</a>
+                  <a class="leaf" href="#TomRepositoryException">TomRepositoryException</a>
                   <a class="leaf" href="#TomSqlDatasourceRepository">TomSqlDatasourceRepository</a>
                 </div>
               </div>
@@ -1403,6 +1410,11 @@
                     <p>
                       Result holder for a <code>COUNT(*)</code> query: a single [count] field populated by the row mapper. Reflectable so the data source can materialise it.
                     </p>
+                    <p>
+                      It is a plain reflected holder (no <code>@TomDbTable</code>), so the row mapper fills it by <em>field name</em>: the 
+                      <code>COUNT(*) AS count</code> projection names its column <code>count</code>, which matches this field. That name is the entire binding, and it is checked nowhere — rename [count], or project the count under a different alias, and the mapper finds no column for the field, leaves it at its default 
+                      <code>0</code>, and every count reports an empty table instead of failing.
+                    </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
@@ -1412,7 +1424,65 @@
                   <div class="api-members">
                     <div id="TomCountResult.count" class="api-member">
                       <div class="api-member-head"><code class="api-signature">int count</code></div>
-                      <div class="api-doc"><p>The row count returned by the query.</p></div>
+                      <div class="api-doc"><p>The row count returned by the query, mapped from the <code>count</code> result column.</p></div>
+                    </div>
+                  </div>
+                </section>
+                <section id="TomFileRepository" class="api-declaration">
+                  <h3 class="api-decl-title">class TomFileRepository</h3>
+                  <code class="api-signature">abstract class TomFileRepository&lt;T extends Object, K&gt;</code>
+                  <div class="api-doc">
+                    <p>
+                      The subset of a repository the file surfaces need: load a row, and move the bytes of one of its <code>@TomFileReference</code>
+                       columns.
+                    </p>
+                    <p>
+                      Split out of [TomRepository] rather than folded into it because it is what the HTTP file endpoint depends on, and an endpoint that depended on the full SQL repository could only ever be exercised against a database. Every method here is already implemented by [TomSqlDatasourceRepository]; naming them as a contract costs nothing and makes the endpoint's requirement explicit — five methods, not a persistence stack.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomFileRepository.new" class="api-member"><div class="api-member-head"><code class="api-signature">TomFileRepository.new()</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="TomFileRepository.findById" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;T?&gt; findById(K id)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Loads the entity with the given [id], or <code>null</code> if absent (or not visible to the current principal under the entity's row scope).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomFileRepository.saveFile" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          Future&lt;T&gt; saveFile(T entity, String fieldName, Stream&lt;List&lt;int&gt;&gt; bytes, {String? mediaType, String? fileName})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Uploads [bytes] into the file column [fieldName] of [entity] and saves the row, returning the stored entity.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomFileRepository.openFile" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Stream&lt;List&lt;int&gt;&gt; openFile(K id, String fieldName, {TomBlobRange? range})</code>
+                      </div>
+                      <div class="api-doc"><p>Streams the file held by the file column [fieldName] of row [id], or [range] of it.</p></div>
+                    </div>
+                    <div id="TomFileRepository.describeFile" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;TomStoredBlob?&gt; describeFile(K id, String fieldName)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The descriptor of the file held by [fieldName] on row [id], or <code>null</code> when the row (or its column) holds nothing.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomFileRepository.clearFile" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;T&gt; clearFile(T entity, String fieldName)</code></div>
+                      <div class="api-doc"><p>Clears the file column [fieldName] on [entity], deleting the blob.</p></div>
                     </div>
                   </div>
                 </section>
@@ -1427,7 +1497,8 @@
                        object ([findByQuery] / [deleteByQuery] / [countByQuery]), and a raw SQL string ([executeQueryString]).
                     </p>
                     <p>
-                      Note: pageable/limit/slice/sort result options are not yet supported (see the quest completion steps).
+                      <strong>Paging and sorting.</strong> Every read that can return more than one row takes an optional [TomPageRequest]: an offset, a row limit, and an ordered list of (field, direction) sort terms. The result is the window itself — a plain 
+                      <code>List&lt;T&gt;</code> — and the <em>total</em> comes from the matching <code>count</code> method, which applies the same row scope, so page metadata never reports rows the principal may not see. A caller that does not page passes nothing and gets exactly the behaviour it had before.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1438,27 +1509,49 @@
                   <div class="api-members">
                     <div id="TomRepository.delete" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Future&lt;void&gt; delete(T entity)</code></div>
-                      <div class="api-doc"><p>Deletes [entity] by its primary key.</p></div>
+                      <div class="api-doc">
+                        <p>Deletes [entity] by its primary key.</p>
+                        <p>
+                          Alone among the delete methods this returns nothing: it addresses one row the caller already holds, so a count could only ever be 
+                          <code>1</code> or <code>0</code>, and <code>0</code> — the row having gone since it was read — is not a distinction any caller has asked to act on.
+                        </p>
+                        <p>
+                          An [entity] that was never persisted has no row to address, and is refused with <code>crud_repository.delete.unsaved_entity</code>
+                           rather than deleting nothing and reporting success.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomRepository.deleteAllById" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">Future&lt;void&gt; deleteAllById(Iterable&lt;K&gt; ids)</code></div>
-                      <div class="api-doc"><p>Deletes every entity whose id is in [ids].</p></div>
+                      <div class="api-member-head"><code class="api-signature">Future&lt;int&gt; deleteAllById(Iterable&lt;K&gt; ids)</code></div>
+                      <div class="api-doc">
+                        <p>Deletes every entity whose id is in [ids] and returns how many rows were deleted.</p>
+                        <p>
+                          The count can be lower than <code>ids.length</code>: an id may name no row, or a row outside the principal's data scope.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomRepository.deleteById" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">Future&lt;void&gt; deleteById(K id)</code></div>
-                      <div class="api-doc"><p>Deletes the entity with the given [id].</p></div>
+                      <div class="api-member-head"><code class="api-signature">Future&lt;int&gt; deleteById(K id)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Deletes the entity with the given [id] and returns how many rows were deleted — <code>1</code>, or <code>0</code>
+                           when no row matched.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomRepository.existsById" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Future&lt;bool&gt; existsById(Iterable&lt;K&gt; ids)</code></div>
                       <div class="api-doc"><p>Whether every id in [ids] exists.</p></div>
                     </div>
                     <div id="TomRepository.findAll" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">Future&lt;List&lt;T&gt;&gt; findAll()</code></div>
-                      <div class="api-doc"><p>Loads all entities.</p></div>
+                      <div class="api-member-head"><code class="api-signature">Future&lt;List&lt;T&gt;&gt; findAll([TomPageRequest? page])</code></div>
+                      <div class="api-doc"><p>Loads all entities, or the window [page] asks for.</p></div>
                     </div>
                     <div id="TomRepository.findAllById" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">Future&lt;List&lt;T&gt;&gt; findAllById(Iterable&lt;K&gt; ids)</code></div>
-                      <div class="api-doc"><p>Loads every entity whose id is in [ids].</p></div>
+                      <div class="api-member-head">
+                        <code class="api-signature">Future&lt;List&lt;T&gt;&gt; findAllById(Iterable&lt;K&gt; ids, [TomPageRequest? page])</code>
+                      </div>
+                      <div class="api-doc"><p>Loads every entity whose id is in [ids], or the window [page] asks for.</p></div>
                     </div>
                     <div id="TomRepository.findById" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Future&lt;T?&gt; findById(K id)</code></div>
@@ -1483,20 +1576,30 @@
                     <div id="TomRepository.findByQuerySentence" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          Future&lt;Iterable&lt;T&gt;&gt; findByQuerySentence(String querySentence, Map&lt;String, Object?&gt; params, [Type? resultType])
+                          Future&lt;Iterable&lt;T&gt;&gt; findByQuerySentence(String querySentence, Map&lt;String, Object?&gt; params, [Type? resultType, TomPageRequest? page])
                         </code>
                       </div>
                       <div class="api-doc">
                         <p>
-                          Runs a parsed query sentence as a <code>SELECT</code>, binding [params]; an optional [resultType] overrides the row type.
+                          Runs a parsed query sentence as a <code>SELECT</code>, binding [params]; an optional [resultType] overrides the row type and an optional [page] narrows the result to one window.
+                        </p>
+                        <p>
+                          A [page] that carries a sort replaces the sentence's own <code>order by</code>; one that carries only a window keeps it.
                         </p>
                       </div>
                     </div>
                     <div id="TomRepository.deleteByQuerySentence" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">Future&lt;void&gt; deleteByQuerySentence(String querySentence, Map&lt;String, Object?&gt; params)</code>
+                        <code class="api-signature">Future&lt;int&gt; deleteByQuerySentence(String querySentence, Map&lt;String, Object?&gt; params)</code>
                       </div>
-                      <div class="api-doc"><p>Runs a parsed query sentence as a <code>DELETE</code>, binding [params].</p></div>
+                      <div class="api-doc">
+                        <p>
+                          Runs a parsed query sentence as a <code>DELETE</code>, binding [params], and returns how many rows were deleted.
+                        </p>
+                        <p>
+                          The count is the deleted row count <em>after</em> the principal's data scope has been ANDed into the predicate, so it never reports rows the principal may not see.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomRepository.countByQuerySentence" class="api-member">
                       <div class="api-member-head">
@@ -1506,21 +1609,42 @@
                     </div>
                     <div id="TomRepository.findByQuery" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">Future&lt;Iterable&lt;T&gt;&gt; findByQuery(TomSelect query, Map&lt;String, Object?&gt; params)</code>
+                        <code class="api-signature">
+                          Future&lt;Iterable&lt;T&gt;&gt; findByQuery(TomSelect query, Map&lt;String, Object?&gt; params, [TomPageRequest? page])
+                        </code>
                       </div>
-                      <div class="api-doc"><p>Runs a built [TomSelect], binding [params].</p></div>
+                      <div class="api-doc">
+                        <p>Runs a built [TomSelect], binding [params], optionally narrowed to the window [page] asks for.</p>
+                      </div>
                     </div>
                     <div id="TomRepository.deleteByQuery" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">Future&lt;void&gt; deleteByQuery(TomDelete query, Map&lt;String, Object?&gt; params)</code>
+                        <code class="api-signature">Future&lt;int&gt; deleteByQuery(TomDelete query, Map&lt;String, Object?&gt; params)</code>
                       </div>
-                      <div class="api-doc"><p>Runs a built [TomDelete], binding [params].</p></div>
+                      <div class="api-doc">
+                        <p>
+                          Runs a built [TomDelete], binding [params], and returns how many rows were deleted — scoped like [deleteByQuerySentence].
+                        </p>
+                      </div>
                     </div>
                     <div id="TomRepository.countByQuery" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">Future&lt;TomDbInt&gt; countByQuery(TomCount query, Map&lt;String, Object?&gt; params)</code>
                       </div>
                       <div class="api-doc"><p>Runs a built [TomCount], binding [params].</p></div>
+                    </div>
+                    <div id="TomRepository.findGroupedByQuery" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          Future&lt;List&lt;TomGroupedRow&gt;&gt; findGroupedByQuery(TomGroupedSelect query, Map&lt;String, Object?&gt; params)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Runs a built [TomGroupedSelect], binding [params], and returns one [TomGroupedRow] per group.</p>
+                        <p>
+                          The result is deliberately not [T]: a grouped row holds the group keys and the aggregate values the query asked for, a shape the entity class does not have.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomRepository.executeQueryString" class="api-member">
                       <div class="api-member-head">
@@ -1532,33 +1656,49 @@
                     </div>
                   </div>
                 </section>
-                <section id="TomRepositoryType" class="api-declaration">
-                  <h3 class="api-decl-title">class TomRepositoryType</h3>
-                  <code class="api-signature">class TomRepositoryType</code>
+                <section id="TomRepositoryException" class="api-declaration">
+                  <h3 class="api-decl-title">class TomRepositoryException</h3>
+                  <code class="api-signature">class TomRepositoryException extends TomServerException</code>
                   <div class="api-doc">
                     <p>
-                      Annotation binding a [TomSqlDatasourceRepository] subclass to a named [datasourceType] (e.g. <code>"mariadb"</code>), used by reflection-based repository discovery to pick the right implementation for a data source.
+                      Raised when a repository operation cannot complete: the entity's data source was never registered, a primary-key lookup matched more than one row, a 
+                      <code>COUNT(*)</code> returned other than one row, a row written by [TomRepository.save] could not be read back, or [TomRepository.delete] was handed an entity that was never persisted.
+                    </p>
+                    <p>
+                      All but the last are <em>server</em> faults — a broken registration or a database that contradicts its own schema — so [TomServerException.clientThrow] defaults to 
+                      <code>false</code> and the message is kept off the wire; the <code>key</code> is what a caller matches on and what the endpoints pipeline logs.
+                    </p>
+                    <p>
+                      The delete of an unsaved entity is the exception, and sets <code>clientThrow</code> explicitly. It is raised for something the caller did rather than something the deployment did, and its message describes only the argument it was handed — so masking it would tell a caller nothing about a mistake it is the only party able to fix.
+                    </p>
+                    <p>
+                      It sits beside the repository rather than in the module's other exception files because those describe 
+                      <em>inputs</em> the repository rejects ([TomQuerySyntaxException], [TomColumnAuthorizationException], [TomDataScopeException]); this one describes the repository's own preconditions failing — including, in the delete case, the precondition that there is a persisted row to address at all.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
-                    <div id="TomRepositoryType.new" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">const TomRepositoryType.new(String datasourceType)</code></div>
-                      <div class="api-doc"><p>Binds the repository to [datasourceType].</p></div>
-                    </div>
-                  </div>
-                  <h4 class="api-group-title">Properties</h4>
-                  <div class="api-members">
-                    <div id="TomRepositoryType.datasourceType" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final String datasourceType</code></div>
-                      <div class="api-doc"><p>The data-source type this repository serves.</p></div>
+                    <div id="TomRepositoryException.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          TomRepositoryException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, StackTrace? stack, Object? rootException, bool autoLog = false, bool clientThrow = false})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Creates a repository failure with a <code>crud_repository.&lt;method&gt;.&lt;condition&gt;</code> [key] and a default user message.
+                        </p>
+                        <p>
+                          [clientThrow] defaults to <code>false</code> — override it only where the message is known to be safe for the caller.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>
                 <section id="TomSqlDatasourceRepository" class="api-declaration">
                   <h3 class="api-decl-title">class TomSqlDatasourceRepository</h3>
                   <code class="api-signature">
-                    abstract class TomSqlDatasourceRepository&lt;T extends Object, K&gt; extends TomRepository&lt;T, K&gt; with TomQueryBuilder
+                    abstract class TomSqlDatasourceRepository&lt;T extends Object, K&gt; extends TomRepository&lt;T, K&gt; with TomQueryBuilder implements TomFileRepository&lt;T, K&gt;
                   </code>
                   <div class="api-doc">
                     <p>SQL-datasource implementation of [TomRepository].</p>
@@ -1611,14 +1751,18 @@
                       <div class="api-member-head"><code class="api-signature">Type resultType</code></div>
                       <div class="api-doc"><p>The default row type for results.</p></div>
                     </div>
+                    <div id="TomSqlDatasourceRepository._authColumns" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">List&lt;TomColumnInformation&gt; _authColumns</code></div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository._fileColumns" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">List&lt;TomColumnInformation&gt; _fileColumns</code></div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository._auditTarget" class="api-member"><div class="api-member-head"><code class="api-signature">String _auditTarget</code></div></div>
                     <div id="TomSqlDatasourceRepository._deleteQuery" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomPreparedStatement&lt;T&gt;? _deleteQuery</code></div>
                     </div>
                     <div id="TomSqlDatasourceRepository._deleteByIdQuery" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomPreparedStatement&lt;T&gt;? _deleteByIdQuery</code></div>
-                    </div>
-                    <div id="TomSqlDatasourceRepository._existsByIdsQuery" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">TomPreparedStatement&lt;T&gt;? _existsByIdsQuery</code></div>
                     </div>
                     <div id="TomSqlDatasourceRepository._findAllQuery" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomPreparedStatement&lt;T&gt;? _findAllQuery</code></div>
@@ -1638,15 +1782,383 @@
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
+                    <div id="TomSqlDatasourceRepository._resolveScope" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Future&lt;TomDataScopePredicate?&gt; _resolveScope({bool forWrite = false})</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Resolves the row-scope predicate (C-3) for the current-zone principal, or <code>null</code> when the entity declares no 
+                          <code>@TomDbScope</code> or its resolver opts out.
+                        </p>
+                        <p>
+                          The predicate is bound (<code>&lt;field&gt; IN (:__tomscope_0, …)</code>), so a principal's allowed values ride the prepared-statement protocol as positional parameters — never concatenated into the SQL (C-7). Because the number of allowed values (and thus placeholders) varies per principal, a scoped read path prepares a fresh statement rather than reusing a cached one.
+                        </p>
+                        <p>
+                          A scope kind registered asynchronously resolves through [TomDataScope.buildAsync] — the union/OR path that folds ownership and share-mode delegations (resolved from another database) into the visible id-set; every other kind takes the synchronous single-<code>IN</code>
+                           path. The method is async so the union path can await its cross-database resolution; the sync path completes synchronously via the returned already-completed future.
+                        </p>
+                        <p>
+                          [forWrite] selects the (possibly narrower) set the principal may <em>modify</em> rather than the set it may see — the difference the grant-driven 
+                          <code>resource</code> scope draws between a <code>read</code> grant and a <code>full</code> one. A scope kind that registers no write resolver writes exactly what it reads, so every other kind is unaffected.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository._assertRowWritable" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;void&gt; _assertRowWritable(K id)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Asserts the current principal may write the row keyed by [id] under the entity's <code>@TomDbScope</code>
+                           (C-3 write enforcement). A no-op when the entity declares no scope; otherwise a scoped read must find the row — an out-of-scope (or absent) row raises [TomDataScopeAuthorizationException].
+                        </p>
+                        <p>
+                          The guard reuses the <em>exact</em> scoped read predicate the read paths apply (via [_selectById]), so a principal cannot update or delete a row it could not itself read, and the scope values ride the prepared-statement protocol as bound parameters (C-7). Modelling it as a scoped visibility read — not an atomic 
+                          <code>… WHERE id = ? AND &lt;scope&gt;</code> with a zero-rows-affected test — deliberately sidesteps the MariaDB quirk that an 
+                          <code>UPDATE</code> which changes no value reports zero affected rows, which would otherwise reject a legitimate in-scope no-op write. A missing row and an out-of-scope row are reported identically, so existence is not leaked across the scope boundary.
+                        </p>
+                        <p>
+                          The read it performs is resolved <code>forWrite</code>, so a scope kind that grades its values measures the row against the 
+                          <em>writable</em> set: a row the principal may only read is reported here exactly as an invisible one is — as not writable.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository._assertIdsWritable" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;void&gt; _assertIdsWritable(Iterable&lt;K&gt; ids)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Asserts every id in [ids] is writable under the entity's <code>@TomDbScope</code> before a bulk delete. A no-op when the entity declares no scope; otherwise a scoped existence check must see 
+                          <em>all</em> of them — if any is out of scope (or absent) it raises [TomDataScopeAuthorizationException]. Reuses the scoped [existsById] so the same bound-parameter predicate governs the check and the reads — resolved against the 
+                          <em>writable</em> set.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository._assertInsertWritable" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;void&gt; _assertInsertWritable(T entity)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Asserts the current principal may create [entity] under the entity's <code>@TomDbScope</code>: its scope-field value must be one the principal is allowed (C-3 write enforcement for inserts). A no-op when the entity declares no scope or its resolver opts out; an out-of-scope value raises [TomDataScopeAuthorizationException]. Without this a principal could create a row scoped to a value it cannot itself read (e.g. owned by someone else), silently bypassing the read scope.
+                        </p>
+                        <p>
+                          A scope <strong>on the primary key</strong> is a no-op here: a fresh insert has no id yet, so there is no scope-field value to check — insert authorization for such entities is enforced at the service layer (the caller must hold a create grant on the parent). Applying the read scope to a null/unassigned id would reject every legitimate insert. Note this is a property of the 
+                          <em>column</em>, not of the resolver being async: a grant-driven scope on a <code>resource_key</code>
+                           column carries its value on the incoming entity and is checked here like any other, which is what stops a principal from creating a row under a resource key it holds no 
+                          <code>full</code> grant on.
+                        </p>
+                        <p>
+                          The check resolves the <strong>writable</strong> value set, so a <code>read</code>-graded value is rejected for an insert exactly as an ungranted one is.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository._scopedDelete" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">TomDelete _scopedDelete(TomDelete base, TomDataScopePredicate? scope)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Returns [base] with [scope]'s predicate ANDed into its <code>WHERE</code> (preserving every shaping option), or [base] unchanged when [scope] is 
+                          <code>null</code>.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository._scopedSelect" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">TomSelect _scopedSelect(TomSelect base, TomDataScopePredicate? scope)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Returns [base] with [scope]'s predicate ANDed into its <code>WHERE</code> (preserving every shaping option), or [base] unchanged when [scope] is 
+                          <code>null</code>.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository._scopedGrouped" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">TomGroupedSelect _scopedGrouped(TomGroupedSelect base, TomDataScopePredicate? scope)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Returns [base] with [scope]'s predicate ANDed into its <code>WHERE</code> (preserving the grouping, aggregates and 
+                          <code>HAVING</code>), or [base] unchanged when [scope] is <code>null</code>.
+                        </p>
+                        <p>
+                          The scope goes into the <em>row</em> predicate, never into <code>HAVING</code>: it decides which rows the principal may see, and so must apply before aggregation — filtering groups afterwards would still have counted the hidden rows.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository._scopedCount" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">TomCount _scopedCount(TomCount base, TomDataScopePredicate? scope)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Returns [base] with [scope]'s predicate ANDed into its <code>WHERE</code> (preserving every shaping option), or [base] unchanged when [scope] is 
+                          <code>null</code>.
+                        </p>
+                        <p>
+                          A count's shaping options are the projection ones only — it has no window and no ordering to carry over (see [TomCount]).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository._effectivePage" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomPageRequest? _effectivePage(TomPageRequest? page)</code></div>
+                      <div class="api-doc">
+                        <p>Normalises [page] into the window actually applied, or <code>null</code> when it asks for nothing.</p>
+                        <p>
+                          A request that cuts a window is made stable under the entity's primary key — see [TomPageRequest.stableUnder].
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository._pagedSelect" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomSelect _pagedSelect(TomSelect base, TomPageRequest? page)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Returns [base] narrowed to [page]'s window and ordering, or [base] unchanged when [page] is <code>null</code>.
+                        </p>
+                        <p>
+                          A page without a sort keeps the query's own ordering (a query sentence's <code>order by</code>, say); a page with one replaces it, because the caller asking for page N is the one that knows what N is counted in.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository._maskRows" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">List&lt;T&gt; _maskRows(List&lt;T&gt; rows)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Masks every row of [rows] in place — nulling the columns the current principal may not see (C-4) — and returns the list. A no-op when the entity declares no column access rights.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository._fileColumn" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomColumnInformation _fileColumn(String fieldName)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Resolves the <code>@TomFileReference</code> column named [fieldName] (by declared name or column name), throwing when the entity has no such file column.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository._columnGrade" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomAuthState _columnGrade(TomColumnInformation column)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The grade the current principal holds on [column] (C-4); [TomAuthState.full] for an unrestricted column.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository._rowColumnGrade" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Future&lt;TomAuthState&gt; _rowColumnGrade(TomColumnInformation column, Object? rowId)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          The grade the current principal holds on [column] <strong>for the row keyed by [rowId]</strong> — a registered per-row resolver when the column has one ([TomRowColumnAuthorization]), otherwise the column-wide [_columnGrade].
+                        </p>
+                        <p>
+                          Only the file operations resolve a grade this way. Each addresses exactly one row and is already asynchronous, so a relational grade — "may edit the attachments of items in a project you own, may only read the ones in a project shared with you" — costs one extra await where the synchronous row-projection paths could not express it at all.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository._assertColumnWritable" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Future&lt;void&gt; _assertColumnWritable(TomColumnInformation column, Object? rowId)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Raises when the principal may not <strong>write</strong> [column] on the row keyed by [rowId] — its per-row grade lacks [TomAuthState.isInteractive].
+                        </p>
+                        <p>
+                          The three write-side file operations share this because they share the question: uploading a file, replacing one and clearing one are all writes of the same column, and a grade that refuses one must refuse all three.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository._assertColumnReadable" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Future&lt;void&gt; _assertColumnReadable(TomColumnInformation column, Object? rowId)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Raises when the principal may not <strong>read</strong> [column] on the row keyed by [rowId] — its per-row grade lacks [TomAuthState.showsContent].
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository._fileStore" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomBlobStore _fileStore(TomColumnInformation column)</code></div>
+                      <div class="api-doc"><p>The blob store [column]'s <code>@TomFileReference</code> names.</p></div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository.saveFile" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          Future&lt;T&gt; saveFile(T entity, String fieldName, Stream&lt;List&lt;int&gt;&gt; bytes, {String? mediaType, String? fileName})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Uploads [bytes] to the store behind the file-reference column [fieldName], writes the resulting key into [entity], and saves the row.
+                        </p>
+                        <p>
+                          Returns the stored entity, exactly as [save] does. When the column already held a key, the superseded blob is deleted by [save] itself, so replacing a file leaves nothing behind.
+                        </p>
+                        <p>
+                          The order — upload, then save — is the one whose failure mode is survivable. Saving first would leave a row pointing at a key that reads back 
+                          <code>not_found</code>: a <em>dangling reference</em>, visible to users and repairable only by hand. Uploading first can at worst leave an orphaned blob, which nothing references and a sweep can collect; and even that is cleaned up here when the save throws.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository.openFile" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Stream&lt;List&lt;int&gt;&gt; openFile(K id, String fieldName, {TomBlobRange? range})</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Streams the file held by the file-reference column [fieldName] of the row with primary key [id], or [range] of it.
+                        </p>
+                        <p>
+                          [range] is passed to the store, which serves it natively where the backend can seek. Both authorization gates run first and unchanged: a range is a narrower read of the same bytes, never a way to reach bytes a whole read would refuse.
+                        </p>
+                        <p>
+                          Reads the row through [findById], so the entity's row scope (C-3) applies unchanged: a row the principal may not see is simply not found. A column the principal may not 
+                          <em>read</em> (C-4) raises [TomColumnAuthorizationException] rather than reporting an absent file, and a row whose column holds no key raises 
+                          <code>storage.file_reference .no_file</code> — the caller asked for a file that is not there, which is a different answer from an empty one.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository.describeFile" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;TomStoredBlob?&gt; describeFile(K id, String fieldName)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The descriptor of the file held by [fieldName] on row [id] — its media type, size and original name — or 
+                          <code>null</code> when the row holds no key.
+                        </p>
+                        <p>
+                          The metadata read that precedes a download: a caller needs the <code>Content-Type</code> and <code>Content-Length</code>
+                           before it starts streaming. Gated identically to [openFile].
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository.clearFile" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;T&gt; clearFile(T entity, String fieldName)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Clears the file-reference column [fieldName] on [entity] and saves the row, deleting the blob it referenced.
+                        </p>
+                        <p>
+                          Expressed as a save of a nulled column rather than as its own delete path, so the orphan collection, the audit record and both authorization gates are the ones every other write goes through.
+                        </p>
+                        <p>
+                          The per-row C-4 grade is checked here for the same reason [saveFile] checks it: [save] resolves the column 
+                          <em>column-wide</em>, which is not the answer for a column with a [TomRowColumnAuthorization] resolver. Without this a principal graded 
+                          <code>read</code> — allowed to download the file and nothing else — could delete it, which is the most destructive of the three writes.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository._discardBlob" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;void&gt; _discardBlob(TomBlobStore store, String key)</code></div>
+                      <div class="api-doc">
+                        <p>Deletes [key] from [store], logging rather than raising on failure.</p>
+                        <p>
+                          Every caller has already completed the operation the user asked for — the row was updated, the row was deleted, the save was rolled back. A store that will not delete leaves bytes behind, which is a housekeeping problem; raising would report a completed operation as failed, which is a correctness problem. The key is logged so a sweep can find what was left.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository._supersededFiles" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          List&lt;(TomColumnInformation, String)&gt; _supersededFiles(T? baseline, Map&lt;String, Object?&gt; written)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          The (column, key) pairs whose blobs an update has orphaned: file columns that cascade, whose [baseline] value is a key, and whose newly [written] value differs from it.
+                        </p>
+                        <p>
+                          Measured against the value actually <strong>written</strong> rather than the row read back: a C-4 masked column reads back as 
+                          <code>null</code>, which would otherwise look like the file having been removed and would delete a live blob. A column absent from [written] — a read-only one — was not changed by this save and so orphans nothing.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository._deleteReferencedFiles" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;void&gt; _deleteReferencedFiles(Iterable&lt;T&gt; rows)</code></div>
+                      <div class="api-doc">
+                        <p>Deletes the blobs referenced by [rows], for the cascade of a row delete.</p>
+                        <p>
+                          Called <strong>after</strong> the rows are gone: a delete that fails must not have destroyed the files of rows that are still there.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository._rowsAboutToBeDeleted" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          Future&lt;List&lt;T&gt;&gt; _rowsAboutToBeDeleted(TomOperator&lt;TomDbBool&gt; where, Map&lt;String, Object?&gt; params)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          The rows a pending delete is about to remove, read <strong>unmasked</strong> so their file keys are visible for the cascade; empty when the entity stores no files, so a delete on an ordinary entity keeps its single statement.
+                        </p>
+                        <p>
+                          [where] is the delete's own predicate (scope already ANDed in) and [params] its bind values, so exactly the rows that will be deleted are the rows whose files are collected.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository._auditValues" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Map&lt;String, Object?&gt; _auditValues(T? entity)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The entity's persisted state as a <code>column -&gt; value</code> map, for a record's <code>before</code>/<code>after</code>
+                           image.
+                        </p>
+                        <p>
+                          Keyed by declared field name, matching what a spec author and an auditor both recognise; the database column name is a mapping detail.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository._audits" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool _audits(TomAuditAction action)</code></div>
+                      <div class="api-doc">
+                        <p>Whether [action] on this entity is audited right now.</p>
+                        <p>
+                          Consulted before doing any <em>work</em> for the trail (a before-image read, a value map), so an unaudited entity pays nothing.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository._audit" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          Future&lt;void&gt; _audit(TomAuditAction action, {Object? key, Map&lt;String, Object?&gt; before = const {}, Map&lt;String, Object?&gt; after = const {}})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Writes a mutation record for this entity (CE-LG).</p>
+                        <p>
+                          Called after the statement has succeeded, so the recorded outcome is truthful. It is deliberately <strong>awaited and not caught</strong>: if the trail cannot store the entry the mutation raises, which inside a transaction rolls the change back, and outside one still refuses to report success for an action that left no record.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomSqlDatasourceRepository.delete" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">Future&lt;void&gt; delete(T entity)</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
+                    <div id="TomSqlDatasourceRepository._idListPredicate" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          Future&lt;(TomOperator&lt;TomDbBool&gt;, Map&lt;String, Object?&gt;)&gt; _idListPredicate(Iterable&lt;K&gt; ids, {bool forWrite = false})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Builds the <code>&lt;pk&gt; IN (:__idlist_0, …)</code> predicate for [ids] with one bound placeholder per id, ANDed with the current principal's row scope (C-3) when the entity declares one, together with the merged bind-parameter map.
+                        </p>
+                        <p>
+                          Centralises the IN-list rendering the three id-list methods share: the MySQL driver does not expand a bound 
+                          <code>Iterable</code> into <code>IN (?,?,…)</code>, so the placeholders are generated per element here and the statement is prepared per call (its 
+                          <code>?</code> count varies with the id set size). An empty [ids] yields a <code>FALSE</code> predicate — matching no rows — rather than the invalid 
+                          <code>IN ()</code>.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomSqlDatasourceRepository.deleteAllById" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">Future&lt;void&gt; deleteAllById(Iterable&lt;K&gt; ids)</code>
+                        <code class="api-signature">Future&lt;int&gt; deleteAllById(Iterable&lt;K&gt; ids)</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
@@ -1662,15 +2174,26 @@
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
+                    <div id="TomSqlDatasourceRepository._existsById" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Future&lt;bool&gt; _existsById(Iterable&lt;K&gt; ids, {bool forWrite = false})</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          The body of [existsById], additionally able to ask the question of the <em>writable</em> row set — which is what 
+                          <code>_assertIdsWritable</code> needs and a caller asking "do these rows exist" does not.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomSqlDatasourceRepository.findAll" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">Future&lt;List&lt;T&gt;&gt; findAll()</code>
+                        <code class="api-signature">Future&lt;List&lt;T&gt;&gt; findAll([TomPageRequest? page])</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
                     <div id="TomSqlDatasourceRepository.findAllById" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">Future&lt;List&lt;T&gt;&gt; findAllById(Iterable&lt;K&gt; ids)</code>
+                        <code class="api-signature">Future&lt;List&lt;T&gt;&gt; findAllById(Iterable&lt;K&gt; ids, [TomPageRequest? page])</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
@@ -1678,6 +2201,18 @@
                       <div class="api-member-head">
                         <code class="api-signature">Future&lt;T?&gt; findById(K id)</code>
                         <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository._selectById" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;T?&gt; _selectById(K id, {bool forWrite = false})</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Loads the row with primary key [id] <strong>without</strong> C-4 column masking, ANDing the current principal's row scope (C-3) when the entity declares one, or 
+                          <code>null</code> when no such row is visible.
+                        </p>
+                        <p>
+                          This is the raw read [findById] masks and [save] diffs its update against — a write must be measured against the true stored value, not a masked null.
+                        </p>
                       </div>
                     </div>
                     <div id="TomSqlDatasourceRepository.count" class="api-member">
@@ -1692,16 +2227,75 @@
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
+                    <div id="TomSqlDatasourceRepository._noGeneratedKey" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Never _noGeneratedKey(String table)</code></div>
+                      <div class="api-doc">
+                        <p>Refuses an insert whose surrogate key the driver did not report.</p>
+                        <p>
+                          Named separately so the raise site stays one expression, and separately from the insert's other failure — 
+                          <code>insert_not_readable</code>, which is what a <em>key</em> that reads back no row looks like. The two are different faults with different fixes: this one is the driver or the table (no key was assigned, or the driver does not report one), that one is the row.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomSqlDatasourceRepository.saveAll" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">Future&lt;Iterable&lt;T&gt;&gt; saveAll(Iterable&lt;T&gt; entities)</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
+                    <div id="TomSqlDatasourceRepository._runPrepared" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          Future&lt;List&lt;R&gt;&gt; _runPrepared&lt;R extends Object&gt;(TomQuery query, Map&lt;String, Object?&gt; params, [Type? resultType])
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Prepares [query], runs it once with [params], releases the server-side statement, and returns the mapped rows (optionally typed by [resultType]).
+                        </p>
+                        <p>
+                          Every dynamic (non-cached) query path routes through here so its bind values ride the prepared-statement protocol as positional parameters — no value is ever concatenated into the SQL text, closing the injection surface 
+                          <code>executeQuery</code>/<code>executeCommand</code> left open.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository._runPreparedAffecting" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Future&lt;int&gt; _runPreparedAffecting(TomQuery query, Map&lt;String, Object?&gt; params)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Prepares [query], runs it once with [params], releases the server-side statement, and returns the number of rows it changed.
+                        </p>
+                        <p>
+                          The write counterpart of [_runPrepared], which returns rows and therefore cannot answer "how many did that touch": a 
+                          <code>DELETE</code> returns no rows, and its count is per-execution state on the statement handle. Reading it here — inside the 
+                          <code>try</code>, before the <code>finally</code> deallocates — is the only place it is still available.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository._compileSentenceAs" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Q _compileSentenceAs&lt;Q extends TomQuery&gt;(String querySentence, String key, String verb)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Compiles a caller-supplied [querySentence] and checks that it is the kind of query [Q] the calling method can actually run, raising [TomQuerySyntaxException] under [key] when it is not.
+                        </p>
+                        <p>
+                          The sentence's verb selects the compiled type — <code>find by …</code> yields a [TomSelect], <code>count by …</code>
+                           a [TomCount], <code>delete by …</code> a [TomDelete] — so handing <code>find by …</code> to a counting method is a caller mistake, and a mistake in the 
+                          <em>sentence</em>, which is why it reuses the compiler's own [TomQuerySyntaxException] rather than a repository error. [verb] names the verb the method expects, so the message says what to write instead.
+                        </p>
+                        <p>
+                          A bare cast would surface a raw <code>TypeError</code> naming internal query classes: unclassified, unlocalisable, and outside the module's exception family.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomSqlDatasourceRepository.findByQuerySentence" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          Future&lt;Iterable&lt;T&gt;&gt; findByQuerySentence(String querySentence, Map&lt;String, Object?&gt; params, [Type? resultType])
+                          Future&lt;Iterable&lt;T&gt;&gt; findByQuerySentence(String querySentence, Map&lt;String, Object?&gt; params, [Type? resultType, TomPageRequest? page])
                         </code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
@@ -1720,7 +2314,9 @@
                     </div>
                     <div id="TomSqlDatasourceRepository.findByQuery" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">Future&lt;Iterable&lt;T&gt;&gt; findByQuery(TomSelect query, Map&lt;String, Object?&gt; params)</code>
+                        <code class="api-signature">
+                          Future&lt;Iterable&lt;T&gt;&gt; findByQuery(TomSelect query, Map&lt;String, Object?&gt; params, [TomPageRequest? page])
+                        </code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
@@ -1736,12 +2332,124 @@
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
+                    <div id="TomSqlDatasourceRepository.findGroupedByQuery" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          Future&lt;List&lt;TomGroupedRow&gt;&gt; findGroupedByQuery(TomGroupedSelect query, Map&lt;String, Object?&gt; params)
+                        </code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository._assertGroupedColumnsReadable" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void _assertGroupedColumnsReadable(TomGroupedSelect query)</code></div>
+                      <div class="api-doc">
+                        <p>Rejects a grouped query that touches a column the principal may not see (C-4).</p>
+                        <p>
+                          The row-returning paths <em>mask</em> such a column — they null it out of each returned entity. A grouped query cannot: by the time the rows exist the column has already been collapsed into a group key or folded into an aggregate, so nulling the result would not undo the leak (<code>COUNT(*)</code>
+                           per masked group still discloses the masked values' distribution). The only sound enforcement is therefore to refuse the query outright, and to do so before it reaches the database.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomSqlDatasourceRepository.executeQueryString" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
                           Future&lt;Iterable&lt;T&gt;&gt; executeQueryString(String dbQuery, Map&lt;String, Object?&gt; params)
                         </code>
                         <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="TomSqlDatasourceRepository._idListPrefix" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String _idListPrefix</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Namespace for the per-element placeholders the id-list methods ([existsById], [findAllById], [deleteAllById]) generate, kept distinct from the row-scope prefix (<code>__tomscope_</code>) so an id list ANDed with a scope cannot collide on parameter names.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository._singleCount" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static TomDbInt _singleCount(List&lt;TomCountResult&gt; rows, String key)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Unwraps the single row a <code>COUNT(*)</code> must return, raising [TomRepositoryException] under [key] when it returned any other number.
+                        </p>
+                        <p>
+                          Shared by [count], [countByQuery] and [countByQuerySentence]. [key] is passed in rather than derived from the caller so that each method's key stays a literal at its own call site and remains greppable.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository.isUnsavedKey" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static bool isUnsavedKey(Object? primaryKey)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Whether [primaryKey] marks an entity that has <strong>not</strong> yet been persisted, so [save] should 
+                          <code>INSERT</code> rather than <code>UPDATE</code>.
+                        </p>
+                        <p>
+                          Two unsaved conventions are honoured: a nullable surrogate key is <code>null</code> before its first persist, and a non-nullable 
+                          <code>int</code> key uses a negative sentinel (the <code>id &gt;= 0</code> convention <code>TomResourceGrant</code>
+                           and friends rely on).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository.readPrimaryKey" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static K2? readPrimaryKey&lt;K2&gt;(Object? raw)</code></div>
+                      <div class="api-doc">
+                        <p>Reads an entity's primary-key value as a <em>nullable</em> [K2].</p>
+                        <p>
+                          A not-yet-persisted entity with a nullable surrogate key (<code>int?</code>) carries <code>null</code>, which [isUnsavedKey] is explicitly designed to accept. Casting straight to a non-nullable 
+                          <code>K</code> (e.g. <code>int</code>) threw <code>Null is not a subtype of int</code> on every insert of such an entity, defeating the very check that gates INSERT vs UPDATE — so the read must tolerate null. Negative-sentinel 
+                          <code>int</code> keys arrive non-null and are handled by [isUnsavedKey] all the same.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository.buildInsertStatement" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static (String, List&lt;String&gt;) buildInsertStatement(String table, List&lt;TomColumnInformation&gt; columns)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Builds the <code>INSERT</code> statement and its ordered bind-parameter names for [table] over the writable [columns] (the caller filters out read-only columns such as an auto-increment primary key).
+                        </p>
+                        <p>
+                          Each value binds through a <code>:declaredName</code> placeholder, and the parameter list is those declared names in column order — matching the 
+                          <code>:name -&gt; ?</code> substitution and positional binding <code>prepareStatement</code> performs from [TomLiteralSelect.getParameters].
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository.buildUpdateStatement" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static (String, List&lt;String&gt;) buildUpdateStatement(String table, List&lt;TomColumnInformation&gt; columns, TomColumnInformation primaryKey)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Builds the <code>UPDATE ... SET ... WHERE pk = :pk</code> statement and its ordered bind-parameter names for [table] over the writable [columns], keyed on [primaryKey].
+                        </p>
+                        <p>
+                          The <code>SET</code> clause assigns each column by its mapped column name; the trailing <code>WHERE</code>
+                           scopes the update to the single row by the primary key (its placeholder name and bind name is the pk's declared name, appended last). Without that clause the statement would rewrite every row.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomSqlDatasourceRepository._extractPlaceholderNames" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static List&lt;String&gt; _extractPlaceholderNames(String sql)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Extracts <code>:name</code> placeholder names from [sql] in textual order (repeats included), so a raw statement can be prepared and its values bound positionally in the order the 
+                          <code>?</code> slots appear.
+                        </p>
+                        <p>
+                          Delegates to the shared, quote-aware [SqlPlaceholderScan.extractNames] so this extraction and [MariaDbDatasource.toPositionalStatement]'s positional rewrite tokenise identically — including skipping a 
+                          <code>:name</code>-looking substring inside an inlined string literal.
+                        </p>
                       </div>
                     </div>
                   </div>

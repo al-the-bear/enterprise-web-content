@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1388,7 +1394,9 @@
               <div class="treepane">
                 <div class="treenodes">
                   <a class="leaf" href="#ScriptExecutionResult">ScriptExecutionResult</a>
-                  <a class="leaf" href="#_resolvePath">_resolvePath</a>
+                  <a class="leaf" href="#_readPermitted">_readPermitted</a>
+                  <a class="leaf" href="#_readPlain">_readPlain</a>
+                  <a class="leaf" href="#_withScriptDirectoryGrant">_withScriptDirectoryGrant</a>
                   <a class="leaf" href="#executeFile">executeFile</a>
                   <a class="leaf" href="#executeFileContinued">executeFileContinued</a>
                   <a class="leaf" href="#executeSource">executeSource</a>
@@ -1400,8 +1408,9 @@
                 <code class="api-import">import 'package:tom_d4rt/src/script_execution.dart';</code>
                 <div class="api-doc">
                   <p>Script execution utilities for D4rt.</p>
+                  <p>Provides file-based script execution with import resolution.</p>
                   <p>
-                    Provides file-based script execution with automatic import resolution. This enables executing Dart scripts from files with support for relative imports.
+                    THE SANDBOX BOUNDARY (DFIN2). [executeFile] and [executeSource] hand the interpreter only the entry source; every import is read by the module loader, which checks [FilesystemPermission] on the file's real path, so a symlink cannot carry a read outside the grant. For the duration of the run they add one implicit grant: READ on the entry script's directory tree. Imports beside or below the script work without a grant, as they always did, and an import outside that tree needs the host's own permission. [executeFileContinued] cannot use the loader (it evaluates each file into a shared environment), so it reads imports itself, but through the same permission check and under the same implicit grant.
                   </p>
                 </div>
                 <section id="ScriptExecutionResult" class="api-declaration">
@@ -1454,10 +1463,23 @@
                     </div>
                   </div>
                 </section>
-                <section id="_resolvePath" class="api-declaration">
-                  <h3 class="api-decl-title">function _resolvePath</h3>
-                  <code class="api-signature">String _resolvePath(String baseDir, String relativePath)</code>
-                  <div class="api-doc"><p>Resolves a relative path against a base directory. Handles '..' and '.' path segments.</p></div>
+                <section id="_readPermitted" class="api-declaration">
+                  <h3 class="api-decl-title">function _readPermitted</h3>
+                  <code class="api-signature">String _readPermitted(D4rt d4rt, String path)</code>
+                  <div class="api-doc"><p>Reads [path] only if the interpreter may read its REAL path.</p></div>
+                </section>
+                <section id="_readPlain" class="api-declaration">
+                  <h3 class="api-decl-title">function _readPlain</h3>
+                  <code class="api-signature">String _readPlain(String path)</code>
+                </section>
+                <section id="_withScriptDirectoryGrant" class="api-declaration">
+                  <h3 class="api-decl-title">function _withScriptDirectoryGrant</h3>
+                  <code class="api-signature">T _withScriptDirectoryGrant&lt;T&gt;(D4rt d4rt, String directory, T Function() body)</code>
+                  <div class="api-doc">
+                    <p>
+                      Runs [body] with READ granted on [directory]'s tree, then removes exactly that grant. A permission the host granted itself is left alone: grants are held by identity, so revoking this instance cannot remove the host's.
+                    </p>
+                  </div>
                 </section>
                 <section id="executeFile" class="api-declaration">
                   <h3 class="api-decl-title">function executeFile</h3>
@@ -1465,10 +1487,10 @@
                   <div class="api-doc">
                     <p>Execute a Dart script file with fresh interpreter state.</p>
                     <p>
-                      This method: 1. Reads the script from the file 2. Recursively resolves all relative imports 3. Executes using [D4rt.execute] (replaces initialization)
+                      The module loader resolves every import from disk under [FilesystemPermission] (see the library comment): READ on the script's own directory tree is granted for the run, and anything outside it needs a grant the host made.
                     </p>
                     <p>
-                      [d4rt] The D4rt interpreter instance. [filePath] Path to the Dart script file. [log] Optional logging function for debugging import resolution.
+                      [d4rt] The D4rt interpreter instance. [filePath] Path to the Dart script file. [log] Optional logging function.
                     </p>
                     <p>Returns a [ScriptExecutionResult] with the execution outcome.</p>
                   </div>
@@ -1481,10 +1503,7 @@
                   <div class="api-doc">
                     <p>Execute a Dart script file in the current interpreter environment.</p>
                     <p>
-                      This method: 1. Reads the script from the file 2. Recursively resolves all relative imports 3. Evaluates each imported file using [D4rt.eval] 4. Evaluates the main script using [D4rt.eval]
-                    </p>
-                    <p>
-                      Note: Unlike [executeFile], this uses eval() for each file, which means each file's declarations are added to the global environment. The imports are processed in dependency order (deepest first).
+                      Evaluates each imported file with [D4rt.eval], dependencies first, then the main script, so every file's declarations land in the global environment. Imports are read through [FilesystemPermission] on their real paths, with READ on the script's directory tree granted for the run.
                     </p>
                     <p>
                       [d4rt] The D4rt interpreter instance. [filePath] Path to the Dart script file. [log] Optional logging function for debugging import resolution.
@@ -1500,10 +1519,10 @@
                   <div class="api-doc">
                     <p>Execute a Dart script from source code with a basePath for import resolution.</p>
                     <p>
-                      This method: 1. Recursively resolves all relative imports from the source 2. Executes using [D4rt.execute] (replaces initialization)
+                      The module loader resolves imports from disk under [FilesystemPermission], with READ on [basePath]'s tree granted for the run (see the library comment).
                     </p>
                     <p>
-                      [d4rt] The D4rt interpreter instance. [source] The Dart source code to execute. [basePath] Base directory path for resolving relative imports. [scriptName] Optional name for the script (defaults to '<strong>script</strong>.dart'). [log] Optional logging function for debugging import resolution.
+                      [d4rt] The D4rt interpreter instance. [source] The Dart source code to execute. [basePath] Base directory path for resolving relative imports. [scriptName] Optional name for the script (defaults to '<strong>script</strong>.dart'). [log] Optional logging function.
                     </p>
                     <p>Returns a [ScriptExecutionResult] with the execution outcome.</p>
                   </div>
@@ -1511,15 +1530,15 @@
                 <section id="resolveImportsRecursively" class="api-declaration">
                   <h3 class="api-decl-title">function resolveImportsRecursively</h3>
                   <code class="api-signature">
-                    void resolveImportsRecursively(String source, String sourceUri, Map&lt;String, String&gt; sources, void Function(String)?? log)
+                    void resolveImportsRecursively(String source, String sourceUri, Map&lt;String, String&gt; sources, void Function(String)?? log, {String Function(String)?? readFile})
                   </code>
                   <div class="api-doc">
-                    <p>Recursively resolves imports from a Dart source file.</p>
+                    <p>Recursively collects a Dart source file and its relative imports.</p>
                     <p>
-                      This function: 1. Adds the source to the sources map with its URI 2. Extracts all import statements from the source 3. For file: and relative imports, loads the file and recursively processes its imports
+                      A HOST-SIDE utility, not a sandbox boundary: by default it reads whatever the host process can read. The script runners above route their reads through the interpreter's permissions instead; [readFile] is how [executeFileContinued] does that. Hosts use it to bundle trusted sources (tom_d4rt_flutter's sample loader).
                     </p>
                     <p>
-                      [source] The Dart source code to analyze. [sourceUri] The URI of the source file (used as key in sources map and for resolving relative imports). [sources] The map to populate with URI -&gt; source code pairs. [log] Optional logging function for debugging.
+                      [source] The Dart source code to analyze. [sourceUri] The URI of the source file (used as key in sources map and for resolving relative imports). [sources] The map to populate with URI -&gt; source code pairs. [log] Optional logging function for debugging. [readFile] Reads one imported file by path; defaults to a plain read.
                     </p>
                   </div>
                 </section>

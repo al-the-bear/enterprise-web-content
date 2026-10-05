@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1390,10 +1396,10 @@
                   <a class="leaf" href="#TomColumnInformation">TomColumnInformation</a>
                   <a class="leaf" href="#TomDartType">TomDartType</a>
                   <a class="leaf" href="#TomDbColumn">TomDbColumn</a>
+                  <a class="leaf" href="#TomDbScope">TomDbScope</a>
                   <a class="leaf" href="#TomDbTable">TomDbTable</a>
                   <a class="leaf" href="#TomEntityId">TomEntityId</a>
-                  <a class="leaf" href="#TomJoinTable">TomJoinTable</a>
-                  <a class="leaf" href="#TomPersistenceEventHandler">TomPersistenceEventHandler</a>
+                  <a class="leaf" href="#TomFileReference">TomFileReference</a>
                   <a class="leaf" href="#TomReference">TomReference</a>
                 </div>
               </div>
@@ -1406,7 +1412,10 @@
                   <div class="api-doc">
                     <p>The resolved persistence metadata for a single entity field.</p>
                     <p>
-                      Produced by [TomAnnotationAnalyzer] from the field's annotations, it bundles the owning [table], the field's [column] / [entityId] / [reference] / [eventHandler] annotations, the [declaredType] and [declaredName], and the mapped column [field]. It also provides reflection-backed accessors to read and write the field on a concrete entity instance.
+                      Produced by [TomAnnotationAnalyzer] from the field's annotations, it bundles the owning [table], the field's [column] / [entityId] / [reference] annotations, the [declaredType] and [declaredName], and the mapped column [field]. It also provides reflection-backed accessors to read and write the field on a concrete entity instance.
+                    </p>
+                    <p>
+                      Every field is <code>final</code>, because an instance is not private to the caller who obtained it: the analyzer resolves an entity's columns once and hands the same objects to every repository, query compiler and datasource for the life of the isolate. A single assignment to [field] or [column] would therefore change what every subsequent query on that entity compiles to, at no point raising an error — the mistake would surface as wrong SQL somewhere else entirely. Nothing needs the mutability: the analyzer knows all ten values before it constructs the instance, and re-resolving an entity means clearing the analyzer's memo, not editing the metadata in place.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1414,50 +1423,67 @@
                     <div id="TomColumnInformation.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomColumnInformation.new(TomDbTable table, Type tableType, TomDbColumn&lt;dynamic, TomDbType&lt;dynamic&gt;&gt;? column, TomEntityId? entityId, TomReference&lt;Object, dynamic, TomRepository&lt;Object, dynamic&gt;&gt;? reference, TomPersistenceEventHandler&lt;dynamic&gt;? eventHandler, Type declaredType, String declaredName, String field)
+                          TomColumnInformation.new({required Type tableType, required TomDbTable table, required Type declaredType, required String declaredName, required String field, TomDbColumn&lt;dynamic, TomDbType&lt;dynamic&gt;&gt;? column, TomEntityId? entityId, TomReference&lt;Object, dynamic, TomRepository&lt;Object, dynamic&gt;&gt;? reference, TomFileReference? fileReference, TomProtectedField? protectedField})
                         </code>
                       </div>
-                      <div class="api-doc"><p>Bundles the resolved metadata for one entity field.</p></div>
+                      <div class="api-doc">
+                        <p>Bundles the resolved metadata for one entity field.</p>
+                        <p>
+                          The five required parameters are the ones every mapped field has: the owning entity type ([tableType]) and its table ([table]), and the field's own [declaredType], [declaredName] and mapped [field] name. The five optional ones each correspond to an annotation the field may or may not carry — [column], [entityId], [reference], [fileReference], [protectedField] — and are 
+                          <code>null</code> when it does not.
+                        </p>
+                        <p>
+                          All are named. Two pairs are the reason: [declaredName] and [field] are both <code>String</code>, and passing them the wrong way round type-checks — it maps the entity's field name to itself as a column and the column name to itself as a field, so the error surfaces as wrong SQL somewhere else. So does confusing [declaredType] with [tableType], both 
+                          <code>Type</code>, which misreports every column of the entity as being of the entity's own type. A named argument cannot be given to the wrong parameter by miscounting.
+                        </p>
+                      </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
                     <div id="TomColumnInformation.tableType" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">Type tableType</code></div>
+                      <div class="api-member-head"><code class="api-signature">final Type tableType</code></div>
                       <div class="api-doc"><p>The entity type that owns this field.</p></div>
                     </div>
                     <div id="TomColumnInformation.table" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">TomDbTable table</code></div>
+                      <div class="api-member-head"><code class="api-signature">final TomDbTable table</code></div>
                       <div class="api-doc"><p>The table the owning entity maps to.</p></div>
                     </div>
                     <div id="TomColumnInformation.column" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">TomDbColumn&lt;dynamic, TomDbType&lt;dynamic&gt;&gt;? column</code></div>
+                      <div class="api-member-head">
+                        <code class="api-signature">final TomDbColumn&lt;dynamic, TomDbType&lt;dynamic&gt;&gt;? column</code>
+                      </div>
                       <div class="api-doc"><p>The field's column mapping, if annotated.</p></div>
                     </div>
                     <div id="TomColumnInformation.entityId" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">TomEntityId? entityId</code></div>
+                      <div class="api-member-head"><code class="api-signature">final TomEntityId? entityId</code></div>
                       <div class="api-doc"><p>The entity-id annotation, if this field is the primary key.</p></div>
                     </div>
                     <div id="TomColumnInformation.reference" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">TomReference&lt;Object, dynamic, TomRepository&lt;Object, dynamic&gt;&gt;? reference</code>
+                        <code class="api-signature">final TomReference&lt;Object, dynamic, TomRepository&lt;Object, dynamic&gt;&gt;? reference</code>
                       </div>
                       <div class="api-doc"><p>The reference annotation, if this field is an association.</p></div>
                     </div>
-                    <div id="TomColumnInformation.eventHandler" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">TomPersistenceEventHandler&lt;dynamic&gt;? eventHandler</code></div>
-                      <div class="api-doc"><p>The lifecycle-callback annotation, if any.</p></div>
+                    <div id="TomColumnInformation.fileReference" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final TomFileReference? fileReference</code></div>
+                      <div class="api-doc"><p>The file-reference annotation, if this column holds a blob storage key.</p></div>
                     </div>
+                    <div id="TomColumnInformation.protectedField" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final TomProtectedField? protectedField</code></div>
+                      <div class="api-doc"><p>The kernel's field-protection annotation, if the field carries one.</p></div>
+                    </div>
+                    <div id="TomColumnInformation.authKey" class="api-member"><div class="api-member-head"><code class="api-signature">String? authKey</code></div></div>
                     <div id="TomColumnInformation.declaredType" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">Type declaredType</code></div>
+                      <div class="api-member-head"><code class="api-signature">final Type declaredType</code></div>
                       <div class="api-doc"><p>The declared Dart type of the field.</p></div>
                     </div>
                     <div id="TomColumnInformation.declaredName" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">String declaredName</code></div>
+                      <div class="api-member-head"><code class="api-signature">final String declaredName</code></div>
                       <div class="api-doc"><p>The field's name on the entity.</p></div>
                     </div>
                     <div id="TomColumnInformation.field" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">String field</code></div>
+                      <div class="api-member-head"><code class="api-signature">final String field</code></div>
                       <div class="api-doc"><p>The mapped column name.</p></div>
                     </div>
                   </div>
@@ -1517,13 +1543,18 @@
                     <p>
                       The type parameters carry the Dart-side type ([DART_TYPE]) and the SQL-side boxed type ([COL_TYPE], a [TomDbType]); [fromDbConverter] / [toDbConverter] translate between them when reading and writing. [isReadOnly] columns are skipped on insert/update, [noLoad] columns are not selected, and [isJson] marks a column whose value is JSON-encoded.
                     </p>
+                    <p>
+                      [authKey] opts the column into <strong>column-level access rights</strong> (C-4): when set, the repository resolves the current principal's [TomAuthState] for that resource key (through 
+                      <code>TomColumnAuthorization</code>, consulting <code>TomAuthorization</code>) and enforces it server-authoritatively — masking the column's value on read when the principal cannot see it, and rejecting a write that changes it when the principal is not 
+                      <code>full</code>. A column with no [authKey] is unrestricted, so existing entities keep their behaviour unchanged.
+                    </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomDbColumn.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          const TomDbColumn.new({required String? columnName, bool isReadOnly = false, bool noLoad = false, bool isJson = false, Type? dartType, DART_TYPE Function(COL_TYPE)?? fromDbConverter, COL_TYPE Function(DART_TYPE)?? toDbConverter, Type? columnType})
+                          const TomDbColumn.new({required String? columnName, bool isReadOnly = false, bool noLoad = false, bool isJson = false, String? authKey, Type? dartType, DART_TYPE Function(COL_TYPE)?? fromDbConverter, COL_TYPE Function(DART_TYPE)?? toDbConverter, Type? columnType})
                         </code>
                       </div>
                       <div class="api-doc"><p>Maps a field to a column.</p></div>
@@ -1546,6 +1577,16 @@
                     <div id="TomDbColumn.isJson" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final bool isJson</code></div>
                       <div class="api-doc"><p>Whether the column holds JSON-encoded data.</p></div>
+                    </div>
+                    <div id="TomDbColumn.authKey" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? authKey</code></div>
+                      <div class="api-doc">
+                        <p>The resource key that gates this column's read/write access (C-4).</p>
+                        <p>
+                          When non-null, the repository resolves the current principal's [TomAuthState] for this key and masks the value on read / rejects an unauthorized write. 
+                          <code>null</code> (the default) leaves the column unrestricted.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomDbColumn.dartType" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final Type? dartType</code></div>
@@ -1573,6 +1614,88 @@
                     <div id="TomDbColumn.declaredColumnType" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Type? declaredColumnType()</code></div>
                       <div class="api-doc"><p>The declared SQL column type: [COL_TYPE] when concrete, else [columnType].</p></div>
+                    </div>
+                  </div>
+                </section>
+                <section id="TomDbScope" class="api-declaration">
+                  <h3 class="api-decl-title">class TomDbScope</h3>
+                  <code class="api-signature">class TomDbScope</code>
+                  <div class="api-doc">
+                    <p>Annotation declaring the <strong>row-level data scope</strong> of an entity (C-3).</p>
+                    <p>
+                      Applied to a <code>@tomReflector</code> entity, it restricts which rows the repository returns to those the current principal is allowed to see. [field] names the entity field/column that carries the scope value (e.g. 
+                      <code>ownerId</code>), and [scope] names the scope <em>kind</em> — a key into <code>TomDataScopeRegistry</code>
+                       whose resolver maps the current <code>TomPrincipal</code> to the set of [field] values the principal may see (the default 
+                      <code>'owner'</code> resolves to the principal's own id).
+                    </p>
+                    <p>
+                      At query time the repository resolves the principal's allowed values and binds them into an additional prepared 
+                      <code>WHERE &lt;field&gt; IN (?, …)</code> clause; no value is ever concatenated into the SQL text (C-7).
+                    </p>
+                    <p>
+                      <strong>An entity that carries a resource-key column is scoped automatically</strong> under the [resourceScope] kind, without an annotation: the analyzer synthesizes exactly the 
+                      <code>TomDbScope(field: 'resource_key', scope: 'resource')</code> a developer would otherwise have written, so grant-driven scoping is the default rather than something each entity has to remember to opt into. An entity that must stay global despite carrying such a column — a lookup table, a configuration table, the authorization metadata tables themselves — says so with [TomDbScope.unscoped]. An entity with neither an annotation nor a resource-key column is unscoped: every row is visible.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomDbScope.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">const TomDbScope.new({required String field, String scope = 'owner'})</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Declares that the annotated entity's rows are scoped by [field] under the named [scope] resolver (default 
+                          <code>'owner'</code>).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomDbScope.unscoped" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">const TomDbScope.unscoped()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Declares that the annotated entity is <strong>deliberately unscoped</strong> — every row is visible to every principal.
+                        </p>
+                        <p>
+                          Needed only where automatic scoping would otherwise apply, i.e. on an entity that carries a resource-key column but must stay global. The authorization metadata tables are the framework's own instance: the rows that 
+                          <em>say</em> who may see what cannot themselves be filtered by who may see what, or the resolver would deny itself its own input.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="TomDbScope.field" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String field</code></div>
+                      <div class="api-doc"><p>The entity field whose value is matched against the principal's allowed scope values.</p></div>
+                    </div>
+                    <div id="TomDbScope.scope" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String scope</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The scope kind — a key into <code>TomDataScopeRegistry</code> selecting the resolver that turns the principal into its set of allowed [field] values.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomDbScope.isOptOut" class="api-member"><div class="api-member-head"><code class="api-signature">bool isOptOut</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="TomDbScope.resourceScope" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String resourceScope</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The scope kind resolving a principal's granted resource keys — direct ownership grants folded with the delegations active right now (C-5 ∪ C-6).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomDbScope.noScope" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String noScope</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The sentinel [scope] of [TomDbScope.unscoped] — an entity explicitly declaring that it carries no row scope at all.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>
@@ -1632,95 +1755,83 @@
                     </div>
                   </div>
                 </section>
-                <section id="TomJoinTable" class="api-declaration">
-                  <h3 class="api-decl-title">class TomJoinTable</h3>
-                  <code class="api-signature">class TomJoinTable</code>
+                <section id="TomFileReference" class="api-declaration">
+                  <h3 class="api-decl-title">class TomFileReference</h3>
+                  <code class="api-signature">class TomFileReference</code>
                   <div class="api-doc">
-                    <p>Annotation describing a many-to-many join table between two entities.</p>
                     <p>
-                      Note: declared for future use — the persistence layer does not yet detect or apply this annotation (see the quest completion steps).
+                      Annotation marking a <code>String</code> column that holds a <strong>blob storage key</strong> rather than the file's bytes (the server half of the CodeSpecs CE-DB file-reference column).
+                    </p>
+                    <p>
+                      The column is an ordinary <code>@TomDbColumn</code> as far as SQL is concerned — a short <code>VARCHAR</code>
+                       — and every other persistence feature keeps working on it unchanged: it is scoped by <code>@TomDbScope</code>
+                       with the rest of the row, it can carry an <code>authKey</code> and be masked or write-protected like any column, and it appears in the audit trail as the key it holds. What the annotation adds is the 
+                      <em>bytes</em>: <code>TomSqlDatasourceRepository.saveFile</code> uploads a stream and writes the resulting key here, 
+                      <code>openFile</code> streams it back, and the repository deletes the superseded or orphaned blob when the row is updated or deleted.
+                    </p>
+                    <p>
+                      Storing the key rather than the bytes is what makes the streaming API possible at all: the row stays small enough to read, diff, audit and mask like every other row, and the payload — which may be gigabytes — never passes through a 
+                      <code>SELECT</code>.
+                    </p>
+                    <p>
+                      [store] names the entry in <code>TomBlobStoreInfo</code>; <code>null</code> uses the default store, so a deployment with one place to put files configures nothing per column. [keyPrefix] namespaces the generated keys (typically the entity or a tenant), [mediaType] is the type assumed when an upload names none, and [cascadeDelete] governs whether deleting the row deletes the blob — set it 
+                      <code>false</code> for a key the application shares between rows or manages itself.
+                    </p>
+                    <p>
+                      [exposed] opts the column into the framework's HTTP file endpoint (<code>TomFileService</code>). It defaults to 
+                      <code>false</code>, and that default is the point: whether a file may be fetched over HTTP is an authorization decision, so it is declared here — next to the column it exposes — rather than in a separate table that can drift away from it. Reflection must never publish a column by accident.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
-                    <div id="TomJoinTable.new" class="api-member">
+                    <div id="TomFileReference.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          const TomJoinTable.new({required Type targetEntity, required Type repositoryType, required Type keyType, required Type originEntity, required List&lt;String&gt; leftSideColumns, required List&lt;String&gt; rightSideColumns, List&lt;String&gt; contextColumns = const []})
+                          const TomFileReference.new({String? store, String keyPrefix = '', bool cascadeDelete = true, String mediaType = 'application/octet-stream', bool exposed = false})
                         </code>
                       </div>
-                      <div class="api-doc"><p>Describes a join table.</p></div>
+                      <div class="api-doc"><p>Declares that the annotated column holds a blob storage key.</p></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="TomJoinTable.targetEntity" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final Type targetEntity</code></div>
-                      <div class="api-doc"><p>The entity on the far side of the join.</p></div>
+                    <div id="TomFileReference.store" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? store</code></div>
+                      <div class="api-doc"><p>The named blob store to use, or <code>null</code> for the default store.</p></div>
                     </div>
-                    <div id="TomJoinTable.repositoryType" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final Type repositoryType</code></div>
-                      <div class="api-doc"><p>The repository type that loads [targetEntity].</p></div>
-                    </div>
-                    <div id="TomJoinTable.originEntity" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final Type originEntity</code></div>
-                      <div class="api-doc"><p>The entity on the near side of the join.</p></div>
-                    </div>
-                    <div id="TomJoinTable.keyType" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final Type keyType</code></div>
-                      <div class="api-doc"><p>The key type linking the two sides.</p></div>
-                    </div>
-                    <div id="TomJoinTable.leftSideColumns" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final List&lt;String&gt; leftSideColumns</code></div>
-                      <div class="api-doc"><p>The join-table columns on the origin side.</p></div>
-                    </div>
-                    <div id="TomJoinTable.rightSideColumns" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final List&lt;String&gt; rightSideColumns</code></div>
-                      <div class="api-doc"><p>The join-table columns on the target side.</p></div>
-                    </div>
-                    <div id="TomJoinTable.contextColumns" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final List&lt;String&gt; contextColumns</code></div>
-                      <div class="api-doc"><p>Extra join-table columns carried as context.</p></div>
-                    </div>
-                  </div>
-                </section>
-                <section id="TomPersistenceEventHandler" class="api-declaration">
-                  <h3 class="api-decl-title">class TomPersistenceEventHandler</h3>
-                  <code class="api-signature">class TomPersistenceEventHandler&lt;DBTYPE&gt;</code>
-                  <div class="api-doc">
-                    <p>Annotation registering lifecycle callbacks for an entity ([DBTYPE]).</p>
-                    <p>
-                      Note: declared for future use — the persistence layer does not yet detect or invoke these callbacks (see the quest completion steps).
-                    </p>
-                  </div>
-                  <h4 class="api-group-title">Constructors</h4>
-                  <div class="api-members">
-                    <div id="TomPersistenceEventHandler.new" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">
-                          TomPersistenceEventHandler.new({void Function(DBTYPE)?? postPersist, void Function(DBTYPE)?? postLoad, void Function(DBTYPE)?? preLoad, void Function(DBTYPE)?? prePersist})
-                        </code>
+                    <div id="TomFileReference.keyPrefix" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String keyPrefix</code></div>
+                      <div class="api-doc">
+                        <p>The prefix generated keys are placed under, e.g. <code>invoices</code>.</p>
+                        <p>
+                          Must satisfy <code>TomBlobStore.isValidKeyPrefix</code>: it is joined to the rest of the key, so it obeys the same grammar and carries no trailing slash. A 
+                          <code>const</code> constructor cannot refuse a value, so the check happens where the key is minted — 
+                          <code>TomFileReferenceKeys.generate</code>.
+                        </p>
                       </div>
-                      <div class="api-doc"><p>Registers the lifecycle callbacks.</p></div>
                     </div>
-                  </div>
-                  <h4 class="api-group-title">Properties</h4>
-                  <div class="api-members">
-                    <div id="TomPersistenceEventHandler.postPersist" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final void Function(DBTYPE)?? postPersist</code></div>
-                      <div class="api-doc"><p>Called after the entity is persisted.</p></div>
+                    <div id="TomFileReference.cascadeDelete" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final bool cascadeDelete</code></div>
+                      <div class="api-doc"><p>Whether deleting (or clearing) the owning row deletes the blob.</p></div>
                     </div>
-                    <div id="TomPersistenceEventHandler.postLoad" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final void Function(DBTYPE)?? postLoad</code></div>
-                      <div class="api-doc"><p>Called after the entity is loaded.</p></div>
+                    <div id="TomFileReference.mediaType" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String mediaType</code></div>
+                      <div class="api-doc">
+                        <p>The media type assumed when an upload does not name one.</p>
+                        <p>
+                          Mirrors <code>TomStoredBlob.defaultMediaType</code>; spelled literally so the annotation library does not depend on the storage module.
+                        </p>
+                      </div>
                     </div>
-                    <div id="TomPersistenceEventHandler.prePersist" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final void Function(DBTYPE)?? prePersist</code></div>
-                      <div class="api-doc"><p>Called before the entity is persisted.</p></div>
-                    </div>
-                    <div id="TomPersistenceEventHandler.preLoad" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final void Function(DBTYPE)?? preLoad</code></div>
-                      <div class="api-doc"><p>Called before the entity is loaded.</p></div>
+                    <div id="TomFileReference.exposed" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final bool exposed</code></div>
+                      <div class="api-doc">
+                        <p>Whether this column is reachable over the framework's HTTP file endpoint.</p>
+                        <p>
+                          Default-closed. Setting it <code>true</code> makes the column addressable as the slot <code>&lt;table&gt;/&lt;id&gt;/&lt;column&gt;</code>; it does 
+                          <strong>not</strong> decide <em>whether</em> a caller may have it, which stays with the row scope (C-3) and column grade (C-4) the repository already enforces.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>

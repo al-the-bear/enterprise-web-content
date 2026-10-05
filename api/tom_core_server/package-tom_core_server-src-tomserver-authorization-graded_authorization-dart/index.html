@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1401,7 +1407,7 @@
                     The kernel models per-resource-key authorization as a flat list of granted keys ([TomAccessControlInformation.resourceKeys]) — a key is either present (granted) or absent (denied), with no room for the middle states the UI distinguishes ([TomAuthState.read] / [TomAuthState.disabled]). This library closes that gap on the server side: it adds a persistable grant record ([TomResourceGrant]) that stores a per-key [TomAuthState], a codec ([TomAuthStateCodec]) that round-trips the state to/from its stored column value, and a graded view ([TomGradedAccessControlInformation]) that resolves the effective state for a key — using an explicit grade when one exists and falling back to the legacy binary list otherwise.
                   </p>
                   <p>
-                    The fallback keeps the extension backward compatible: a system that has only the binary list still resolves every key to [TomAuthState.full] (granted) or [TomAuthState.none] (denied), exactly as before.
+                    The fallback is what lets the two coexist: a system that has only the binary list still resolves every key to [TomAuthState.full] (granted) or [TomAuthState.none] (denied).
                   </p>
                 </div>
                 <section id="TomAuthStateCodec" class="api-declaration">
@@ -1446,12 +1452,26 @@
                       </div>
                     </div>
                     <div id="TomAuthStateCodec.fromDbColumn" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static TomAuthState fromDbColumn(TomDbString column)</code></div>
-                      <div class="api-doc"><p>[TomDbColumn] read converter: a stored [TomDbString] column → [TomAuthState].</p></div>
+                      <div class="api-member-head"><code class="api-signature">static TomAuthState fromDbColumn(TomDbType&lt;dynamic&gt; column)</code></div>
+                      <div class="api-doc">
+                        <p>[TomDbColumn] read converter: a stored [TomDbString] column → [TomAuthState].</p>
+                        <p>
+                          The parameter is the widest boxed type ([TomDbType]) rather than the narrower [TomDbString] on purpose: the persistence layer reads 
+                          <code>fromDbConverter</code> from a <strong>generics-erased</strong> [TomDbColumn], so the stored function must accept a 
+                          <code>TomDbType&lt;dynamic&gt;</code>. A narrowed parameter passes the assignment into the typed annotation field but fails the runtime function-subtype check on that erased read (parameter types are contravariant). The 
+                          <code>access_level</code> column is always a [TomDbString], so the cast is total.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomAuthStateCodec.toDbColumn" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static TomDbString toDbColumn(TomAuthState state)</code></div>
-                      <div class="api-doc"><p>[TomDbColumn] write converter: a [TomAuthState] → the stored [TomDbString].</p></div>
+                      <div class="api-member-head"><code class="api-signature">static TomDbString toDbColumn(dynamic state)</code></div>
+                      <div class="api-doc">
+                        <p>[TomDbColumn] write converter: a [TomAuthState] → the stored [TomDbString].</p>
+                        <p>
+                          The parameter is <code>dynamic</code> for the same erased-read reason as [fromDbColumn]: the layer reads 
+                          <code>toDbConverter</code> from a generics-erased column, which requires the widest parameter type. The value passed is always a [TomAuthState], so the cast is total.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>
@@ -1509,6 +1529,10 @@
                         <p>
                           The effective [TomAuthState] for [resourceKey]: the explicit grade when present, otherwise the binary fallback (granted → [TomAuthState.full], denied → [TomAuthState.none]).
                         </p>
+                        <p>
+                          "Granted" is [TomAccessControlInformation.holdsResourceKey], so a <code>*</code> or <code>prefix.*</code>
+                           grant in the binary list counts here exactly as it does in the kernel's resource-key protection.
+                        </p>
                       </div>
                     </div>
                     <div id="TomGradedAccessControlInformation.toGrants" class="api-member">
@@ -1541,10 +1565,17 @@
                     <div id="TomResourceGrant.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomResourceGrant.new({int id = -1, required String roleName, required String resourceKey, TomAuthState accessLevel = TomAuthState.none})
+                          TomResourceGrant.new({int id = -1, String roleName = '', String resourceKey = '', TomAuthState accessLevel = TomAuthState.none})
                         </code>
                       </div>
-                      <div class="api-doc"><p>Creates a grant. [accessLevel] defaults to [TomAuthState.none] (denied).</p></div>
+                      <div class="api-doc">
+                        <p>Creates a grant. [accessLevel] defaults to [TomAuthState.none] (denied).</p>
+                        <p>
+                          [roleName] and [resourceKey] default to the empty string so the entity is <strong>no-arg constructible</strong>: 
+                          <code>TomSqlDatasourceRepository</code> loads a row by instantiating a blank grant via reflection (<code>newInstance('', [])</code>) and then populating each 
+                          <code>@TomDbColumn</code> field from the result set. A <code>required</code> constructor parameter would make that blank instantiation throw, so this own-table entity could not be read back through its own repository. Callers that build a fully-specified grant still pass the named arguments.
+                        </p>
+                      </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
@@ -1583,7 +1614,8 @@
                         <p>The canonical DDL for the <code>tom_resource_grant</code> table.</p>
                         <p>
                           The <code>access_level</code> column is constrained to the four [TomAuthState] tokens, so the database itself rejects an out-of-range grade. Shipped verbatim as the reference 
-                          <code>db_migration</code> script.
+                          <code>db_migration</code> script, so the two cannot drift — <code>test/reference_migrations_test.dart</code>
+                           fails if they do.
                         </p>
                       </div>
                     </div>

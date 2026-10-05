@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1403,6 +1409,20 @@ TomCtr.text('$_path.label')
 
 // Base path + suffix (widget build methods):
 TomCtr.textOrNull(basePath, 'label')</code></pre>
+                    <p>
+                      Most accessors come in one form and answer <code>null</code> to a missing resource. Some come in two, the second named 
+                      <code>…OrFail</code> and throwing instead. Which accessors those are is a rule rather than a history: 
+                      <strong>an accessor gets an <code>…OrFail</code> when the resource it reads can be a widget's only source for a required parameter that has no default.</strong>
+                    </p>
+                    <p>
+                      That admits [textOrFail], [colorOrFail], [iconOrFail], [doubleOrFail] and [intOrFail], and excludes the rest for two distinct reasons. [boolVal] and [edgeInsets] read parameters Flutter always defaults, so a resource 
+                      <em>overrides</em> a value rather than supplying one and its absence is never a failure. [value], [list] and [map] are raw escape hatches: this class is not told what a caller means to do with a 
+                      <code>List</code>, so it cannot decide what "unusable" would be.
+                    </p>
+                    <p>
+                      <code>doc/widget_base.md</code> states the rule for readers and <code>test/widget_base/tom_ctr_helpers_test.dart</code>
+                       holds the class to it.
+                    </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
@@ -1411,6 +1431,27 @@ TomCtr.textOrNull(basePath, 'label')</code></pre>
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
                     <div id="TomCtr._provider" class="api-member"><div class="api-member-head"><code class="api-signature">static InvalidType _provider</code></div></div>
+                    <div id="TomCtr._statePrecedence" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Map&lt;String, WidgetState&gt; _statePrecedence</code></div>
+                      <div class="api-doc">
+                        <p>The recognised state names, <strong>in precedence order, highest first</strong>.</p>
+                        <p>
+                          A control is routinely in several widget states at once — a pointer resting on a disabled button reports 
+                          <code>hovered</code> and <code>disabled</code> together — and [widgetStateColor] must answer with exactly one colour. This list is the tie-break, and its order is the whole of it: the first entry whose state is present wins.
+                        </p>
+                        <p>
+                          Conditions outrank interactions. Being unavailable or invalid is a fact about the control, and a passing pointer must not paint over it. Within the interactions the more committed act wins: a drag is a press that went somewhere, a press is a stronger statement of intent than focus, and focus — which the user chose and which persists — is stronger than hover, which is wherever the pointer happens to be. 
+                          <code>scrolledUnder</code> is last because it describes a position rather than the control.
+                        </p>
+                        <p>
+                          Two of these differ from Material's own resolvers, deliberately. Flutter's button defaults rank <code>hovered</code>
+                           above <code>focused</code> and do not rank <code>error</code> at all; a Tom widget favours the state the user committed to and treats validity as a condition, on the reasoning above.
+                        </p>
+                        <p>
+                          <code>tom_ctr_helpers_test.dart</code> restates this order independently and asserts each rank against the one below it, so reordering the list here without meaning to fails the suite rather than changing the contract in silence.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomCtr._key" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static String _key(String basePath, String suffix)</code></div>
                       <div class="api-doc"><p>Builds a resource key from [basePath] and optional [suffix].</p></div>
@@ -1422,6 +1463,10 @@ TomCtr.textOrNull(basePath, 'label')</code></pre>
                         <p>
                           Call this once in the constructor and store the result. Returns <code>&lt;scopePath&gt;.&lt;tomId&gt;</code>
                            or just <code>tomId</code> if scope path is empty. Returns <code>null</code> if tomId is null.
+                        </p>
+                        <p>
+                          This forwards to [TomScopePath.resolve], which is where the rule lives — [TomNodeBase] needs the path in an initialiser list and cannot reach 
+                          <code>TomCtr</code> without inverting the module hierarchy. The forwarder stays because this is where the widgets already look for path helpers, and because a one-line delegation cannot drift from what it delegates to.
                         </p>
                       </div>
                     </div>
@@ -1439,11 +1484,17 @@ TomCtr.textOrNull(basePath, 'label')</code></pre>
                       <div class="api-doc"><p>Resolves text from resources, returning null if no resource.</p></div>
                     </div>
                     <div id="TomCtr.textOrFail" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static String textOrFail(String? basePath, String suffix)</code></div>
+                      <div class="api-member-head">
+                        <code class="api-signature">static String textOrFail(String? basePath, String suffix, {Widget? supersededBy})</code>
+                      </div>
                       <div class="api-doc">
                         <p>Resolves a required text resource.</p>
                         <p>
                           Throws [StateError] if [basePath] is null. If tomId is set but no resource exists, returns the key for development visibility.
+                        </p>
+                        <p>
+                          Pass [supersededBy] when the caller offers a widget slot that renders <em>instead of</em> this text (e.g. 
+                          <code>title</code> beside <code>titleText</code>). A non-null widget makes the text unread, so demanding a resource for it would reject a perfectly complete widget; the result is then the unused empty string. Omitting [supersededBy] keeps the text unconditionally required.
                         </p>
                       </div>
                     </div>
@@ -1476,6 +1527,22 @@ TomCtr.textOrNull(basePath, 'label')</code></pre>
                         <p>The resource value should be an icon name (e.g., "mAdd", "mSettings") that [TomUIIcons] can resolve.</p>
                       </div>
                     </div>
+                    <div id="TomCtr.iconOrFail" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static IconData iconOrFail(String? basePath, String suffix)</code></div>
+                      <div class="api-doc">
+                        <p>Resolves a required icon from resources.</p>
+                        <p>
+                          Throws [StateError] if [basePath] is null, no resource exists, or the value is not a name [TomUIIcons] can resolve.
+                        </p>
+                        <p>
+                          Use this wherever the icon <em>is</em> the widget — an icon-only button has nothing else to render, so a missing one leaves a control that is present, tappable and blank. [icon] is the right accessor for the other case, where an icon sits beside a label and its absence just means no icon.
+                        </p>
+                        <p>
+                          The three exits matter more here than elsewhere: a bundle naming an icon that does not exist and a bundle naming none at all are indistinguishable through [icon], which answers 
+                          <code>null</code> to both.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomCtr.doubleVal" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static double? doubleVal(String? basePath, [String suffix = ''])</code></div>
                       <div class="api-doc"><p>Resolves a double from resources.</p><p>Accepts double, int, or parseable string values.</p></div>
@@ -1491,7 +1558,11 @@ TomCtr.textOrNull(basePath, 'label')</code></pre>
                       <div class="api-member-head"><code class="api-signature">static int? intVal(String? basePath, [String suffix = ''])</code></div>
                       <div class="api-doc">
                         <p>Resolves an int from resources.</p>
-                        <p>Accepts int, double (truncated), or parseable string values.</p>
+                        <p>
+                          Accepts int, double (truncated), or any numeric string. A fractional string truncates exactly as the equivalent number does — 
+                          <code>'3.7'</code> and <code>3.7</code> both read as <code>3</code> — so a bundle that quotes its numbers, as YAML and env-derived bundles routinely do, resolves the same as one that does not. Anything that is not a number at all resolves to 
+                          <code>null</code>.
+                        </p>
                       </div>
                     </div>
                     <div id="TomCtr.intOrFail" class="api-member">
@@ -1514,6 +1585,15 @@ TomCtr.textOrNull(basePath, 'label')</code></pre>
                         <p>
                           Accepts: - A single number for uniform insets - An array \[all\], \[horizontal, vertical\], or \[left, top, right, bottom\] - A map with keys: "all", "horizontal", "vertical", "left", "top", "right", "bottom"
                         </p>
+                        <p>
+                          Returns <code>null</code> when the resource is absent, is of a shape the parser does not read, or holds nothing usable — 
+                          <code>{'all': 'x'}</code> is a typo, not a padding of zero, so <code>edgeInsets(path, 'pad') ?? fallback</code>
+                           reaches its fallback rather than rendering flush to the edge.
+                        </p>
+                        <p>
+                          The value-to-object step is [TomStyleResolvers.parseEdgeInsets], which is also what the <code>contentPadding</code>
+                           key of a decoration map goes through — one implementation, so the two cannot read a resource differently.
+                        </p>
                       </div>
                     </div>
                     <div id="TomCtr.value" class="api-member">
@@ -1535,7 +1615,10 @@ TomCtr.textOrNull(basePath, 'label')</code></pre>
                       </div>
                       <div class="api-doc">
                         <p>Resolves a map from resources.</p>
-                        <p>Returns <code>null</code> if no resource found or the resource is not a map.</p>
+                        <p>
+                          Returns <code>null</code> if no resource is found, or if the resource is a value this cannot hand back as a 
+                          <code>Map&lt;String, dynamic&gt;</code> — including a <code>Map</code> with non-String keys, which reads as absent rather than throwing. A bundle decoded from JSON always satisfies the type; one built by hand has to keep its keys Strings.
+                        </p>
                       </div>
                     </div>
                     <div id="TomCtr.textStyle" class="api-member">
@@ -1545,7 +1628,7 @@ TomCtr.textOrNull(basePath, 'label')</code></pre>
                       <div class="api-doc">
                         <p>Resolves a [TextStyle] from a sub-tree under [basePath] + [suffix].</p>
                         <p>
-                          Reads the following keys (all optional): - <code>fontSize</code> (double) - <code>fontWeight</code> (string: "w100".."w900" / "normal" / "bold", or int 100..900) - 
+                          Reads the following keys (all optional): - <code>fontSize</code> (double) - <code>fontWeight</code> (string: "w100".."w900" / "normal" / "bold" in any case, or int 100..900 — see [TomStyleResolvers.parseFontWeight]) - 
                           <code>fontFamily</code> (string) - <code>color</code> (color resolvable via [color]) - <code>letterSpacing</code>
                            (double) - <code>fontStyle</code> (string: "normal" | "italic")
                         </p>
@@ -1579,6 +1662,12 @@ TomCtr.textOrNull(basePath, 'label')</code></pre>
                           <code>hovered</code>, <code>focused</code>, <code>pressed</code>, <code>selected</code>, <code>disabled</code>, 
                           <code>error</code>, <code>dragged</code>, <code>scrolledUnder</code>. Missing states fall back to the default.
                         </p>
+                        <p>
+                          When the control is in several states at once, the resolved colour is the one for the highest-ranked state the bundle actually defines, ranked by [_statePrecedence]: 
+                          <code>disabled</code> &gt; <code>error</code> &gt; <code>dragged</code> &gt; <code>pressed</code> &gt; 
+                          <code>selected</code> &gt; <code>focused</code> &gt; <code>hovered</code> &gt; <code>scrolledUnder</code>. Ranking applies only among defined states — a bundle that colours 
+                          <code>hovered</code> and not <code>disabled</code> paints a hovered-and-disabled control with the hover colour, because the higher rank is absent rather than losing.
+                        </p>
                         <p>Returns <code>null</code> when neither the default nor any state override is present.</p>
                       </div>
                     </div>
@@ -1603,42 +1692,12 @@ TomCtr.textOrNull(basePath, 'label')</code></pre>
                         </p>
                       </div>
                     </div>
-                    <div id="TomCtr.defaultText" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">static TomText? defaultText(String? tomId, [InvalidType scope, InvalidType tomGroup])</code>
-                      </div>
-                      <div class="api-doc">
-                        <p>Creates a default TomText widget for a Widget parameter.</p>
-                        <p>
-                          The [tomId] should be the <strong>relative</strong> widget identifier (not the full canonical path). For example, pass 
-                          <code>'$parentTomId.child'</code> not the full path with scope prefix. TomText will resolve the scope path itself.
-                        </p>
-                        <p>Returns <code>null</code> if [tomId] is null.</p>
-                      </div>
-                    </div>
-                    <div id="TomCtr.defaultTextOrEmpty" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">static Widget defaultTextOrEmpty(String? tomId, [InvalidType scope, InvalidType tomGroup])</code>
-                      </div>
-                      <div class="api-doc">
-                        <p>Creates a default TomText widget, or falls back to a placeholder.</p>
-                        <p>
-                          Unlike [defaultText], this never returns null — returns a <code>SizedBox.shrink()</code> if [tomId] is null.
-                        </p>
-                      </div>
-                    </div>
                     <div id="TomCtr.childTomId" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static String? childTomId(String? tomId, String suffix)</code></div>
                       <div class="api-doc">
                         <p>Helper for building a child tomId from parent tomId.</p>
                         <p>Returns <code>'$tomId.$suffix'</code> if tomId is not null, otherwise null.</p>
                       </div>
-                    </div>
-                    <div id="TomCtr._parseFontWeight" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static FontWeight? _parseFontWeight(String? value)</code></div>
-                    </div>
-                    <div id="TomCtr._parseEdgeInsets" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static EdgeInsets? _parseEdgeInsets(dynamic value)</code></div>
                     </div>
                   </div>
                 </section>

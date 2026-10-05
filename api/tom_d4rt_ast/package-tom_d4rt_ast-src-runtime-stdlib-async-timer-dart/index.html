@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1389,6 +1395,7 @@
                 <div class="treenodes">
                   <a class="leaf" href="#TimerAsync">TimerAsync</a>
                   <a class="leaf" href="#TimerStdlib">TimerStdlib</a>
+                  <a class="leaf" href="#_rethrowUnwrapped">_rethrowUnwrapped</a>
                   <a class="leaf" href="#_yieldEventLoop">_yieldEventLoop</a>
                 </div>
               </div>
@@ -1419,6 +1426,25 @@
                     <div id="TimerStdlib.register" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static void register(Environment environment)</code></div>
                     </div>
+                  </div>
+                </section>
+                <section id="_rethrowUnwrapped" class="api-declaration">
+                  <h3 class="api-decl-title">function _rethrowUnwrapped</h3>
+                  <code class="api-signature">Never _rethrowUnwrapped(Object error, StackTrace stackTrace)</code>
+                  <div class="api-doc">
+                    <p>
+                      SCD73 — a timer body is the one interpreted callback whose future <em>nobody can await</em>, so this is where the interpreter's wrapper has to come off.
+                    </p>
+                    <p>
+                      The zone d4rt forks sheds the wrapper for every escape that leaves through a callback the platform invokes, which is most of them. A timer is the exception, and for a reason that is d4rt's own doing rather than the SDK's: the adapters below are 
+                      <code>async</code> so they can yield the event loop afterwards, so a synchronous throw out of <code>callback.call</code>
+                       does not escape the registered callback at all — it completes the adapter's own future, which nothing holds. 
+                      <code>Zone.errorCallback</code> was measured and is not consulted for an <code>async</code> function body's completion, so there is no zone seam to use here.
+                    </p>
+                    <p>
+                      Unwrapping at this one boundary is unambiguous in a way a general per-adapter guard is not: nothing downstream of a timer body can be an interpreted 
+                      <code>catch</code>, so the value is leaving the interpreter for good.
+                    </p>
                   </div>
                 </section>
                 <section id="_yieldEventLoop" class="api-declaration">

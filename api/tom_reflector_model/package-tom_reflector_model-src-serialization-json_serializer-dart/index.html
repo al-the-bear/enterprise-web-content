@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1405,10 +1411,20 @@
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
                     <div id="JsonSerializer.encode" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static String encode(AnalysisResult result)</code></div>
+                      <div class="api-member-head">
+                        <code class="api-signature">static String encode(AnalysisResult result, {String? workspaceRoot})</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          [workspaceRoot] is the enclosing multi-package tree, when the caller knows it. Supplying it is what lets a path into a 
+                          <em>sibling</em> package be written portably; see [_JsonWriter._relative].
+                        </p>
+                      </div>
                     </div>
                     <div id="JsonSerializer.toMap" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static Map&lt;String, dynamic&gt; toMap(AnalysisResult result)</code></div>
+                      <div class="api-member-head">
+                        <code class="api-signature">static Map&lt;String, dynamic&gt; toMap(AnalysisResult result, {String? workspaceRoot})</code>
+                      </div>
                     </div>
                   </div>
                 </section>
@@ -1417,12 +1433,56 @@
                   <code class="api-signature">class _JsonWriter</code>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
-                    <div id="_JsonWriter.new" class="api-member"><div class="api-member-head"><code class="api-signature">_JsonWriter.new()</code></div></div>
+                    <div id="_JsonWriter.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">_JsonWriter.new({String? workspaceRoot})</code></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="_JsonWriter._root" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String? _root</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The analysed package's root, as an absolute path, or <code>null</code> when it cannot be determined. Every path in the output is written relative to it.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="_JsonWriter._workspace" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? _workspace</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The enclosing multi-package tree, as an absolute path, or <code>null</code> when the caller did not name one.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
                     <div id="_JsonWriter.toMap" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Map&lt;String, dynamic&gt; toMap(AnalysisResult result)</code></div>
+                    </div>
+                    <div id="_JsonWriter._relative" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String _relative(String path)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          [path] with the analysed root removed, so the output says where a file is in the package rather than where the package was on one machine.
+                        </p>
+                        <p>
+                          This is what makes the artifact diffable. An absolute path is the identity of the machine that ran the analysis, so a tracked snapshot regenerated anywhere else produces a whole-file diff carrying no content — which means it is never regenerated, and goes stale without anything failing. The 
+                          <code>file://</code> scheme goes with it: a location inside a package is not a URL.
+                        </p>
+                        <p>
+                          A dependency's source is outside the root and cannot be relative to it, but it is not machine-specific either: everything before the pub cache is the reader's home directory and everything after it is the package, version and file. The prefix is replaced by a 
+                          <code>pub-cache:</code> marker, which keeps the part that identifies the source and drops the part that identifies the machine.
+                        </p>
+                        <p>
+                          A package reached by a <code>path:</code> dependency is outside the root and outside the cache, and what varies between hosts is only where the enclosing tree was cloned. So when the caller has named that tree, such a path is written against it under a 
+                          <code>workspace:</code> marker. The caller has to name it because nothing in an analysis result says where a workspace ends: a boundary guessed from the paths themselves would put the Dart SDK inside it on one machine and outside it on the next.
+                        </p>
+                        <p>
+                          Anything else — an SDK path, a checkout outside the tree — is left alone. Those genuinely differ between hosts, and inventing a relative form for them would make the artifact look portable while not being it.
+                        </p>
+                      </div>
                     </div>
                     <div id="_JsonWriter._package" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Map&lt;String, dynamic&gt; _package(PackageInfo pkg)</code></div>

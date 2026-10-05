@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1395,14 +1401,36 @@
                   <div class="api-doc">
                     <p>The SQL dialect for MariaDB.</p>
                     <p>
-                      It inherits standard SQL generation unchanged from [TomStandardSqlDialect]; the <code>@TomSqlDialect("mariadb")</code>
-                       annotation registers it as the dialect for the <code>"mariadb"</code> data-source type, and <code>@tomReflector</code>
-                       makes it discoverable by the reflection-based dialect lookup. Override a fragment method here if a future MariaDB-specific syntax diverges from the standard.
+                      It inherits standard SQL <em>generation</em> unchanged from [TomStandardSqlDialect]. Override a fragment method here if a future MariaDB-specific syntax diverges from the standard.
+                    </p>
+                    <p>
+                      Nothing looks this class up. A dialect reaches a query because the data source hands it over — <code>MariaDbDatasource.sqlDialect</code>
+                       returns an instance of this class, and everything that renders SQL asks its data source. Driver discovery is what reflection resolves by type name (<code>@TomDatasourceDriver</code>), and once a driver is chosen its dialect comes with it, so a dialect registry keyed by the same string would be a second answer to a question already answered. A dialect for another database therefore arrives as part of that database's driver, not on its own.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="MariadbSqlDialect.new" class="api-member"><div class="api-member-head"><code class="api-signature">MariadbSqlDialect.new()</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="MariadbSqlDialect.typeFamily" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">TomSqlTypeFamily typeFamily(String sqlType)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                      <div class="api-doc">
+                        <p>Classifies <code>TINYINT(1)</code> as a truth value, everything else as standard.</p>
+                        <p>
+                          MariaDB has no distinct boolean storage: <code>BOOLEAN</code> is a synonym for <code>TINYINT(1)</code>, and that is how a 
+                          <code>bool</code> entity field is spelled in DDL. A schema-convergence check that classified it as an integer would report every boolean column of every migration as a type divergence.
+                        </p>
+                        <p>
+                          Only the exact <code>(1)</code> display width is boolean — a plain <code>TINYINT</code> or a <code>TINYINT(4)</code>
+                           really is a small integer.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </section>
               </div>

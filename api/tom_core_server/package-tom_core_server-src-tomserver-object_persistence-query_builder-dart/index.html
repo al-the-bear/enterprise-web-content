@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1550,6 +1556,10 @@
                       <div class="api-member-head"><code class="api-signature">TomOperator&lt;TomDbDate&gt; dateOp(DateTime value)</code></div>
                       <div class="api-doc"><p>A date literal.</p></div>
                     </div>
+                    <div id="TomQueryBuilder.timeOp" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomOperator&lt;TomDbTime&gt; timeOp(DateTime value)</code></div>
+                      <div class="api-doc"><p>A time-of-day literal — only the clock components of [value] are used.</p></div>
+                    </div>
                     <div id="TomQueryBuilder.p" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomOperator&lt;T&gt; p&lt;T&gt;(String parameterName)</code></div>
                       <div class="api-doc"><p>A named positional parameter placeholder (<code>:parameterName</code>).</p></div>
@@ -1589,6 +1599,119 @@
                         <code class="api-signature">TomOperator&lt;TomDbDate&gt; dateF(String fieldName, TomColumnInformation columnInformation)</code>
                       </div>
                       <div class="api-doc"><p>A reference to a date column.</p></div>
+                    </div>
+                    <div id="TomQueryBuilder.timeF" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">TomOperator&lt;TomDbTime&gt; timeF(String fieldName, TomColumnInformation columnInformation)</code>
+                      </div>
+                      <div class="api-doc"><p>A reference to a time-of-day column.</p></div>
+                    </div>
+                    <div id="TomQueryBuilder.countAll" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">CountAll countAll(String alias)</code></div>
+                      <div class="api-doc"><p><code>COUNT(*) AS &lt;alias&gt;</code> — the number of rows in each group.</p></div>
+                    </div>
+                    <div id="TomQueryBuilder.countOf" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Count&lt;T&gt; countOf&lt;T&gt;(TomOperator&lt;T&gt; value, String alias, {bool distinct = false})</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          <code>COUNT(&lt;value&gt;) AS &lt;alias&gt;</code> — the non-null [value]s in each group, or the distinct such values when [distinct] is set.
+                        </p>
+                        <p>
+                          Named <code>countOf</code> rather than <code>count</code> because the repositories mix this builder in beside 
+                          <code>TomRepository.count()</code>, the CRUD row count.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomQueryBuilder.sum" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Sum&lt;T&gt; sum&lt;T&gt;(TomOperator&lt;T&gt; value, String alias, {bool distinct = false})</code>
+                      </div>
+                      <div class="api-doc"><p><code>SUM(&lt;value&gt;) AS &lt;alias&gt;</code>, always a <code>double</code> (see [Sum]).</p></div>
+                    </div>
+                    <div id="TomQueryBuilder.avg" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Avg&lt;T&gt; avg&lt;T&gt;(TomOperator&lt;T&gt; value, String alias, {bool distinct = false})</code>
+                      </div>
+                      <div class="api-doc"><p><code>AVG(&lt;value&gt;) AS &lt;alias&gt;</code>, always a <code>double</code>.</p></div>
+                    </div>
+                    <div id="TomQueryBuilder.minInt" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Min&lt;TomDbInt, int&gt; minInt(TomOperator&lt;TomDbInt&gt; value, String alias)</code>
+                      </div>
+                      <div class="api-doc"><p><code>MIN(&lt;value&gt;) AS &lt;alias&gt;</code> over an <code>int</code> expression.</p></div>
+                    </div>
+                    <div id="TomQueryBuilder.maxInt" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Max&lt;TomDbInt, int&gt; maxInt(TomOperator&lt;TomDbInt&gt; value, String alias)</code>
+                      </div>
+                      <div class="api-doc"><p><code>MAX(&lt;value&gt;) AS &lt;alias&gt;</code> over an <code>int</code> expression.</p></div>
+                    </div>
+                    <div id="TomQueryBuilder.minDouble" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Min&lt;TomDbDouble, double&gt; minDouble(TomOperator&lt;TomDbDouble&gt; value, String alias)</code>
+                      </div>
+                      <div class="api-doc"><p><code>MIN(&lt;value&gt;) AS &lt;alias&gt;</code> over a <code>double</code> expression.</p></div>
+                    </div>
+                    <div id="TomQueryBuilder.maxDouble" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Max&lt;TomDbDouble, double&gt; maxDouble(TomOperator&lt;TomDbDouble&gt; value, String alias)</code>
+                      </div>
+                      <div class="api-doc"><p><code>MAX(&lt;value&gt;) AS &lt;alias&gt;</code> over a <code>double</code> expression.</p></div>
+                    </div>
+                    <div id="TomQueryBuilder.minText" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Min&lt;TomDbString, String&gt; minText(TomOperator&lt;TomDbString&gt; value, String alias)</code>
+                      </div>
+                      <div class="api-doc"><p><code>MIN(&lt;value&gt;) AS &lt;alias&gt;</code> over a <code>String</code> expression.</p></div>
+                    </div>
+                    <div id="TomQueryBuilder.maxText" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Max&lt;TomDbString, String&gt; maxText(TomOperator&lt;TomDbString&gt; value, String alias)</code>
+                      </div>
+                      <div class="api-doc"><p><code>MAX(&lt;value&gt;) AS &lt;alias&gt;</code> over a <code>String</code> expression.</p></div>
+                    </div>
+                    <div id="TomQueryBuilder.minDateTime" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Min&lt;TomDbDateTime, DateTime&gt; minDateTime(TomOperator&lt;TomDbDateTime&gt; value, String alias)</code>
+                      </div>
+                      <div class="api-doc"><p><code>MIN(&lt;value&gt;) AS &lt;alias&gt;</code> over a timestamp expression.</p></div>
+                    </div>
+                    <div id="TomQueryBuilder.maxDateTime" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Max&lt;TomDbDateTime, DateTime&gt; maxDateTime(TomOperator&lt;TomDbDateTime&gt; value, String alias)</code>
+                      </div>
+                      <div class="api-doc"><p><code>MAX(&lt;value&gt;) AS &lt;alias&gt;</code> over a timestamp expression.</p></div>
+                    </div>
+                    <div id="TomQueryBuilder.minDate" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Min&lt;TomDbDate, DateTime&gt; minDate(TomOperator&lt;TomDbDate&gt; value, String alias)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p><code>MIN(&lt;value&gt;) AS &lt;alias&gt;</code> over a date expression.</p>
+                        <p>
+                          The projected value is read as a plain [DateTime]: it is the widest type that accepts both the driver's own reading of the column and a [TomZonedDate], which extends it. The same holds for [minTime].
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomQueryBuilder.maxDate" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Max&lt;TomDbDate, DateTime&gt; maxDate(TomOperator&lt;TomDbDate&gt; value, String alias)</code>
+                      </div>
+                      <div class="api-doc"><p><code>MAX(&lt;value&gt;) AS &lt;alias&gt;</code> over a date expression.</p></div>
+                    </div>
+                    <div id="TomQueryBuilder.minTime" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Min&lt;TomDbTime, DateTime&gt; minTime(TomOperator&lt;TomDbTime&gt; value, String alias)</code>
+                      </div>
+                      <div class="api-doc"><p><code>MIN(&lt;value&gt;) AS &lt;alias&gt;</code> over a time-of-day expression.</p></div>
+                    </div>
+                    <div id="TomQueryBuilder.maxTime" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Max&lt;TomDbTime, DateTime&gt; maxTime(TomOperator&lt;TomDbTime&gt; value, String alias)</code>
+                      </div>
+                      <div class="api-doc"><p><code>MAX(&lt;value&gt;) AS &lt;alias&gt;</code> over a time-of-day expression.</p></div>
                     </div>
                   </div>
                 </section>

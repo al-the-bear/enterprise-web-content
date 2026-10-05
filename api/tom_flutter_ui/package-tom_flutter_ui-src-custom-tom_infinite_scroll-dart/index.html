@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1389,27 +1395,43 @@
                 <div class="treenodes">
                   <a class="leaf" href="#TomInfiniteScroll">TomInfiniteScroll</a>
                   <a class="leaf" href="#TomInfiniteScrollState">TomInfiniteScrollState</a>
-                  <a class="leaf" href="#InfiniteScrollItemBuilder">InfiniteScrollItemBuilder</a>
-                  <a class="leaf" href="#PageFetcher">PageFetcher</a>
+                  <a class="leaf" href="#TomInfiniteScrollErrorPlacement">TomInfiniteScrollErrorPlacement</a>
+                  <a class="leaf" href="#TomInfiniteScrollErrorBuilder">TomInfiniteScrollErrorBuilder</a>
+                  <a class="leaf" href="#TomInfiniteScrollItemBuilder">TomInfiniteScrollItemBuilder</a>
+                  <a class="leaf" href="#TomPageFetcher">TomPageFetcher</a>
                 </div>
               </div>
               <div class="reader">
                 <h2 class="api-library-title">package:tom_flutter_ui/src/custom/tom_infinite_scroll.dart</h2>
                 <code class="api-import">import 'package:tom_flutter_ui/src/custom/tom_infinite_scroll.dart';</code>
                 <div class="api-doc">
-                  <p>Phase 6 — <code>TomInfiniteScroll</code>.</p>
                   <p>
-                    List wrapper with pagination, an observable page fetcher, and empty / error / loading-state hooks that reuse the other Phase 6 custom widgets ([TomEmptyState], [TomSkeletonLoader], [TomErrorBoundary]).
+                    List wrapper with pagination, an observable page fetcher, and empty / error / loading-state hooks. The default slot builders render [TomEmptyState] and [TomSkeletonLoader], so an unconfigured list already matches the rest of the kit; the error slot is plain Material widgets.
                   </p>
                   <p>
-                    The widget is parameterised over a single [PageFetcher] callback of shape <code>Future&lt;List&lt;T&gt;&gt; Function(int page, int pageSize)</code>. The inner [ListView.builder] calls the fetcher whenever the user approaches the end of the loaded list and appends the result. When a page returns fewer items than [pageSize], the wrapper considers the source exhausted and stops issuing further requests.
+                    The error slot is deliberately not a <code>TomErrorBoundary</code>, and the two are not alternatives. A boundary catches a throw raised while a widget 
+                    <em>builds</em>; this slot reports a [TomPageFetcher] future that rejected, which never reaches a boundary because the failure is already caught and held in state. They compose rather than overlap: wrapping each row in its own boundary contains a build-time throw to that row, while the fetch-error slot goes on handling failed pages.
                   </p>
-                  <p>State transitions exposed through the slot builders:</p>
+                  <p>
+                    The widget is parameterised over a single [TomPageFetcher] callback of shape <code>Future&lt;List&lt;T&gt;&gt; Function(int page, int pageSize)</code>. The inner [ListView.builder] calls the fetcher whenever the user approaches the end of the loaded list and appends the result. When a page returns fewer items than [TomInfiniteScroll.pageSize], the wrapper considers the source exhausted and stops issuing further requests.
+                  </p>
+                  <p>
+                    State transitions exposed through the slot builders. The skeleton and empty slots are returned in place of the 
+                    <code>ListView</code> and take the whole surface; the "loading more" indicator is a tile <em>within</em>
+                     the list; and the error slot is one or the other depending on whether there is anything to preserve.
+                  </p>
+                  <p>
+                    Pages are requested on two triggers: scrolling within [TomInfiniteScroll.prefetchOffset] of the end, and a page landing that leaves the list with nothing to scroll. The second exists because the first cannot fire on a list that does not overflow — and a 
+                    <em>full</em> page that happens to fit leaves the source unexhausted, so without it the list stops after one page with more data available. It applies only when there is no scrollable extent at all; anything scrollable is left to the gesture.
+                  </p>
                   <ul><li><code>pending &amp;&amp; items.isEmpty</code> — initial-load skeleton via</li></ul>
                   <p>
-                    [skeletonBuilder]. <em> <code>pending &amp;&amp; items.isNotEmpty</code> — bottom-of-list "loading more" indicator (a small 
-                      <code>CircularProgressIndicator</code>). </em> <code>error != null</code> — [errorBuilder] (defaults to a Material-styled error tile with a Retry action). * 
-                    <code>items.isEmpty &amp;&amp; !pending &amp;&amp; error == null</code> — [emptyBuilder].
+                    [TomInfiniteScroll.skeletonBuilder]. <em> <code>pending &amp;&amp; items.isNotEmpty</code> — bottom-of-list "loading more" indicator (a small 
+                      <code>CircularProgressIndicator</code>), appended as the list's last tile. </em>
+                     <code>error != null &amp;&amp; items.isEmpty</code> — [TomInfiniteScroll.errorBuilder] with [TomInfiniteScrollErrorPlacement.surface], defaulting to a centred Material panel with the message and a Retry action. Nothing is loaded, so the failure is all there is to show. 
+                    <em> <code>error != null &amp;&amp; items.isNotEmpty</code> — the same builder with [TomInfiniteScrollErrorPlacement.tile], defaulting to a compact row with the message and a Retry action, appended as the list's last tile. 
+                    </em><em>The loaded items stay on screen.</em><em> A user who has scrolled through ten screens does not lose them because page six failed, and the report is at the boundary they reached rather than in place of everything behind it. 
+                    </em> <code>items.isEmpty &amp;&amp; !pending &amp;&amp; error == null</code> — [TomInfiniteScroll.emptyBuilder].
                   </p>
                 </div>
                 <section id="TomInfiniteScroll" class="api-declaration">
@@ -1423,7 +1445,7 @@
                     <div id="TomInfiniteScroll.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          const TomInfiniteScroll.new({Key? key, required Future&lt;List&lt;T&gt;&gt; Function(int, int) fetcher, required Widget Function(BuildContext, T, int) itemBuilder, int pageSize = 20, double prefetchOffset = 200, Widget Function(BuildContext)?? skeletonBuilder, Widget Function(BuildContext)?? emptyBuilder, Widget Function(BuildContext, Object, void Function())?? errorBuilder, EdgeInsetsGeometry? padding})
+                          const TomInfiniteScroll.new({Key? key, required Future&lt;List&lt;T&gt;&gt; Function(int, int) fetcher, required Widget Function(BuildContext, T, int) itemBuilder, int pageSize = 20, double prefetchOffset = 200, Widget Function(BuildContext)?? skeletonBuilder, Widget Function(BuildContext)?? emptyBuilder, Widget Function(BuildContext, Object, void Function(), TomInfiniteScrollErrorPlacement)?? errorBuilder, EdgeInsetsGeometry? padding})
                         </code>
                       </div>
                     </div>
@@ -1432,7 +1454,16 @@
                   <div class="api-members">
                     <div id="TomInfiniteScroll.fetcher" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final Future&lt;List&lt;T&gt;&gt; Function(int, int) fetcher</code></div>
-                      <div class="api-doc"><p>Fetches a page of items. Called once per <code>(page, pageSize)</code>.</p></div>
+                      <div class="api-doc">
+                        <p>Fetches a page of items.</p>
+                        <p>
+                          <strong>The same <code>(page, pageSize)</code> can be requested more than once, so this callback must be idempotent.</strong>
+                           A failed fetch does not advance the cursor, so a retry re-issues the page that just failed, and [TomInfiniteScrollState.refresh] restarts from page 0 — re-requesting every page as the user scrolls back through them.
+                        </p>
+                        <p>
+                          It can also be re-entered: a <code>refresh()</code> during an in-flight fetch starts the new request immediately, leaving two calls outstanding. The older one's result is discarded, not cancelled — [TomPageFetcher] has no cancellation channel — so anything the callback does besides returning items has to be safe to do twice, and safe to do for nothing.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomInfiniteScroll.itemBuilder" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final Widget Function(BuildContext, T, int) itemBuilder</code></div>
@@ -1450,6 +1481,11 @@
                       <div class="api-member-head"><code class="api-signature">final Widget Function(BuildContext)?? skeletonBuilder</code></div>
                       <div class="api-doc">
                         <p>Optional builder for the initial-load skeleton. Defaults to a stack of [TomSkeletonLoader] tiles.</p>
+                        <p>
+                          Those shimmer, and a repeating animation schedules frames forever — so <code>WidgetTester.pumpAndSettle</code>
+                           cannot return while the default skeleton is on screen, which is the first line of most tests that pump a screen containing one of these over a real data source. Reduced motion or an enclosing 
+                          <code>TickerMode(enabled: false)</code> stops the shimmer and lets it settle; see [TomSkeletonLoader.enabled].
+                        </p>
                       </div>
                     </div>
                     <div id="TomInfiniteScroll.emptyBuilder" class="api-member">
@@ -1460,11 +1496,16 @@
                     </div>
                     <div id="TomInfiniteScroll.errorBuilder" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">final Widget Function(BuildContext, Object, void Function())?? errorBuilder</code>
+                        <code class="api-signature">
+                          final Widget Function(BuildContext, Object, void Function(), TomInfiniteScrollErrorPlacement)?? errorBuilder
+                        </code>
                       </div>
                       <div class="api-doc">
                         <p>
-                          Optional builder for the error-state slot. Receives the error object plus a <code>retry</code> closure.
+                          Optional builder for the error slot. Receives the error object, a <code>retry</code> closure, and where it is being rendered.
+                        </p>
+                        <p>
+                          It is called in both placements, so a builder that assumes it owns the surface will produce a full-height panel inside a list tile. Read [TomInfiniteScrollErrorPlacement] and answer both.
                         </p>
                       </div>
                     </div>
@@ -1506,9 +1547,22 @@
                     <div id="TomInfiniteScrollState._controller" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final ScrollController _controller</code></div>
                     </div>
+                    <div id="TomInfiniteScrollState._generation" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">int _generation</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Bumped whenever the loaded set is thrown away, so a fetch that was already in flight can tell that its result no longer belongs to anything and drop it.
+                        </p>
+                        <p>
+                          <code>_pending</code> cannot do this job. [refresh] clears it in order to start a new fetch immediately, which leaves the old request running with nothing marking it stale — it would then append a page from the discarded sequence on top of the new page 0.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomInfiniteScrollState.loadedCount" class="api-member"><div class="api-member-head"><code class="api-signature">int loadedCount</code></div></div>
                     <div id="TomInfiniteScrollState.isPending" class="api-member"><div class="api-member-head"><code class="api-signature">bool isPending</code></div></div>
                     <div id="TomInfiniteScrollState.isExhausted" class="api-member"><div class="api-member-head"><code class="api-signature">bool isExhausted</code></div></div>
+                    <div id="TomInfiniteScrollState.error" class="api-member"><div class="api-member-head"><code class="api-signature">Object? error</code></div></div>
+                    <div id="TomInfiniteScrollState.hasError" class="api-member"><div class="api-member-head"><code class="api-signature">bool hasError</code></div></div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
@@ -1525,12 +1579,38 @@
                       </div>
                     </div>
                     <div id="TomInfiniteScrollState._maybeFetch" class="api-member"><div class="api-member-head"><code class="api-signature">void _maybeFetch()</code></div></div>
+                    <div id="TomInfiniteScrollState._autoFillViewport" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void _autoFillViewport()</code></div>
+                      <div class="api-doc">
+                        <p>Asks for another page when the loaded content leaves the list unscrollable.</p>
+                        <p>
+                          Scrolling is the only other trigger, and a list that does not overflow cannot be scrolled — so a full page that happens to fit (a small [TomInfiniteScroll.pageSize], a tall viewport, short tiles) left the list showing one page with more data available and nothing able to ask for it. Exhaustion did not cover it: a 
+                          <em>full</em> page leaves <code>_exhausted</code> false by definition.
+                        </p>
+                        <p>
+                          <strong>Deliberately stricter than [_maybeFetch]'s rule.</strong> That one fetches within [TomInfiniteScroll.prefetchOffset] of the end, which at rest is true of any list barely taller than its viewport; using it here would turn every load into an immediate second request. This covers only what scrolling cannot reach — a list with no scrollable extent at all — and leaves everything scrollable to the gesture that was always going to trigger it.
+                        </p>
+                        <p>
+                          <strong>What bounds the loop is the source, not a counter here.</strong> Each round either makes the list scrollable — and this returns on the next one — or brings a short page, which exhausts the source. A counter of rounds was written and removed: it could only stop a round that added no items, and a page that adds none has already set 
+                          <code>_exhausted</code>.
+                        </p>
+                        <p>
+                          The case it does not bound is rows that measure zero. No number of pages makes those scrollable, so the list keeps asking; that is an 
+                          <code>itemBuilder</code> returning nothing, and no guard here can make such a list work.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomInfiniteScrollState._fetchNextPage" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Future&lt;void&gt; _fetchNextPage()</code></div>
                     </div>
                     <div id="TomInfiniteScrollState.refresh" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Future&lt;void&gt; refresh()</code></div>
-                      <div class="api-doc"><p>Resets the loaded set and re-issues the first page fetch.</p></div>
+                      <div class="api-doc">
+                        <p>Resets the loaded set and re-issues the first page fetch.</p>
+                        <p>
+                          Safe to call while a fetch is in flight: the outstanding request is abandoned rather than awaited, so its page cannot land in the restarted list. The call itself is not cancelled — [TomPageFetcher] has no cancellation channel — it simply stops mattering.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomInfiniteScrollState._defaultSkeleton" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Widget _defaultSkeleton(BuildContext context)</code></div>
@@ -1540,7 +1620,20 @@
                     </div>
                     <div id="TomInfiniteScrollState._defaultError" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">Widget _defaultError(BuildContext context, Object error, void Function() retry)</code>
+                        <code class="api-signature">
+                          Widget _defaultError(BuildContext context, Object error, void Function() retry, TomInfiniteScrollErrorPlacement placement)
+                        </code>
+                      </div>
+                    </div>
+                    <div id="TomInfiniteScrollState._defaultErrorTile" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Widget _defaultErrorTile(BuildContext context, Object error, void Function() retry)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>The compact form, for a failure reported under rows that are still there.</p>
+                        <p>
+                          A row rather than a centred column: it sits in the list's trailing slot beside content, and the full-surface panel's proportions read as a broken tile there.
+                        </p>
                       </div>
                     </div>
                     <div id="TomInfiniteScrollState._resetError" class="api-member"><div class="api-member-head"><code class="api-signature">void _resetError()</code></div></div>
@@ -1552,18 +1645,74 @@
                     </div>
                   </div>
                 </section>
-                <section id="InfiniteScrollItemBuilder" class="api-declaration">
-                  <h3 class="api-decl-title">typedef InfiniteScrollItemBuilder</h3>
-                  <code class="api-signature">typedef InfiniteScrollItemBuilder&lt;T&gt; = Widget Function(BuildContext, T, int)</code>
+                <section id="TomInfiniteScrollErrorPlacement" class="api-declaration">
+                  <h3 class="api-decl-title">enum TomInfiniteScrollErrorPlacement</h3>
+                  <code class="api-signature">enum TomInfiniteScrollErrorPlacement</code>
+                  <div class="api-doc">
+                    <p>Where a page failure is being reported.</p>
+                    <p>
+                      The two are genuinely different situations and want different shapes, which is why the builder is told which one it is in rather than left to guess from a count it does not have.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Values</h4>
+                  <div class="api-members">
+                    <div id="TomInfiniteScrollErrorPlacement.surface" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">surface</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Nothing is loaded, so the report takes the whole surface. There is nothing to preserve and the failure is the only thing to say.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomInfiniteScrollErrorPlacement.tile" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">tile</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Items are on screen and stay there; the report is the list's last tile, at the boundary the user scrolled to. Replacing the surface here would throw away a screenful of content the user has already reached.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomInfiniteScrollErrorPlacement.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">const TomInfiniteScrollErrorPlacement.new()</code></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="TomInfiniteScrollErrorPlacement.values" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static List&lt;TomInfiniteScrollErrorPlacement&gt; values</code></div>
+                    </div>
+                  </div>
+                </section>
+                <section id="TomInfiniteScrollErrorBuilder" class="api-declaration">
+                  <h3 class="api-decl-title">typedef TomInfiniteScrollErrorBuilder</h3>
+                  <code class="api-signature">
+                    typedef TomInfiniteScrollErrorBuilder = Widget Function(BuildContext, Object, void Function(), TomInfiniteScrollErrorPlacement)
+                  </code>
+                  <div class="api-doc">
+                    <p>Builds the report for a page that failed.</p>
+                    <p>
+                      [retry] re-issues the page that failed — the cursor does not advance past a failure — and [placement] says whether the result is taking the surface or sitting at the end of the list.
+                    </p>
+                  </div>
+                </section>
+                <section id="TomInfiniteScrollItemBuilder" class="api-declaration">
+                  <h3 class="api-decl-title">typedef TomInfiniteScrollItemBuilder</h3>
+                  <code class="api-signature">typedef TomInfiniteScrollItemBuilder&lt;T&gt; = Widget Function(BuildContext, T, int)</code>
                   <div class="api-doc"><p>Builds a single list tile from an item.</p></div>
                 </section>
-                <section id="PageFetcher" class="api-declaration">
-                  <h3 class="api-decl-title">typedef PageFetcher</h3>
-                  <code class="api-signature">typedef PageFetcher&lt;T&gt; = Future&lt;List&lt;T&gt;&gt; Function(int, int)</code>
+                <section id="TomPageFetcher" class="api-declaration">
+                  <h3 class="api-decl-title">typedef TomPageFetcher</h3>
+                  <code class="api-signature">typedef TomPageFetcher&lt;T&gt; = Future&lt;List&lt;T&gt;&gt; Function(int, int)</code>
                   <div class="api-doc">
                     <p>
                       Fetches one page of items. <code>page</code> is zero-based, <code>pageSize</code> is the requested page size. Returning fewer items than 
                       <code>pageSize</code> signals end-of-source and stops further auto-fetches.
+                    </p>
+                    <p>
+                      Must be idempotent: retries and refreshes re-request pages that have already been fetched. See [TomInfiniteScroll.fetcher] for when.
                     </p>
                   </div>
                 </section>

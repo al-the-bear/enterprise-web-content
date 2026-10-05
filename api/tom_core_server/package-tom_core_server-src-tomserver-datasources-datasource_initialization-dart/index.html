@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1528,8 +1534,27 @@
                         <p>Registers this entry and opens its data source.</p>
                         <p>
                           With a <code>delegateTo</code> setting, aliases [name] onto the referenced already-registered data source. Otherwise resolves the 
-                          <code>type</code>, creates the driver via [TomDataSource.createDatasourceOf], and initialises it with [settings]. Throws a [TomDatasourceInitException] on any failure (missing delegate, absent/empty 
-                          <code>type</code>, or no driver for the type).
+                          <code>type</code>, creates the driver via [TomDataSource.createDatasourceOf], strips [registryKeys] from [settings], checks that every remaining key binds a field the driver declares, and initialises it with what is left. Throws a [TomDatasourceInitException] on any failure (missing delegate, absent/empty 
+                          <code>type</code>, no driver for the type, or an unknown settings key).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomDataSourceInfo._rejectUnknownSettings" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">void _rejectUnknownSettings(TomDataSource driver, Map&lt;String, dynamic&gt; driverSettings)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Throws when [driverSettings] carries a key [driver] declares no field for.</p>
+                        <p>
+                          A datasource block is a file the operator wrote, for a driver whose field set is fixed and shipped — so a key that binds nothing is a mistake, and the only question is whether it is reported or absorbed. Absorbed, it surfaces later as a connection error that names neither the schema nor the credentials the driver was never given, and never mentions the key that caused it, because nothing ever looked at it.
+                        </p>
+                        <p>
+                          That tolerance is right on the wire, where the sender may be newer than the receiver, and it is what the shared 
+                          <code>tomReflectionInfo</code> provides. It is not right here, and the check is made <em>at the registry</em>
+                           rather than by giving the driver a strict converter, for two reasons. The name of the data source lives here and not in the driver, and it is the half of the message that tells an operator which block to open. And a check here covers every driver, including one the framework never saw — a driver that binds tolerantly cannot opt out of it.
+                        </p>
+                        <p>
+                          Every offending key is named, not just the first: a block with two typos in it should not take two restarts to fix.
                         </p>
                       </div>
                     </div>
@@ -1545,6 +1570,15 @@
                     <div id="TomDataSourceInfo.datasources" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static Map&lt;String, TomDataSourceInfo&gt; datasources</code></div>
                       <div class="api-doc"><p>All registered data sources, keyed by name.</p></div>
+                    </div>
+                    <div id="TomDataSourceInfo.registryKeys" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Set&lt;String&gt; registryKeys</code></div>
+                      <div class="api-doc">
+                        <p>The [settings] keys this registry reads itself, and so does not pass on.</p>
+                        <p>
+                          <code>type</code> selects the driver and <code>delegateTo</code> aliases one name onto another; neither is a field of any driver. They are removed from the map before it reaches [TomDataSource.initialize] rather than being excused by an allowlist inside the unknown-key check, so that the boundary says the same thing twice over: a driver is handed only what is addressed to it, and every key it is handed has to bind.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomDataSourceInfo.getDataSourceInfo" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static TomDataSourceInfo? getDataSourceInfo(String dsName)</code></div>
@@ -1577,6 +1611,11 @@
                       Annotation marking a [TomDataSource] implementation as the driver for a named data-source [type] (e.g. 
                       <code>"mariadb"</code>). Drivers are discovered by scanning [tomReflector] for this annotation.
                     </p>
+                    <p>
+                      <strong>What a driver owes the layers above it.</strong> The type registered here is reached only through [TomDataSource] and [TomPreparedStatement], so everything the framework knows about a database it learns from those two contracts. Every member of [TomPreparedStatement] is abstract, deliberately: each carries a value the layers above act on, so there is none a driver can leave unanswered and have the silence read as an answer. The one that costs most is [TomPreparedStatement.lastGeneratedId] — 
+                      <code>TomSqlDatasourceRepository.save</code> takes a freshly inserted row's surrogate key from it, and a driver is the only layer that can supply it, because the key belongs to the connection the insert ran on and only the driver knows which connection that was. A driver that answers 
+                      <code>null</code> there makes every insert of a database-assigned key fail, by name, rather than storing rows under a key that is not theirs.
+                    </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
@@ -1595,10 +1634,13 @@
                 </section>
                 <section id="TomDatasourceInitException" class="api-declaration">
                   <h3 class="api-decl-title">class TomDatasourceInitException</h3>
-                  <code class="api-signature">class TomDatasourceInitException extends TomException</code>
+                  <code class="api-signature">class TomDatasourceInitException extends TomServerException</code>
                   <div class="api-doc">
                     <p>
                       Thrown when a data source cannot be discovered, instantiated, or initialised (duplicate or missing driver, bad configuration, etc.).
+                    </p>
+                    <p>
+                      <code>clientThrow</code> is not a parameter: every condition this type reports is infrastructure, and its messages name driver classes, datasource types and raw driver errors. Masking is therefore an invariant of the type rather than a default a raise site could forget to keep.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1606,12 +1648,12 @@
                     <div id="TomDatasourceInitException.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomDatasourceInitException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, Object? stack, Object? rootException, bool autoLog = false, String? uuid, TomServerCallError? serverCallError})
+                          TomDatasourceInitException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, StackTrace? stack, Object? rootException, bool autoLog = false})
                         </code>
                       </div>
                       <div class="api-doc">
                         <p>
-                          Creates the exception with a message [key] and [defaultUserMessage]; the remaining parameters mirror [TomException].
+                          Creates the exception with a message [key] and [defaultUserMessage]; the remaining parameters mirror [TomServerException].
                         </p>
                       </div>
                     </div>
@@ -1628,6 +1670,11 @@
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomPreparedStatement.new" class="api-member"><div class="api-member-head"><code class="api-signature">TomPreparedStatement.new()</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="TomPreparedStatement.lastGeneratedId" class="api-member"><div class="api-member-head"><code class="api-signature">int? lastGeneratedId</code></div></div>
+                    <div id="TomPreparedStatement.lastAffectedRows" class="api-member"><div class="api-member-head"><code class="api-signature">int lastAffectedRows</code></div></div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">

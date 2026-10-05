@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1386,7 +1392,7 @@
               <span style="display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap"><span class="badge b-pub"><span class="d"></span>Published</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">role: extension</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">license: BSD-3-Clause</span></span>
             </div>
             <h2>tom_d4rt_generator</h2>
-            <div class="mono" style="color: #9FB6C9">tom_d4rt_generator · v1.9.7</div>
+            <div class="mono" style="color: #9FB6C9">tom_d4rt_generator · v1.52.0</div>
             <p style="margin-top: 10px">
               Reads `buildkit.yaml`, follows barrel exports, and emits `*.b.dart` files that register native Dart APIs with the interpreter. The bridge-writing automation for the family.
             </p>
@@ -1397,9 +1403,9 @@
           </div>
           <div class="statgrid">
             <div class="stat"><div class="k">Status</div><div class="v" style="font-size: 1.05rem; color: #0F7FB0">Published</div></div>
-            <div class="stat"><div class="k">LOC</div><div class="v">21.2k</div></div>
-            <div class="stat"><div class="k">Tests</div><div class="v">888</div></div>
-            <div class="stat"><div class="k">Test LOC</div><div class="v">15.0k</div></div>
+            <div class="stat"><div class="k">LOC</div><div class="v">23.4k</div></div>
+            <div class="stat"><div class="k">Tests</div><div class="v">1.1k</div></div>
+            <div class="stat"><div class="k">Test LOC</div><div class="v">24.0k</div></div>
           </div>
           <div class="dcols">
             <div>
@@ -1689,8 +1695,10 @@ d4rtgen:
               <pre><code># Generate for the project in the current directory
 dart run tom_d4rt_generator:d4rtgen --project=.
 
-# Generate for a specific path
-dart run tom_d4rt_generator:d4rtgen --project=/path/to/my_package
+# Generate for a project at a known path — select it with --scan, not
+# --project. See "Selecting projects" below: --project takes NAMES, and an
+# absolute path matches no name, so it fails the run instead of generating.
+dart run tom_d4rt_generator:d4rtgen --scan=/path/to/my_package --not-recursive
 
 # Generate for multiple projects via comma-separated list or glob
 dart run tom_d4rt_generator:d4rtgen --project=tom_*_bridges,devops/tom_build_cli
@@ -1701,8 +1709,30 @@ dart run tom_d4rt_generator:d4rtgen --scan=. --recursive
 # List discovered projects without generating
 dart run tom_d4rt_generator:d4rtgen --scan=. --list
 
+# Show what a regeneration would write, and write nothing
+dart run tom_d4rt_generator:d4rtgen --project=. --dry-run
+
 # Verbose output showing per-class progress
 dart run tom_d4rt_generator:d4rtgen --project=. --verbose</code></pre>
+              <h4>Selecting projects: <code>--project</code> vs <code>--scan</code></h4>
+              <p>The two options answer different questions, and mixing them up fails the run.</p>
+              <ul>
+                <li>
+                  <strong><code>--scan=&lt;path&gt;</code></strong> sets <em>where to look</em>. It takes a directory. It defaults
+                </li>
+              </ul>
+              <p>
+                to the current directory, so a <code>--project</code> selector can only ever match something inside the tree you are standing in. - 
+                <strong><code>--project=&lt;pattern&gt;</code></strong> filters <em>what to pick</em> out of that tree. It takes project 
+                <strong>names</strong> and workspace-relative <strong>ids</strong> (globs allowed) — for example <code>tom_core_d4rt</code>, 
+                <code>tom_ai/core/tom_core_d4rt</code>, or <code>tom_*_bridges</code>. <code>.</code> is accepted as a shorthand for the project in the current directory.
+              </p>
+              <p>
+                <code>--project</code> does <strong>not</strong> take filesystem paths. An absolute path matches no name and no id, and a partial id (<code>core/tom_core_d4rt</code>
+                 rather than the full <code>tom_ai/core/tom_core_d4rt</code>) matches nothing either. A selector that matches nothing 
+                <strong>fails the run</strong>, naming the selector and the root it was searched under, so the mistake reports itself rather than passing for a successful run. When you have a path rather than a name, select it with 
+                <code>--scan=&lt;path&gt; --not-recursive</code>; when matching nothing is genuinely intended, pass <code>--allow-empty</code>.
+              </p>
               <p>Or via <code>build_runner</code> (useful for continuous watch mode):</p>
               <pre><code>dart run build_runner build
 dart run build_runner watch</code></pre>
@@ -2061,14 +2091,14 @@ class Matrix2x2UserBridge extends D4UserBridge {
                     <td><code>recreatorClasses</code></td>
                     <td><code>List</code></td>
                     <td><code>[]</code></td>
-                    <td>Single-type-param widgets to emit <code>registerGenericTypeWrapper</code> re-creators for (MCI#5)</td>
+                    <td>Single-type-param widgets to emit <code>registerGenericTypeWrapper</code> re-creators for</td>
                   </tr>
                   <tr>
                     <td><code>genericInterceptors</code></td>
                     <td><code>List</code></td>
                     <td><code>[]</code></td>
                     <td>
-                      Type-arg-keyed re-dispatch interceptors (MCI#8 — e.g. 
+                      Type-arg-keyed re-dispatch interceptors (e.g. 
                       <code>RadioGroup.maybeOf&lt;T&gt;</code>
                       ); dormant when empty
                     </td>
@@ -2078,7 +2108,7 @@ class Matrix2x2UserBridge extends D4UserBridge {
                     <td><code>List</code></td>
                     <td><code>[]</code></td>
                     <td>
-                      Templated RC-2 generic constructor factories (MCI#6 — e.g. 
+                      Templated RC-2 generic constructor factories (e.g. 
                       <code>GlobalKey&lt;NavigatorState&gt;()</code>
                       ); dormant when empty
                     </td>
@@ -2310,6 +2340,43 @@ if (result.isSuccess) {
   print('Generated ${result.totalClasses} classes');
   print('Output files: ${result.outputFiles}');
 }</code></pre>
+              <h3>Checking that committed bridges are current</h3>
+              <p>
+                <code>checkBridgeFreshness</code> regenerates a package's bridges from its own <code>buildkit.yaml</code>
+                 and compares them with the committed <code>*.b.dart</code> files, ignoring the <code>// Generated:</code>
+                 line. It never writes to the package: generated files go to a scratch tree under the package's <code>.dart_tool/</code>, which is removed afterwards. Use it in a package's own test suite, so that a generator upgrade or a source change that was not followed by a regeneration fails a test instead of passing against old generated code:
+              </p>
+              <pre><code>test('committed bridges match the generator', () async {
+  final freshness = await checkBridgeFreshness(Directory.current.path);
+  expect(freshness.errors, isEmpty);
+  expect(freshness.stale, isEmpty, reason: 'run d4rtgen and commit');
+});</code></pre>
+              <p>
+                Each stale entry names the package-relative file and whether it <code>differs</code> or is generated but 
+                <code>notCommitted</code>. A report with errors has not measured anything — assert on <code>errors</code>
+                 first. Generation takes as long as a <code>d4rtgen</code> run, so give the test a generous timeout in a large package.
+              </p>
+              <h3>Which generator wrote a file</h3>
+              <p>
+                Every file the generator writes — module bridges, relaxers, proxies, the barrel, the dartscript and test-runner files — carries one provenance line in its header:
+              </p>
+              <pre><code>// Generated: 2026-09-11T14:30:00.000 by tom_d4rt_generator 1.20.0</code></pre>
+              <p>
+                So <code>grep -r "by tom_d4rt_generator" --include='*.b.dart'</code> answers which generator produced a committed tree, and 
+                <code>parseGeneratedStamp(content)</code> reads the line back (<code>generatorVersion</code> is null for files written before 1.20.0, which recorded only the time). The version sits on the 
+                <code>// Generated:</code> line on purpose: every comparison of generated output ignores that line, so a generator release that produces the same code does not make a package's bridges read as stale.
+              </p>
+              <p>
+                For <code>example/</code> projects — which <code>buildkit_skip.yaml</code> hides from workspace scans — 
+                <code>package:tom_d4rt_generator/testing.dart</code> provides <code>findD4rtgenProjects</code>, <code>resolveIfUnresolved</code>
+                 and <code>freshnessRatchetViolation</code>, the pieces of a ratchet test: examples on a known-stale list must stay stale until regenerated and removed from it, every other example must be fresh. See 
+                <code>test/example_bridges_fresh_test.dart</code> for the complete test.
+              </p>
+              <p>
+                <code>resolveIfUnresolved</code> is also useful on its own: it asks pub whether a project still resolves (<code>dart pub get --offline</code>, online only if that fails), repairs a stale package config, and returns pub's own message when the project cannot resolve. 
+                <code>resolutionProblems</code> reads a package config without running pub, and <code>findDartProjects</code>
+                 lists every project under a root. See <code>test/example_resolution_test.dart</code>.
+              </p>
               <p>---</p>
               <h2>Ecosystem</h2>
               <pre><code>tom_d4rt (interpreter)
@@ -2476,7 +2543,7 @@ if (result.isSuccess) {
               <h3>Consumers and related packages</h3>
               <ul>
                 <li>
-                  <a href="https://github.com/al-the-bear/tom_d4rt/tree/main"><code>tom_d4rt</code></a> — the interpreter that provides the runtime types
+                  <a href="https://github.com/al-the-bear/tom_d4rt/tree/main/tom_d4rt"><code>tom_d4rt</code></a> — the interpreter that provides the runtime types
                 </li>
               </ul>
               <p>

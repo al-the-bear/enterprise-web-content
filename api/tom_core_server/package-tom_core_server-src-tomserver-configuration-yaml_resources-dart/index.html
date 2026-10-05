@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1398,6 +1404,13 @@
                       Provides methods to load YAML files with automatic environment variable substitution using the <code>${VAR_NAME}</code>
                        or <code>${VAR_NAME:default}</code> syntax.
                     </p>
+                    <p>
+                      Substitution runs <em>after</em> the YAML parser has assigned types and writes its expansion back into the tree as text, so a substituted value is always a 
+                      <code>String</code>: <code>port: 3306</code> yields the <code>int</code> <code>3306</code>, <code>port: ${DB_PORT:3306}</code>
+                       the <code>String</code> <code>'3306'</code> — even when <code>DB_PORT</code> is unset and the default supplies the same digits. 
+                      <code>TomConfig</code> casts rather than parses, so read a substituted number with <code>TomStringConfig</code>
+                       and parse it.
+                    </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
@@ -1405,28 +1418,95 @@
                   </div>
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
-                    <div id="TomYaml.mergeInYamlFile" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">static void mergeInYamlFile(Map&lt;String, Object?&gt; result, String filename)</code>
-                      </div>
-                      <div class="api-doc">
-                        <p>Loads a YAML file and merges it into [result] with environment variable substitution.</p>
-                        <p>Environment variables in the YAML values are expanded using [Platform.environment].</p>
-                      </div>
-                    </div>
                     <div id="TomYaml.loadYamlFile" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static Map&lt;String, Object?&gt; loadYamlFile(String filename)</code></div>
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static Map&lt;String, Object?&gt; loadYamlFile(String filename, {Map&lt;String, String&gt;? environment})
+                        </code>
+                      </div>
                       <div class="api-doc">
-                        <p>Loads a YAML file and returns it as a Map with environment variable substitution.</p>
+                        <p>Loads a YAML file and returns it as a Map, substituting environment variables.</p>
                         <p>
-                          Environment variables in the YAML values are expanded using [Platform.environment]. Supports placeholders like 
+                          This is the class's only loader; [mergeInYamlFile] is one line over it. Values are expanded from [environment] — [Platform.environment] when it is omitted — and support placeholders like 
                           <code>${VAR_NAME}</code> or <code>${VAR_NAME:default}</code>.
+                        </p>
+                        <p>
+                          Pass [environment] when the process environment is not the whole story. The case this exists for is a 
+                          <code>.env</code> file: <code>TomEnvFile.resolveEnvironment</code> returns the OS environment with <code>./.env</code>
+                           layered on top, in the same order <code>TomBaseServerConfiguration.getDefaultValues</code> uses, so a boot that resolves it once and passes it here expands its YAML from the same variables its configuration keys came from. Left to the default, a 
+                          <code>.env</code> reaches the configuration and <em>not</em> the placeholders — the datasource keeps the 
+                          <code>${VAR:default}</code> defaults while everything else follows the file.
                         </p>
                         <h2>Example YAML with placeholders</h2>
                         <pre><code>database:
   host: ${DB_HOST:localhost}
   port: ${DB_PORT:3306}
   user: ${DB_USER}</code></pre>
+                        <p>
+                          Throws a [PathNotFoundException] if [filename] does not exist. Note the contrast with the sibling loader in the same configuration pipeline: 
+                          <code>TomEnvFile.read</code> returns an empty map for an absent file, where this one throws. For an overlay that may legitimately be absent use [loadYamlFileIfPresent], which tolerates that one condition and nothing else.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomYaml.mergeInYamlFile" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static void mergeInYamlFile(Map&lt;String, Object?&gt; result, String filename, {Map&lt;String, String&gt;? environment})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Loads a YAML file with [loadYamlFile] and merges it into [result].</p>
+                        <p>
+                          The load <em>is</em> [loadYamlFile] — same normalisation, same substitution from [environment], same [PathNotFoundException] for an absent [filename]. See there for the placeholder syntax and for what [environment] is for; for an overlay that may legitimately be absent, see [mergeInYamlFileIfPresent].
+                        </p>
+                        <p>
+                          The merge is one-sided: keys from [filename] overwrite those already in [result], and keys only in [result] survive. Because the load is an argument to the merge it completes first, so a throw leaves [result] untouched — an overlay never half-applies.
+                        </p>
+                        <p>
+                          It <strong>recurses into subtrees</strong>, so the overwrite is per leaf rather than per branch: a file naming 
+                          <code>db.host</code> alone replaces that key and leaves the <code>db</code> branch's other keys standing. That is what lets a per-environment file state only its differences instead of restating every sibling setting to avoid losing it.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomYaml.loadYamlFileIfPresent" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static Map&lt;String, Object?&gt;? loadYamlFileIfPresent(String filename, {Map&lt;String, String&gt;? environment})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Loads [filename] with [loadYamlFile], or returns <code>null</code> when there is no such file.</p>
+                        <p>
+                          The tolerant half of the pair. Everything [loadYamlFile] does it does — normalisation, substitution from [environment] — and the 
+                          <em>only</em> condition it forgives is that the file is not there. A file that exists and does not parse still throws, which is the whole point: a bare 
+                          <code>catch</code> around [loadYamlFile] reports a YAML syntax error as an absent overlay, so a mistyped file goes on being skipped and the settings in it silently never apply.
+                        </p>
+                        <p>
+                          <code>null</code> rather than an empty map, so a caller can tell an absent overlay from an empty one. An overlay that never applied is exactly what an operator hunting a setting that had no effect needs to be told, and a method that returns 
+                          <code>{}</code> for both cannot tell them.
+                        </p>
+                        <p>
+                          This is the shape the layered-overlay pattern needs: a per-environment or per-locale file of which only one of the candidates is ever present is the normal case, not the error case.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomYaml.mergeInYamlFileIfPresent" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static bool mergeInYamlFileIfPresent(Map&lt;String, Object?&gt; result, String filename, {Map&lt;String, String&gt;? environment})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Merges [filename] into [result] with [mergeInYamlFile] if there is such a file, and reports whether there was.
+                        </p>
+                        <p>
+                          The tolerant half of the merging pair, over [loadYamlFileIfPresent]: an absent [filename] leaves [result] untouched and returns 
+                          <code>false</code>, and every other failure — a syntax error above all — still throws. See [mergeInYamlFile] for what the merge does, and [loadYamlFileIfPresent] for why absence is the only forgiven condition.
+                        </p>
+                        <p>
+                          The <code>bool</code> is the overlay's own answer to "did you apply?". A boot that asks every environment in a hierarchy for an overlay can say which ones it found, instead of leaving a reader to infer it from the settings that took effect.
+                        </p>
                       </div>
                     </div>
                   </div>

@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1387,6 +1393,8 @@
             <div class="treewrap">
               <div class="treepane">
                 <div class="treenodes">
+                  <a class="leaf" href="#TomStackTraceNoise">TomStackTraceNoise</a>
+                  <a class="leaf" href="#_isFormatterFrame">_isFormatterFrame</a>
                   <a class="leaf" href="#_processStackFrames">_processStackFrames</a>
                   <a class="leaf" href="#getFromCurrentZone">getFromCurrentZone</a>
                   <a class="leaf" href="#getObjectFromCurrentZone">getObjectFromCurrentZone</a>
@@ -1416,25 +1424,140 @@ final config = getFromCurrentZone&lt;AppConfig&gt;();
 // Run with error transformation
 final result = await runChecked(
   () =&gt; fetchData(),
-  (error, stack) =&gt; CustomException('Fetch failed', error),
+  (error, stack) =&gt; TomException('catalog.fetch.failed', 'Fetch failed',
+      rootException: error, stack: stack),
 );
 
 // Get formatted stack trace
 print(tomGetStackTrace(StackTrace.current, 5));</code></pre>
                 </div>
+                <section id="TomStackTraceNoise" class="api-declaration">
+                  <h3 class="api-decl-title">class TomStackTraceNoise</h3>
+                  <code class="api-signature">class TomStackTraceNoise</code>
+                  <div class="api-doc">
+                    <p>Classifies a stack frame as noise for the formatting functions in this library.</p>
+                    <p>
+                      Four groups are folded by default. Each describes machinery rather than the failure, so none of them can be unregistered:
+                    </p>
+                    <table class="mdtable">
+                      <thead><tr><th>Folded</th><th>Why</th></tr></thead>
+                      <tbody>
+                        <tr><td>Dart core-library frames (<code>frame.isCore</code>)</td><td>The runtime's own plumbing.</td></tr>
+                        <tr><td><code>package:shelf</code> frames</td><td>The HTTP server the request arrived through.</td></tr>
+                        <tr><td>Members named <code>TomLogger.*</code></td><td>The logger that is reporting the failure.</td></tr>
+                        <tr>
+                          <td>This library's formatting functions</td>
+                          <td>They record the act of formatting, never the failure.</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <p>
+                      An application built on this framework has a layer of its own that is noise in the same way, and folding it needs no change here. Register a predicate at startup and every trace formatted anywhere in the process folds it — including the ones [TomException] and the logger format for themselves, which a per-call parameter could never reach:
+                    </p>
+                    <pre><code>void main() {
+  tomStackTraceNoise.addPackage('my_framework');
+  tomStackTraceNoise.addMemberPrefix('MyRequestPipeline.');
+  runMyApp();
+}</code></pre>
+                    <p>
+                      Registration is a startup act. The list is process-wide and is read while a trace is being formatted, so a registration made mid-flight changes what a trace formatted concurrently shows.
+                    </p>
+                    <p>
+                      A registered predicate only <em>adds</em> to the fold. It cannot rescue a frame the built-in set already claimed, which is why the two are asked in that order and why there is no way to say "not noise".
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomStackTraceNoise.new" class="api-member"><div class="api-member-head"><code class="api-signature">TomStackTraceNoise.new()</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="TomStackTraceNoise._additional" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final List&lt;bool Function(Frame)&gt; _additional</code></div>
+                    </div>
+                    <div id="TomStackTraceNoise.predicates" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">List&lt;bool Function(Frame)&gt; predicates</code></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="TomStackTraceNoise.addPredicate" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void addPredicate(bool Function(Frame) predicate)</code></div>
+                      <div class="api-doc">
+                        <p>Folds every frame [predicate] accepts, in addition to the built-in set.</p>
+                        <p>
+                          The general form. [addPackage] and [addMemberPrefix] are the two shapes that cover nearly every case, and neither requires the caller to name a [Frame] at all.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomStackTraceNoise.addPackage" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void addPackage(String package)</code></div>
+                      <div class="api-doc">
+                        <p>Folds every frame belonging to [package].</p>
+                        <p>
+                          [Frame.package] is the package name without the <code>package:</code> scheme, and is <code>null</code>
+                           for a frame from a <code>file:</code> or <code>dart:</code> URI. So this matches a layer resolved as a package — which is how a framework a consumer depends on appears in its traces.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomStackTraceNoise.addMemberPrefix" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void addMemberPrefix(String prefix)</code></div>
+                      <div class="api-doc">
+                        <p>Folds every frame whose member name starts with [prefix].</p>
+                        <p>
+                          The shape the built-in <code>TomLogger.</code> rule takes, and the one that reaches a layer compiled into the application itself, where there is no package name to match on. Include the trailing 
+                          <code>.</code> to match a class's members without also matching a class whose name merely starts the same way.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomStackTraceNoise.clear" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void clear()</code></div>
+                      <div class="api-doc">
+                        <p>Removes every registered predicate. The built-in set is unaffected.</p>
+                        <p>
+                          For a test that registered one and must not leak it into the next. A process that registers at startup has no reason to call it — and should not, since it would also drop a registration made by a library it depends on.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomStackTraceNoise.isNoise" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool isNoise(Frame frame)</code></div>
+                      <div class="api-doc">
+                        <p>Whether [frame] is noise and should be folded away.</p>
+                        <p>
+                          A registered predicate that throws is treated as answering <code>false</code>, and the frame is kept. These functions run while some 
+                          <em>other</em> failure is being reported, and letting a predicate's failure out would lose that report in order to complain about the machinery describing it — the same trade this library already makes for an out-of-range depth and for a 
+                          <code>stack</code> that is not a [StackTrace]. Nor is it logged: the logger formats its own traces through this very function, so reporting here would re-enter it.
+                        </p>
+                        <p>
+                          Keeping the frame is the safe direction. An unfolded frame makes a trace longer, which the author of the broken predicate will see; folding on a failure would hide frames for a reason no one could observe.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="_isFormatterFrame" class="api-declaration">
+                  <h3 class="api-decl-title">function _isFormatterFrame</h3>
+                  <code class="api-signature">bool _isFormatterFrame(Frame frame)</code>
+                  <div class="api-doc"><p>Whether [frame] belongs to this library's own stack-trace formatting.</p></div>
+                </section>
                 <section id="_processStackFrames" class="api-declaration">
                   <h3 class="api-decl-title">function _processStackFrames</h3>
-                  <code class="api-signature">List&lt;String&gt; _processStackFrames([Object? s, int depth = -1])</code>
+                  <code class="api-signature">List&lt;String&gt; _processStackFrames([StackTrace? s, int depth = -1])</code>
                   <div class="api-doc">
                     <p>Core implementation for processing stack trace frames.</p>
-                    <p>Folds and filters stack frames to remove noise from core libraries, shelf, and TomLogger internals.</p>
+                    <p>
+                      Folds and filters stack frames to remove noise — the built-in set plus whatever a consumer registered on [tomStackTraceNoise] — then flattens every segment of the async chain into one list.
+                    </p>
                     <h2>Parameters</h2>
                     <ul>
                       <li>[s]: The stack trace to process. Defaults to [StackTrace.current].</li>
-                      <li>[depth]: Maximum frames to return. Use -1 for all frames.</li>
+                      <li>[depth]: Maximum frames to return. Any negative value means all frames —</li>
                     </ul>
+                    <p>-1 is the conventional spelling, not a required sentinel.</p>
                     <h2>Returns</h2>
-                    <p>A list of formatted stack frame strings, newest first.</p>
+                    <p>
+                      A list of formatted stack frame strings, newest first. Empty when the trace carries no frames — see [StackTrace.empty] below.
+                    </p>
                   </div>
                 </section>
                 <section id="getFromCurrentZone" class="api-declaration">
@@ -1445,8 +1568,35 @@ print(tomGetStackTrace(StackTrace.current, 5));</code></pre>
                     <p>
                       Zone values are used for passing context through async operations without explicitly threading parameters through function calls.
                     </p>
+                    <h2>The key is the exact <code>Type</code>, not an assignable one</h2>
                     <p>
-                      Returns <code>null</code> if no value of type [T] exists in the current zone or if the stored value is not of type [T].
+                      The lookup is <code>Zone.current[T]</code> — a map lookup whose key is the <code>Type</code> object [T] itself, matched by 
+                      <code>==</code>. [Zone] exposes no way to enumerate its keys, so <strong>no subtype scan is possible</strong>
+                       and none is performed. Assignability plays no part in <em>finding</em> the value:
+                    </p>
+                    <pre><code>runZoned(
+  () {
+    getFromCurrentZone&lt;Derived&gt;();  // the instance
+    getFromCurrentZone&lt;Base&gt;();     // null — a different key
+    getFromCurrentZone&lt;Object&gt;();   // null — `Object` is not a wildcard
+  },
+  zoneValues: {Derived: Derived()},
+);</code></pre>
+                    <p>
+                      It fails in the other direction too: a <code>Derived</code> instance filed under the <code>Base</code>
+                       key is found by <code>getFromCurrentZone&lt;Base&gt;()</code> and <em>not</em> by <code>getFromCurrentZone&lt;Derived&gt;()</code>. 
+                      <code>implements</code> creates no relationship either, and type arguments are part of the key — <code>List&lt;int&gt;</code>, 
+                      <code>List</code> and <code>List&lt;num&gt;</code> are three distinct keys, as are <code>T</code> and 
+                      <code>T?</code>.
+                    </p>
+                    <p>
+                      <strong>So the producer and every consumer must name the same type.</strong> Choose the key once — conventionally the declared type of the field the value is read into — and use it on both sides. A mismatch is not a compile error and raises nothing; it is a silent 
+                      <code>null</code>, which is also what "nothing stored here" looks like.
+                    </p>
+                    <h2>Two independent reasons for <code>null</code></h2>
+                    <p>
+                      Returns <code>null</code> when nothing is stored under the key [T], <strong>and</strong> when what is stored under that key is not a [T]. The key lookup is the first and stricter filter; the 
+                      <code>is T</code> guard that follows can only narrow what the key already found. [getObjectFromCurrentZone] tells the two apart — it applies the same key lookup without the guard.
                     </p>
                     <h2>Example</h2>
                     <pre><code>// Store a value in a zone
@@ -1458,8 +1608,8 @@ runZoned(
   zoneValues: {AppConfig: AppConfig(environment: 'production')},
 );</code></pre>
                     <h2>Type Parameter</h2>
-                    <ul><li>[T]: The type of value to retrieve. Must match the key used when</li></ul>
-                    <p>storing the value in the zone.</p>
+                    <ul><li>[T]: The type of value to retrieve. Must be the <em>same</em> type that was used</li></ul>
+                    <p>as the key when the value was stored — not merely a type the stored value happens to satisfy.</p>
                   </div>
                 </section>
                 <section id="getObjectFromCurrentZone" class="api-declaration">
@@ -1468,73 +1618,140 @@ runZoned(
                   <div class="api-doc">
                     <p>Retrieves an untyped value from the current Dart [Zone] by its [Type].</p>
                     <p>
-                      Unlike [getFromCurrentZone], this returns the raw [Object?] without type checking. Useful when the type is only known at runtime.
+                      Unlike [getFromCurrentZone], this returns the raw [Object?] without type checking. Useful when the type is only known at runtime, and when the caller needs to distinguish "nothing stored under this key" from "something stored, but not of the expected type" — [getFromCurrentZone] answers 
+                      <code>null</code> to both.
+                    </p>
+                    <p>
+                      Dropping the guard does not relax the key lookup: [t] is matched exactly, with the same consequences described on [getFromCurrentZone]. A value stored under a subtype of [t] is not found here either.
                     </p>
                     <h2>Parameters</h2>
-                    <ul><li>[t]: The [Type] to use as the zone value key.</li></ul>
+                    <ul><li>[t]: The [Type] to use as the zone value key. Must be the same type the</li></ul>
+                    <p>producer used, not merely a supertype of the stored value.</p>
                     <h2>Returns</h2>
-                    <p>The zone value associated with type [t], or <code>null</code> if not found.</p>
+                    <p>The zone value stored under [t], or <code>null</code> if that key is absent.</p>
                   </div>
                 </section>
                 <section id="runChecked" class="api-declaration">
                   <h3 class="api-decl-title">function runChecked</h3>
                   <code class="api-signature">
-                    Future&lt;T&gt; runChecked&lt;T&gt;(Future&lt;T&gt; Function() body, Object Function(Object, StackTrace) onError)
+                    Future&lt;T&gt; runChecked&lt;T&gt;(Future&lt;T&gt; Function() body, Exception Function(Object, StackTrace) onError)
                   </code>
                   <div class="api-doc">
-                    <p>Runs an async function with error transformation.</p>
+                    <p>Runs an async function, translating any [Exception] it throws.</p>
                     <p>
-                      Executes [body] and catches any errors, transforming them using [onError] before rethrowing. This is useful for wrapping low-level errors in domain-specific exceptions.
+                      Executes [body] and catches every [Exception], transforming it with [onError] before throwing the result. This is useful for wrapping a low-level failure in a domain-specific exception.
                     </p>
                     <h2>Example</h2>
                     <pre><code>final data = await runChecked(
   () =&gt; httpClient.get(url),
-  (error, stacktrace) =&gt; NetworkException(
+  (error, stacktrace) =&gt; TomException(
+    'catalog.fetch.unreachable',
     'Request failed',
-    originalError: error,
+    rootException: error,
+    stack: stacktrace,
   ),
 );</code></pre>
+                    <p>
+                      [onError] <em>returns</em> the replacement rather than throwing it, which is what makes it impossible to write a transform that swallows the failure: a handler that falls off its end does not compile.
+                    </p>
+                    <p>
+                      It returns an [Exception], so the replacement is something a caller can catch by type. <code>Object</code>
+                       would have let a transform return <code>42</code>, and the wrapper would then have thrown the integer — a failure no 
+                      <code>on SomeException catch</code> clause can ever match, reaching the top of the isolate as an unhandled 
+                      <code>int</code>. The narrower type is also the symmetric half of the rule below: this translates an [Exception] into an [Exception], and neither manufactures a bug nor hides one.
+                    </p>
+                    <p>
+                      Returning a [TomException] is what carries the <code>error</code> and <code>stacktrace</code> arguments forward rather than discarding them.
+                    </p>
+                    <h2>An <code>Error</code> is not translated</h2>
+                    <p>
+                      Only an [Exception] reaches [onError]. An [Error] — <code>StateError</code>, <code>RangeError</code>, 
+                      <code>TypeError</code>, <code>StackOverflowError</code> — propagates unchanged, and so does any other object a body throws.
+                    </p>
+                    <p>
+                      The distinction is Dart's own: an <code>Exception</code> reports a condition the program is expected to handle, an 
+                      <code>Error</code> reports a fault in the program itself. Translating the second kind turns a bug into a domain failure the caller then treats as an ordinary outcome — 
+                      <code>.first</code> on an empty list becomes "not found", a bad cast becomes "the request was invalid" — and the defect is reported at the wrong layer, under a message that describes something else. A wrapper this small should not be able to hide a bug.
+                    </p>
+                    <p>So a body that means "no such thing" has to say so:</p>
+                    <pre><code>// Wrong: `.first` throws StateError, which is a bug, and now propagates.
+final one = await runChecked(
+  () async =&gt; (await repository.find(query)).first,
+  (error, stack) =&gt; TomException('catalog.find.failed', 'Lookup failed'),
+);
+
+// Right: absence is a condition, so it is thrown as one.
+final other = await runChecked(
+  () async {
+    final rows = await repository.find(query);
+    if (rows.isEmpty) {
+      throw TomException('catalog.find.no_match', 'Nothing matched $query');
+    }
+    return rows.first;
+  },
+  (error, stack) =&gt; TomException('catalog.find.failed', 'Lookup failed'),
+);</code></pre>
+                    <p>
+                      A caller that genuinely must translate an <code>Error</code> should catch it where it happens, with an explicit 
+                      <code>on Error</code>, which says so at the point it is decided rather than everywhere this wrapper is used.
+                    </p>
                     <h2>Parameters</h2>
                     <ul>
                       <li>[body]: The async function to execute.</li>
-                      <li>[onError]: Transform function called when [body] throws.</li>
+                      <li>[onError]: Transform function called when [body] throws an [Exception].</li>
                     </ul>
                     <h2>Returns</h2>
                     <p>The result of [body] if successful.</p>
                     <h2>Throws</h2>
-                    <p>The transformed error from [onError] if [body] throws.</p>
+                    <p>
+                      The [Exception] [onError] returns, when [body] throws an [Exception]; and anything else [body] throws, unaltered.
+                    </p>
                   </div>
                 </section>
                 <section id="runCheckedSync" class="api-declaration">
                   <h3 class="api-decl-title">function runCheckedSync</h3>
-                  <code class="api-signature">T runCheckedSync&lt;T&gt;(T Function() body, Object Function(Object, StackTrace) onError)</code>
+                  <code class="api-signature">T runCheckedSync&lt;T&gt;(T Function() body, Exception Function(Object, StackTrace) onError)</code>
                   <div class="api-doc">
                     <p>Synchronous version of [runChecked].</p>
                     <p>
-                      Executes [body] synchronously and catches any errors, transforming them using [onError] before rethrowing.
+                      Executes [body] synchronously and catches every [Exception], transforming it with [onError] into another [Exception] before throwing that. An [Error], and anything else that is not an [Exception], propagates unchanged — see [runChecked] for why, and for why [onError] cannot return an arbitrary object.
                     </p>
                     <h2>Example</h2>
                     <pre><code>final config = runCheckedSync(
   () =&gt; parseConfig(jsonString),
-  (error, stacktrace) =&gt; ConfigException('Invalid config format'),
+  (error, stacktrace) =&gt; TomException(
+    'config.parse.invalid_format',
+    'Invalid config format',
+    rootException: error,
+    stack: stacktrace,
+  ),
 );</code></pre>
                   </div>
                 </section>
                 <section id="tomGetStackTrace" class="api-declaration">
                   <h3 class="api-decl-title">function tomGetStackTrace</h3>
-                  <code class="api-signature">String tomGetStackTrace([Object? s, int depth = -1])</code>
+                  <code class="api-signature">String tomGetStackTrace([StackTrace? s, int depth = -1])</code>
                   <div class="api-doc">
                     <p>Formats a stack trace as a single string.</p>
                     <p>
                       Processes the stack trace, filtering out framework noise, and returns it as a newline-separated string suitable for logging.
                     </p>
+                    <p>
+                      An asynchronous trace is reported <strong>whole</strong>: the runtime splits it into one segment per 
+                      <code>await</code> boundary, and every segment is included, newest first. So the frames run from the throw site back through each awaiting caller to the one that started the work — which is where an async failure's cause usually is.
+                    </p>
                     <h2>Parameters</h2>
                     <ul>
-                      <li>[s]: The stack trace object, or <code>null</code> to use [StackTrace.current].</li>
-                      <li>[depth]: Maximum number of frames to include. Use -1 for all frames.</li>
+                      <li>[s]: The stack trace, or <code>null</code> to use [StackTrace.current].</li>
+                      <li>[depth]: Maximum number of frames to include. Any negative value means</li>
                     </ul>
+                    <p>
+                      all frames — -1 is the conventional spelling, not a required sentinel. The limit applies across the whole chain, counting from the throw site.
+                    </p>
                     <h2>Returns</h2>
-                    <p>A formatted stack trace string with one frame per line.</p>
+                    <p>
+                      A formatted stack trace string with one frame per line. An empty string when the trace has no frames — [StackTrace.empty] is what Dart supplies for an error created without one, so this is an ordinary outcome rather than an error.
+                    </p>
                     <h2>Example</h2>
                     <pre><code>try {
   riskyOperation();
@@ -1545,30 +1762,34 @@ runZoned(
                 </section>
                 <section id="tomGetStackTraceAsList" class="api-declaration">
                   <h3 class="api-decl-title">function tomGetStackTraceAsList</h3>
-                  <code class="api-signature">List&lt;String&gt; tomGetStackTraceAsList([Object? s, int depth = -1])</code>
+                  <code class="api-signature">List&lt;String&gt; tomGetStackTraceAsList([StackTrace? s, int depth = -1])</code>
                   <div class="api-doc">
                     <p>Formats a stack trace as a list of strings.</p>
                     <p>Same as [tomGetStackTrace] but returns individual frames as list elements.</p>
                     <h2>Parameters</h2>
                     <ul>
-                      <li>[s]: The stack trace object, or <code>null</code> to use [StackTrace.current].</li>
-                      <li>[depth]: Maximum number of frames to include. Use -1 for all frames.</li>
+                      <li>[s]: The stack trace, or <code>null</code> to use [StackTrace.current].</li>
+                      <li>[depth]: Maximum number of frames to include. Any negative value means</li>
                     </ul>
+                    <p>all frames — -1 is the conventional spelling, not a required sentinel.</p>
                     <h2>Returns</h2>
-                    <p>A list of formatted stack frame strings.</p>
+                    <p>A list of formatted stack frame strings, empty when the trace has no frames.</p>
                   </div>
                 </section>
                 <section id="tomGetStackTraceAsTuple" class="api-declaration">
                   <h3 class="api-decl-title">function tomGetStackTraceAsTuple</h3>
-                  <code class="api-signature">(String, List&lt;String&gt;) tomGetStackTraceAsTuple([Object? s, int depth = -1])</code>
+                  <code class="api-signature">(String, List&lt;String&gt;) tomGetStackTraceAsTuple([StackTrace? s, int depth = -1])</code>
                   <div class="api-doc">
                     <p>Formats a stack trace as both a string and list.</p>
-                    <p>Convenience function that returns both representations in a single call.</p>
+                    <p>
+                      Convenience function that returns both representations in a single call. Processes the trace exactly as [tomGetStackTrace] does, async chain included.
+                    </p>
                     <h2>Parameters</h2>
                     <ul>
-                      <li>[s]: The stack trace object, or <code>null</code> to use [StackTrace.current].</li>
-                      <li>[depth]: Maximum number of frames to include. Use -1 for all frames.</li>
+                      <li>[s]: The stack trace, or <code>null</code> to use [StackTrace.current].</li>
+                      <li>[depth]: Maximum number of frames to include. Any negative value means</li>
                     </ul>
+                    <p>all frames — -1 is the conventional spelling, not a required sentinel.</p>
                     <h2>Returns</h2>
                     <p>A tuple of (formatted string, list of frame strings).</p>
                     <h2>Example</h2>
@@ -1579,18 +1800,24 @@ print('First frame: ${stackList.first}');</code></pre>
                 </section>
                 <section id="tomPrintStackTrace" class="api-declaration">
                   <h3 class="api-decl-title">function tomPrintStackTrace</h3>
-                  <code class="api-signature">void tomPrintStackTrace(Object? s, {String? message, int depth = -1})</code>
+                  <code class="api-signature">void tomPrintStackTrace(StackTrace? s, {String? message, int depth = -1})</code>
                   <div class="api-doc">
-                    <p>Prints a formatted stack trace to the error log.</p>
+                    <p>Logs a formatted stack trace at ERROR level.</p>
                     <p>
-                      Formats and logs the stack trace with optional message prefix. Uses [tomGetStackTrace] internally for formatting.
+                      Formats the trace with [tomGetStackTrace], prefixes it with [message] when one is given, and passes the result to 
+                      <code>tomLog.error</code>. Despite the name it does <strong>not</strong> call [print]: the text goes wherever the configured log outputs point, so under a recording output in a test it never reaches stdout, and under a filtered one it is dropped entirely.
+                    </p>
+                    <p>
+                      Nothing is logged when there would be nothing to say — no message and no frames. That combination is reachable three ways: 
+                      <code>depth: 0</code>, which is a meaningful request for no frames; [StackTrace.empty]; and a trace whose every frame was filtered out as noise. In each case an unconditional call emitted an ERROR record with an empty body, which is worse than silence: it asserts that something failed, describes nothing, and does so at the level operators alert on.
                     </p>
                     <h2>Parameters</h2>
                     <ul>
-                      <li>[s]: The stack trace object, or <code>null</code> to use [StackTrace.current].</li>
+                      <li>[s]: The stack trace, or <code>null</code> to use [StackTrace.current].</li>
                       <li>[message]: Optional prefix message for the log entry.</li>
-                      <li>[depth]: Maximum number of frames to include. Use -1 for all frames.</li>
+                      <li>[depth]: Maximum number of frames to include. Any negative value means</li>
                     </ul>
+                    <p>all frames — -1 is the conventional spelling, not a required sentinel.</p>
                   </div>
                 </section>
               </div>

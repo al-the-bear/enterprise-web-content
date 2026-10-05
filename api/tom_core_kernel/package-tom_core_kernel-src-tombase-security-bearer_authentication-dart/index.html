@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1386,7 +1392,10 @@
             <a class="crosslink" href="/api/tom_core_kernel">← tom_core_kernel API</a>
             <div class="treewrap">
               <div class="treepane">
-                <div class="treenodes"><a class="leaf" href="#TomBearerAuthentication">TomBearerAuthentication</a></div>
+                <div class="treenodes">
+                  <a class="leaf" href="#TomBearerAuthentication">TomBearerAuthentication</a>
+                  <a class="leaf" href="#TomTokenLifetimeException">TomTokenLifetimeException</a>
+                </div>
               </div>
               <div class="reader">
                 <h2 class="api-library-title">package:tom_core_kernel/src/tombase/security/bearer_authentication.dart</h2>
@@ -1482,7 +1491,13 @@ if (principal.authenticated) {
                   <div class="api-members">
                     <div id="TomBearerAuthentication.bearerAuthentication" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static TomBearerAuthentication bearerAuthentication</code></div>
-                      <div class="api-doc"><p>Global singleton instance for bearer authentication.</p></div>
+                      <div class="api-doc">
+                        <p>Global singleton instance for bearer authentication.</p>
+                        <p>
+                          Assignable on purpose, and not <code>final</code>: every static accessor on this class — [token], [getPrincipal], [setTokens] and the rest — reads through this field, so replacing it swaps the whole of the cached client-side authentication state in one move. That is the isolation seam tests use, in 
+                          <code>setUp</code>/<code>tearDown</code>, to stop one test's login leaking into the next.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomBearerAuthentication.token" class="api-member"><div class="api-member-head"><code class="api-signature">static String? token</code></div></div>
                     <div id="TomBearerAuthentication.authorizationToken" class="api-member">
@@ -1494,6 +1509,24 @@ if (principal.authenticated) {
                     <div id="TomBearerAuthentication.clientAuthorizationJwtToken" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static TomClientJwtToken? clientAuthorizationJwtToken</code></div>
                     </div>
+                    <div id="TomBearerAuthentication.pendingTwoFactorChallenge" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Tom2FAChallenge? pendingTwoFactorChallenge</code></div>
+                    </div>
+                    <div id="TomBearerAuthentication.pendingTwoFactorEnrolment" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Tom2FAPendingEnrolment? pendingTwoFactorEnrolment</code></div>
+                    </div>
+                    <div id="TomBearerAuthentication._currentTokenPayload" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Map&lt;String, dynamic&gt;? _currentTokenPayload</code></div>
+                    </div>
+                    <div id="TomBearerAuthentication.tokenExpiryAgreement" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Duration tokenExpiryAgreement</code></div>
+                      <div class="api-doc">
+                        <p>How far <code>validUntil</code> may stray from <code>exp</code> before the token is refused.</p>
+                        <p>
+                          The framework's own issuer derives both from one clock read, so they agree to the second; the margin is for issuers that compute them separately, and is small enough that a disagreement past it means the two claims describe different tokens.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomBearerAuthentication.setTokens" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">static void setTokens(String authenticationToken, String authorizationToken, [bool decrypt = true])</code>
@@ -1503,11 +1536,45 @@ if (principal.authenticated) {
                         <p>
                           This should be called after successful authentication to store the tokens and make the principal available.
                         </p>
+                        <p>
+                          <strong>All or nothing.</strong> Both tokens are parsed and the principal derived before anything is stored, so a pair that cannot be read — a token with no payload, a claim Tom never writes — throws and leaves the session exactly as it was: the previous session's tokens and principal, or none. Storing the tokens first would pair the new tokens with the previous principal, and [getPrincipal] would answer for the wrong user. It is also what makes a stored token always readable, so [getPrincipal] has only one way to fail.
+                        </p>
                         <ul>
                           <li>[authenticationToken]: JWT proving user identity</li>
                           <li>[authorizationToken]: JWT containing access rights</li>
                           <li>[decrypt]: Whether to decrypt the token's secret data (default: true)</li>
                         </ul>
+                      </div>
+                    </div>
+                    <div id="TomBearerAuthentication.clearTokens" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static void clearTokens()</code></div>
+                      <div class="api-doc">
+                        <p>Discards the stored token pair and the cached principal.</p>
+                        <p>
+                          Use on logout, or when a login was answered with an interim 2FA token the client is abandoning. Leaves the singleton in the same state as a freshly constructed one, so a following [getPrincipal] throws rather than handing back a stale identity.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBearerAuthentication.checkTokenLifetime" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static void checkTokenLifetime(TomClientJwtToken token, {DateTime? now})</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Throws [TomTokenLifetimeException] unless [token] is live at [now] (the current time when omitted).</p>
+                        <p>
+                          <strong><code>exp</code> decides.</strong> It is the registered JWT claim, in epoch seconds, and the one any JWT library or gateway in front of the server enforces, so a token from another issuer is judged by the same rule. A token is dead from its 
+                          <code>exp</code> instant on — the claim is exclusive, as RFC 7519 defines it. There is no default lifetime: a token without a readable 
+                          <code>exp</code> is refused (<code>security.token.missing_expiry</code>), because accepting it would mean accepting a token that never expires.
+                        </p>
+                        <p>
+                          <strong><code>validUntil</code> must agree.</strong> Tom's issuer writes it beside <code>exp</code> as an ISO 8601 instant. It is optional, but when present it has to parse as an instant within [tokenExpiryAgreement] of 
+                          <code>exp</code>; otherwise the token contradicts itself and is refused (<code>security.token.expiry_mismatch</code>). A value without an offset is read in this process's zone, which is the zone an issuer writing it that way meant — 
+                          <code>tom_crypto</code> before 1.2.2 wrote local time, and a Tom server mints its own tokens.
+                        </p>
+                        <p>
+                          Keys: <code>security.token.missing_expiry</code> (absent or not an integer), <code>security.token.invalid_expiry</code>
+                           (an integer no instant can be built from), <code>security.token.expired</code>, <code>security.token.expiry_mismatch</code>.
+                        </p>
                       </div>
                     </div>
                     <div id="TomBearerAuthentication.convertTokenPayloadToPrincipal" class="api-member">
@@ -1527,6 +1594,18 @@ if (principal.authenticated) {
                         </ul>
                         <p>(uses authentication token if not provided)</p>
                         <p>Returns a [TomPrincipal] with all extracted information.</p>
+                        <p>
+                          Throws [TomTokenLifetimeException] when either token is not live — see [checkTokenLifetime]. An expired token therefore never becomes a principal object at all, so no caller can serve one by forgetting to ask.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBearerAuthentication.tryGetPrincipal" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static TomPrincipal? tryGetPrincipal()</code></div>
+                      <div class="api-doc">
+                        <p>The current session's principal, or <code>null</code> when there is no session.</p>
+                        <p>
+                          The non-throwing sibling of [getPrincipal], for a caller to whom "not signed in" is an ordinary state — a widget build, a guard — rather than a fault. It never throws: a stored token is always readable, because [setTokens] refuses a pair it cannot derive a principal from and keeps the previous session instead.
+                        </p>
                       </div>
                     </div>
                     <div id="TomBearerAuthentication.getPrincipal" class="api-member">
@@ -1534,39 +1613,76 @@ if (principal.authenticated) {
                       <div class="api-doc">
                         <p>Gets the current authenticated principal.</p>
                         <p>
-                          Returns the [TomPrincipal] for the current session. The principal is cached after first creation for performance.
+                          Returns the [TomPrincipal] for the current session — the one live object [setTokens] derived, which [replacePrincipalAci] and [replaceClientLimits] update in place.
                         </p>
                         <p>
-                          Throws [StateError] if no tokens have been set or if the tokens cannot be parsed into a valid principal.
+                          Throws [StateError] when there is no session: no tokens have been set, or [clearTokens] discarded them. That is its only failure. A stored token is always readable, because [setTokens] refuses a pair it cannot derive a principal from — so a corrupt token surfaces there, loudly, when it arrives, rather than here as a degraded guest identity that would make a broken session look like a signed-out one. A caller for whom "not signed in" is an ordinary state uses [tryGetPrincipal].
                         </p>
                         <pre><code>var principal = TomBearerAuthentication.getPrincipal();
 print('User: ${principal.username}');
 print('Roles: ${principal.aci.roles}');</code></pre>
                       </div>
                     </div>
-                    <div id="TomBearerAuthentication.updatePrincipal" class="api-member">
+                    <div id="TomBearerAuthentication.replacePrincipalAci" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          static void updatePrincipal(List&lt;String&gt; groups, List&lt;String&gt; roles, List&lt;String&gt; entitlements, List&lt;String&gt; resourceKeys)
+                          static void replacePrincipalAci({required List&lt;String&gt; groups, required List&lt;String&gt; roles, required List&lt;String&gt; entitlements, required List&lt;String&gt; resourceKeys, required Map&lt;String, String&gt; resourceRoles})
                         </code>
                       </div>
                       <div class="api-doc">
-                        <p>Updates the current principal's access control information.</p>
+                        <p>Replaces the current principal's access control information.</p>
                         <p>
-                          This allows refreshing the user's permissions without requiring a full re-authentication. Useful when permissions change during a session.
+                          Refreshes a user's permissions without a full re-authentication, which is what a periodic poll of the server's authorization state needs: the server holds the whole answer, so the whole answer is what arrives here.
                         </p>
+                        <p>
+                          <strong>Replacement, stated in the name and enforced by the signature.</strong> Every collection is set to exactly what this call is given, so what a caller passes is the set the principal ends up with, never a delta. All five are 
+                          <code>required</code> and named: none can be left out, and none can be transposed with its neighbour — four adjacent 
+                          <code>List&lt;String&gt;</code> parameters distinguished only by position would grant the wrong things at run time while compiling cleanly, and an optional 
+                          <code>resourceRoles</code> would let a caller clear every per-resource grant by saying nothing. Since 
+                          <code>TomResourceRoleAdapter</code> resolves an ungranted resource to <code>TomAuthState.none</code>, that omission is invisible: the UI thins out and nothing is raised.
+                        </p>
+                        <p>Pass <code>const []</code> or <code>const {}</code> deliberately to clear one.</p>
                         <ul>
-                          <li>[groups]: Updated list of group memberships</li>
-                          <li>[roles]: Updated list of roles</li>
-                          <li>[entitlements]: Updated list of entitlements</li>
-                          <li>[resourceKeys]: Updated list of resource keys</li>
+                          <li>[groups]: The group memberships the principal should end up with</li>
+                          <li>[roles]: The roles it should end up with</li>
+                          <li>[entitlements]: The entitlements it should end up with</li>
+                          <li>[resourceKeys]: The resource keys it should end up with</li>
+                          <li>[resourceRoles]: The per-resource role map (<code>resourceKey → roleName</code>)</li>
                         </ul>
+                      </div>
+                    </div>
+                    <div id="TomBearerAuthentication.replaceClientLimits" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static void replaceClientLimits({required List&lt;String&gt; enabledModules, required Map&lt;String, int&gt; quotas})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Replaces the current principal's client limits.</p>
+                        <p>
+                          The sibling of [replacePrincipalAci], with the same contract: both collections are <code>required</code>, and what is passed is what the principal ends up with — pass 
+                          <code>const []</code> or <code>const {}</code> deliberately to clear one. Use it when the new values are already in hand (a server push); to fetch them, call [refreshClientLimits].
+                        </p>
+                        <p>
+                          The token is not re-minted: the replacement is the client's view. A server reading limits from a request's token sees the login-time snapshot until the next login, and asks the installed [TomClientLimitsProvider] when it needs the current figures.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBearerAuthentication.refreshClientLimits" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Future&lt;bool&gt; refreshClientLimits()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Asks the installed [TomClientLimitsProvider] for the current principal's limits and replaces them with the answer.
+                        </p>
+                        <p>
+                          Returns <code>true</code> when the limits were replaced; <code>false</code> when no provider is installed or it had no answer, in which case the principal keeps the limits it carries. A provider failure propagates: the caller decided to refresh, so it is the one to decide whether a failed refresh matters.
+                        </p>
                       </div>
                     </div>
                     <div id="TomBearerAuthentication.convertPrincipalToTokenPayload" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          static (Map&lt;String, Object?&gt;, Map&lt;String, Object?&gt;) convertPrincipalToTokenPayload(TomPrincipal principal, TomAccessControlDefinition? definition, String? clientCountry, String? clientLanguage)
+                          static (Map&lt;String, Object?&gt;, Map&lt;String, Object?&gt;) convertPrincipalToTokenPayload(TomPrincipal principal, TomAccessControlDefinition? definition, String? clientCountry, String? clientLanguage, {Tom2FAChallenge? challenge, Map&lt;String, Object?&gt;? twoFactorVerification, bool twoFactorSatisfied = false})
                         </code>
                       </div>
                       <div class="api-doc">
@@ -1579,9 +1695,40 @@ print('Roles: ${principal.aci.roles}');</code></pre>
                           <li>[definition]: Optional ACI definition for resolving full permissions</li>
                           <li>[clientCountry]: Client's country for localization</li>
                           <li>[clientLanguage]: Client's language for localization</li>
+                          <li>[challenge]: A pending second-factor challenge to carry in the token,</li>
                         </ul>
                         <p>
-                          Returns a tuple of (publicPayload, privatePayload): - Public payload: User info visible in the JWT - Private payload: Encrypted security information (ACI)
+                          making this an <em>interim</em> token rather than a completed session - [twoFactorVerification]: The mechanism's server-only verification payload, placed in the encrypted section (only meaningful with [challenge]) - [twoFactorSatisfied]: Set on the second pass, once the factor has been verified, to clear the requirement the principal still carries
+                        </p>
+                        <h2>What each half carries</h2>
+                        <p>
+                          The <strong>public</strong> half is base64, not encryption: anyone holding the token — and anything with access to where it is stored — can read it. It carries what identifies and routes the session and nothing personal: 
+                          <code>username</code>, <code>userId</code>, <code>userTimezone</code>, the organization/application/process context and its ids, 
+                          <code>clientId</code>, the effective and client locale, the subscription claims, and the second-factor claims.
+                        </p>
+                        <p>
+                          The <strong>private</strong> half is encrypted. It carries every personal field — first and last name, email, phone, mobile, both address lines, city, postcode, state/region and 
+                          <code>attributes</code> — beside the context and the five ACI collections. A reader that decrypts gets them back through [convertTokenPayloadToPrincipal]; one that does not sees who the session belongs to and no personal data. The split does not depend on any resource-key switch being set.
+                        </p>
+                        <h2>Which principal decides redaction</h2>
+                        <p>
+                          Eleven personal fields — all in the private half — are filtered through [TomResourceKeyProtection.protectFor] under the key 
+                          <code>tom.user.&lt;field&gt;</code>, and the operand is <strong>[principal] itself</strong> — the subject the token is being minted for — not whoever the ambient zone names. A field survives when the subject's own ACI holds its key, and falls back to 
+                          <code>null</code> (or <code>const {}</code> for <code>attributes</code>) when it does not.
+                        </p>
+                        <p>
+                          The distinction is load-bearing on the login path, which is where this is called from: the subject is being authenticated at that moment, so nothing is installed on the zone yet, and reading the zone would be fail-closed — with [TomResourceKeyProtection.globalSettingProtectionDefault] on, every protected field in every minted token would come back empty.
+                        </p>
+                        <p>
+                          <code>username</code>, <code>userId</code> and <code>userTimezone</code> are not filtered and travel in the public half.
+                        </p>
+                        <h2>The <code>requires2FA</code> claim</h2>
+                        <p>
+                          The claim is <strong>fail-safe</strong>: it is true whenever a [challenge] is being issued <em>or</em>
+                           the principal declares it needs a second factor, and only [twoFactorSatisfied] clears it. So a caller that mints tokens without going through the two-pass flow cannot accidentally hand a 2FA user a fully-authenticated token by forgetting a parameter — the omission produces an unusable interim token, not an over-privileged one.
+                        </p>
+                        <p>
+                          Returns a tuple of (publicPayload, privatePayload): - Public payload: the session's identity, readable by any token holder - Private payload: encrypted personal fields, context and ACI
                         </p>
                         <pre><code>var (publicPayload, privatePayload) =
     TomBearerAuthentication.convertPrincipalToTokenPayload(
@@ -1591,6 +1738,28 @@ print('Roles: ${principal.aci.roles}');</code></pre>
       'en',
     );
 var token = TomServerJwtToken.create(publicPayload, privatePayload);</code></pre>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="TomTokenLifetimeException" class="api-declaration">
+                  <h3 class="api-decl-title">class TomTokenLifetimeException</h3>
+                  <code class="api-signature">class TomTokenLifetimeException extends TomException</code>
+                  <div class="api-doc">
+                    <p>
+                      A token refused because it is not live: expired, carrying no usable <code>exp</code>, or contradicting itself about when it expires.
+                    </p>
+                    <p>
+                      Raised by [TomBearerAuthentication.checkTokenLifetime], and so by [TomBearerAuthentication.convertTokenPayloadToPrincipal] before any principal is built. It is a refusal, not a fault: the answer for a request is "unauthenticated", and the remedy is to renew or log in again.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomTokenLifetimeException.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          TomTokenLifetimeException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, StackTrace? stack, Object? rootException, bool autoLog = false, String? uuid, TomServerCallError? serverCallError})
+                        </code>
                       </div>
                     </div>
                   </div>

@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1395,13 +1401,17 @@
                   <a class="leaf" href="#TomGroupAccess">TomGroupAccess</a>
                   <a class="leaf" href="#TomGuestAccess">TomGuestAccess</a>
                   <a class="leaf" href="#TomNoAccess">TomNoAccess</a>
+                  <a class="leaf" href="#TomProtectedField">TomProtectedField</a>
+                  <a class="leaf" href="#TomProtectionSettingException">TomProtectionSettingException</a>
                   <a class="leaf" href="#TomPublicAccess">TomPublicAccess</a>
                   <a class="leaf" href="#TomResourceKeyAccess">TomResourceKeyAccess</a>
                   <a class="leaf" href="#TomResourceKeyProtection">TomResourceKeyProtection</a>
                   <a class="leaf" href="#TomRoleAccess">TomRoleAccess</a>
                   <a class="leaf" href="#TomAccessControlHandler">TomAccessControlHandler</a>
+                  <a class="leaf" href="#_principalAciContainsAny">_principalAciContainsAny</a>
                   <a class="leaf" href="#tomProtect">tomProtect</a>
                   <a class="leaf" href="#tomProtected">tomProtected</a>
+                  <a class="leaf" href="#tomResourceState">tomResourceState</a>
                 </div>
               </div>
               <div class="reader">
@@ -1431,7 +1441,7 @@ void deleteUser(int userId) { ... }
 
 // Use entitlement-based access
 @TomEntitlementAccess(['feature.premium.*'])
-Widget premiumFeature() { ... }</code></pre>
+void runPremiumFeature() { ... }</code></pre>
                   <p>
                     See also: - [TomPrincipal] for the authenticated user context - [TomAccessControlInformation] for the user's access rights
                   </p>
@@ -1442,7 +1452,7 @@ Widget premiumFeature() { ... }</code></pre>
                   <div class="api-doc">
                     <p>Abstract base class for all access control types.</p>
                     <p>
-                      Extend this class to implement custom access control logic. All access control implementations must override [checkAccessibility] to determine if a [TomPrincipal] should have access.
+                      Extend this class to implement custom access control logic. All access control implementations must override [checkPrincipalAccess] to determine if a [TomPrincipal] should have access.
                     </p>
                     <h2>Built-in Implementations</h2>
                     <ul>
@@ -1455,7 +1465,28 @@ Widget premiumFeature() { ... }</code></pre>
                       <li>[TomEntitlementAccess]: Requires specific entitlements</li>
                       <li>[TomResourceKeyAccess]: Checks resource key protection</li>
                       <li>[TomCustomAccess]: Delegates to custom handler</li>
+                      <li>[TomGradedAccess]: Composes three of the above into all four</li>
                     </ul>
+                    <p>
+                      [TomAuthState] values — the only built-in that can resolve to [TomAuthState.disabled] or [TomAuthState.read]
+                    </p>
+                    <h2>Two operands: the user and the deployment</h2>
+                    <p>
+                      Evaluation has <strong>two</strong> operands, not one. A user's grant is met with the grant of the deployment the code is running in — the 
+                      <em>ambient server principal</em> ([TomServerPrincipal]) — and the effective answer is the more restrictive of the two: 
+                      <code>min(user, server)</code> over the four-state ladder, binary AND for two-state controls. A user's [TomAuthState.full] on a feature this deployment is not entitled to evaluates to [TomAuthState.none]. The deployment's grants cap every user's grants; they never widen them.
+                    </p>
+                    <h2>What subclasses implement</h2>
+                    <p>
+                      The public entry points [checkAccessibility] and [resolveAuthState] compute that meet and are <strong>not overridable</strong>
+                       — a cap that any subclass could sidestep by overriding the method everybody already calls would not be a cap at all. Subclasses instead implement the two hooks:
+                    </p>
+                    <ul><li>[checkPrincipalAccess] / [resolvePrincipalAuthState] — the <em>user</em> operand:</li></ul>
+                    <p>
+                      what this control demands of the calling principal. This is the whole of a subclass's own rule; nothing about the deployment belongs here. - [resolveServerAuthState] — the 
+                      <em>deployment</em> operand: what grade this control's subject is granted to the deployment. It defaults to [TomAuthState.full] (uncapped), because most controls name a 
+                      <em>user</em> requirement (a role, a group, a resource key) and say nothing about deployment features. [TomEntitlementAccess] is the grant carrier that actually answers it.
+                    </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
@@ -1463,21 +1494,61 @@ Widget premiumFeature() { ... }</code></pre>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
-                    <div id="TomAccessControl.checkAccessibility" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">bool checkAccessibility(TomPrincipal? principal)</code></div>
+                    <div id="TomAccessControl.checkPrincipalAccess" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool checkPrincipalAccess(TomPrincipal? principal)</code></div>
                       <div class="api-doc">
-                        <p>Checks if the given [principal] has access.</p>
+                        <p>The <strong>user</strong> operand: whether [principal] satisfies this control.</p>
                         <p>
-                          Returns <code>true</code> if access is granted, <code>false</code> otherwise. A <code>null</code> principal typically represents an unauthenticated user.
+                          Returns <code>true</code> if the principal's own grants suffice, <code>false</code> otherwise. A <code>null</code>
+                           principal typically represents an unauthenticated user.
+                        </p>
+                        <p>
+                          This answer is deliberately <em>un</em>capped — it is one half of the meet the public [checkAccessibility] computes. Consumers want that public method; this one exists for subclasses to implement and for composite controls (like [TomGradedAccess]) to interrogate their children without the cap being applied once per nesting level.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAccessControl.resolvePrincipalAuthState" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomAuthState resolvePrincipalAuthState(TomPrincipal? principal)</code></div>
+                      <div class="api-doc">
+                        <p>The <strong>user</strong> operand resolved to a four-state [TomAuthState].</p>
+                        <p>
+                          The default bridges the binary [checkPrincipalAccess] onto two states — granted → [TomAuthState.full], denied → [TomAuthState.none] — so every binary access control (role/group/entitlement/etc.) keeps its meaning while gaining a four-state outcome. Controls that need to express [TomAuthState.read] (read-only) or [TomAuthState.disabled] (visible but locked) override this; see [TomGradedAccess].
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAccessControl.resolveServerAuthState" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomAuthState resolveServerAuthState(TomPrincipal serverPrincipal)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The <strong>deployment</strong> operand: the highest grade this control's subject is granted to the deployment identified by [serverPrincipal].
+                        </p>
+                        <p>
+                          Defaults to [TomAuthState.full] — <em>uncapped</em>. That default is the correct one rather than a lenient shortcut: a control that names a user role, a group or a resource key expresses nothing about which 
+                          <strong>features</strong> a deployment licenses, so it has no opinion to contribute to the meet, and a participant with no opinion must return the identity element. Returning anything lower would make an unrelated deployment grant silently veto a role check.
+                        </p>
+                        <p>
+                          [TomEntitlementAccess] overrides this — entitlement patterns <em>are</em> the grant carrier — and [TomGradedAccess] composes its children's answers into the ladder.
                         </p>
                       </div>
                     </div>
                     <div id="TomAccessControl.resolveAuthState" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomAuthState resolveAuthState(TomPrincipal? principal)</code></div>
                       <div class="api-doc">
-                        <p>Resolves this access control to a four-state [TomAuthState].</p>
                         <p>
-                          The default bridges the binary [checkAccessibility] onto two states — granted → [TomAuthState.full], denied → [TomAuthState.none] — so every existing binary access control (role/group/entitlement/etc.) keeps its meaning unchanged while gaining a four-state outcome. Controls that need to express [TomAuthState.read] (read-only) or [TomAuthState.disabled] (visible but locked) override this method; see [TomGradedAccess].
+                          Resolves the <strong>effective</strong> four-state authorization for [principal]: the user's grade met with the deployment's.
+                        </p>
+                        <p>
+                          When no server principal is installed the deployment has no identity to cap with, and the result is the user's grade alone — byte-for-byte the behaviour of every deployment built before server-as-principal existed. This is why the guard tests [TomServerPrincipal.current] for 
+                          <code>null</code> rather than evaluating against an empty principal: an empty entitlement set means "entitled to nothing" and would deny everything.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomAccessControl.checkAccessibility" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool checkAccessibility(TomPrincipal? principal)</code></div>
+                      <div class="api-doc">
+                        <p>Whether [principal] may see this control's content, deployment cap included.</p>
+                        <p>
+                          Defined as [TomAuthState.showsContent] over [resolveAuthState], so the binary and graded views can never disagree. For a two-state control this is exactly the plain AND of the user's grant and the deployment's, which is what the meet degenerates to when neither operand can express the middle states.
                         </p>
                       </div>
                     </div>
@@ -1502,9 +1573,9 @@ UserProfile getMyProfile() =&gt; currentUser.profile;</code></pre>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
-                    <div id="TomAuthenticatedAccess.checkAccessibility" class="api-member">
+                    <div id="TomAuthenticatedAccess.checkPrincipalAccess" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">bool checkAccessibility(TomPrincipal? principal)</code>
+                        <code class="api-signature">bool checkPrincipalAccess(TomPrincipal? principal)</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
@@ -1555,9 +1626,9 @@ void updateDocument(Document doc) { ... }</code></pre>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
-                    <div id="TomCustomAccess.checkAccessibility" class="api-member">
+                    <div id="TomCustomAccess.checkPrincipalAccess" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">bool checkAccessibility(TomPrincipal? principal)</code>
+                        <code class="api-signature">bool checkPrincipalAccess(TomPrincipal? principal)</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
@@ -1623,6 +1694,13 @@ void updateDocument(Document doc) { ... }</code></pre>
 
 // Match multiple patterns (OR logic)
 @TomEntitlementAccess(['admin.*', 'feature.reports.edit'])</code></pre>
+                    <h2>Also the deployment's grant carrier</h2>
+                    <p>
+                      Entitlements are the one requirement kind that means the same thing on both sides of the meet. Asked about a 
+                      <em>user</em> they answer "may this person use the feature"; asked about the <em>ambient server principal</em>
+                       they answer "is this deployment licensed for the feature at all". That is why <code>codespecs_mapping.md</code>
+                       §5.26 needs no new class for server-level grants — the same pattern set, matched against the other principal. A deployment whose entitlements do not match caps the feature to [TomAuthState.none] no matter what the user holds.
+                    </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
@@ -1643,10 +1721,22 @@ void updateDocument(Document doc) { ... }</code></pre>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
-                    <div id="TomEntitlementAccess.checkAccessibility" class="api-member">
+                    <div id="TomEntitlementAccess.checkPrincipalAccess" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">bool checkAccessibility(TomPrincipal? principal)</code>
+                        <code class="api-signature">bool checkPrincipalAccess(TomPrincipal? principal)</code>
                         <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="TomEntitlementAccess.resolveServerAuthState" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">TomAuthState resolveServerAuthState(TomPrincipal serverPrincipal)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                      <div class="api-doc">
+                        <p>The deployment operand: the very same pattern match, run against the server's entitlement set.</p>
+                        <p>
+                          This is the whole of the "grant carrier" in <code>codespecs_mapping.md</code> §5.26 — a feature is granted to this deployment iff the server principal's entitlements match the feature's pattern.
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -1656,25 +1746,25 @@ void updateDocument(Document doc) { ... }</code></pre>
                   <code class="api-signature">class TomGradedAccess extends TomAccessControl</code>
                   <div class="api-doc">
                     <p>
-                      Access control that resolves to <strong>all four</strong> [TomAuthState] values by composing three binary controls — one each for write, read, and visibility.
+                      Access control that resolves to <strong>all four</strong> [TomAuthState] values by composing three binary controls — one each named after the state it grants: [full], [read], and [disabled].
                     </p>
                     <p>Resolution, from most to least privileged:</p>
                     <ul>
-                      <li>[write] grants → [TomAuthState.full] (interactive/editable)</li>
+                      <li>[full] grants → [TomAuthState.full] (interactive/editable)</li>
                       <li>else [read] grants → [TomAuthState.read] (value visible, not editable)</li>
-                      <li>else [visible] grants → [TomAuthState.disabled] (rendered but locked)</li>
+                      <li>else [disabled] grants → [TomAuthState.disabled] (rendered but locked)</li>
                       <li>else → [TomAuthState.none] (hidden)</li>
                     </ul>
                     <p>
-                      When [read] is omitted it defaults to [write]; when [visible] is omitted it defaults to [read]. This preserves the natural monotonicity that anyone who can write can also read and see, so the common case only needs a single control.
+                      When [read] is omitted it defaults to [full]; when [disabled] is omitted it defaults to [read]. This preserves the natural monotonicity that anyone who can edit can also read and see, so the common case only needs a single control.
                     </p>
                     <p>
                       For binary consumers, [checkAccessibility] collapses to "can see content" ([TomAuthState.showsContent]): a [TomAuthState.read] or [TomAuthState.full] outcome is accessible; [TomAuthState.disabled] and [TomAuthState.none] are not.
                     </p>
                     <pre><code>final salary = TomGradedAccess(
-  write: const TomRoleAccess(['payroll.admin']),
+  full: const TomRoleAccess(['payroll.admin']),
   read: const TomRoleAccess(['manager']),
-  visible: const TomAuthenticatedAccess(),
+  disabled: const TomAuthenticatedAccess(),
 );
 final state = salary.resolveAuthState(currentPrincipal);
 // payroll.admin → full, manager → read, other staff → disabled,
@@ -1685,42 +1775,56 @@ final state = salary.resolveAuthState(currentPrincipal);
                     <div id="TomGradedAccess.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomGradedAccess.new({required TomAccessControl write, TomAccessControl? read, TomAccessControl? visible})
+                          TomGradedAccess.new({required TomAccessControl full, TomAccessControl? read, TomAccessControl? disabled})
                         </code>
                       </div>
                       <div class="api-doc">
                         <p>Creates a graded access control.</p>
-                        <p>Only [write] is required; [read] defaults to [write] and [visible] defaults to [read].</p>
+                        <p>Only [full] is required; [read] defaults to [full] and [disabled] defaults to [read].</p>
                       </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="TomGradedAccess.write" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final TomAccessControl write</code></div>
-                      <div class="api-doc"><p>Grants write access → resolves to [TomAuthState.full].</p></div>
+                    <div id="TomGradedAccess.full" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final TomAccessControl full</code></div>
+                      <div class="api-doc"><p>Grants full access → resolves to [TomAuthState.full].</p></div>
                     </div>
                     <div id="TomGradedAccess.read" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final TomAccessControl read</code></div>
-                      <div class="api-doc"><p>Grants read access → resolves to [TomAuthState.read]. Defaults to [write].</p></div>
+                      <div class="api-doc"><p>Grants read access → resolves to [TomAuthState.read]. Defaults to [full].</p></div>
                     </div>
-                    <div id="TomGradedAccess.visible" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final TomAccessControl visible</code></div>
+                    <div id="TomGradedAccess.disabled" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final TomAccessControl disabled</code></div>
                       <div class="api-doc"><p>Grants visibility → resolves to [TomAuthState.disabled]. Defaults to [read].</p></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
-                    <div id="TomGradedAccess.resolveAuthState" class="api-member">
+                    <div id="TomGradedAccess.resolvePrincipalAuthState" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">TomAuthState resolveAuthState(TomPrincipal? principal)</code>
+                        <code class="api-signature">TomAuthState resolvePrincipalAuthState(TomPrincipal? principal)</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
-                    <div id="TomGradedAccess.checkAccessibility" class="api-member">
+                    <div id="TomGradedAccess.resolveServerAuthState" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">bool checkAccessibility(TomPrincipal? principal)</code>
+                        <code class="api-signature">TomAuthState resolveServerAuthState(TomPrincipal serverPrincipal)</code>
                         <span class="api-badge api-badge--override">override</span>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          The deployment's grade for this graded control: the same ladder, walked against the <em>server's</em>
+                           grants instead of the user's.
+                        </p>
+                        <p>
+                          A tier counts as granted to the deployment when its child reports itself fully granted. So a deployment entitled to a feature's view tier but not its edit tier yields [TomAuthState.read], which caps even an editing user down to read — the worked example in 
+                          <code>codespecs_mapping.md</code> §5.26, falling straight out of the structure rather than out of a special case.
+                        </p>
+                        <p>
+                          Note the asymmetry with [resolvePrincipalAuthState]: children that express no deployment opinion answer [TomAuthState.full] (the identity element), so a graded tree of pure role checks resolves to 
+                          <code>full</code> here and caps nothing.
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -1760,9 +1864,9 @@ void viewEmployeeDetails() { ... }</code></pre>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
-                    <div id="TomGroupAccess.checkAccessibility" class="api-member">
+                    <div id="TomGroupAccess.checkPrincipalAccess" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">bool checkAccessibility(TomPrincipal? principal)</code>
+                        <code class="api-signature">bool checkPrincipalAccess(TomPrincipal? principal)</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
@@ -1785,9 +1889,9 @@ void addToCart(Item item) { ... }</code></pre>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
-                    <div id="TomGuestAccess.checkAccessibility" class="api-member">
+                    <div id="TomGuestAccess.checkPrincipalAccess" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">bool checkAccessibility(TomPrincipal? principal)</code>
+                        <code class="api-signature">bool checkPrincipalAccess(TomPrincipal? principal)</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
@@ -1810,10 +1914,74 @@ void deprecatedEndpoint() { ... }</code></pre>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
-                    <div id="TomNoAccess.checkAccessibility" class="api-member">
+                    <div id="TomNoAccess.checkPrincipalAccess" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">bool checkAccessibility(TomPrincipal? principal)</code>
+                        <code class="api-signature">bool checkPrincipalAccess(TomPrincipal? principal)</code>
                         <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="TomProtectedField" class="api-declaration">
+                  <h3 class="api-decl-title">class TomProtectedField</h3>
+                  <code class="api-signature">class TomProtectedField</code>
+                  <div class="api-doc">
+                    <p>Marks a reflected field as protected by [resourceKey].</p>
+                    <p>
+                      The automatic protection tiers read it and grade the field through [TomResourceKeyProtection.automaticState]:
+                    </p>
+                    <ul>
+                      <li>the <strong>JSON</strong> tier ([TomResourceKeyProtection.globalSettingUseAutomaticJsonProtection])</li>
+                    </ul>
+                    <p>
+                      leaves the field out of the reflective serializer's output when its grade shows no content; - the <strong>database</strong>
+                       tier ([TomResourceKeyProtection.globalSettingUseAutomaticDatabaseProtection]) masks and write-protects the column of an entity field that carries it, exactly as a 
+                      <code>TomDbColumn.authKey</code> does.
+                    </p>
+                    <p>One annotation therefore protects a field in every tier it passes through:</p>
+                    <pre><code>@tomReflector
+class Employee {
+  String? name;
+
+  @TomProtectedField('employee.salary')
+  int? salary;
+}</code></pre>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomProtectedField.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">const TomProtectedField.new(String resourceKey)</code></div>
+                      <div class="api-doc"><p>Protects the annotated field by [resourceKey].</p></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="TomProtectedField.resourceKey" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String resourceKey</code></div>
+                      <div class="api-doc"><p>The resource key the field is graded on.</p></div>
+                    </div>
+                  </div>
+                </section>
+                <section id="TomProtectionSettingException" class="api-declaration">
+                  <h3 class="api-decl-title">class TomProtectionSettingException</h3>
+                  <code class="api-signature">class TomProtectionSettingException extends TomException</code>
+                  <div class="api-doc">
+                    <p>
+                      Raised when a protection setting cannot be applied: a name in the <code>tom.protection</code> namespace that is not a switch, or a value that is not 
+                      <code>true</code> or <code>false</code>.
+                    </p>
+                    <p>
+                      Keys: <code>security.protection.unknown_setting</code> and <code>security.protection.invalid_value</code>. Refusing both matters more here than for most settings: a misspelt 
+                      <code>tom.protection.jsn=false</code> that was ignored would leave the tier on while the operator believed it off, and a mistyped value in the other direction would leave it off.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomProtectionSettingException.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          TomProtectionSettingException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, StackTrace? stack, Object? rootException, bool autoLog = false, String? uuid, TomServerCallError? serverCallError})
+                        </code>
                       </div>
                     </div>
                   </div>
@@ -1833,9 +2001,9 @@ String getPublicInfo() =&gt; 'Hello, World!';</code></pre>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
-                    <div id="TomPublicAccess.checkAccessibility" class="api-member">
+                    <div id="TomPublicAccess.checkPrincipalAccess" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">bool checkAccessibility(TomPrincipal? principal)</code>
+                        <code class="api-signature">bool checkPrincipalAccess(TomPrincipal? principal)</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
@@ -1850,7 +2018,18 @@ String getPublicInfo() =&gt; 'Hello, World!';</code></pre>
                       This integrates with [TomResourceKeyProtection] to provide field-level or resource-level access control.
                     </p>
                     <pre><code>@TomResourceKeyAccess('user.salary')
-Widget salaryField() { ... }</code></pre>
+int readSalary(User user) { ... }</code></pre>
+                    <p>
+                      Unlike its siblings, this control has a second operand: while [TomResourceKeyProtection.globalSettingProtectionDefault] is 
+                      <code>false</code>, resource keys are not enforced at all and every principal is granted. Once it is on, the grade is [TomResourceKeyProtection.resourceStateFor] — a flat grant covering [key] is full access, and a resource role for it grades through [TomResourceRoleRegistry].
+                    </p>
+                    <p>
+                      That makes it the one built-in besides [TomGradedAccess] that can resolve to [TomAuthState.read] or [TomAuthState.disabled]: a principal holding the key through a 
+                      <code>viewer</code> role sees the resource read-only.
+                    </p>
+                    <p>
+                      It is deliberately <em>not</em> routed through the shared ACI helper the role and group controls use: that master switch is a genuinely different rule, in the same way entitlement matching is.
+                    </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
@@ -1871,9 +2050,15 @@ Widget salaryField() { ... }</code></pre>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
-                    <div id="TomResourceKeyAccess.checkAccessibility" class="api-member">
+                    <div id="TomResourceKeyAccess.resolvePrincipalAuthState" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">bool checkAccessibility(TomPrincipal? principal)</code>
+                        <code class="api-signature">TomAuthState resolvePrincipalAuthState(TomPrincipal? principal)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="TomResourceKeyAccess.checkPrincipalAccess" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">bool checkPrincipalAccess(TomPrincipal? principal)</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
@@ -1887,9 +2072,65 @@ Widget salaryField() { ... }</code></pre>
                     <p>
                       This class implements a protection mechanism that can selectively hide or expose data based on the current user's access rights. It integrates with the zone-based [TomPrincipal] to determine accessibility.
                     </p>
-                    <h2>Global Settings</h2>
+                    <h2>Switches</h2>
+                    <table class="mdtable">
+                      <thead><tr><th>Switch</th><th>Default</th><th>Applied by</th></tr></thead>
+                      <tbody>
+                        <tr>
+                          <td>[globalSettingProtectionDefault]</td>
+                          <td>off</td>
+                          <td>every resource-key check: while off, no resource-key grant is enforced</td>
+                        </tr>
+                        <tr>
+                          <td>[globalSettingUseAutomaticEndpointProtection]</td>
+                          <td>on</td>
+                          <td><code>tom_core_server</code>'s endpoint pipeline</td>
+                        </tr>
+                        <tr>
+                          <td>[globalSettingUseAutomaticJsonProtection]</td>
+                          <td>on</td>
+                          <td>the reflective JSON serializer, for [TomProtectedField] fields</td>
+                        </tr>
+                        <tr>
+                          <td>[globalSettingUseAutomaticDatabaseProtection]</td>
+                          <td>on</td>
+                          <td><code>tom_core_server</code>'s repository, for authorized columns</td>
+                        </tr>
+                        <tr>
+                          <td>[globalSettingUseAutomaticUIProtection]</td>
+                          <td>on</td>
+                          <td><code>tom_flutter_ui</code>'s <code>TomAuthLayers</code></td>
+                        </tr>
+                      </tbody>
+                    </table>
                     <p>
-                      The protection behavior can be controlled through global settings: - [globalSettingProtectionDefault]: Master switch for protection - [globalSettingUseAutomaticEndpointProtection]: Auto-protect API endpoints - [globalSettingUseAutomaticJsonProtection]: Auto-protect JSON serialization - [globalSettingUseAutomaticDatabaseProtection]: Auto-protect database queries - [globalSettingUseAutomaticFormFieldProtection]: Auto-protect form fields - [globalSettingUseAutomaticActionProtection]: Auto-protect actions - [globalSettingUseAutomaticActionProtectionForDisabling]: Auto-disable action triggers like buttons
+                      The four tier switches are on by default: a tier applies whatever grants the deployment configured, and a deployment that configured none is not restricted by any of them. They exist to be switched 
+                      <strong>off</strong> — during development, to take the authorization system out of the way, or at start-up to run an application without it.
+                    </p>
+                    <p>
+                      The master switch is the exception and is off by default: turning it on is what makes resource-key grants binding at all, so it would refuse every unannotated endpoint and blank every [protect] call in an application that has not configured grants yet.
+                    </p>
+                    <h2>Switching from the command line</h2>
+                    <p>
+                      Every switch has a setting name, read at start-up from a compile-time define and applicable at run time from arguments:
+                    </p>
+                    <table class="mdtable">
+                      <thead><tr><th>Setting</th><th>Switch</th></tr></thead>
+                      <tbody>
+                        <tr><td><code>tom.protection</code></td><td>all of them at once</td></tr>
+                        <tr><td><code>tom.protection.resourceKeys</code></td><td>[globalSettingProtectionDefault]</td></tr>
+                        <tr><td><code>tom.protection.endpoint</code></td><td>[globalSettingUseAutomaticEndpointProtection]</td></tr>
+                        <tr><td><code>tom.protection.json</code></td><td>[globalSettingUseAutomaticJsonProtection]</td></tr>
+                        <tr><td><code>tom.protection.database</code></td><td>[globalSettingUseAutomaticDatabaseProtection]</td></tr>
+                        <tr><td><code>tom.protection.ui</code></td><td>[globalSettingUseAutomaticUIProtection]</td></tr>
+                      </tbody>
+                    </table>
+                    <pre><code>dart run -Dtom.protection=false bin/server.dart          # a define
+flutter run --dart-define=tom.protection.ui=false        # a Flutter define
+dart run bin/server.dart tom.protection.json=false       # an argument</code></pre>
+                    <p>
+                      A define sets the start-up value. An argument is applied by [applyArguments], which <code>tom_core_server</code>'s server configuration calls with the process arguments; a client calls it itself. A specific setting beats 
+                      <code>tom.protection</code>, so <code>tom.protection=false tom.protection.ui=true</code> keeps only the UI tier. [disableAll] is the same switch-off from application code.
                     </p>
                     <h2>Example</h2>
                     <pre><code>// Enable protection globally
@@ -1908,48 +2149,244 @@ var email = TomResourceKeyProtection.protect(
                   </div>
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
+                    <div id="TomResourceKeyProtection.settingAll" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String settingAll</code></div>
+                      <div class="api-doc"><p>The setting that switches every protection switch at once.</p></div>
+                    </div>
+                    <div id="TomResourceKeyProtection.settingResourceKeys" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String settingResourceKeys</code></div>
+                      <div class="api-doc"><p>The setting for [globalSettingProtectionDefault].</p></div>
+                    </div>
+                    <div id="TomResourceKeyProtection.settingEndpoint" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String settingEndpoint</code></div>
+                      <div class="api-doc"><p>The setting for [globalSettingUseAutomaticEndpointProtection].</p></div>
+                    </div>
+                    <div id="TomResourceKeyProtection.settingJson" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String settingJson</code></div>
+                      <div class="api-doc"><p>The setting for [globalSettingUseAutomaticJsonProtection].</p></div>
+                    </div>
+                    <div id="TomResourceKeyProtection.settingDatabase" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String settingDatabase</code></div>
+                      <div class="api-doc"><p>The setting for [globalSettingUseAutomaticDatabaseProtection].</p></div>
+                    </div>
+                    <div id="TomResourceKeyProtection.settingUi" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String settingUi</code></div>
+                      <div class="api-doc"><p>The setting for [globalSettingUseAutomaticUIProtection].</p></div>
+                    </div>
+                    <div id="TomResourceKeyProtection._allDefined" class="api-member"><div class="api-member-head"><code class="api-signature">static bool _allDefined</code></div></div>
+                    <div id="TomResourceKeyProtection._allDefine" class="api-member"><div class="api-member-head"><code class="api-signature">static bool _allDefine</code></div></div>
+                    <div id="TomResourceKeyProtection._tierDefault" class="api-member"><div class="api-member-head"><code class="api-signature">static bool _tierDefault</code></div></div>
+                    <div id="TomResourceKeyProtection._resourceKeysDefault" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static bool _resourceKeysDefault</code></div>
+                    </div>
+                    <div id="TomResourceKeyProtection._endpointDefault" class="api-member"><div class="api-member-head"><code class="api-signature">static bool _endpointDefault</code></div></div>
+                    <div id="TomResourceKeyProtection._jsonDefault" class="api-member"><div class="api-member-head"><code class="api-signature">static bool _jsonDefault</code></div></div>
+                    <div id="TomResourceKeyProtection._databaseDefault" class="api-member"><div class="api-member-head"><code class="api-signature">static bool _databaseDefault</code></div></div>
+                    <div id="TomResourceKeyProtection._uiDefault" class="api-member"><div class="api-member-head"><code class="api-signature">static bool _uiDefault</code></div></div>
                     <div id="TomResourceKeyProtection.globalSettingProtectionDefault" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static bool globalSettingProtectionDefault</code></div>
                       <div class="api-doc">
-                        <p>Master switch to enable/disable resource protection globally.</p>
+                        <p>Master switch: whether resource-key grants are enforced at all.</p>
                         <p>
-                          When <code>false</code>, all resources are accessible. When <code>true</code>, resource access is evaluated based on the current principal's resource keys.
+                          When <code>false</code> — the default — every resource is accessible and every resource-key check answers "not protected". When 
+                          <code>true</code>, access is graded by [resourceStateFor] from the principal's resource grants. Setting: 
+                          <code>tom.protection.resourceKeys</code>.
                         </p>
                       </div>
                     </div>
                     <div id="TomResourceKeyProtection.globalSettingUseAutomaticEndpointProtection" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static bool globalSettingUseAutomaticEndpointProtection</code></div>
-                      <div class="api-doc"><p>When enabled, API endpoints are automatically protected based on metadata.</p></div>
+                      <div class="api-doc">
+                        <p>
+                          Whether <code>tom_core_server</code>'s endpoint pipeline may grant an endpoint from resource keys after the ordinary access check has refused.
+                        </p>
+                        <p>
+                          On by default. The pipeline consults it only while [globalSettingProtectionDefault] is on: with resource keys not enforced every key reads as held, and a second chance granted from them would overturn every refusal. Setting: 
+                          <code>tom.protection.endpoint</code>.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomResourceKeyProtection.globalSettingUseAutomaticUIProtection" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static bool globalSettingUseAutomaticUIProtection</code></div>
+                      <div class="api-doc">
+                        <p>Whether <code>tom_flutter_ui</code>'s four-state authorization model applies.</p>
+                        <p>
+                          <code>true</code> by default and normally left there: with it on, every element resolves through <code>TomAuthLayers</code>
+                           — resource, group, enclosing ceiling, authorizer, UI-state controller — and renders at the state that composition produces. It is the one switch for form fields, actions and components alike: hidden, read-only and disabled are states of the one model, resolved per element rather than per category.
+                        </p>
+                        <p>
+                          Setting it <code>false</code> <strong>bypasses the model and grants every UI resource it protects</strong>. Build-time UI state still applies, because a controller that says "this form is in view mode" is describing the screen rather than the principal. It answers "is this element hidden because of authorization, or because of something else?" in one step, without editing grants; a server that relies on it for anything is relying on the client to police itself. Setting: 
+                          <code>tom.protection.ui</code>.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomResourceKeyProtection.globalSettingUseAutomaticJsonProtection" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static bool globalSettingUseAutomaticJsonProtection</code></div>
-                      <div class="api-doc"><p>When enabled, JSON serialization automatically respects resource protection.</p></div>
+                      <div class="api-doc">
+                        <p>Whether the reflective JSON serializer applies [TomProtectedField].</p>
+                        <p>
+                          On by default. While on, <code>TomReflectionInfo.getValues</code> — the path every reflected object takes to the wire — leaves out a field annotated [TomProtectedField] whose [automaticState] shows no content. A type that renders itself (<code>toJson</code>, 
+                          <code>jsonEncode</code>, <code>TomJsonSerializable</code>, <code>TomClass</code>) is not walked, so it protects what it writes with [protect]. Setting: 
+                          <code>tom.protection.json</code>.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomResourceKeyProtection.globalSettingUseAutomaticDatabaseProtection" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static bool globalSettingUseAutomaticDatabaseProtection</code></div>
-                      <div class="api-doc"><p>When enabled, database queries automatically filter protected resources.</p></div>
+                      <div class="api-doc">
+                        <p>Whether <code>tom_core_server</code>'s repository applies column authorization.</p>
+                        <p>
+                          On by default. While on, a column carrying a <code>TomDbColumn.authKey</code> or a [TomProtectedField] is graded on every read and write: masked when its grade shows no content, and write-protected unless it is full. While off, every column is unrestricted — including those with a per-row resolver. Row filtering is not part of this tier: it is 
+                          <code>tom_core_server</code>'s data scope (<code>@TomDbScope</code>, <code>TomDataScope</code>, <code>TomResourceDataScope</code>), which stays in force whatever this switch says. A scope says which rows a query addresses, and switching it off would change what a query means rather than what it may reveal. Setting: 
+                          <code>tom.protection.database</code>.
+                        </p>
+                      </div>
                     </div>
-                    <div id="TomResourceKeyProtection.globalSettingUseAutomaticFormFieldProtection" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static bool globalSettingUseAutomaticFormFieldProtection</code></div>
-                      <div class="api-doc"><p>When enabled, database queries automatically filter protected resources.</p></div>
+                    <div id="TomResourceKeyProtection.settingNames" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static List&lt;String&gt; settingNames</code></div>
+                      <div class="api-doc"><p>Every setting name [applyArguments] accepts.</p></div>
                     </div>
-                    <div id="TomResourceKeyProtection.globalSettingUseAutomaticActionProtection" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static bool globalSettingUseAutomaticActionProtection</code></div>
-                      <div class="api-doc"><p>When enabled, database queries automatically filter protected resources.</p></div>
+                    <div id="TomResourceKeyProtection.applyArguments" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static void applyArguments(Iterable&lt;String&gt; arguments)</code></div>
+                      <div class="api-doc">
+                        <p>Applies the <code>tom.protection</code> settings among [arguments].</p>
+                        <p>
+                          An argument is <code>name=value</code>, optionally with leading dashes (<code>--tom.protection.json=false</code>); 
+                          <code>value</code> is <code>true</code> or <code>false</code>. Arguments outside the <code>tom.protection</code>
+                           namespace are ignored, so the whole process argument list can be passed. A specific setting beats <code>tom.protection</code>
+                           whatever their order.
+                        </p>
+                        <p>
+                          Throws [TomProtectionSettingException], before changing any switch, for a name in the namespace that is not a setting or a value that is not a boolean.
+                        </p>
+                      </div>
                     </div>
-                    <div id="TomResourceKeyProtection.globalSettingUseAutomaticActionProtectionForDisabling" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static bool globalSettingUseAutomaticActionProtectionForDisabling</code></div>
-                      <div class="api-doc"><p>When enabled, database queries automatically filter protected resources.</p></div>
+                    <div id="TomResourceKeyProtection.disableAll" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static void disableAll()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Switches every protection switch off: no resource-key grant is enforced and no automatic tier applies. The application-code form of 
+                          <code>tom.protection=false</code>.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomResourceKeyProtection.restoreDefaults" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static void restoreDefaults()</code></div>
+                      <div class="api-doc"><p>Puts every switch back to its start-up value — its define, or its default.</p></div>
+                    </div>
+                    <div id="TomResourceKeyProtection._setAll" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static void _setAll(bool enabled)</code></div>
+                    </div>
+                    <div id="TomResourceKeyProtection._set" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static void _set(String name, bool enabled)</code></div>
+                    </div>
+                    <div id="TomResourceKeyProtection.automaticState" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static TomAuthState automaticState(String resourceKey)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The grade the automatic tiers apply to [resourceKey]: the installed [TomAuthorization] adapter's grade met with the ambient principal's resource-key grade ([resourceState]).
+                        </p>
+                        <p>
+                          Both sources are consulted because deployments configure either. A client installs an adapter built from its principal; a server has a principal on every request zone and usually no adapter. Each source is 
+                          <code>full</code> when it is not configured — no adapter, or [globalSettingProtectionDefault] off — so the meet is whichever one is, and the more restrictive when both are. It does not consult the tier switches: each tier checks its own before asking.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomResourceKeyProtection.protectFor" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static T protectFor&lt;T&gt;(TomPrincipal? principal, T data, T fallback, String resourceKey)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Protects a value based on [principal]'s resource key access.</p>
+                        <p>
+                          Returns [data] if [principal] holds [resourceKey], otherwise [fallback]. A <code>null</code> principal holds no keys, so it gets [fallback].
+                        </p>
+                        <p>
+                          This is [protect] stated over an explicit operand, and it is the form to reach for whenever a principal is already in hand — reading the zone when the caller named someone answers a different question. It matters most where the two differ irreconcilably: minting a token for a principal 
+                          <em>being authenticated</em> means there is no principal on the zone yet, so the zone-reading form is fail-closed and blanks every protected field.
+                        </p>
+                        <p>
+                          <strong>Requires [globalSettingProtectionDefault] to be <code>true</code>.</strong> It defaults to <code>false</code>, and while it is off this returns [data] for every key and every principal — so a call added for protection protects nothing until the switch is set.
+                        </p>
+                        <ul>
+                          <li>[principal]: The principal whose keys decide access, or <code>null</code></li>
+                          <li>[data]: The actual value to return if access is granted</li>
+                          <li>[fallback]: The value to return if access is denied</li>
+                          <li>[resourceKey]: The key identifying the protected resource</li>
+                        </ul>
+                      </div>
                     </div>
                     <div id="TomResourceKeyProtection.protect" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static T protect&lt;T&gt;(T data, T fallback, String resourceKey)</code></div>
                       <div class="api-doc">
-                        <p>Protects a value based on resource key access.</p>
-                        <p>Returns [data] if the current user has access to [resourceKey], otherwise returns [fallback].</p>
+                        <p>Protects a value based on the current user's resource key access.</p>
+                        <p>
+                          Returns [data] if the current user — the principal installed on the ambient zone — has access to [resourceKey], otherwise returns [fallback]. Where a principal is already in hand, call [protectFor] instead.
+                        </p>
+                        <p>
+                          <strong>Requires [globalSettingProtectionDefault] to be <code>true</code>.</strong> It defaults to <code>false</code>, and while it is off this returns [data] for every key and every principal — so a call added for protection protects nothing until the switch is set.
+                        </p>
                         <ul>
                           <li>[data]: The actual value to return if access is granted</li>
                           <li>[fallback]: The value to return if access is denied</li>
                           <li>[resourceKey]: The key identifying the protected resource</li>
+                        </ul>
+                      </div>
+                    </div>
+                    <div id="TomResourceKeyProtection.resourceStateFor" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static TomAuthState resourceStateFor(TomPrincipal? principal, String resourceKey)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>The [TomAuthState] [principal] holds on [resourceKey].</p>
+                        <p>
+                          This is the rule itself, stated over an explicit operand; every other member of this class — and [TomResourceKeyAccess] — is a view of it. The principal's two resource grants are one answer:
+                        </p>
+                        <p>
+                          1. <strong>A flat grant</strong> in <code>aci.resourceKeys</code> covering the key — exact, <code>*</code>
+                           or <code>prefix.*</code>, as [TomAccessControlInformation.holdsResourceKey] defines — is [TomAuthState.full]. 2. 
+                          <strong>A resource role</strong> in <code>aci.resourceRoles</code> for the key resolves through [TomResourceRoleRegistry], exactly as [TomResourceRoleAdapter] resolves it: an unknown role, or none, grants nothing.
+                        </p>
+                        <p>
+                          When both apply, the wider state wins ([TomAuthState.widen]): holding a grant is never undone by also holding a narrower role.
+                        </p>
+                        <p>A <code>null</code> [principal] holds nothing and gets [TomAuthState.none].</p>
+                        <p>
+                          Gated on [globalSettingProtectionDefault]: while that is <code>false</code> — its default — this answers [TomAuthState.full] for every key and every principal, before any grant is consulted.
+                        </p>
+                        <ul>
+                          <li>[principal]: The principal whose grants decide access, or <code>null</code></li>
+                          <li>[resourceKey]: The key identifying the resource</li>
+                        </ul>
+                      </div>
+                    </div>
+                    <div id="TomResourceKeyProtection.resourceState" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static TomAuthState resourceState(String resourceKey)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The [TomAuthState] the current user holds on [resourceKey] — the principal installed on the ambient zone, through [resourceStateFor].
+                        </p>
+                        <p>
+                          Outside a request zone there is no principal, so with protection on this answers [TomAuthState.none] for everything — fail-closed.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomResourceKeyProtection.isProtectedFor" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static bool isProtectedFor(TomPrincipal? principal, String resourceKey)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Checks if a resource is protected from [principal].</p>
+                        <p>
+                          Returns <code>true</code> if the resource is protected, <code>false</code> if its content is accessible: [resourceStateFor] collapsed to two outcomes, protected unless the state [TomAuthState.showsContent]. A principal holding the resource read-only is therefore 
+                          <em>not</em> protected from it — it may see the value — and one holding it [TomAuthState.disabled] is, because a disabled element shows no content.
+                        </p>
+                        <p>
+                          The two-valued form is what [protectFor] needs, since a value is either served or replaced by its fallback. Code that renders a field editable, read-only or hidden asks [resourceStateFor] instead.
+                        </p>
+                        <ul>
+                          <li>[principal]: The principal whose grants decide access, or <code>null</code></li>
+                          <li>[resourceKey]: The key identifying the resource to check</li>
                         </ul>
                       </div>
                     </div>
@@ -1958,7 +2395,15 @@ var email = TomResourceKeyProtection.protect(
                       <div class="api-doc">
                         <p>Checks if a resource is protected from the current user.</p>
                         <p>
+                          The "current user" is the principal installed on the ambient zone. Where a principal is already in hand, call [isProtectedFor] instead — reading the zone when the caller named someone answers a different question.
+                        </p>
+                        <p>
                           Returns <code>true</code> if the resource is protected (user lacks access), <code>false</code> if the resource is accessible.
+                        </p>
+                        <p>
+                          Gated on [globalSettingProtectionDefault] exactly as [isProtectedFor] is. Note the two ways this answers 
+                          <code>false</code>: protection switched off (nothing is protected) and the principal holding the resource. Outside a request zone there is no principal, so with protection on this answers 
+                          <code>true</code> for everything — fail-closed.
                         </p>
                         <ul><li>[resourceKey]: The key identifying the resource to check</li></ul>
                       </div>
@@ -2000,9 +2445,9 @@ void viewReports() { ... }</code></pre>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
-                    <div id="TomRoleAccess.checkAccessibility" class="api-member">
+                    <div id="TomRoleAccess.checkPrincipalAccess" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">bool checkAccessibility(TomPrincipal? principal)</code>
+                        <code class="api-signature">bool checkPrincipalAccess(TomPrincipal? principal)</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
@@ -2020,13 +2465,34 @@ void viewReports() { ... }</code></pre>
                     <p>Returns <code>true</code> if access is granted, <code>false</code> otherwise.</p>
                   </div>
                 </section>
+                <section id="_principalAciContainsAny" class="api-declaration">
+                  <h3 class="api-decl-title">function _principalAciContainsAny</h3>
+                  <code class="api-signature">
+                    bool _principalAciContainsAny(TomPrincipal? principal, List&lt;String&gt; candidates, List&lt;String&gt; Function(TomAccessControlInformation) selectCollection)
+                  </code>
+                  <div class="api-doc">
+                    <p>
+                      Returns <code>true</code> when [principal] is non-null and any entry in [candidates] is present in the ACI string collection chosen by [selectCollection].
+                    </p>
+                    <p>
+                      [TomRoleAccess] and [TomGroupAccess] share an identical accessibility rule — "granted if the principal's ACI lists any of the requested names" — differing only in which ACI collection they consult. This helper 
+                      <em>is</em> that rule; each class supplies the collection selector. Entitlement access is deliberately not routed through here: it matches by regular expression rather than exact containment, a genuinely different rule.
+                    </p>
+                  </div>
+                </section>
                 <section id="tomProtect" class="api-declaration">
                   <h3 class="api-decl-title">function tomProtect</h3>
                   <code class="api-signature">T tomProtect&lt;T&gt;(T data, T fallback, String resourceKey)</code>
                   <div class="api-doc">
                     <p>Convenience function to protect a value based on resource key access.</p>
-                    <p>This is a shorthand for [TomResourceKeyProtection.protect].</p>
-                    <pre><code>var visibleEmail = tomProtect(user.email, '[hidden]', 'user.email');</code></pre>
+                    <p>
+                      This is a shorthand for [TomResourceKeyProtection.protect], and inherits its precondition: nothing is protected until [TomResourceKeyProtection.globalSettingProtectionDefault] is 
+                      <code>true</code>.
+                    </p>
+                    <pre><code>// Once, at start-up — otherwise the call below is a no-op.
+TomResourceKeyProtection.globalSettingProtectionDefault = true;
+
+var visibleEmail = tomProtect(user.email, '[hidden]', 'user.email');</code></pre>
                   </div>
                 </section>
                 <section id="tomProtected" class="api-declaration">
@@ -2034,10 +2500,31 @@ void viewReports() { ... }</code></pre>
                   <code class="api-signature">bool tomProtected(String resourceKey)</code>
                   <div class="api-doc">
                     <p>Convenience function to check if a resource is protected.</p>
-                    <p>This is a shorthand for [TomResourceKeyProtection.isProtected].</p>
+                    <p>
+                      This is a shorthand for [TomResourceKeyProtection.isProtected], and inherits its precondition: while [TomResourceKeyProtection.globalSettingProtectionDefault] is 
+                      <code>false</code> — its default — this always answers <code>false</code> and the guard below always passes.
+                    </p>
                     <pre><code>if (!tomProtected('user.email')) {
   print(user.email);
 }</code></pre>
+                  </div>
+                </section>
+                <section id="tomResourceState" class="api-declaration">
+                  <h3 class="api-decl-title">function tomResourceState</h3>
+                  <code class="api-signature">TomAuthState tomResourceState(String resourceKey)</code>
+                  <div class="api-doc">
+                    <p>
+                      Convenience function for the [TomAuthState] the current user holds on [resourceKey] — a shorthand for [TomResourceKeyProtection.resourceState].
+                    </p>
+                    <p>
+                      Where [tomProtect] can only serve a value or its fallback, this tells a field whether to render editable, read-only, greyed out or not at all:
+                    </p>
+                    <pre><code>final emailWidget = switch (tomResourceState('user.email')) {
+  TomAuthState.full =&gt; emailEditor(),
+  TomAuthState.read =&gt; emailText(),
+  TomAuthState.disabled =&gt; emailPlaceholder(),
+  TomAuthState.none =&gt; null,
+};</code></pre>
                   </div>
                 </section>
               </div>

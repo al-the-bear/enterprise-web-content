@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1391,11 +1397,13 @@
                   <a class="leaf" href="#FileLockIo">FileLockIo</a>
                   <a class="leaf" href="#FileModeIo">FileModeIo</a>
                   <a class="leaf" href="#FileSystemExceptionIo">FileSystemExceptionIo</a>
+                  <a class="leaf" href="#OSErrorIo">OSErrorIo</a>
                   <a class="leaf" href="#PathAccessExceptionIo">PathAccessExceptionIo</a>
                   <a class="leaf" href="#PathExistsExceptionIo">PathExistsExceptionIo</a>
                   <a class="leaf" href="#PathNotFoundExceptionIo">PathNotFoundExceptionIo</a>
                   <a class="leaf" href="#PipeIo">PipeIo</a>
                   <a class="leaf" href="#RandomAccessFileIo">RandomAccessFileIo</a>
+                  <a class="leaf" href="#_checkOpenModePermission">_checkOpenModePermission</a>
                 </div>
               </div>
               <div class="reader">
@@ -1450,6 +1458,29 @@
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
                     <div id="FileSystemExceptionIo.definition" class="api-member"><div class="api-member-head"><code class="api-signature">static BridgedClass definition</code></div></div>
+                  </div>
+                </section>
+                <section id="OSErrorIo" class="api-declaration">
+                  <h3 class="api-decl-title">class OSErrorIo</h3>
+                  <code class="api-signature">class OSErrorIo</code>
+                  <div class="api-doc">
+                    <p>The operating-system error carried by every <code>dart:io</code> exception.</p>
+                    <p>
+                      Four bridges already expose an <code>osError</code> getter and two constructors already accept an <code>OSError</code>
+                       argument, but the class itself was never registered — so the getter returned successfully and the result was then inert: 
+                      <code>e.osError.errorCode</code> failed with "Undefined property or method 'errorCode' on OSError". Found by the SCC24 sweep.
+                    </p>
+                    <p>
+                      This is the same defect shape as a missing <code>nativeNames</code> entry with a different cause: not an unclaimed private implementation type, but a public type with no bridge at all. Worth distinguishing when reading the sweep's output — the fix is a registration, not a name.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="OSErrorIo.new" class="api-member"><div class="api-member-head"><code class="api-signature">OSErrorIo.new()</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="OSErrorIo.definition" class="api-member"><div class="api-member-head"><code class="api-signature">static BridgedClass definition</code></div></div>
                   </div>
                 </section>
                 <section id="PathAccessExceptionIo" class="api-declaration">
@@ -1515,6 +1546,16 @@
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
                     <div id="RandomAccessFileIo.definition" class="api-member"><div class="api-member-head"><code class="api-signature">static BridgedClass definition</code></div></div>
+                  </div>
+                </section>
+                <section id="_checkOpenModePermission" class="api-declaration">
+                  <h3 class="api-decl-title">function _checkOpenModePermission</h3>
+                  <code class="api-signature">void _checkOpenModePermission(InterpreterVisitor visitor, String path, FileMode mode)</code>
+                  <div class="api-doc">
+                    <p>Gates <code>File.open</code>/<code>openSync</code> according to the requested [mode].</p>
+                    <p>
+                      <code>FileMode.read</code> is the only mode that leaves the file untouched; every other mode can write, so it needs a write grant.
+                    </p>
                   </div>
                 </section>
               </div>

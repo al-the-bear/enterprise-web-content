@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1386,7 +1392,7 @@
               <span style="display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap"><span class="badge b-pub"><span class="d"></span>Published</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">role: extension</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">license: BSD-3-Clause</span></span>
             </div>
             <h2>tom_ast_generator</h2>
-            <div class="mono" style="color: #9FB6C9">tom_ast_generator · v0.1.3</div>
+            <div class="mono" style="color: #9FB6C9">tom_ast_generator · v0.1.17</div>
             <p style="margin-top: 10px">
               Walks an analyzer compilation unit and emits a structurally identical `SAstNode` tree, then bundles it for analyzer-free execution. The build-time half of the on-device interpreter line.
             </p>
@@ -1397,9 +1403,9 @@
           </div>
           <div class="statgrid">
             <div class="stat"><div class="k">Status</div><div class="v" style="font-size: 1.05rem; color: #0F7FB0">Published</div></div>
-            <div class="stat"><div class="k">LOC</div><div class="v">2.7k</div></div>
-            <div class="stat"><div class="k">Tests</div><div class="v">536</div></div>
-            <div class="stat"><div class="k">Test LOC</div><div class="v">8.0k</div></div>
+            <div class="stat"><div class="k">LOC</div><div class="v">2.9k</div></div>
+            <div class="stat"><div class="k">Tests</div><div class="v">594</div></div>
+            <div class="stat"><div class="k">Test LOC</div><div class="v">10.8k</div></div>
           </div>
           <div class="dcols">
             <div>
@@ -1448,13 +1454,6 @@
                   <div class="linkmeta">
                     <a class="linkname" href="/docs?module=tom_ast_generator&amp;path=doc%2Ftom_ast_generator_user_guide.md">tom_ast_generator_user_guide.md</a>
                     <span class="muted linkpath">doc/tom_ast_generator_user_guide.md</span>
-                  </div>
-                </div>
-                <div class="linkrow">
-                  <span class="ic">📄</span>
-                  <div class="linkmeta">
-                    <a class="linkname" href="/docs?module=tom_ast_generator&amp;path=doc%2Ftom_build_configuration_and_cli.md">tom_build_configuration_and_cli.md</a>
-                    <span class="muted linkpath">doc/tom_build_configuration_and_cli.md</span>
                   </div>
                 </div>
                 <div class="licdocrow">
@@ -1533,9 +1532,15 @@ Interpreted at runtime</code></pre>
               <p>
                 The public library export is <code>package:tom_ast_generator/tom_ast_generator.dart</code> (also importable as 
                 <code>package:tom_ast_generator/tom_d4rt_astgen.dart</code> for legacy compatibility). Both re-export 
-                <code>AstConverter</code>, <code>AstBundler</code>, <code>AstBundlerConfig</code>, <code>ImportResolution</code>, 
-                <code>ImportAction</code>, and the full <code>tom_d4rt_ast</code> surface (<code>SCompilationUnit</code>, 
+                <code>AstConverter</code>, <code>AstBundler</code>, <code>AstBundlerConfig</code>, <code>BundleTarget</code>, 
+                <code>ImportResolution</code>, <code>ImportAction</code>, and the full <code>tom_d4rt_ast</code> surface (<code>SCompilationUnit</code>, 
                 <code>SAstNode</code>, <code>AstBundle</code>, etc.).
+              </p>
+              <p>
+                A bundle is built for one platform. Conditional imports and exports (<code>import 'stub.dart' if (dart.library.io) 'io.dart';</code>) are resolved when the bundle is built: 
+                <code>AstBundlerConfig.target</code> (default <code>BundleTarget.vm</code>) picks the branch, only that module is bundled, and the directive is rewritten to it. Build with 
+                <code>AstBundlerConfig(target: BundleTarget.web)</code> for a bundle a web app will load, or pass a custom 
+                <code>BundleTarget</code> naming its <code>dart:</code> libraries and environment declarations.
               </p>
               <h3>As a CLI tool</h3>
               <p>
@@ -1637,9 +1642,15 @@ astgen --help</code></pre>
                     <td><code>--scan &lt;dir&gt;</code> / <code>-s</code></td>
                     <td>Scan directory for projects with <code>astgen:</code> config</td>
                   </tr>
-                  <tr><td><code>--project &lt;path&gt;</code> / <code>-p</code></td><td>Process a single project</td></tr>
+                  <tr>
+                    <td><code>--project &lt;pattern&gt;</code> / <code>-p</code></td>
+                    <td>Only the named projects (names, paths or globs)</td>
+                  </tr>
                   <tr><td><code>--recursive</code> / <code>-r</code></td><td>Recurse into sub-projects during scan</td></tr>
-                  <tr><td><code>--dry-run</code></td><td>Show what would be converted, write nothing</td></tr>
+                  <tr>
+                    <td><code>--dry-run</code> / <code>-n</code></td>
+                    <td>Show what would be converted, write nothing</td>
+                  </tr>
                   <tr><td><code>--verbose</code> / <code>-v</code></td><td>Show per-file detail</td></tr>
                   <tr>
                     <td><code>--list</code></td>
@@ -1802,17 +1813,11 @@ astgen --scan . --recursive</code></pre>
                 <code>toJson()</code> / <code>toBytes()</code> and can be reconstructed with <code>fromJson()</code> / 
                 <code>fromBytes()</code> — with no analyzer involvement.
               </p>
-              <h3><code>buildkit.yaml</code> vs <code>tom_build.yaml</code></h3>
-              <p>The <code>astgen</code> CLI uses two configuration files:</p>
-              <ul>
-                <li>
-                  <strong><code>buildkit.yaml</code></strong> (or <code>build.yaml</code>) — per-project conversion rules (<code>astgen: convert: [...]</code>). This is what drives file-to-file conversion.
-                </li>
-                <li>
-                  <strong><code>tom_build.yaml</code></strong> — workspace-level project discovery marker. Projects that have this file with an 
-                  <code>astgen:</code> section are discovered automatically when running <code>astgen --scan</code>.
-                </li>
-              </ul>
+              <h3>One configuration file</h3>
+              <p>
+                The <code>astgen</code> CLI reads only the <code>astgen:</code> section of each project's <code>buildkit.yaml</code>. That section is both the conversion rules and the marker: when astgen walks a workspace, a project without it is skipped. There is no 
+                <code>tom_build.yaml</code> and no <code>build.yaml</code>.
+              </p>
               <h3>YAML output format</h3>
               <p>
                 The CLI emits <code>.ast.yaml</code> files. The YAML is generated directly from the mirror AST's <code>toJson()</code>
@@ -1856,13 +1861,13 @@ ast:
                     <td>
                       <a href="/docs?module=tom_ast_generator&amp;path=doc%2Fastgen_build_yaml.md">doc/astgen_build_yaml.md</a>
                     </td>
-                    <td>Full <code>astgen</code> <code>buildkit.yaml</code> configuration reference.</td>
-                  </tr>
-                  <tr>
                     <td>
-                      <a href="/docs?module=tom_ast_generator&amp;path=doc%2Ftom_build_configuration_and_cli.md">doc/tom_build_configuration_and_cli.md</a>
+                      The 
+                      <code>astgen</code>
+                       CLI: its 
+                      <code>buildkit.yaml</code>
+                       configuration, command-line options and errors.
                     </td>
-                    <td>CLI usage, options, and execution modes.</td>
                   </tr>
                 </tbody>
               </table>

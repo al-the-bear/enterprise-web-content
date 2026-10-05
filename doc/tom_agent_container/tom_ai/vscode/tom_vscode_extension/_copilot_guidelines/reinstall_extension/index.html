@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1417,6 +1423,36 @@
                   For chat changes: send a test prompt and confirm trails land in <code>_ai/trail/</code> / <code>_ai/quests/&lt;quest&gt;/live-trail.md</code>.
                 </li>
               </ul>
+              <h2>Unattended runs on Windows (over SSH)</h2>
+              <p>
+                <code>compile_and_install.ps1</code> runs unattended: it sets <code>TOM_BRIDGE_FROM_SOURCE=1</code>, which also auto-confirms the package prompt. Running it with its output sent to a log works under Windows PowerShell 5.1 and PowerShell 7:
+              </p>
+              <pre><code>&amp; .\compile_and_install.ps1 *&gt; C:\Code\al_the_bear\ztmp\install.log</code></pre>
+              <p>
+                <code>install_extension.ps1</code> keeps <code>$ErrorActionPreference = "Stop"</code>. Under PS 5.1 that preference turns any line a native program writes to stderr into a terminating 
+                <code>NativeCommandError</code>, but only when output is redirected. For that reason every native call (<code>npm</code>, 
+                <code>dart</code>, <code>node</code>, <code>nvm</code>, <code>vsce</code>, <code>code</code>) runs through the script's 
+                <code>Invoke-Native { ... }</code>, which sets <code>Continue</code> for that call alone, and is followed by a 
+                <code>$LASTEXITCODE</code> check. The extension test <code>src/utils/__tests__/installScriptNativeCalls.test.ts</code>
+                 fails if a native call is added without the wrapper. If you add a native call, wrap it and check its exit code.
+              </p>
+              <p>A build takes several minutes, so start it in a way that outlives the SSH session:</p>
+              <ul><li><strong>Use a WMI-created process.</strong> `Invoke-CimMethod -ClassName Win32_Process</li></ul>
+              <p>
+                -MethodName Create<code> starts a process that is not a child of the SSH session, so it keeps running after the session closes. Do the redirection at the 
+                </code>cmd.exe` level, so that PowerShell's stream handling does not decide what reaches the log:
+              </p>
+              <pre><code>  Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{
+    CommandLine = 'cmd.exe /c powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\Code\al_the_bear\tom_ai\vscode\tom_vscode_extension\compile_and_install.ps1 &gt; C:\Code\al_the_bear\ztmp\install.log 2&gt;&amp;1'
+    CurrentDirectory = 'C:\Code\al_the_bear\tom_ai\vscode\tom_vscode_extension'
+  }</code></pre>
+              <p>
+                Then follow the log (<code>Get-Content ...\install.log -Tail 20</code>). The run has succeeded when the log ends with 
+                <code>Installation complete!</code> and the <code>Finished at</code> line. - <strong>Do not use <code>Start-Process</code></strong>
+                 from an SSH session for this. Its process is a child of the session and is killed when the session ends, which leaves a half-built 
+                <code>bin/</code> and no error. - <code>npm install</code> has no timeout. If the log stops moving for several minutes at 
+                <code>Installing npm dependencies...</code>, kill the process tree and start the run again.
+              </p>
               <h2>Pattern prompt</h2>
               <p>
                 When the user issues <code>!!!reload finished</code> after a reload, the extension changes are in effect and you can resume the task. See 

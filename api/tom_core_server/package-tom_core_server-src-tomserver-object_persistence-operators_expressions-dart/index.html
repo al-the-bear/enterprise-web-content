@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1418,6 +1424,8 @@
                   <a class="leaf" href="#Regexp">Regexp</a>
                   <a class="leaf" href="#StringCol">StringCol</a>
                   <a class="leaf" href="#StringLiteral">StringLiteral</a>
+                  <a class="leaf" href="#TimeCol">TimeCol</a>
+                  <a class="leaf" href="#TimeLiteral">TimeLiteral</a>
                   <a class="leaf" href="#TomBinaryOperator">TomBinaryOperator</a>
                   <a class="leaf" href="#TomQuerySyntaxException">TomQuerySyntaxException</a>
                   <a class="leaf" href="#TomUnaryOperator">TomUnaryOperator</a>
@@ -2190,6 +2198,61 @@
                     </div>
                   </div>
                 </section>
+                <section id="TimeCol" class="api-declaration">
+                  <h3 class="api-decl-title">class TimeCol</h3>
+                  <code class="api-signature">class TimeCol extends DbCol&lt;TomDbTime&gt;</code>
+                  <div class="api-doc">
+                    <p>A reference to a time-of-day column.</p>
+                    <p>
+                      The sibling of [DateCol] for the other half a timestamp splits into. A <code>TIME</code> column names a position within a day and no day at all, so it is neither a date nor a timestamp: comparing it against either would compare a clock reading with a calendar one.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TimeCol.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">TimeCol.new(Type tableType, String operant1, TomColumnInformation columnInformation)</code>
+                      </div>
+                      <div class="api-doc"><p>Creates a time-of-day column reference.</p></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="TimeCol.generate" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">String generate(TomStandardSqlDialect t)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="TimeLiteral" class="api-declaration">
+                  <h3 class="api-decl-title">class TimeLiteral</h3>
+                  <code class="api-signature">class TimeLiteral extends TomUnaryOperator&lt;DateTime, TomDbTime&gt;</code>
+                  <div class="api-doc">
+                    <p>A time-of-day literal.</p>
+                    <p>
+                      Holds a [DateTime] rather than a [TomZonedTime], as [DateLiteral] holds one rather than a [TomZonedDate]: a [TomZonedTime] 
+                      <em>is</em> a [DateTime], so the wider operand accepts both a kernel time value and a plain one built for the epoch day, and only the clock components are read out when it renders.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TimeLiteral.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TimeLiteral.new(DateTime operant1)</code></div>
+                      <div class="api-doc"><p>Creates a time-of-day literal.</p></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="TimeLiteral.generate" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">String generate(TomStandardSqlDialect t)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
                 <section id="TomBinaryOperator" class="api-declaration">
                   <h3 class="api-decl-title">class TomBinaryOperator</h3>
                   <code class="api-signature">abstract class TomBinaryOperator&lt;T1, T2, R&gt; extends TomOperator&lt;R&gt;</code>
@@ -2217,6 +2280,9 @@
                     <div id="TomBinaryOperator.operant2" class="api-member">
                       <div class="api-member-head"><code class="api-signature">T2 operant2</code></div>
                       <div class="api-doc"><p>The right operand.</p></div>
+                    </div>
+                    <div id="TomBinaryOperator.children" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">List&lt;TomOperator&lt;dynamic&gt;&gt; children</code></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
@@ -2254,7 +2320,7 @@
                     <div id="TomQuerySyntaxException.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomQuerySyntaxException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, Object? stack, Object? rootException, bool autoLog = false})
+                          TomQuerySyntaxException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, StackTrace? stack, Object? rootException, bool autoLog = false})
                         </code>
                       </div>
                       <div class="api-doc"><p>Creates a query-syntax exception.</p></div>
@@ -2283,6 +2349,9 @@
                     <div id="TomUnaryOperator.operant1" class="api-member">
                       <div class="api-member-head"><code class="api-signature">T operant1</code></div>
                       <div class="api-doc"><p>The single operand.</p></div>
+                    </div>
+                    <div id="TomUnaryOperator.children" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">List&lt;TomOperator&lt;dynamic&gt;&gt; children</code></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>

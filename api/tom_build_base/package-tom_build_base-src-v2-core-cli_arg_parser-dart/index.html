@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1445,6 +1451,35 @@
                     <div id="CliArgParser._setOption" class="api-member">
                       <div class="api-member-head"><code class="api-signature">void _setOption(_ParseState state, String name, String? value)</code></div>
                     </div>
+                    <div id="CliArgParser._negatableFlagStem" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String? _negatableFlagStem(String name)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          For <code>--no-x</code>, the name <code>x</code> when a DECLARED flag <code>x</code> is <code>negatable: true</code>.
+                        </p>
+                        <p>
+                          <code>OptionDefinition</code> has carried <code>negatable</code> since v2 and nothing read it, so <code>--no-verify-output</code>
+                           landed in <code>extraOptions</code> under the key <code>no-verify-output</code> and every tool saw its flag as unset. A default-on flag was therefore not expressible at all: the opt-out silently did nothing.
+                        </p>
+                        <p>
+                          Only a declared negatable flag is recognised, so <code>--no-anything-else</code> keeps its old meaning — an extra option whose key happens to start with 
+                          <code>no-</code>. The globals handled by name above (<code>--no-skip</code>) never reach here.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="CliArgParser._declaredGlobalFlags" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Iterable&lt;OptionDefinition&gt; _declaredGlobalFlags()</code></div>
+                      <div class="api-doc"><p>Every globally declared option, from both places a tool can declare one.</p></div>
+                    </div>
+                    <div id="CliArgParser._applyFlagDefaults" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void _applyFlagDefaults(_ParseState state)</code></div>
+                      <div class="api-doc">
+                        <p>Seed declared flag defaults for flags the command line did not mention.</p>
+                        <p>
+                          <code>OptionDefinition.defaultValue</code> was likewise declarative only. Without this, a tool wanting a default-on flag has to invert the test at every read site — which is the same bug waiting in each of them.
+                        </p>
+                      </div>
+                    </div>
                     <div id="CliArgParser._commandDeclaresValueOption" class="api-member">
                       <div class="api-member-head"><code class="api-signature">bool _commandDeclaresValueOption(String command, String name)</code></div>
                       <div class="api-doc">
@@ -1509,7 +1544,7 @@
                     <div id="CliArgs.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          const CliArgs.new({String? scan, bool recursive = false, bool notRecursive = false, String? root, bool bareRoot = false, bool scanExplicitlySet = false, bool recursiveExplicitlySet = false, List&lt;String&gt; excludePatterns = const [], List&lt;String&gt; excludeProjects = const [], List&lt;String&gt; recursionExclude = const [], List&lt;String&gt; projectPatterns = const [], List&lt;String&gt; modes = const [], List&lt;String&gt; modules = const [], List&lt;String&gt; skipModules = const [], bool innerFirstGit = false, bool outerFirstGit = false, bool topRepo = false, bool buildOrder = true, bool excludeDev = false, bool workspaceRecursion = false, bool verbose = false, bool dryRun = false, bool listOnly = false, bool force = false, bool guide = false, bool dumpConfig = false, String? configPath, bool help = false, bool version = false, bool noSkip = false, bool nested = false, bool dumpDefinitions = false, bool includeTestProjects = false, bool testProjectsOnly = false, List&lt;String&gt; positionalArgs = const [], List&lt;String&gt; commands = const [], Map&lt;String, PerCommandArgs&gt; commandArgs = const {}, Map&lt;String, dynamic&gt; extraOptions = const {}})
+                          const CliArgs.new({String? scan, bool recursive = false, bool notRecursive = false, String? root, bool bareRoot = false, bool scanExplicitlySet = false, bool recursiveExplicitlySet = false, List&lt;String&gt; excludePatterns = const [], List&lt;String&gt; excludeProjects = const [], List&lt;String&gt; recursionExclude = const [], List&lt;String&gt; projectPatterns = const [], bool allowEmpty = false, List&lt;String&gt; modes = const [], List&lt;String&gt; modules = const [], List&lt;String&gt; skipModules = const [], bool innerFirstGit = false, bool outerFirstGit = false, bool topRepo = false, bool buildOrder = true, bool excludeDev = false, bool workspaceRecursion = false, bool verbose = false, bool dryRun = false, bool listOnly = false, bool force = false, bool guide = false, bool dumpConfig = false, String? configPath, bool help = false, bool version = false, bool noSkip = false, bool nested = false, bool dumpDefinitions = false, String? completion, bool includeTestProjects = false, bool testProjectsOnly = false, List&lt;String&gt; positionalArgs = const [], List&lt;String&gt; commands = const [], Map&lt;String, PerCommandArgs&gt; commandArgs = const {}, Map&lt;String, dynamic&gt; extraOptions = const {}})
                         </code>
                       </div>
                     </div>
@@ -1537,6 +1572,15 @@
                     <div id="CliArgs.projectPatterns" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final List&lt;String&gt; projectPatterns</code></div>
                     </div>
+                    <div id="CliArgs.allowEmpty" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final bool allowEmpty</code></div>
+                      <div class="api-doc">
+                        <p>Accept <code>--project</code> selectors that match no project (<code>--allow-empty</code>).</p>
+                        <p>
+                          Off by default: an unmatched selector is normally a typo and fails the run. Scripts that share one invocation across differing workspaces and use a selector as an "if present" filter set this to opt out.
+                        </p>
+                      </div>
+                    </div>
                     <div id="CliArgs.modes" class="api-member"><div class="api-member-head"><code class="api-signature">final List&lt;String&gt; modes</code></div></div>
                     <div id="CliArgs.modules" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final List&lt;String&gt; modules</code></div>
@@ -1562,6 +1606,15 @@
                     <div id="CliArgs.noSkip" class="api-member"><div class="api-member-head"><code class="api-signature">final bool noSkip</code></div></div>
                     <div id="CliArgs.nested" class="api-member"><div class="api-member-head"><code class="api-signature">final bool nested</code></div></div>
                     <div id="CliArgs.dumpDefinitions" class="api-member"><div class="api-member-head"><code class="api-signature">final bool dumpDefinitions</code></div></div>
+                    <div id="CliArgs.completion" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? completion</code></div>
+                      <div class="api-doc">
+                        <p>Requested shell for <code>--completion &lt;shell&gt;</code> (bash|zsh|fish), or null.</p>
+                        <p>
+                          When set, the tool prints a shell completion script and exits without traversing or running any command.
+                        </p>
+                      </div>
+                    </div>
                     <div id="CliArgs.includeTestProjects" class="api-member"><div class="api-member-head"><code class="api-signature">final bool includeTestProjects</code></div></div>
                     <div id="CliArgs.testProjectsOnly" class="api-member"><div class="api-member-head"><code class="api-signature">final bool testProjectsOnly</code></div></div>
                     <div id="CliArgs.positionalArgs" class="api-member">
@@ -1621,12 +1674,49 @@
                         <p>Returns null if git mode cannot be determined (caller should emit error).</p>
                       </div>
                     </div>
+                    <div id="CliArgs.optionsFor" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Map&lt;String, dynamic&gt; optionsFor(String commandName, {List&lt;String&gt; aliases = const []})</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>The options that apply to [commandName], written in EITHER position.</p>
+                        <p>
+                          The parser routes an option by where it appears: one written before the command name lands in [extraOptions], one written after it in 
+                          <code>commandArgs[&lt;command&gt;].options</code>. An executor that reads only one of those silently ignores the other position — and the documented form is the trailing one (<code>testkit :baseline --test-args="..."</code>), so the option everyone is told to pass was the one being dropped.
+                        </p>
+                        <p>
+                          Both are merged here, with the per-command value winning, so an executor asks what its options ARE rather than where they were typed.
+                        </p>
+                        <p>
+                          [aliases] matters because the parser keys per-command options by the name the CALLER typed: <code>testkit :b --test-args=X</code>
+                           keys them under <code>b</code>, not <code>baseline</code>. A command with short forms must name them, exactly as its [CommandDefinition] declares them.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="CliArgs.copyWith" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          CliArgs copyWith({String? scan, bool? recursive, bool? notRecursive, String? root, bool? bareRoot, bool? scanExplicitlySet, bool? recursiveExplicitlySet, List&lt;String&gt;? excludePatterns, List&lt;String&gt;? excludeProjects, List&lt;String&gt;? recursionExclude, List&lt;String&gt;? projectPatterns, bool? allowEmpty, List&lt;String&gt;? modes, List&lt;String&gt;? modules, List&lt;String&gt;? skipModules, bool? innerFirstGit, bool? outerFirstGit, bool? topRepo, bool? buildOrder, bool? excludeDev, bool? workspaceRecursion, bool? verbose, bool? dryRun, bool? listOnly, bool? force, bool? guide, bool? dumpConfig, String? configPath, bool? help, bool? version, bool? noSkip, bool? nested, bool? dumpDefinitions, String? completion, bool? includeTestProjects, bool? testProjectsOnly, List&lt;String&gt;? positionalArgs, List&lt;String&gt;? commands, Map&lt;String, PerCommandArgs&gt;? commandArgs, Map&lt;String, dynamic&gt;? extraOptions})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Create a copy of this instance with the given fields replaced.</p>
+                        <p>
+                          Every field defaults to the current value, so a caller only names what it changes. Passing <code>null</code>
+                           means "leave unchanged" — a nullable field such as [scan] or [configPath] cannot be cleared through here; construct a new [CliArgs] for that.
+                        </p>
+                        <p>
+                          <strong>When adding a field to [CliArgs], add it here too.</strong> Every copy in the codebase goes through this method, so a field missing from it is silently reset to its default on every copy. 
+                          <code>BB-CLI-96</code> in <code>test/v2/core/cli_arg_parser_test.dart</code> fails if that happens.
+                        </p>
+                      </div>
+                    </div>
                     <div id="CliArgs.withResolvedStrings" class="api-member">
                       <div class="api-member-head"><code class="api-signature">CliArgs withResolvedStrings(String Function(String) resolver)</code></div>
                       <div class="api-doc">
                         <p>Create a copy with placeholders resolved in user-provided string values.</p>
                         <p>
-                          Resolves placeholders in [positionalArgs], string values in [extraOptions], and per-command [PerCommandArgs.options]. Other fields (flags, patterns, traversal config) are copied as-is.
+                          Resolves placeholders in [positionalArgs], string values in [extraOptions], and per-command [PerCommandArgs.options]. Other fields (flags, patterns, traversal config) are carried over unchanged by [copyWith].
                         </p>
                         <p>
                           The [resolver] function is called for each string value. Typically wraps [ExecutePlaceholderResolver.resolveCommand].
@@ -1769,6 +1859,7 @@
                     <div id="_ParseState.projectPatterns" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final List&lt;String&gt; projectPatterns</code></div>
                     </div>
+                    <div id="_ParseState.allowEmpty" class="api-member"><div class="api-member-head"><code class="api-signature">bool allowEmpty</code></div></div>
                     <div id="_ParseState.modes" class="api-member"><div class="api-member-head"><code class="api-signature">final List&lt;String&gt; modes</code></div></div>
                     <div id="_ParseState.modules" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final List&lt;String&gt; modules</code></div>
@@ -1794,6 +1885,7 @@
                     <div id="_ParseState.noSkip" class="api-member"><div class="api-member-head"><code class="api-signature">bool noSkip</code></div></div>
                     <div id="_ParseState.nested" class="api-member"><div class="api-member-head"><code class="api-signature">bool nested</code></div></div>
                     <div id="_ParseState.dumpDefinitions" class="api-member"><div class="api-member-head"><code class="api-signature">bool dumpDefinitions</code></div></div>
+                    <div id="_ParseState.completion" class="api-member"><div class="api-member-head"><code class="api-signature">String? completion</code></div></div>
                     <div id="_ParseState.includeTestProjects" class="api-member"><div class="api-member-head"><code class="api-signature">bool includeTestProjects</code></div></div>
                     <div id="_ParseState.testProjectsOnly" class="api-member"><div class="api-member-head"><code class="api-signature">bool testProjectsOnly</code></div></div>
                     <div id="_ParseState.positionalArgs" class="api-member">

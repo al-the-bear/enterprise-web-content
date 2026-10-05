@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1414,6 +1420,7 @@
                   <a class="leaf" href="#TomObservableException">TomObservableException</a>
                   <a class="leaf" href="#TomString">TomString</a>
                   <a class="leaf" href="#TomTimeRange">TomTimeRange</a>
+                  <a class="leaf" href="#_TomNullObject">_TomNullObject</a>
                 </div>
               </div>
               <div class="reader">
@@ -1456,6 +1463,12 @@ print(~isActive); // true</code></pre>
                       <li><strong>Batch updates</strong>: [setValues] for updating multiple fields at once</li>
                       <li><strong>Muting</strong>: Temporarily suppress notifications during bulk updates</li>
                     </ul>
+                    <h2>Operators</h2>
+                    <p>
+                      A class is addressed through its members, so the whole-value operators do not apply to it: [get], [set] and 
+                      <code>&lt;&lt;</code> all throw. Write members individually (<code>person.name | "John"</code>) or many at once with [setValues]. 
+                      <code>&gt;&gt;</code> works as it does on any observable, and fires for a change to any member.
+                    </p>
                     <h2>Example</h2>
                     <pre><code>@tomReflector
 class Person extends TomClass {
@@ -1474,6 +1487,21 @@ print(person.toJson());</code></pre>
                     <div id="TomClass.new" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomClass.new()</code></div>
                       <div class="api-doc"><p>Creates a new [TomClass] and automatically registers all [TomObject] members for observation.</p></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="TomClass._memberView" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Map&lt;String, TomObject&lt;dynamic&gt;&gt; _memberView</code></div>
+                      <div class="api-doc">
+                        <p>A read-only view of [_value], handed out by [getMembers].</p>
+                        <p>
+                          A view rather than a copy, so it stays correct as registration proceeds — [_registerWithMembers] walks the superclass chain after the subclass, so a caller holding a snapshot taken early would be missing members. Built once because [getMembers] is called per row by the datasource layer.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomClass.muteCascadeTargets" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Iterable&lt;TomObservable&gt; muteCascadeTargets</code></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
@@ -1518,12 +1546,32 @@ print(person.toJson());</code></pre>
                       <div class="api-member-head">
                         <code class="api-signature">void _registerWithMembers(ClassMirror&lt;dynamic&gt; cm, InstanceMirror im)</code>
                       </div>
+                      <div class="api-doc">
+                        <p>
+                          Registers every reflected [TomObservable] getter of [cm] as a member, then recurses into the superclass.
+                        </p>
+                        <h2>Member names are always public</h2>
+                        <p>
+                          The key is <code>member.simpleName</code>, taken from the reflected getter, and reflection excludes private fields and private accessors — so a member key can never begin with an underscore. A private field published through a public getter registers under the 
+                          <strong>getter's</strong> name:
+                        </p>
+                        <pre><code>final TomString _label = TomString("");
+TomString get label =&gt; _label;   // registers as "label"</code></pre>
+                        <p>
+                          This is why [setOrMergeValues] looks a key up once and does not also try an underscore-prefixed variant. It used to, and that fallback could never fire: the name it searched for was one reflection is incapable of producing.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomClass.getMembers" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Map&lt;String, TomObject&lt;dynamic&gt;&gt; getMembers()</code></div>
                       <div class="api-doc">
-                        <p>Returns a map of all registered [TomObject] members.</p>
-                        <p>Keys are the field names, values are the [TomObject] instances.</p>
+                        <p>Returns a <strong>read-only</strong> view of all registered [TomObject] members.</p>
+                        <p>
+                          Keys are the field names, values are the [TomObject] instances. The view is live: members registered later appear in it.
+                        </p>
+                        <p>
+                          Mutating the returned map throws [UnsupportedError]. Registration is not a caller's decision — it is derived from the declared fields, and a removal from the map would deregister the member without detaching the observer wiring [_registerWithMembers] installed, leaving a half-attached object that nothing outside the class can repair. The members themselves are the live cells, so reading one and assigning through it works as usual.
+                        </p>
                       </div>
                     </div>
                     <div id="TomClass.onNotify" class="api-member">
@@ -1534,30 +1582,6 @@ print(person.toJson());</code></pre>
                       <div class="api-doc">
                         <p>Called when any observed member changes.</p>
                         <p>Propagates the notification to this [TomClass]'s own observers.</p>
-                      </div>
-                    </div>
-                    <div id="TomClass.mute" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">void mute()</code>
-                        <span class="api-badge api-badge--override">override</span>
-                      </div>
-                      <div class="api-doc">
-                        <p>Mutes this [TomClass] and all its members.</p>
-                        <p>
-                          While muted, changes to any member will not trigger notifications. Call [unmute] to resume notifications.
-                        </p>
-                      </div>
-                    </div>
-                    <div id="TomClass.unmute" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">void unmute()</code>
-                        <span class="api-badge api-badge--override">override</span>
-                      </div>
-                      <div class="api-doc">
-                        <p>Unmutes this [TomClass] and all its members.</p>
-                        <p>
-                          If changes occurred while muted, observers will be notified once. Members are unmuted first (while parent is still muted) so their notifications just mark the parent as dirty, then the parent is unmuted for a single consolidated notification.
-                        </p>
                       </div>
                     </div>
                     <div id="TomClass.setValues" class="api-member">
@@ -1583,6 +1607,24 @@ print(person.toJson());</code></pre>
                         <p>
                           When [merge] is <code>false</code>, collections are cleared before new values are added (same behavior as [setValues]).
                         </p>
+                        <h2>Failure</h2>
+                        <p>
+                          The input is usually decoded JSON, so a value of the wrong shape is an ordinary occurrence rather than a programming error, and the method is written to survive one:
+                        </p>
+                        <ul><li>The work runs inside a [batch], which releases in a <code>finally</code>, so a</li></ul>
+                        <p>
+                          rejected value cannot leave the object — or its members, which the batch cascades to — permanently silent. Whatever was applied before the failure is announced at that point: the object 
+                          <em>has</em> changed, and hiding it would be worse than reporting a partial update. - Whatever the underlying failure was, it surfaces as a [TomObservableException] naming the offending key and the runtime type actually supplied. Unwrapped, a mistyped member surfaces as a bare 
+                          <code>TypeError</code> from deep inside a cast, which identifies neither.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomClass._setMember" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">void _setMember(TomObject&lt;dynamic&gt; member, dynamic value, String key, bool merge)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Applies one deserialized [value] to one [member], dispatching on the member's observable type.</p>
                       </div>
                     </div>
                     <div id="TomClass._setMapMember" class="api-member">
@@ -1634,12 +1676,60 @@ print(person.toJson());</code></pre>
                         <code class="api-signature">TomClass operator &lt;&lt;(Map&lt;String, dynamic&gt; value)</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
+                      <div class="api-doc">
+                        <p>Throws [TomObservableException] — a class has no single value to replace.</p>
+                        <p>
+                          This is the one place where <code>&lt;&lt;</code> is <em>not</em> available, and the asymmetry with [TomList.operator &lt;&lt;] and [TomMap.operator &lt;&lt;] is deliberate: their contents are replaceable, whereas a class's set of members is fixed by its declaration. Replacing it wholesale is not a write, it is a different object.
+                        </p>
+                        <p>
+                          To write many members at once, use [setValues] (or [setOrMergeValues]), which addresses the members by name and leaves the shape alone.
+                        </p>
+                      </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
                     <div id="TomClass._classMirror" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static ClassMirror&lt;dynamic&gt; _classMirror</code></div>
+                    </div>
+                    <div id="TomClass._primitiveListFor" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static List&lt;Object?&gt;? _primitiveListFor(TomObject&lt;dynamic&gt; member, List&lt;dynamic&gt; value)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          [value] re-typed for a scalar member holding a whole list of primitives, or <code>null</code> when [member] is not one.
+                        </p>
+                        <p>
+                          <code>getValues()</code> serializes a <code>TomList&lt;TomString&gt;</code> as a plain <code>List&lt;dynamic&gt;</code>, and a member typed 
+                          <code>TomObject&lt;List&lt;String&gt;&gt;</code> — a multi-select form field is exactly that — rejects the dynamic list in 
+                          <code>set</code>, so a state's own serialization could not be bound back. The same asymmetry holds for every primitive the framework serializes, so each is re-typed here, next to the int-into-double widening that answers the same round-trip problem for a single number; a 
+                          <code>List&lt;double&gt;</code> member widens its integral elements too. Re-typing is not coercion: an element of the wrong type throws, and the assignment fails as a scalar's would.
+                        </p>
+                        <p>
+                          Each test is written against the nullable list type, so a member holding <code>List&lt;String&gt;</code>
+                           and one holding <code>List&lt;String&gt;?</code> both match by covariance.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomClass._serializeMember" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Object? _serializeMember(TomObject&lt;dynamic&gt; value)</code></div>
+                      <div class="api-doc">
+                        <p>Serializes a single observable member to a JSON-safe value.</p>
+                        <p>
+                          Applies the same per-type handling to a member as [getValues] applies to a <code>TomClass</code>'s own fields — and, crucially, is reused for the 
+                          <strong>elements</strong> of a [TomList] and the <strong>values</strong> of a [TomMap]. Both containers' 
+                          <code>get()</code> returns the backing collection with its <code>TomObject</code>s still wrapped, so a 
+                          <code>TomList&lt;TomString&gt;</code> or a <code>TomMap&lt;String, TomInt&gt;</code> — or either holding nested 
+                          <code>TomClass</code>es — would otherwise leak raw <code>TomObject</code> instances into <code>jsonEncode</code>, which refuses them. Nested containers recurse the same way.
+                        </p>
+                        <p>
+                          A map's keys pass through unchanged. The value side is the one that holds <code>TomObject</code>s; a key is whatever 
+                          <code>K</code> is, and [setValues] restores it from the decoded map's own keys, so rewriting keys here would break the round trip rather than serve it.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>
@@ -1648,11 +1738,23 @@ print(person.toJson());</code></pre>
                   <code class="api-signature">class TomDateRange extends TomClass</code>
                   <div class="api-doc">
                     <p>An observable date range with start and end dates.</p>
-                    <p>Both dates are nullable [TomNOZonedDate] values, allowing open-ended ranges.</p>
+                    <p>
+                      Both dates are nullable [TomNOZonedDate] values, allowing open-ended ranges, and a fresh range holds 
+                      <code>null</code> at both ends.
+                    </p>
+                    <p>
+                      <code>null</code> rather than the <code>noZonedDate</code> epoch sentinel, because the two families answer "no value" differently and these members belong to the nullable one: [TomOZonedDate.setByString] turns an empty 
+                      <code>@D@</code> into the sentinel, [TomNOZonedDate.setByString] turns it into <code>null</code>. Initialising a nullable member with the other family's sentinel gave a range two distinct empty states — a fresh one where [TomObject.isNull] answered 
+                      <code>false</code>, and one deserialized from an empty marker where it answered <code>true</code> — so a consumer branching on 
+                      <code>isNull</code> got different answers for two ranges that were both unset, and a fresh range serialized two timestamps nobody had entered.
+                    </p>
                     <p>Example:</p>
                     <pre><code>final vacation = TomDateRange();
-vacation.startDate | TomZonedDate.now();
-vacation.endDate | TomZonedDate.now().add(Duration(days: 7));</code></pre>
+final today = DateTime.now();
+vacation.startDate | TomZonedDate.fromDateTime(today);
+// Add the duration to the `DateTime`, before wrapping: arithmetic
+// inherited from `DateTime` returns a plain `DateTime`, not a zoned one.
+vacation.endDate | TomZonedDate.fromDateTime(today.add(Duration(days: 7)));</code></pre>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
@@ -1662,11 +1764,11 @@ vacation.endDate | TomZonedDate.now().add(Duration(days: 7));</code></pre>
                   <div class="api-members">
                     <div id="TomDateRange.startDate" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomNOZonedDate startDate</code></div>
-                      <div class="api-doc"><p>The start date of the range (nullable).</p></div>
+                      <div class="api-doc"><p>The start date of the range, or <code>null</code> when the range is open at the start.</p></div>
                     </div>
                     <div id="TomDateRange.endDate" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomNOZonedDate endDate</code></div>
-                      <div class="api-doc"><p>The end date of the range (nullable).</p></div>
+                      <div class="api-doc"><p>The end date of the range, or <code>null</code> when the range is open at the end.</p></div>
                     </div>
                   </div>
                 </section>
@@ -1706,7 +1808,10 @@ createdAt | DateTime.utc(2024, 1, 1); // Set new value</code></pre>
                   <code class="api-signature">class TomDateTimeRange extends TomClass</code>
                   <div class="api-doc">
                     <p>An observable datetime range with start and end datetimes.</p>
-                    <p>Both datetimes are nullable [TomNOZonedDateTime] values, allowing open-ended ranges.</p>
+                    <p>
+                      Both datetimes are nullable [TomNOZonedDateTime] values, allowing open-ended ranges. A fresh range holds 
+                      <code>null</code> at both ends — see [TomDateRange] for why that is <code>null</code> and not the epoch sentinel.
+                    </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
@@ -1716,11 +1821,11 @@ createdAt | DateTime.utc(2024, 1, 1); // Set new value</code></pre>
                   <div class="api-members">
                     <div id="TomDateTimeRange.startDateTime" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomNOZonedDateTime startDateTime</code></div>
-                      <div class="api-doc"><p>The start datetime of the range (nullable).</p></div>
+                      <div class="api-doc"><p>The start datetime of the range, or <code>null</code> when the range is open at the start.</p></div>
                     </div>
                     <div id="TomDateTimeRange.endDateTime" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomNOZonedDateTime endDateTime</code></div>
-                      <div class="api-doc"><p>The end datetime of the range (nullable).</p></div>
+                      <div class="api-doc"><p>The end datetime of the range, or <code>null</code> when the range is open at the end.</p></div>
                     </div>
                   </div>
                 </section>
@@ -1765,12 +1870,17 @@ print(~count); // 42</code></pre>
                 <section id="TomList" class="api-declaration">
                   <h3 class="api-decl-title">class TomList</h3>
                   <code class="api-signature">
-                    class TomList&lt;E extends TomObject&lt;dynamic&gt;&gt; extends TomObject&lt;List&lt;E&gt;&gt; implements TomObserver&lt;TomObservable&gt;, Iterable&lt;dynamic&gt;
+                    class TomList&lt;E extends TomObject&lt;dynamic&gt;&gt; extends TomObject&lt;List&lt;E&gt;&gt; implements TomObserver&lt;TomObservable&gt;, Iterable&lt;E&gt;
                   </code>
                   <div class="api-doc">
                     <p>An observable list that automatically observes all contained elements.</p>
                     <p>
                       [TomList] wraps a [List] of [TomObject] elements and provides: - Automatic observation of all elements (changes in elements notify the list) - All standard [List] operations with observer management - Custom operators for convenient element manipulation
+                    </p>
+                    <p>
+                      It implements [Iterable], <strong>not</strong> [List]: the standard operations are provided, but a <code>TomList&lt;E&gt;</code>
+                       is not assignable to a <code>List&lt;E&gt;</code>. Use [toList] (which returns a copy) at a boundary that insists on the 
+                      <code>dart:core</code> type, or type the parameter as <code>Iterable&lt;E&gt;</code>.
                     </p>
                     <h2>Methods</h2>
                     <ul>
@@ -1778,14 +1888,34 @@ print(~count); // 42</code></pre>
                       <li><code>list[index]</code> - Get element at index</li>
                       <li><code>list[index] = value</code> - Set element at index</li>
                       <li><code>list + other</code> - Concatenate two TomLists</li>
+                      <li>
+                        <code>list &lt;&lt; [a, b]</code> - Replace <strong>all</strong> elements in one notification, returning
+                      </li>
                     </ul>
+                    <p>
+                      the list (see [TomList.operator &lt;&lt;]). Note that <code>&lt;&lt;</code> swaps the contents wholesale; to add a single element, use 
+                      <code>append</code>
+                    </p>
+                    <h2>Notification contract</h2>
+                    <p>
+                      <strong>A mutator notifies exactly once when it changed the list's contents, and not at all when it left them as they were.</strong>
+                       <code>clear()</code> on an empty list, <code>addAll([])</code>, <code>sort()</code> on an already-sorted list and 
+                      <code>list[0] = list[0]</code> are all silent. "Contents" means the sequence of element <em>references</em>, compared by identity — swapping in an equal-but-distinct element is a real change, because observers hold references. A change 
+                      <em>inside</em> an element is not the mutator's business: it reaches observers through [onNotify].
+                    </p>
+                    <p>
+                      The one deliberate exception is [resetWith], which notifies even when the new contents happen to equal the old ones — its lifecycle listeners have already torn down and rebuilt whatever they hold per element.
+                    </p>
                     <h2>Example</h2>
                     <pre><code>final items = TomList&lt;TomString&gt;();
-items.append(TomString(\"first\"));
-items.append(TomString(\"second\"));
+items.append(TomString("first"));
+items.append(TomString("second"));
 
-items &gt;&gt; (obs) =&gt; print(\"List changed!\");
-items[0] | \"updated\"; // Triggers observer</code></pre>
+// Retain the observer — it is held weakly.
+final observer = items &gt;&gt; (obs) =&gt; print("List changed!");
+items[0] | "updated"; // Triggers observer
+
+items.removeObserver(observer);</code></pre>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
@@ -1817,10 +1947,12 @@ items[0] | \"updated\"; // Triggers observer</code></pre>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="TomList._serializing" class="api-member"><div class="api-member-head"><code class="api-signature">bool _serializing</code></div></div>
                     <div id="TomList._lifecycleListeners" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final List&lt;TomListLifecycleListener&gt; _lifecycleListeners</code></div>
                       <div class="api-doc"><p>Registered lifecycle listeners.</p></div>
+                    </div>
+                    <div id="TomList.muteCascadeTargets" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Iterable&lt;TomObservable&gt; muteCascadeTargets</code></div>
                     </div>
                     <div id="TomList.first" class="api-member"><div class="api-member-head"><code class="api-signature">E first</code></div></div>
                     <div id="TomList.last" class="api-member"><div class="api-member-head"><code class="api-signature">E last</code></div></div>
@@ -1831,6 +1963,8 @@ items[0] | \"updated\"; // Triggers observer</code></pre>
                     <div id="TomList.isNotEmpty" class="api-member"><div class="api-member-head"><code class="api-signature">bool isNotEmpty</code></div></div>
                     <div id="TomList.iterator" class="api-member"><div class="api-member-head"><code class="api-signature">Iterator&lt;E&gt; iterator</code></div></div>
                     <div id="TomList.single" class="api-member"><div class="api-member-head"><code class="api-signature">E single</code></div></div>
+                    <div id="TomList._hasUntypedElements" class="api-member"><div class="api-member-head"><code class="api-signature">bool _hasUntypedElements</code></div></div>
+                    <div id="TomList._elementTypeName" class="api-member"><div class="api-member-head"><code class="api-signature">String _elementTypeName</code></div></div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
@@ -1852,14 +1986,38 @@ items[0] | \"updated\"; // Triggers observer</code></pre>
                     <div id="TomList._detachFrom" class="api-member">
                       <div class="api-member-head"><code class="api-signature">bool _detachFrom(Iterable&lt;E&gt; list)</code></div>
                     </div>
+                    <div id="TomList._snapshot" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">List&lt;E&gt; _snapshot()</code></div>
+                      <div class="api-doc">
+                        <p>The current element sequence, for a later [_notifyIfChangedSince].</p>
+                        <p>
+                          Taken by the mutators whose outcome is not knowable in advance — a <code>sort</code> of an already-sorted list, a 
+                          <code>setRange</code> that writes back what was there. Mutators that always change the list (<code>add</code>, 
+                          <code>insert</code>, <code>removeAt</code>) notify directly instead of paying for the copy.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomList._notifyIfChangedSince" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void _notifyIfChangedSince(List&lt;E&gt; before)</code></div>
+                      <div class="api-doc">
+                        <p>Notifies observers only if the element sequence differs from [before].</p>
+                        <p>
+                          Compared by identity, not equality: observers hold element references, so swapping in an equal-but-distinct element is a real change. A change 
+                          <em>inside</em> an element is not this method's business — it reaches observers through [onNotify].
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomList.set" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">List&lt;E&gt; set(List&lt;E&gt; value)</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                       <div class="api-doc">
-                        <p>Throws [TomObservableException] unless called during serialization.</p>
-                        <p>Use [add], [addAll], or index assignment to modify the list.</p>
+                        <p>Always throws [TomObservableException]: a list is never assigned wholesale through [set].</p>
+                        <p>
+                          Replacing the backing list here would leave the outgoing elements still registered as observed and the incoming ones unobserved — the list would go quiet for every element it now holds. The operations that 
+                          <em>do</em> replace the contents perform that exchange properly: [operator &lt;&lt;] for an ordinary swap, [resetWith] when the lifecycle callbacks are wanted too. For single elements use [add], [addAll], or index assignment.
+                        </p>
                       </div>
                     </div>
                     <div id="TomList.get" class="api-member">
@@ -1877,30 +2035,6 @@ items[0] | \"updated\"; // Triggers observer</code></pre>
                       <div class="api-doc">
                         <p>Called when any observed element changes.</p>
                         <p>Propagates the notification to this list's observers.</p>
-                      </div>
-                    </div>
-                    <div id="TomList.mute" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">void mute()</code>
-                        <span class="api-badge api-badge--override">override</span>
-                      </div>
-                      <div class="api-doc">
-                        <p>Mutes this list and all its elements.</p>
-                        <p>
-                          While muted, changes to elements are tracked but not propagated. Call [unmute] to resume notifications and trigger a single consolidated notification if any elements were modified.
-                        </p>
-                      </div>
-                    </div>
-                    <div id="TomList.unmute" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">void unmute()</code>
-                        <span class="api-badge api-badge--override">override</span>
-                      </div>
-                      <div class="api-doc">
-                        <p>Unmutes this list and all its elements.</p>
-                        <p>
-                          Elements are unmuted first while the list is still muted, so their notifications are absorbed. Then the list is unmuted, triggering a single notification if any element was modified while muted.
-                        </p>
                       </div>
                     </div>
                     <div id="TomList.append" class="api-member">
@@ -1921,6 +2055,13 @@ items[0] | \"updated\"; // Triggers observer</code></pre>
                       <div class="api-member-head">
                         <code class="api-signature">List&lt;R&gt; cast&lt;R&gt;()</code>
                         <span class="api-badge api-badge--override">override</span>
+                      </div>
+                      <div class="api-doc">
+                        <p>A <strong>read-only</strong> re-typed view of this list.</p>
+                        <p>
+                          <code>List.cast</code> alone returns a writable view: <code>list.cast&lt;TomObject&gt;().add(x)</code>
+                           reaches the backing list, and the observers never hear about it. Wrapping keeps <code>cast</code>'s liveness — later elements show up — while refusing the writes that only the mutators may perform.
+                        </p>
                       </div>
                     </div>
                     <div id="TomList.contains" class="api-member">
@@ -1949,7 +2090,7 @@ items[0] | \"updated\"; // Triggers observer</code></pre>
                     </div>
                     <div id="TomList.firstWhere" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">E firstWhere(bool Function(E) test, {dynamic Function()?? orElse})</code>
+                        <code class="api-signature">E firstWhere(bool Function(E) test, {E Function()?? orElse})</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
@@ -1961,7 +2102,7 @@ items[0] | \"updated\"; // Triggers observer</code></pre>
                     </div>
                     <div id="TomList.followedBy" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">Iterable&lt;E&gt; followedBy(Iterable&lt;dynamic&gt; other)</code>
+                        <code class="api-signature">Iterable&lt;E&gt; followedBy(Iterable&lt;E&gt; other)</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
@@ -1979,7 +2120,7 @@ items[0] | \"updated\"; // Triggers observer</code></pre>
                     </div>
                     <div id="TomList.lastWhere" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">E lastWhere(bool Function(E) test, {dynamic Function()?? orElse})</code>
+                        <code class="api-signature">E lastWhere(bool Function(E) test, {E Function()?? orElse})</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
@@ -1991,13 +2132,13 @@ items[0] | \"updated\"; // Triggers observer</code></pre>
                     </div>
                     <div id="TomList.reduce" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">E reduce(dynamic Function(E, E) combine)</code>
+                        <code class="api-signature">E reduce(E Function(E, E) combine)</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
                     <div id="TomList.singleWhere" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">E singleWhere(bool Function(E) test, {dynamic Function()?? orElse})</code>
+                        <code class="api-signature">E singleWhere(bool Function(E) test, {E Function()?? orElse})</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
@@ -2065,6 +2206,56 @@ items[0] | \"updated\"; // Triggers observer</code></pre>
                         <p>
                           [TomClass._setListMember] uses this method so that observers such as <code>TomListForm</code> can teardown / recreate their sub-form instances when a parent form writes its bind-time snapshot back via 
                           <code>setValues()</code>.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomList._acceptsElement" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool _acceptsElement(TomObject&lt;dynamic&gt; candidate)</code></div>
+                      <div class="api-doc">
+                        <p>Whether [candidate] may be stored in this list.</p>
+                        <p>
+                          [TomClass._setListMember] builds elements reflectively and holds them as <code>TomObject&lt;dynamic&gt;</code>, so it cannot express the 
+                          <code>is E</code> test itself — <code>E</code> is only in scope here. Asking the list lets a mistyped element be reported before it is installed rather than as a covariant-check 
+                          <code>TypeError</code> after the list has already been cleared.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomList._widenElement" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">dynamic _widenElement(dynamic raw)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Widens a deserialized [raw] number to <code>double</code> when this list holds doubles, leaving every other value untouched.
+                        </p>
+                        <p>
+                          Like [_acceptsElement], this exists because <code>E</code> is only in scope here: [TomClass._setListMember] knows the raw JSON value but not the element type. See [TomObject._widenForDoubleTarget] for the rule itself.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomList._elementFrom" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomObject&lt;dynamic&gt; _elementFrom(dynamic raw)</code></div>
+                      <div class="api-doc">
+                        <p>Builds the element this list should hold for [raw].</p>
+                        <p>
+                          Like [_acceptsElement] and [_widenElement] this exists because <code>E</code> is only in scope here: [TomClass._setListMember] holds the raw JSON value but not the element type it has to become.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomList._resetWithDynamic" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">void _resetWithDynamic(Iterable&lt;TomObject&lt;dynamic&gt;&gt; elements)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Loosely-typed variant of [resetWith] used by deserialization.</p>
+                        <p>
+                          [TomClass._setListMember] builds new elements reflectively into a <code>List&lt;TomObject&lt;dynamic&gt;&gt;</code>; every element is really an 
+                          <code>E</code>, but the list's <em>reified</em> type is not <code>List&lt;E&gt;</code>. Passing it to [resetWith] fails the covariant 
+                          <code>Iterable&lt;E&gt;</code> parameter check at method entry, before the body runs. This variant's parameter type does not mention 
+                          <code>E</code>, so no whole-container covariant check happens — each element is instead checked individually via 
+                          <code>add</code>'s covariant parameter, exactly like the element-by-element path in [_setListMember].
+                        </p>
+                        <p>
+                          Unlike the other mutators this one notifies unconditionally, even when the new contents happen to be the old ones: the lifecycle listeners have already torn down and rebuilt whatever they hold per element, so from an observer's point of view the list 
+                          <em>has</em> been replaced.
                         </p>
                       </div>
                     </div>
@@ -2138,7 +2329,19 @@ items[0] | \"updated\"; // Triggers observer</code></pre>
                         <code class="api-signature">TomList&lt;E&gt; operator &lt;&lt;(List&lt;E&gt; value)</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
-                      <div class="api-doc"><p>Override parent's &lt;&lt; operator for setting the entire list value.</p></div>
+                      <div class="api-doc">
+                        <p>Replaces every element with [value] and returns this list.</p>
+                        <p>
+                          This is the operator form of a wholesale swap, and on a list it is not what [set] does — [set] throws, because replacing the backing list behind the element observers would silently strand them. 
+                          <code>&lt;&lt;</code> performs the swap <em>properly</em>: it detaches the outgoing elements, attaches the incoming ones, and emits 
+                          <strong>one</strong> notification for the whole exchange rather than one per element.
+                        </p>
+                        <pre><code>final rows = TomList&lt;TomString&gt;();
+rows &lt;&lt; [TomString('x'), TomString('y')];   // one notification</code></pre>
+                        <p>
+                          Silent if the new sequence is element-for-element <strong>identical</strong> to the old one. The comparison is by identity, not equality, because observers hold element references: swapping in an equal-but-distinct element is a real change. See [resetWith] for the same swap with lifecycle callbacks, which for that reason notifies unconditionally.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomList.[]" class="api-member"><div class="api-member-head"><code class="api-signature">E operator [](int index)</code></div></div>
                     <div id="TomList.[]=" class="api-member">
@@ -2152,6 +2355,27 @@ items[0] | \"updated\"; // Triggers observer</code></pre>
                         <code class="api-signature">bool operator ==(Object other)</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
+                      <div class="api-doc">
+                        <p>Identity, <strong>not</strong> contents: a list equals only itself.</p>
+                        <p>
+                          Two lists holding equal elements are unequal, and that is deliberate. A <code>TomList</code> is a mutable cell, so a content-based equality would need a content-based [hashCode], and an object whose hash changes while it sits in a 
+                          <code>Set</code> or serves as a <code>Map</code> key can no longer be found there. Dart's own <code>List</code>
+                           and <code>Map</code> decline content equality for exactly this reason, and so does every other observable in this library — [TomObject], [TomClass] and the scalars all inherit identity equality from 
+                          <code>Object</code>. This override states the same rule explicitly, because a type that implements <code>Iterable</code>
+                           invites the opposite assumption.
+                        </p>
+                        <p>
+                          Identity is also the honest answer for what the type <em>is</em>: observers register per instance, so two lists with equal elements are different cells with different observers and different parents.
+                        </p>
+                        <p>
+                          To compare contents, unwrap the elements. Those are observables too and compare by identity in turn, so comparing the raw lists — 
+                          <code>~a == ~b</code>, or any list-equality helper over them — is <strong>not</strong> enough:
+                        </p>
+                        <pre><code>bool sameContents(TomList&lt;TomInt&gt; a, TomList&lt;TomInt&gt; b) =&gt;
+    a.length == b.length &amp;&amp;
+    Iterable&lt;int&gt;.generate(a.length).every((i) =&gt; ~a[i] == ~b[i]);</code></pre>
+                        <p>For a list of nested [TomClass] elements compare <code>getValues()</code> per element instead.</p>
+                      </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Static</h4>
@@ -2162,7 +2386,26 @@ items[0] | \"updated\"; // Triggers observer</code></pre>
                           static TomList&lt;E&gt; castFrom&lt;S extends TomObject&lt;dynamic&gt;, E extends TomObject&lt;dynamic&gt;&gt;(TomList&lt;S&gt; source)
                         </code>
                       </div>
-                      <div class="api-doc"><p>Casts a [TomList] from one element type to another.</p></div>
+                      <div class="api-doc">
+                        <p>A new list of type <code>E</code> holding [source]'s elements.</p>
+                        <p>
+                          <strong>The structure is copied; the elements are shared.</strong> The two lists are independent cells from here on — adding to one does not add to the other — but they hold the 
+                          <em>same</em> element instances, so both observe them and a change inside an element notifies both. That is inherent to a cast: no new elements can be manufactured, only re-typed. [source] is left untouched and fully functional; nothing is taken from it.
+                        </p>
+                        <p>
+                          A <em>live</em> re-typed <code>TomList</code> sharing the backing list is deliberately not offered: each container carries its own observers, so a shared structure would let one side grow the other without notifying it, and would leave elements added through one side unobserved by the other. When a live view is what you want, [cast] gives one — read-only, and a plain 
+                          <code>List&lt;R&gt;</code> rather than an observable cell. Use [TomList.of] for this copy without the re-typing.
+                        </p>
+                        <p>
+                          Both type arguments must be written out — Dart takes type arguments all-or-nothing, so <code>S</code>
+                           cannot be left to inference even though [source] determines it:
+                        </p>
+                        <pre><code>final ints = TomList&lt;TomInt&gt;()..add(TomInt(1));
+final widened = TomList.castFrom&lt;TomInt, TomObject&gt;(ints);</code></pre>
+                        <p>
+                          Throws a <code>TypeError</code> <strong>here</strong>, not on a later read, if an element is not an <code>E</code>: the copy type-checks the whole sequence up front.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>
@@ -2214,18 +2457,43 @@ items[0] | \"updated\"; // Triggers observer</code></pre>
                       [TomMap] wraps a [Map] with [TomObject] values and provides: - Automatic observation of all values (changes in values notify the map) - All standard [Map] operations with observer management - Custom operators for convenient manipulation
                     </p>
                     <p>Note: Keys are not observed, only values.</p>
+                    <p>
+                      It implements no [Map] interface: the standard operations are provided, but a <code>TomMap&lt;K, V&gt;</code>
+                       is not assignable to a <code>Map&lt;K, V&gt;</code>. Use [get] (which returns a copy) at a boundary that insists on the 
+                      <code>dart:core</code> type. Note the asymmetry — [get] works, whereas [set] throws.
+                    </p>
                     <h2>Operators</h2>
                     <ul>
                       <li><code>map[key]</code> - Get value for key</li>
                       <li><code>map[key] = value</code> - Set value for key</li>
                       <li><code>map + other</code> - Merge two TomMaps</li>
+                      <li>
+                        <code>map &lt;&lt; {...}</code> - Replace <strong>all</strong> entries in one notification, returning
+                      </li>
                     </ul>
+                    <p>the map (see [TomMap.operator &lt;&lt;])</p>
+                    <h2>Notification contract</h2>
+                    <p>
+                      <strong>A mutator notifies exactly once when it changed the map's contents, and not at all when it left them as they were.</strong>
+                       <code>remove</code> of an absent key, <code>addAll({})</code>, <code>clear()</code> on an empty map and re-binding a key to the value it already holds are all silent; 
+                      <code>remove</code> of a <em>present</em> key notifies. "Contents" means the key-to-value-<em>reference</em>
+                       mapping, compared by identity — swapping in an equal-but-distinct value is a real change, because observers hold references. A change 
+                      <em>inside</em> a value is not the mutator's business: it reaches observers through [onNotify].
+                    </p>
                     <h2>Example</h2>
-                    <pre><code>final users = TomMap&lt;String, Person&gt;();
-users[\"john\"] = Person();
+                    <pre><code>@tomReflector
+class Person extends TomClass {
+  final name = TomString("");
+}
 
-users &gt;&gt; (obs) =&gt; print(\"Map changed!\");
-users[\"john\"]!.name | \"John Doe\"; // Triggers observer</code></pre>
+final users = TomMap&lt;String, Person&gt;();
+users["john"] = Person();
+
+// Retain the observer — it is held weakly.
+final observer = users &gt;&gt; (obs) =&gt; print("Map changed!");
+users["john"]!.name | "John Doe"; // Triggers observer
+
+users.removeObserver(observer);</code></pre>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
@@ -2248,7 +2516,11 @@ users[\"john\"]!.name | \"John Doe\"; // Triggers observer</code></pre>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
+                    <div id="TomMap.muteCascadeTargets" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Iterable&lt;TomObservable&gt; muteCascadeTargets</code></div>
+                    </div>
                     <div id="TomMap.length" class="api-member"><div class="api-member-head"><code class="api-signature">int length</code></div></div>
+                    <div id="TomMap._hasUntypedValues" class="api-member"><div class="api-member-head"><code class="api-signature">bool _hasUntypedValues</code></div></div>
                     <div id="TomMap.hashCode" class="api-member"><div class="api-member-head"><code class="api-signature">int hashCode</code></div></div>
                     <div id="TomMap.isEmpty" class="api-member"><div class="api-member-head"><code class="api-signature">bool isEmpty</code></div></div>
                     <div id="TomMap.isNotEmpty" class="api-member"><div class="api-member-head"><code class="api-signature">bool isNotEmpty</code></div></div>
@@ -2265,6 +2537,30 @@ users[\"john\"]!.name | \"John Doe\"; // Triggers observer</code></pre>
                     </div>
                     <div id="TomMap._detachFrom" class="api-member">
                       <div class="api-member-head"><code class="api-signature">bool _detachFrom(Iterable&lt;V&gt; list)</code></div>
+                    </div>
+                    <div id="TomMap._snapshot" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Map&lt;K, V&gt; _snapshot()</code></div>
+                      <div class="api-doc">
+                        <p>The current key-to-value mapping, for a later [_notifyIfChangedSince].</p>
+                        <p>
+                          Taken by the mutators whose outcome is not knowable in advance — an <code>addAll</code> that overwrites nothing new, a 
+                          <code>removeWhere</code> that matches nothing. Mutators that always change the map notify directly instead.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomMap._notifyIfChangedSince" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void _notifyIfChangedSince(Map&lt;K, V&gt; before)</code></div>
+                      <div class="api-doc">
+                        <p>Notifies observers only if the mapping differs from [before].</p>
+                        <p>
+                          Compared by identity, not equality: observers hold value references, so swapping in an equal-but-distinct value is a real change. A change 
+                          <em>inside</em> a value is not this method's business — it reaches observers through [onNotify].
+                        </p>
+                        <p>
+                          Equal sizes plus every old key still bound to the same object implies the key sets are equal too: a dropped key would have to be balanced by a new one, and the dropped key's lookup then returns 
+                          <code>null</code>.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomMap.set" class="api-member">
                       <div class="api-member-head">
@@ -2293,27 +2589,22 @@ users[\"john\"]!.name | \"John Doe\"; // Triggers observer</code></pre>
                         <p>Propagates the notification to this map's observers.</p>
                       </div>
                     </div>
-                    <div id="TomMap.mute" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">void mute()</code>
-                        <span class="api-badge api-badge--override">override</span>
-                      </div>
+                    <div id="TomMap._widenValue" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">dynamic _widenValue(dynamic raw)</code></div>
                       <div class="api-doc">
-                        <p>Mutes this map and all its values.</p>
                         <p>
-                          While muted, changes to values are tracked but not propagated. Call [unmute] to resume notifications and trigger a single consolidated notification if any values were modified.
+                          Widens a deserialized [raw] number to <code>double</code> when this map holds doubles, leaving every other value untouched.
+                        </p>
+                        <p>
+                          Exists because <code>V</code> is only in scope here: [TomClass._setMapMember] knows the raw JSON value but not the value type. See [TomObject._widenForDoubleTarget] for the rule itself.
                         </p>
                       </div>
                     </div>
-                    <div id="TomMap.unmute" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">void unmute()</code>
-                        <span class="api-badge api-badge--override">override</span>
-                      </div>
+                    <div id="TomMap._valueFrom" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomObject&lt;dynamic&gt; _valueFrom(dynamic raw)</code></div>
                       <div class="api-doc">
-                        <p>Unmutes this map and all its values.</p>
                         <p>
-                          Values are unmuted first while the map is still muted, so their notifications are absorbed. Then the map is unmuted, triggering a single notification if any value was modified while muted.
+                          Builds the value this map should hold for [raw]; the map-side counterpart of <code>TomList._elementFrom</code>.
                         </p>
                       </div>
                     </div>
@@ -2321,7 +2612,9 @@ users[\"john\"]!.name | \"John Doe\"; // Triggers observer</code></pre>
                       <div class="api-member-head"><code class="api-signature">void add(K key, V value)</code></div>
                       <div class="api-doc">
                         <p>Adds a key-value pair to the map.</p>
-                        <p>If the key already exists, the old value is unobserved and replaced.</p>
+                        <p>
+                          If the key already exists, the old value is unobserved and replaced. Re-binding a key to the value it already holds changes nothing and is therefore silent.
+                        </p>
                       </div>
                     </div>
                     <div id="TomMap.addAll" class="api-member">
@@ -2332,6 +2625,13 @@ users[\"john\"]!.name | \"John Doe\"; // Triggers observer</code></pre>
                     </div>
                     <div id="TomMap.cast" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Map&lt;RK, RV&gt; cast&lt;RK, RV&gt;()</code></div>
+                      <div class="api-doc">
+                        <p>A <strong>read-only</strong> re-typed view of this map.</p>
+                        <p>
+                          <code>Map.cast</code> alone returns a writable view, so <code>map.cast&lt;Object, TomObject&gt;() .remove(k)</code>
+                           would drop an entry without detaching the value's observer and without notifying. See [TomList.cast].
+                        </p>
+                      </div>
                     </div>
                     <div id="TomMap.clear" class="api-member"><div class="api-member-head"><code class="api-signature">void clear()</code></div></div>
                     <div id="TomMap.containsKey" class="api-member"><div class="api-member-head"><code class="api-signature">bool containsKey(K key)</code></div></div>
@@ -2347,7 +2647,16 @@ users[\"john\"]!.name | \"John Doe\"; // Triggers observer</code></pre>
                     <div id="TomMap.putIfAbsent" class="api-member">
                       <div class="api-member-head"><code class="api-signature">V putIfAbsent(K key, V Function() ifAbsent)</code></div>
                     </div>
-                    <div id="TomMap.remove" class="api-member"><div class="api-member-head"><code class="api-signature">V? remove(K? key)</code></div></div>
+                    <div id="TomMap.remove" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">V? remove(K? key)</code></div>
+                      <div class="api-doc">
+                        <p>Removes [key] and returns its value, or <code>null</code> if the key was absent.</p>
+                        <p>
+                          A removal detaches the value and notifies; an absent key changes nothing and is silent. <code>V</code>
+                           is non-nullable, so a <code>null</code> from the underlying remove means "was not there" and nothing else.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomMap.removeWhere" class="api-member">
                       <div class="api-member-head"><code class="api-signature">void removeWhere(bool Function(K, V) test)</code></div>
                     </div>
@@ -2377,12 +2686,34 @@ users[\"john\"]!.name | \"John Doe\"; // Triggers observer</code></pre>
                         <code class="api-signature">TomMap&lt;K, V&gt; operator &lt;&lt;(Map&lt;K, V&gt; newMap)</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
-                      <div class="api-doc"><p>Replaces the entire map with [newMap], updating observers.</p></div>
+                      <div class="api-doc">
+                        <p>Replaces every entry with [newMap] and returns this map.</p>
+                        <p>
+                          The map counterpart of [TomList.operator &lt;&lt;], with the same contract: [set] throws on a map, so this is the operator form of a wholesale swap. It detaches the outgoing values, attaches the incoming ones, and emits 
+                          <strong>one</strong> notification for the exchange rather than one per entry.
+                        </p>
+                        <pre><code>final scores = TomMap&lt;String, TomInt&gt;();
+scores &lt;&lt; {'ada': TomInt(10), 'bob': TomInt(8)};   // one notification</code></pre>
+                      </div>
                     </div>
                     <div id="TomMap.==" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">bool operator ==(Object other)</code>
                         <span class="api-badge api-badge--override">override</span>
+                      </div>
+                      <div class="api-doc">
+                        <p>Identity, <strong>not</strong> contents: a map equals only itself.</p>
+                        <p>
+                          The rule, and the reasoning behind it, are the same as for [TomList.operator ==] — a mutable cell cannot carry a content-based [hashCode] without going missing from the 
+                          <code>Set</code> it was put in, and observers register per instance, so two maps with equal entries are different cells. Every other observable in this library inherits the same identity equality from 
+                          <code>Object</code>.
+                        </p>
+                        <p>
+                          To compare contents, unwrap the values; they are observables in their own right and compare by identity too:
+                        </p>
+                        <pre><code>bool sameContents(TomMap&lt;String, TomInt&gt; a, TomMap&lt;String, TomInt&gt; b) =&gt;
+    a.length == b.length &amp;&amp;
+    a.keys.every((k) =&gt; b.containsKey(k) &amp;&amp; ~a[k]! == ~b[k]!);</code></pre>
                       </div>
                     </div>
                   </div>
@@ -2394,7 +2725,19 @@ users[\"john\"]!.name | \"John Doe\"; // Triggers observer</code></pre>
                           static TomMap&lt;K2, V2&gt; castFrom&lt;K, V extends TomObject&lt;dynamic&gt;, K2, V2 extends TomObject&lt;dynamic&gt;&gt;(TomMap&lt;K, V&gt; source)
                         </code>
                       </div>
-                      <div class="api-doc"><p>Casts a [TomMap] from one key/value type to another.</p></div>
+                      <div class="api-doc">
+                        <p>A new map of type <code>K2</code>/<code>V2</code> holding [source]'s entries.</p>
+                        <p>
+                          <strong>The structure is copied; the values are shared.</strong> Same contract as [TomList.castFrom] — the two maps are independent cells, but they hold the same value instances, so both observe them and a change inside a value notifies both. [source] is left untouched. For a live view instead, [cast] gives one — read-only, and a plain 
+                          <code>Map&lt;RK, RV&gt;</code> rather than an observable cell. Use [TomMap.of] for this copy without the re-typing.
+                        </p>
+                        <p>All four type arguments must be written out, since Dart takes type arguments all-or-nothing:</p>
+                        <pre><code>final scores = TomMap&lt;String, TomInt&gt;();
+final widened = TomMap.castFrom&lt;String, TomInt, String, TomObject&gt;(scores);</code></pre>
+                        <p>
+                          Throws a <code>TypeError</code> <strong>here</strong>, not on a later read, if a key or value does not have the target type: the copy type-checks every entry up front.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>
@@ -2471,11 +2814,14 @@ users[\"john\"]!.name | \"John Doe\"; // Triggers observer</code></pre>
                 </section>
                 <section id="TomNOTimezoned" class="api-declaration">
                   <h3 class="api-decl-title">class TomNOTimezoned</h3>
-                  <code class="api-signature">class TomNOTimezoned&lt;TZ extends TomTimezoned?&gt; extends TomOTimezoned&lt;TZ&gt;</code>
+                  <code class="api-signature">abstract class TomNOTimezoned&lt;TZ extends TomTimezoned?&gt; extends TomOTimezoned&lt;TZ&gt;</code>
                   <div class="api-doc">
                     <p>An observable wrapper for nullable [TomTimezoned] values.</p>
                     <p>
                       This is the base class for nullable timezone-aware observable types: - [TomNOZonedTime] - nullable time with timezone - [TomNOZonedDate] - nullable date with timezone - [TomNOZonedDateTime] - nullable datetime with timezone
+                    </p>
+                    <p>
+                      Abstract for the same reason as [TomOTimezoned]: it adds no parsing of its own, so leaving it concrete would give it an inherited [setByString] with no implementation behind it.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -2489,7 +2835,10 @@ users[\"john\"]!.name | \"John Doe\"; // Triggers observer</code></pre>
                   <div class="api-members">
                     <div id="TomNOTimezoned.noDateTime" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static TomNOTimezoned&lt;TomTimezoned?&gt; noDateTime</code></div>
-                      <div class="api-doc"><p>A sentinel value representing "no datetime" (Unix epoch in UTC).</p></div>
+                      <div class="api-doc">
+                        <p>A sentinel value representing "no datetime" (Unix epoch in UTC).</p>
+                        <p>A [TomNOZonedDateTime] rather than a bare [TomNOTimezoned] — see [TomOTimezoned.noDateTime].</p>
+                      </div>
                     </div>
                   </div>
                 </section>
@@ -2528,7 +2877,13 @@ users[\"john\"]!.name | \"John Doe\"; // Triggers observer</code></pre>
                   <div class="api-members">
                     <div id="TomNOZonedDate.noZonedDate" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static TomZonedDate noZonedDate</code></div>
-                      <div class="api-doc"><p>A sentinel value representing "no date" (Unix epoch).</p></div>
+                      <div class="api-doc">
+                        <p>A sentinel value representing "no date" (the Unix epoch, in UTC).</p>
+                        <p>
+                          Built from <code>DateTime.utc(1970)</code> rather than <code>DateTime(1970)</code>. A local-time epoch is not merely offset by a few hours here — because the value is truncated to a date, a negative UTC offset moves the sentinel to the 
+                          <em>previous day</em>.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomNOZonedDate.noTime" class="api-member"><div class="api-member-head"><code class="api-signature">static TomNOZonedDate noTime</code></div></div>
                   </div>
@@ -2562,7 +2917,12 @@ users[\"john\"]!.name | \"John Doe\"; // Triggers observer</code></pre>
                   <div class="api-members">
                     <div id="TomNOZonedDateTime.noZonedDateTime" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static TomZonedDateTime noZonedDateTime</code></div>
-                      <div class="api-doc"><p>A sentinel value representing "no datetime" (Unix epoch).</p></div>
+                      <div class="api-doc">
+                        <p>A sentinel value representing "no datetime" (the Unix epoch, in UTC).</p>
+                        <p>
+                          Built from <code>DateTime.utc(1970)</code> rather than <code>DateTime(1970)</code> so that the sentinel denotes the same instant on every machine.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomNOZonedDateTime.noTime" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static TomNOZonedDateTime noTime</code></div>
@@ -2604,7 +2964,12 @@ users[\"john\"]!.name | \"John Doe\"; // Triggers observer</code></pre>
                   <div class="api-members">
                     <div id="TomNOZonedTime.noZonedTime" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static TomZonedTime noZonedTime</code></div>
-                      <div class="api-doc"><p>A sentinel value representing "no time" (Unix epoch).</p></div>
+                      <div class="api-doc">
+                        <p>A sentinel value representing "no time" (the Unix epoch, in UTC).</p>
+                        <p>
+                          Built from <code>DateTime.utc(1970)</code> rather than <code>DateTime(1970)</code> so that the sentinel denotes the same instant on every machine. A local-time epoch would shift with the reader's zone, which would make a sentinel comparison depend on where it runs and would change the meaning of a persisted "no value" when it crosses zones.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomNOZonedTime.noTime" class="api-member"><div class="api-member-head"><code class="api-signature">static TomNOZonedTime noTime</code></div></div>
                   </div>
@@ -2630,14 +2995,14 @@ nickname | "Johnny"; // Set a value</code></pre>
                 </section>
                 <section id="TomOTimezoned" class="api-declaration">
                   <h3 class="api-decl-title">class TomOTimezoned</h3>
-                  <code class="api-signature">class TomOTimezoned&lt;TZ extends TomTimezoned?&gt; extends TomObject&lt;TZ&gt;</code>
+                  <code class="api-signature">abstract class TomOTimezoned&lt;TZ extends TomTimezoned?&gt; extends TomObject&lt;TZ&gt;</code>
                   <div class="api-doc">
                     <p>An observable wrapper for [TomTimezoned] values (timezone-aware date/time).</p>
                     <p>
                       This is the base class for timezone-aware observable types: - [TomOZonedTime] - time with timezone - [TomOZonedDate] - date with timezone - [TomOZonedDateTime] - datetime with timezone
                     </p>
                     <p>
-                      Subclasses override [setByString] and [getSerializationPrefix] for proper serialization/deserialization.
+                      The class is abstract, and so is [setByString]: see that method for why a concrete base would be a data-loss hazard. [getSerializationPrefix], by contrast, has a usable default and may simply be inherited.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -2652,16 +3017,30 @@ nickname | "Johnny"; // Set a value</code></pre>
                     <div id="TomOTimezoned.getSerializationPrefix" class="api-member">
                       <div class="api-member-head"><code class="api-signature">String getSerializationPrefix()</code></div>
                       <div class="api-doc">
+                        <p>Returns the wire prefix that marks a serialized value of this flavour.</p>
                         <p>
-                          Returns the serialization prefix for this timezone type. Override in subclasses to return the appropriate prefix.
+                          Defaults to [TomZonedDateTime.serializationPrefix] (<code>@X@</code>), which is correct for the datetime subtypes — they inherit this method rather than restating it. The date and time subtypes override it with 
+                          <code>@D@</code> / <code>@T@</code>.
+                        </p>
+                        <p>
+                          Unlike [setByString] this has a defensible default, so it is concrete: a subtype that inherits the wrong prefix produces a value that is visibly mislabelled on the wire, not one that vanishes.
                         </p>
                       </div>
                     </div>
                     <div id="TomOTimezoned.setByString" class="api-member">
                       <div class="api-member-head"><code class="api-signature">void setByString(String s)</code></div>
                       <div class="api-doc">
+                        <p>Sets the value by parsing a serialized string representation.</p>
                         <p>
-                          Sets the value by parsing a serialized string representation. Override in subclasses to handle the specific timezone type.
+                          This is the <strong>only</strong> entry point for a serialized zoned value: <code>TomClass.setOrMergeValues</code>
+                           routes every <code>String</code> destined for a [TomOTimezoned] member through here, because [TomTimezoned] extends [DateTime] and would otherwise be handed to 
+                          <code>DateTime.parse</code> with its <code>@D@</code>/<code>@T@</code>/<code>@X@</code> prefix still attached.
+                        </p>
+                        <p>
+                          It is abstract rather than an inherited no-op. There is no default that could be right — the base cannot know which of the three wire formats to parse — and a subtype that inherited an empty body would drop the field during deserialization with no throw, no log and no return value to inspect. Making it abstract turns "forgot to implement it" into a compile error. A subtype that genuinely has nothing to parse must write the empty override itself, so that the silence is a stated decision.
+                        </p>
+                        <p>
+                          Implementations accept both the prefixed wire form emitted by [TomTimezoned.toString] and a bare ISO-8601 timestamp.
                         </p>
                       </div>
                     </div>
@@ -2670,7 +3049,12 @@ nickname | "Johnny"; // Set a value</code></pre>
                   <div class="api-members">
                     <div id="TomOTimezoned.noDateTime" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static TomOTimezoned&lt;TomTimezoned?&gt; noDateTime</code></div>
-                      <div class="api-doc"><p>A sentinel value representing "no datetime" (Unix epoch in UTC).</p></div>
+                      <div class="api-doc">
+                        <p>A sentinel value representing "no datetime" (Unix epoch in UTC).</p>
+                        <p>
+                          A [TomOZonedDateTime] rather than a bare [TomOTimezoned], which the abstract base does not permit. The datetime flavour is the right choice: it is the one whose prefix [getSerializationPrefix] already returns by default.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>
@@ -2681,7 +3065,9 @@ nickname | "Johnny"; // Set a value</code></pre>
                     <p>An observable wrapper for [TomZonedDate] values (date with timezone).</p>
                     <p>Supports serialization with the [TomZonedDate.serializationPrefix] (<code>@D@</code>).</p>
                     <p>Example:</p>
-                    <pre><code>final birthDate = TomOZonedDate(TomZonedDate.now());</code></pre>
+                    <pre><code>final birthDate = TomOZonedDate(
+  TomZonedDate.fromDateTime(DateTime.now(), TomTimezone.fromName('Asia/Tokyo')),
+);</code></pre>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
@@ -2708,7 +3094,13 @@ nickname | "Johnny"; // Set a value</code></pre>
                   <div class="api-members">
                     <div id="TomOZonedDate.noZonedDate" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static TomZonedDate noZonedDate</code></div>
-                      <div class="api-doc"><p>A sentinel value representing "no date" (Unix epoch).</p></div>
+                      <div class="api-doc">
+                        <p>A sentinel value representing "no date" (the Unix epoch, in UTC).</p>
+                        <p>
+                          Built from <code>DateTime.utc(1970)</code> rather than <code>DateTime(1970)</code>. A local-time epoch is not merely offset by a few hours here — because the value is truncated to a date, a negative UTC offset moves the sentinel to the 
+                          <em>previous day</em>.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomOZonedDate.noTime" class="api-member"><div class="api-member-head"><code class="api-signature">static TomOZonedDate noTime</code></div></div>
                   </div>
@@ -2741,7 +3133,12 @@ nickname | "Johnny"; // Set a value</code></pre>
                   <div class="api-members">
                     <div id="TomOZonedDateTime.noZonedDateTime" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static TomZonedDateTime noZonedDateTime</code></div>
-                      <div class="api-doc"><p>A sentinel value representing "no datetime" (Unix epoch).</p></div>
+                      <div class="api-doc">
+                        <p>A sentinel value representing "no datetime" (the Unix epoch, in UTC).</p>
+                        <p>
+                          Built from <code>DateTime.utc(1970)</code> rather than <code>DateTime(1970)</code> so that the sentinel denotes the same instant on every machine.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomOZonedDateTime.noTime" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static TomOZonedDateTime noTime</code></div>
@@ -2755,7 +3152,9 @@ nickname | "Johnny"; // Set a value</code></pre>
                     <p>An observable wrapper for [TomZonedTime] values (time with timezone).</p>
                     <p>Supports serialization with the [TomZonedTime.serializationPrefix] (<code>@T@</code>).</p>
                     <p>Example:</p>
-                    <pre><code>final meetingTime = TomOZonedTime(TomZonedTime.now());</code></pre>
+                    <pre><code>final meetingTime = TomOZonedTime(
+  TomZonedTime.fromDateTime(DateTime.now(), TomTimezone.fromName('Asia/Tokyo')),
+);</code></pre>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
@@ -2782,7 +3181,12 @@ nickname | "Johnny"; // Set a value</code></pre>
                   <div class="api-members">
                     <div id="TomOZonedTime.noZonedTime" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static TomZonedTime noZonedTime</code></div>
-                      <div class="api-doc"><p>A sentinel value representing "no time" (Unix epoch).</p></div>
+                      <div class="api-doc">
+                        <p>A sentinel value representing "no time" (the Unix epoch, in UTC).</p>
+                        <p>
+                          Built from <code>DateTime.utc(1970)</code> rather than <code>DateTime(1970)</code> so that the sentinel denotes the same instant on every machine. A local-time epoch would shift with the reader's zone, which would make a sentinel comparison depend on where it runs and would change the meaning of a persisted "no value" when it crosses zones.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomOZonedTime.noTime" class="api-member"><div class="api-member-head"><code class="api-signature">static TomOZonedTime noTime</code></div></div>
                   </div>
@@ -2799,21 +3203,32 @@ nickname | "Johnny"; // Set a value</code></pre>
                     <ul>
                       <li><code>~obj</code> - Get the value (prefix operator)</li>
                       <li><code>obj()</code> - Get the value (call operator)</li>
-                      <li><code>obj | newValue</code> - Set the value and notify observers</li>
-                      <li><code>obj &gt;&gt; callback</code> - Add an observer callback function</li>
+                      <li><code>obj | newValue</code> - Set the value and notify observers, returning the value</li>
+                      <li><code>obj &lt;&lt; newValue</code> - Set the value and notify observers, returning <code>obj</code></li>
                     </ul>
+                    <p>itself so that writes chain - <code>obj &gt;&gt; callback</code> - Add an observer callback function</p>
+                    <p>
+                      <code>|</code> and <code>&lt;&lt;</code> write identically and differ only in what they hand back: use 
+                      <code>|</code> when the value is what you need next, <code>&lt;&lt;</code> when you want to keep working on the observable. The composites override 
+                      <code>&lt;&lt;</code> — see [TomList], [TomMap] and [TomClass].
+                    </p>
                     <h2>Example</h2>
                     <pre><code>final name = TomString("John");
 
-// Subscribe to changes
-name &gt;&gt; (obs) =&gt; print("Name changed to: ${~obs}");
+// Subscribe to changes. Retain the observer — it is held weakly, so
+// discarding it stops the callback firing at some later point.
+// The callback is handed the plain TomObservable, so read the value
+// through the typed variable rather than through the parameter.
+final observer = name &gt;&gt; (obs) =&gt; print("Name changed to: ${~name}");
 
 // Set new value (triggers observer)
 name | "Jane";
 
 // Get value
 print(~name); // "Jane"
-print(name()); // "Jane"</code></pre>
+print(name()); // "Jane"
+
+name.removeObserver(observer);</code></pre>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
@@ -2850,6 +3265,10 @@ print(name()); // "Jane"</code></pre>
                         <p>
                           Returns the value, or <code>null</code> if the value itself is null. Useful for nullable TomObject types.
                         </p>
+                        <p>
+                          This is the nullable-typed sibling of [get] and nothing more: it delegates rather than reading the field, so every override of [get] holds here too. The composites all override [get] precisely because handing out the backing collection is wrong — [TomList] and [TomMap] return copies, and [TomClass] refuses outright, having no scalar value to return — and reading 
+                          <code>_value</code> here would walk past all three.
+                        </p>
                       </div>
                     </div>
                     <div id="TomObject.call" class="api-member">
@@ -2875,19 +3294,115 @@ print(name()); // "Jane"</code></pre>
                     </div>
                     <div id="TomObject.&lt;&lt;" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomObject&lt;T&gt; operator &lt;&lt;(T value)</code></div>
-                      <div class="api-doc"><p>Left shift operator to set the value: <code>myObject &lt;&lt; newValue</code></p></div>
+                      <div class="api-doc">
+                        <p>Left shift operator to set the value: <code>myObject &lt;&lt; newValue</code></p>
+                        <p>
+                          Identical to [set] — and therefore to <code>|</code> — except in what it returns: this hands back the observable itself rather than the value, so writes chain.
+                        </p>
+                        <pre><code>final count = TomInt(0);
+count &lt;&lt; 1 &lt;&lt; 2 &lt;&lt; 3;   // three writes, three notifications
+print(~count);          // 3</code></pre>
+                        <p>
+                          Because it delegates to [set], it inherits the notify-only-on-change rule: writing the value the cell already holds is silent.
+                        </p>
+                        <p>
+                          The chain's static type is <code>TomObject&lt;T&gt;</code>, not the subtype it started from — <code>TomString("a") &lt;&lt; "b"</code>
+                           is a <code>TomObject&lt;String&gt;</code>. Chain for the writes, not to keep hold of a <code>TomString</code>.
+                        </p>
+                        <p>
+                          The composites override this to mean <em>wholesale replacement</em>, which is not what [set] does on them: see [TomList.operator &lt;&lt;] and [TomMap.operator &lt;&lt;]. [TomClass.operator &lt;&lt;] throws.
+                        </p>
+                      </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
+                    <div id="TomObject._wrapperFactoriesByPrefix" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static Map&lt;String, TomObject&lt;dynamic&gt; Function(String)&gt; _wrapperFactoriesByPrefix</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Every serialization prefix the wire format defines, mapped to the wrapper that owns it.</p>
+                        <p>
+                          This is the single source of truth for <em>which prefix denotes which type</em>. Only the construction path consults it. [_createFrom] has to recover a type from a string and nothing else, because the element it is building has no cell yet; every path that writes into an 
+                          <strong>existing</strong> member dispatches on that member instead — <code>member is TomOTimezoned</code>
+                           → [TomOTimezoned.setByString] in [TomClass._setMember], <code>value is TomOTimezoned</code> in [TomClass._serializeMember] — and those are already polymorphic over the whole zoned family. Adding a zoned flavour is therefore one entry here plus the flavour's own 
+                          <code>setByString</code>, not an edit to a dispatch ladder in three files.
+                        </p>
+                        <p>
+                          The zoned factories receive the string <strong>with</strong> its prefix, because their <code>parseFromString</code>
+                           consumes its own; [TomDateTime] receives it <strong>without</strong>, because <code>DateTime.parse</code>
+                           would reject it. Storing factories rather than constructors is what lets the two conventions coexist in one table.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomObject._stripPrefix" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String _stripPrefix(String s, String prefix)</code></div>
+                      <div class="api-doc">
+                        <p>Removes [prefix] from the front of [s], or returns [s] unchanged.</p>
+                        <p>
+                          The wire format is <code>&lt;prefix&gt;&lt;payload&gt;</code>. Both deserialization paths need to find the payload — [_createFrom] when building a new wrapper and [TomClass._setMember] when writing into an existing one — and both used to spell it as a bare 
+                          <code>substring(3)</code>, which silently encodes the assumption that every marker is three characters long. The length now comes from the prefix itself.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomObject._createFrom" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static TomObject&lt;dynamic&gt; _createFrom(dynamic v)</code></div>
                       <div class="api-doc">
                         <p>Creates a [TomObject] wrapper from a dynamic value.</p>
                         <p>
-                          Automatically determines the appropriate [TomObject] subtype based on the runtime type of [v]: - [String] → [TomString] (or timezone types if prefixed) - [DateTime] → [TomDateTime] - [int] → [TomInt] - [bool] → [TomBool] - [Map] → [TomMap] (recursively wraps values) - [List] → [TomList] (recursively wraps elements)
+                          Automatically determines the appropriate [TomObject] subtype based on the runtime type of [v]: - [String] → [TomString] (or a temporal type if it carries a prefix from [_wrapperFactoriesByPrefix]) - [DateTime] → [TomDateTime] - [int] → [TomInt] - [double] → [TomDouble] - [bool] → [TomBool] - [Map] → [TomMap] (recursively wraps values) - [List] → [TomList] (recursively wraps elements)
+                        </p>
+                        <p>
+                          The choice is made from the runtime type of [v] alone; nothing here knows the destination. An integral number therefore always becomes a [TomInt], even when the member it is bound for holds doubles — callers that know the destination type widen the value first with [_widenForDoubleTarget].
                         </p>
                         <p>Returns [tomNull] if the type cannot be determined.</p>
+                      </div>
+                    </div>
+                    <div id="TomObject._widenForDoubleTarget" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static dynamic _widenForDoubleTarget&lt;T extends TomObject&lt;dynamic&gt;&gt;(dynamic v)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Widens an integral number to <code>double</code> when the destination type [T] holds doubles, and returns [v] untouched otherwise.
+                        </p>
+                        <p>
+                          JSON has a single number type, so a producer is free to write <code>20</code> for a value the schema calls a double — JavaScript's 
+                          <code>JSON.stringify(20.0)</code> does exactly that. Widening at a double-holding destination is lossless, so it happens silently. The reverse is not lossless: narrowing a fractional number to an 
+                          <code>int</code> destination is left to fail rather than truncated.
+                        </p>
+                        <p>
+                          The destination test is <code>&lt;T&gt;[] is List&lt;TomObject&lt;double?&gt;&gt;</code> rather than an equality against [TomDouble]. Covariance makes it true for [TomDouble], [TomNDouble] and any subclass of either, and false for [TomInt] — and false for an untyped element type, because 
+                          <code>dynamic</code> is a top type rather than a subtype of <code>double?</code>, so a raw [TomList] keeps its integers as integers.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomObject._createForTarget" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static TomObject&lt;dynamic&gt; _createForTarget&lt;T extends TomObject&lt;dynamic&gt;&gt;(dynamic v)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Builds the wrapper a destination of type [T] should hold for [v].</p>
+                        <p>
+                          [_createFrom] decides from the runtime type of [v] alone, which is the right rule when nothing is known about the destination and the wrong one when something is: it only ever builds the 
+                          <em>non-nullable</em> leaves, so a <code>TomList&lt;TomNString&gt;</code> rejected every string it was handed, and a JSON 
+                          <code>null</code> had no representation among them at all — <code>_createFrom(null)</code> answers [tomNull], which is not an instance of any leaf type.
+                        </p>
+                        <p>
+                          Only a nullable destination changes the answer. Every other case is left to [_createFrom], the untyped destination included, since a member that commits to no element type asks for nothing: this can therefore widen what deserialization accepts but never narrow it.
+                        </p>
+                        <p>
+                          The destination test is <code>&lt;TomNXxx&gt;[] is List&lt;T&gt;</code> and deliberately not its reverse. [TomObject] is covariant in its value type, so 
+                          <code>&lt;T&gt;[] is List&lt;TomObject&lt;String?&gt;&gt;</code> is true for [TomString] as well as [TomNString] and cannot tell the two apart — the same covariance [_widenForDoubleTarget] relies on, which is exactly why it cannot serve here. Asking whether the 
+                          <em>nullable</em> wrapper fits the destination can: <code>TomNString</code> is not a <code>TomString</code>, because 
+                          <code>String?</code> is not a <code>String</code>.
+                        </p>
+                        <p>
+                          A value the destination cannot hold falls through to [_createFrom] rather than throwing, so the mismatch is still reported by the element check in [TomClass._setListMember], which names the member and the position.
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -2906,7 +3421,7 @@ print(name()); // "Jane"</code></pre>
                     <div id="TomObservableException.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomObservableException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, Object? stack, Object? rootException, bool autoLog = false, String? uuid, TomServerCallError? serverCallError})
+                          TomObservableException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, StackTrace? stack, Object? rootException, bool autoLog = false, String? uuid, TomServerCallError? serverCallError})
                         </code>
                       </div>
                     </div>
@@ -2936,7 +3451,10 @@ print(~name); // "World"</code></pre>
                   <code class="api-signature">class TomTimeRange extends TomClass</code>
                   <div class="api-doc">
                     <p>An observable time range with start and end times.</p>
-                    <p>Both times are nullable [TomNOZonedTime] values, allowing open-ended ranges.</p>
+                    <p>
+                      Both times are nullable [TomNOZonedTime] values, allowing open-ended ranges. A fresh range holds <code>null</code>
+                       at both ends — see [TomDateRange] for why that is <code>null</code> and not the epoch sentinel.
+                    </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
@@ -2946,11 +3464,39 @@ print(~name); // "World"</code></pre>
                   <div class="api-members">
                     <div id="TomTimeRange.startTime" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomNOZonedTime startTime</code></div>
-                      <div class="api-doc"><p>The start time of the range (nullable).</p></div>
+                      <div class="api-doc"><p>The start time of the range, or <code>null</code> when the range is open at the start.</p></div>
                     </div>
                     <div id="TomTimeRange.endTime" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomNOZonedTime endTime</code></div>
-                      <div class="api-doc"><p>The end time of the range (nullable).</p></div>
+                      <div class="api-doc"><p>The end time of the range, or <code>null</code> when the range is open at the end.</p></div>
+                    </div>
+                  </div>
+                </section>
+                <section id="_TomNullObject" class="api-declaration">
+                  <h3 class="api-decl-title">class _TomNullObject</h3>
+                  <code class="api-signature">class _TomNullObject extends TomObject&lt;String&gt;</code>
+                  <div class="api-doc">
+                    <p>The type of [tomNull]: a [TomObject] that refuses to be written.</p>
+                    <p>
+                      Private, so [tomNull] is necessarily the only instance — which is what makes the identity test callers rely on meaningful.
+                    </p>
+                    <p>
+                      Only [set] is overridden because every write funnels through it: <code>|</code> and <code>&lt;&lt;</code>
+                       both delegate, so blocking one method blocks all three.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="_TomNullObject.new" class="api-member"><div class="api-member-head"><code class="api-signature">_TomNullObject.new()</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="_TomNullObject.set" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">String set(String value)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                      <div class="api-doc"><p>Throws [TomObservableException] — the shared sentinel is read-only.</p></div>
                     </div>
                   </div>
                 </section>

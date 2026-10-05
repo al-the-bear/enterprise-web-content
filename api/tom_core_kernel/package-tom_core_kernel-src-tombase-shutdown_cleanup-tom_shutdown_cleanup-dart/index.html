@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1389,11 +1395,12 @@
                 <div class="treenodes">
                   <a class="leaf" href="#TomClosable">TomClosable</a>
                   <a class="leaf" href="#TomCloseAdaptor">TomCloseAdaptor</a>
+                  <a class="leaf" href="#TomCloseAdaptorException">TomCloseAdaptorException</a>
                   <a class="leaf" href="#TomDisposable">TomDisposable</a>
                   <a class="leaf" href="#TomShutdownCleanup">TomShutdownCleanup</a>
-                  <a class="leaf" href="#TomSignalErrorHandler">TomSignalErrorHandler</a>
+                  <a class="leaf" href="#_Registration">_Registration</a>
+                  <a class="leaf" href="#TomShutdownUnregister">TomShutdownUnregister</a>
                   <a class="leaf" href="#TomSignalHandler">TomSignalHandler</a>
-                  <a class="leaf" href="#TomSignalOnDoneHandler">TomSignalOnDoneHandler</a>
                 </div>
               </div>
               <div class="reader">
@@ -1408,11 +1415,16 @@
                     The module supports three types of cleanup mechanisms: - [TomDisposable]: Objects that implement a <code>dispose()</code>
                      method - [TomClosable]: Objects that implement a <code>close()</code> method - [TomSignalHandler]: Custom signal handlers for specialized cleanup logic
                   </p>
+                  <p>
+                    Each of the three may be <strong>asynchronous</strong>. The shutdown awaits whatever an entry returns before it calls the next one, within a per-phase budget ([TomShutdownCleanup.phaseTimeout]) that keeps one entry that never finishes from holding the process open.
+                  </p>
                   <h2>Quick Start</h2>
+                  <p>
+                    Registering a resource is the whole setup. Signal listening is already active — [TomShutdownCleanup] registers SIGHUP and SIGINT in its constructor — so there is no arming step to remember or to get wrong.
+                  </p>
                   <pre><code>// Use the default global instance
 tomShutdownCleanup.addClosable(myDatabaseConnection);
-tomShutdownCleanup.addDisposable(myStreamController);
-tomShutdownCleanup.start();</code></pre>
+tomShutdownCleanup.addDisposable(myStreamController);</code></pre>
                   <p>
                     See also: - [TomShutdownCleanup] for the main cleanup coordinator - [TomCloseAdaptor] for adapting objects without explicit interfaces
                   </p>
@@ -1447,11 +1459,17 @@ tomShutdownCleanup.addClosable(connection);</code></pre>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
                     <div id="TomClosable.close" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">void close()</code></div>
+                      <div class="api-member-head"><code class="api-signature">FutureOr&lt;void&gt; close()</code></div>
                       <div class="api-doc">
                         <p>Closes resources held by this object.</p>
                         <p>
                           This method is called automatically during shutdown cleanup. Implementations should close all connections, streams, or other resources that require explicit closing.
+                        </p>
+                        <p>
+                          May be asynchronous. The shutdown awaits a returned <code>Future</code> before it closes the next object, so a flush, a socket close or a queue drain has finished by the time the phase moves on; a failure inside that future is reported like one thrown by the call itself.
+                        </p>
+                        <p>
+                          The wait is bounded. Every phase has [TomShutdownCleanup.phaseTimeout] to finish in, and a phase that overruns it is abandoned — the entry it was waiting on and every entry behind it — so a close that never completes costs the rest of its phase, not the whole shutdown.
                         </p>
                       </div>
                     </div>
@@ -1463,26 +1481,45 @@ tomShutdownCleanup.addClosable(connection);</code></pre>
                   <div class="api-doc">
                     <p>Adaptor that wraps objects with close/dispose methods to implement [TomClosable].</p>
                     <p>
-                      This class uses reflection to find and invoke close or dispose methods on objects that don't explicitly implement [TomClosable] or [TomDisposable]. Useful for integrating third-party objects into the shutdown cleanup system.
+                      This class uses reflection to find and invoke close or dispose methods on objects that don't explicitly implement [TomClosable] or [TomDisposable]. It reaches the method through the global 
+                      <code>tomReflector</code>, so it works on <strong>classes in your own build that carry <code>@tomReflector</code></strong>
+                       — typically ones already annotated for JSON — and not on types from outside it.
                     </p>
                     <h2>Example</h2>
-                    <pre><code>// Wrap a third-party object that has a close() method
-final httpClient = HttpClient();
-final adaptor = TomCloseAdaptor(httpClient);
+                    <pre><code>// A class of your own, annotated for reflection, whose teardown method
+// you would rather not re-expose by implementing TomClosable.
+@tomReflector
+class SessionStore {
+  void close() { /* ... */ }
+}
+
+final adaptor = TomCloseAdaptor(SessionStore());
 tomShutdownCleanup.addClosable(adaptor);
 
 // Specify a custom method name
-final customObject = MyObject();
-final customAdaptor = TomCloseAdaptor(customObject, 'shutdown');
-tomShutdownCleanup.addClosable(customAdaptor);</code></pre>
+@tomReflector
+class Worker {
+  void shutdown() { /* ... */ }
+}
+
+tomShutdownCleanup.addClosable(TomCloseAdaptor(Worker(), 'shutdown'));</code></pre>
                     <h2>Limitations</h2>
                     <ul>
                       <li>The target method must have no required parameters</li>
-                      <li>The object's class must be registered with the Tom reflector</li>
+                      <li>The target's class must be annotated with <code>@tomReflector</code> <strong>and</strong> its</li>
                     </ul>
                     <p>
-                      Throws an [Exception] if: - No close/dispose method is found on the object - The method requires parameters
+                      generated reflection data must have been initialized, which means a <code>build_runner</code> step in the package that declares the class - Consequently the adaptor cannot wrap a type you do not own: 
+                      <code>dart:io</code>'s <code>HttpClient</code>, or any class from a package you cannot annotate, is out of reach no matter what methods it declares. Wrap such an object in a small class of your own that implements [TomClosable] instead — which is also cheaper, because it needs no reflection at all
                     </p>
+                    <p>
+                      The constructor throws — at registration, not during the shutdown — with one of three keys, each carrying the target's runtime type as the 
+                      <code>type</code> parameter: - <code>shutdown_cleanup.close_adaptor.not_reflectable</code>: the object's class is not reflectable. A [TomReflectorException], the type the package raises for that condition everywhere. - 
+                      <code>shutdown_cleanup.close_adaptor.no_close_method</code>: no close/dispose method — or no method of the given name — anywhere in the class's chain. A [TomCloseAdaptorException]; 
+                      <code>method</code> holds the name asked for, or <code>null</code> when none was. - <code>shutdown_cleanup.close_adaptor.method_requires_parameters</code>: the method has a required parameter the adaptor cannot supply. A [TomCloseAdaptorException]; 
+                      <code>method</code> and <code>parameterCount</code> name it.
+                    </p>
+                    <p>All three are [TomException]s, so a caller catches them in one clause.</p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
@@ -1499,20 +1536,84 @@ tomShutdownCleanup.addClosable(customAdaptor);</code></pre>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
                     <div id="TomCloseAdaptor.closableObject" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">Object closableObject</code></div>
-                      <div class="api-doc"><p>The object being adapted for closure.</p></div>
+                      <div class="api-member-head"><code class="api-signature">final Object closableObject</code></div>
+                      <div class="api-doc">
+                        <p>The object being adapted for closure.</p>
+                        <p>
+                          Fixed at construction. The constructor resolves the target's method mirror and binds an instance mirror to 
+                          <em>this</em> object, and [close] invokes through that binding — so the adaptor is single-target by construction, and this field always names the object [close] will actually close. To close a different object, build a different adaptor.
+                        </p>
+                      </div>
                     </div>
-                    <div id="TomCloseAdaptor._mm" class="api-member"><div class="api-member-head"><code class="api-signature">MethodMirror _mm</code></div></div>
-                    <div id="TomCloseAdaptor._im" class="api-member"><div class="api-member-head"><code class="api-signature">InstanceMirror _im</code></div></div>
+                    <div id="TomCloseAdaptor._mm" class="api-member"><div class="api-member-head"><code class="api-signature">final MethodMirror _mm</code></div></div>
+                    <div id="TomCloseAdaptor._im" class="api-member"><div class="api-member-head"><code class="api-signature">final InstanceMirror _im</code></div></div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
                     <div id="TomCloseAdaptor.close" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">void close()</code>
+                        <code class="api-signature">FutureOr&lt;void&gt; close()</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
-                      <div class="api-doc"><p>Invokes the close/dispose method on the wrapped object.</p></div>
+                      <div class="api-doc">
+                        <p>
+                          Invokes the close/dispose method on the wrapped object, handing on the <code>Future</code> it returns so an asynchronous target is awaited like any other [TomClosable].
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="TomCloseAdaptor._reflectClass" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static ClassMirror&lt;dynamic&gt; _reflectClass(Object closableObject)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Resolves the class mirror of [closableObject], insisting it is reflectable.</p>
+                        <p>
+                          This is the adaptor's <em>most likely</em> failure rather than an exotic one: the class is reached for when a type does not implement [TomClosable] or [TomDisposable], and the types that do not are frequently the ones nobody can annotate. Left unguarded, 
+                          <code>tom_reflection</code> answers with a <code>NoSuchCapabilityError</code> — an [Error], not an [Exception] — that names the type and nothing else: not the operation that wanted it, and not the annotation that would fix it. A caller guarding the constructor with 
+                          <code>on Exception</code> would miss it entirely, even though the constructor's two other failures are exceptions. Reporting it as a [TomReflectorException] is what the rest of the package already does for this same condition.
+                        </p>
+                        <p>
+                          It is not logged on the way out. Unlike the shutdown diagnostics this happens at construction time, in the caller's own control flow, and the thrown object carries the full detail to whoever asked for it.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomCloseAdaptor._resolveCloseMethod" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static MethodMirror? _resolveCloseMethod(ClassMirror&lt;dynamic&gt; classMirror, String? methodName)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Resolves the close/dispose method to invoke, walking the superclass chain.</p>
+                        <p>
+                          <code>ClassMirror.declarations</code> holds only the type's <strong>own</strong> members, so a <code>close()</code>/<code>dispose()</code>
+                           inherited from a superclass or mixin is invisible to the leaf type alone. This walks from the concrete type up its superclass chain, so the most-derived class wins and, at each level, an explicit [methodName] is honoured (otherwise 
+                          <code>close</code> is preferred over <code>dispose</code>). Returns <code>null</code> when no matching method exists anywhere.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="TomCloseAdaptorException" class="api-declaration">
+                  <h3 class="api-decl-title">class TomCloseAdaptorException</h3>
+                  <code class="api-signature">class TomCloseAdaptorException extends TomException</code>
+                  <div class="api-doc">
+                    <p>Raised by the [TomCloseAdaptor] constructor when the target has no method the adaptor can call.</p>
+                    <p>
+                      Keys: <code>shutdown_cleanup.close_adaptor.no_close_method</code> and <code>shutdown_cleanup.close_adaptor.method_requires_parameters</code>, each carrying the target's 
+                      <code>type</code> and the <code>method</code> concerned in [parameters]. The third construction failure, an unreflectable class, is a [TomReflectorException] with the key 
+                      <code>shutdown_cleanup.close_adaptor.not_reflectable</code>.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomCloseAdaptorException.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          TomCloseAdaptorException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, StackTrace? stack, Object? rootException, bool autoLog = false, String? uuid, TomServerCallError? serverCallError})
+                        </code>
+                      </div>
                     </div>
                   </div>
                 </section>
@@ -1546,11 +1647,14 @@ tomShutdownCleanup.addDisposable(resource);</code></pre>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
                     <div id="TomDisposable.dispose" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">void dispose()</code></div>
+                      <div class="api-member-head"><code class="api-signature">FutureOr&lt;void&gt; dispose()</code></div>
                       <div class="api-doc">
                         <p>Disposes of resources held by this object.</p>
                         <p>
                           This method is called automatically during shutdown cleanup. Implementations should release all resources and perform any necessary cleanup operations.
+                        </p>
+                        <p>
+                          May be asynchronous: the shutdown awaits a returned <code>Future</code> before it disposes the next object. See [TomClosable.close] for how long it waits.
                         </p>
                       </div>
                     </div>
@@ -1558,7 +1662,7 @@ tomShutdownCleanup.addDisposable(resource);</code></pre>
                 </section>
                 <section id="TomShutdownCleanup" class="api-declaration">
                   <h3 class="api-decl-title">class TomShutdownCleanup</h3>
-                  <code class="api-signature">class TomShutdownCleanup</code>
+                  <code class="api-signature">class TomShutdownCleanup implements TomDisposable</code>
                   <div class="api-doc">
                     <p>Central coordinator for graceful shutdown cleanup operations.</p>
                     <p>
@@ -1568,28 +1672,58 @@ tomShutdownCleanup.addDisposable(resource);</code></pre>
                       The cleanup process executes in the following order: 1. Signal handlers (custom cleanup logic) 2. Closables (objects implementing [TomClosable]) 3. Disposables (objects implementing [TomDisposable])
                     </p>
                     <p>
-                      Each cleanup operation is wrapped in a try-catch to ensure that a failing cleanup doesn't prevent other cleanups from executing.
+                      Every entry is awaited before the next one is called, and each phase has [phaseTimeout] to finish in. A failing entry — whether it throws or its future fails — does not stop the ones behind it: the failure is reported with its exception and the top frames of its stack, written to [output] (<code>print</code>
+                       by default), and suppressed by [silent].
                     </p>
                     <h2>Basic Usage</h2>
+                    <p>
+                      Registration is the only setup step; the constructor has already begun listening for SIGHUP and SIGINT.
+                    </p>
                     <pre><code>// Use the global instance
 tomShutdownCleanup.addClosable(databaseConnection);
-tomShutdownCleanup.addDisposable(streamController);
-tomShutdownCleanup.start();</code></pre>
+tomShutdownCleanup.addDisposable(streamController);</code></pre>
+                    <h2>Running it yourself</h2>
+                    <pre><code>// Returns once every entry has finished, or its phase was abandoned.
+await tomShutdownCleanup.performShutdown();
+exit(0);</code></pre>
                     <h2>Custom Signal Handlers</h2>
-                    <pre><code>tomShutdownCleanup.addSignalHandler((signal) {
+                    <pre><code>tomShutdownCleanup.addSignalHandler((signal) async {
   print('Received signal: $signal');
-  // Perform custom cleanup
+  await flushJournal(); // awaited before the closables run
 });</code></pre>
                     <h2>Adding Additional Signals</h2>
                     <pre><code>// Listen for SIGTERM in addition to default signals
 tomShutdownCleanup.addSignal(ProcessSignal.sigterm);</code></pre>
+                    <h2>Lifecycle</h2>
+                    <p>
+                      An instance is <strong>single-use</strong>. It is armed from construction, runs its shutdown once — [performShutdown], or the first watched signal — and is then spent: [hasShutDown] reads 
+                      <code>true</code> for the rest of its life, every later [performShutdown] is handed that finished shutdown, and an entry registered afterwards is kept but never runs. Nothing resets it, because "the cleanup runs exactly once" is the guarantee the rest of this class is built on — a second run would close again what the first had closed.
+                    </p>
+                    <p>
+                      A subsystem that restarts within one process therefore builds a new instance for each run and disposes the one it replaces.
+                    </p>
+                    <h2>Nesting coordinators</h2>
+                    <p>
+                      A coordinator is a [TomDisposable], so one may be registered on another — a hosted runtime that keeps a coordinator per session hands it to its own. The outer shutdown then disposes the inner coordinator in its disposables phase, awaited like any other entry: the inner watchers are cancelled and its registrations dropped.
+                    </p>
+                    <p>
+                      Disposing does <strong>not</strong> run the inner shutdown, so its resources would be let go unclosed. To have them closed, run the inner shutdown from a signal handler on the outer — the handlers phase is awaited, and comes before the disposables phase that releases the inner coordinator:
+                    </p>
+                    <pre><code>outer
+  ..addSignalHandler((signal) =&gt; inner.performShutdown(signal: signal))
+  ..addDisposable(inner);</code></pre>
                     <h2>Creating Custom Instances</h2>
                     <pre><code>// Create a separate cleanup handler for specific signals
 final customCleanup = TomShutdownCleanup();
 customCleanup.addSignal(ProcessSignal.sigusr1);
 customCleanup.addSignalHandler((signal) {
   // Handle USR1 signal specifically
-});</code></pre>
+});
+
+// A custom instance that outlives the program needs nothing further. One
+// that does not — in a test, a sample, or any bounded scope — must be
+// disposed, because its watchers keep the process alive:
+await customCleanup.dispose();</code></pre>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
@@ -1609,9 +1743,14 @@ customCleanup.addSignalHandler((signal) {
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
                     <div id="TomShutdownCleanup._signalHandler" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">void Function(ProcessSignal) _signalHandler</code></div>
+                      <div class="api-member-head"><code class="api-signature">final void Function(ProcessSignal) _signalHandler</code></div>
                     </div>
-                    <div id="TomShutdownCleanup._executed" class="api-member"><div class="api-member-head"><code class="api-signature">bool _executed</code></div></div>
+                    <div id="TomShutdownCleanup._shutdown" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;void&gt;? _shutdown</code></div>
+                      <div class="api-doc"><p>The shutdown, once one has started; every later caller gets this one.</p></div>
+                    </div>
+                    <div id="TomShutdownCleanup._hasShutDown" class="api-member"><div class="api-member-head"><code class="api-signature">bool _hasShutDown</code></div></div>
+                    <div id="TomShutdownCleanup._phaseTimeout" class="api-member"><div class="api-member-head"><code class="api-signature">Duration _phaseTimeout</code></div></div>
                     <div id="TomShutdownCleanup.paused" class="api-member">
                       <div class="api-member-head"><code class="api-signature">bool paused</code></div>
                       <div class="api-doc">
@@ -1622,53 +1761,168 @@ customCleanup.addSignalHandler((signal) {
                     </div>
                     <div id="TomShutdownCleanup.silent" class="api-member">
                       <div class="api-member-head"><code class="api-signature">bool silent</code></div>
-                      <div class="api-doc"><p>When true, suppresses output messages during shutdown.</p></div>
+                      <div class="api-doc">
+                        <p>When true, suppresses output messages during shutdown — every line [output] would otherwise receive.</p>
+                      </div>
                     </div>
+                    <div id="TomShutdownCleanup.output" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void Function(String) output</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Where the instance writes its lines: the status messages of the signal path, the per-entry failure reports and the phase-timeout reports. Each call receives one complete line — a failure report carries its stack frames in the same call, so they cannot be separated from it.
+                        </p>
+                        <p>
+                          Defaults to <code>print</code>, which reaches the console even when a logging system is among the things being torn down. A host that wants the shutdown record in its log routes it there:
+                        </p>
+                        <pre><code>tomShutdownCleanup.output = (line) =&gt; tomLog.info(line);</code></pre>
+                        <p>
+                          A sink that throws does not fail the shutdown: that line goes to <code>print</code> instead, together with the reason. [silent] silences the sink as a whole.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomShutdownCleanup.hasShutDown" class="api-member"><div class="api-member-head"><code class="api-signature">bool hasShutDown</code></div></div>
+                    <div id="TomShutdownCleanup.phaseTimeout" class="api-member"><div class="api-member-head"><code class="api-signature">Duration phaseTimeout</code></div></div>
                     <div id="TomShutdownCleanup._signalHandlers" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final List&lt;void Function(ProcessSignal)&gt; _signalHandlers</code></div>
+                      <div class="api-member-head">
+                        <code class="api-signature">final List&lt;_Registration&lt;FutureOr&lt;void&gt; Function(ProcessSignal)&gt;&gt; _signalHandlers</code>
+                      </div>
                     </div>
                     <div id="TomShutdownCleanup._closables" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final List&lt;TomClosable&gt; _closables</code></div>
+                      <div class="api-member-head"><code class="api-signature">final List&lt;_Registration&lt;TomClosable&gt;&gt; _closables</code></div>
                     </div>
                     <div id="TomShutdownCleanup._disposables" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final List&lt;TomDisposable&gt; _disposables</code></div>
+                      <div class="api-member-head"><code class="api-signature">final List&lt;_Registration&lt;TomDisposable&gt;&gt; _disposables</code></div>
+                    </div>
+                    <div id="TomShutdownCleanup._signalSubscriptions" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">final Map&lt;ProcessSignal, StreamSubscription&lt;ProcessSignal&gt;&gt; _signalSubscriptions</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Active OS-signal watcher subscriptions, retained so they can be cancelled by [dispose]/[cancelAll] — otherwise each watcher keeps the process alive and leaks for the instance's whole life.
+                        </p>
+                        <p>
+                          Keyed by signal rather than held in a list, so that "at most one watcher per signal" is a property of the structure instead of a rule [addSignal] has to remember to check.
+                        </p>
+                      </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
                     <div id="TomShutdownCleanup.performShutdown" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">void performShutdown()</code></div>
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          Future&lt;void&gt; performShutdown({ProcessSignal signal = ProcessSignal.sigint, bool fromSignal = false})
+                        </code>
+                      </div>
                       <div class="api-doc">
-                        <p>Manually trigger shutdown cleanup.</p>
                         <p>
-                          This allows external code to trigger the cleanup logic without a signal. Useful when the calling code handles signals itself but still wants to run the registered cleanup handlers.
+                          Runs the shutdown cleanup — registered signal handlers, then closables, then disposables — exactly once across the instance's life, and completes when it has finished.
+                        </p>
+                        <p>
+                          Every entry is awaited, within [phaseTimeout] per phase, so the returned future completes only once the teardown has happened or been given up on. That is what makes it safe to exit the process after awaiting it.
+                        </p>
+                        <p>
+                          The first call starts the shutdown and every later one — manual or signal-driven, during it or after it — is handed that same shutdown rather than a second run. A caller that awaits it therefore always waits for the real thing, whoever started it. Do not await it from inside one of the entries: the entry would be waiting for the shutdown that is waiting for the entry, and only the phase timeout would end it.
+                        </p>
+                        <p>
+                          External code calls this directly to run the cleanup without an OS signal; that manual path always runs (it ignores [paused]) and stays quiet. The signal-driven path passes [fromSignal] 
+                          <code>true</code>, which honours [paused] (skip while paused) and gates the status messages on [silent]. [signal] is forwarded to the registered signal handlers.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomShutdownCleanup._executeCleanup" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Future&lt;void&gt; _executeCleanup(ProcessSignal signal, {required bool announce})</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Runs the three cleanup phases in order — signal handlers, then closables, then disposables — each finishing, or being abandoned, before the next begins.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomShutdownCleanup._runPhase" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          Future&lt;void&gt; _runPhase&lt;T&gt;(List&lt;_Registration&lt;T&gt;&gt; registrations, String label, FutureOr&lt;void&gt; Function(T) action)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Runs [action] over every registration in [registrations] in order, awaiting each entry that returns a 
+                          <code>Future</code>, within a budget of [phaseTimeout] for the phase.
+                        </p>
+                        <p>
+                          This is the single owner of the per-entry policy all three phases share. A failing entry — thrown by the call or by the future it returned — never aborts the phase: a 
+                          <code>Failed to call $label $item: $exception</code> diagnostic is written to [output], followed by the top [_diagnosticStackDepth] frames, unless [silent]. The exception and its trace are part of the report because a shutdown runs once, usually unattended, and cannot be re-run to find out what went wrong. Message and trace go out in a single line so that concurrent output cannot separate a failure from its evidence.
+                        </p>
+                        <p>
+                          The list is consulted afresh for each entry rather than iterated as it stood when the phase began, because entries run the application's code and that code may register or unregister: an entry unregistered before the phase reaches it is not run, and one registered while the phase runs still is.
+                        </p>
+                        <p>
+                          When the budget runs out the phase is abandoned: the entry being awaited is left to finish on its own, and the ones behind it are not called. A synchronous entry is never awaited, so a phase of synchronous entries runs straight through without yielding.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomShutdownCleanup._reportFailure" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          void _reportFailure(String label, Object? item, Object exception, StackTrace stackTrace, {bool abandoned = false})
+                        </code>
+                      </div>
+                    </div>
+                    <div id="TomShutdownCleanup._reportAbandoned" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          void _reportAbandoned&lt;T&gt;(String label, List&lt;_Registration&lt;T&gt;&gt; registrations, {required T? waitingOn})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Reports that the [label] phase ran out of [phaseTimeout]: [waitingOn] had not finished — or, when <code>null</code>, the budget was already spent before the next entry could be called.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomShutdownCleanup._emit" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void _emit(String line)</code></div>
+                      <div class="api-doc">
+                        <p>Writes [line] to [output], or to <code>print</code> when [output] throws.</p>
+                        <p>
+                          The one place a line leaves the module. The fallback is what keeps the shutdown record from vanishing with the sink that was meant to hold it — a logging system is among the things a shutdown tears down — and what keeps a failing sink from failing the shutdown it is reporting on.
                         </p>
                       </div>
                     </div>
                     <div id="TomShutdownCleanup.addSignalHandler" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">void addSignalHandler(void Function(ProcessSignal) handler)</code></div>
+                      <div class="api-member-head">
+                        <code class="api-signature">void Function() addSignalHandler(FutureOr&lt;void&gt; Function(ProcessSignal) handler)</code>
+                      </div>
                       <div class="api-doc">
                         <p>Adds a custom signal handler to be executed during shutdown.</p>
                         <p>
                           Signal handlers are executed first, before closables and disposables. Use this for custom cleanup logic that doesn't fit the closable/disposable pattern.
                         </p>
                         <p>[handler] - The function to call when a signal is received.</p>
+                        <p>Returns the [TomShutdownUnregister] that takes this registration back.</p>
                       </div>
                     </div>
                     <div id="TomShutdownCleanup.addClosable" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">void addClosable(TomClosable closable)</code></div>
+                      <div class="api-member-head"><code class="api-signature">void Function() addClosable(TomClosable closable)</code></div>
                       <div class="api-doc">
                         <p>Adds a closable object to be closed during shutdown.</p>
                         <p>Closables are closed after signal handlers but before disposables.</p>
                         <p>[closable] - An object implementing [TomClosable].</p>
+                        <p>
+                          Returns the [TomShutdownUnregister] that takes this registration back — for a resource the application closes and releases on its own before the process ends, which the coordinator would otherwise hold, and close again at exit.
+                        </p>
                       </div>
                     </div>
                     <div id="TomShutdownCleanup.addDisposable" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">void addDisposable(TomDisposable disposable)</code></div>
+                      <div class="api-member-head"><code class="api-signature">void Function() addDisposable(TomDisposable disposable)</code></div>
                       <div class="api-doc">
                         <p>Adds a disposable object to be disposed during shutdown.</p>
                         <p>Disposables are disposed last, after signal handlers and closables.</p>
                         <p>[disposable] - An object implementing [TomDisposable].</p>
+                        <p>Returns the [TomShutdownUnregister] that takes this registration back.</p>
                       </div>
                     </div>
                     <div id="TomShutdownCleanup.addSignal" class="api-member">
@@ -1678,41 +1932,139 @@ customCleanup.addSignalHandler((signal) {
                         <p>
                           By default, SIGHUP and SIGINT are already registered. Use this method to add additional signals like SIGTERM.
                         </p>
+                        <p>
+                          Idempotent per signal: registering one that is already watched does nothing. Without that, the second watcher would drive the cleanup a second time on every arrival — harmless to the cleanup itself, which runs once, but it makes a single Ctrl-C report itself twice and claim on its own first arrival that shutdown had already been performed. Since the constructor registers SIGHUP and SIGINT, that collision is one an ordinary caller can walk into simply by naming a default.
+                        </p>
                         <p>[processSignal] - The signal to start listening for.</p>
                         <h2>Example</h2>
                         <pre><code>tomShutdownCleanup.addSignal(ProcessSignal.sigterm);</code></pre>
                       </div>
                     </div>
-                    <div id="TomShutdownCleanup.start" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">void start()</code></div>
+                    <div id="TomShutdownCleanup.cancelAll" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;void&gt; cancelAll()</code></div>
                       <div class="api-doc">
-                        <p>Initializes the cleanup listener and logs its status.</p>
                         <p>
-                          Call this method after registering all cleanup handlers to confirm the cleanup system is ready. This is optional but recommended for debugging purposes.
+                          Releases everything the instance holds: cancels every OS-signal watcher — SIGHUP, SIGINT and any added with [addSignal] — and drops every registered signal handler, closable and disposable.
+                        </p>
+                        <p>
+                          It runs nothing. The registered entries are let go, not closed: call [performShutdown] first if they still need releasing. Afterwards the instance no longer keeps the process alive and no longer holds a reference to anything registered on it, so a manual [performShutdown] finds nothing to do.
+                        </p>
+                        <p>
+                          It empties the instance without spending it. A registration made afterwards is held again, and a later [performShutdown] runs it — unless the shutdown has already run, which spends the instance regardless (see "Lifecycle"). Called during a running shutdown, it leaves the entry being awaited to finish and drops the entries not yet reached.
+                        </p>
+                        <p>Safe to call more than once.</p>
+                      </div>
+                    </div>
+                    <div id="TomShutdownCleanup.dispose" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Future&lt;void&gt; dispose()</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Tears the instance down — the same operation as [cancelAll], under the name teardown is looked for by. Call this for any short-lived [TomShutdownCleanup] so its watchers stop keeping the process alive and its registrations stop keeping their entries reachable; the process-lifetime global [tomShutdownCleanup] normally never needs it.
+                        </p>
+                        <p>
+                          This is [TomDisposable]'s method, so a coordinator registered on another is torn down by the outer shutdown — see "Nesting coordinators".
                         </p>
                       </div>
                     </div>
                   </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="TomShutdownCleanup._diagnosticStackDepth" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static int _diagnosticStackDepth</code></div>
+                      <div class="api-doc">
+                        <p>Frames kept from a failing cleanup's stack trace.</p>
+                        <p>
+                          Bounded rather than unlimited: a shutdown can fail in several entries at once, and full traces from each would bury the failure list in the very output an operator is scanning. The frames that identify a 
+                          <code>close()</code> or <code>dispose()</code> failure are the top ones.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomShutdownCleanup.defaultPhaseTimeout" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Duration defaultPhaseTimeout</code></div>
+                      <div class="api-doc">
+                        <p>The [phaseTimeout] a new instance starts with.</p>
+                        <p>
+                          Long enough for a flush, a socket close or a pool drain on a healthy system; short enough that a teardown that has hung is given up on before an operator reaches for 
+                          <code>kill -9</code>.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomShutdownCleanup._firstUnreached" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static _Registration&lt;T&gt;? _firstUnreached&lt;T&gt;(List&lt;_Registration&lt;T&gt;&gt; registrations)
+                        </code>
+                      </div>
+                    </div>
+                    <div id="TomShutdownCleanup._finishesWithin" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static Future&lt;bool&gt; _finishesWithin(Future&lt;void&gt; work, Duration budget, {required void Function(Object, StackTrace) onLateFailure})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Whether [work] finishes within [budget]; rethrows its failure if it fails in time.</p>
+                        <p>
+                          <code>Future.timeout</code> is not used because its <code>TimeoutException</code> could not be told apart from one the entry itself throws — a socket close that times out is a failure to report, not the phase running out of time. A failure that arrives after the budget has gone is handed to [onLateFailure] instead of being dropped.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomShutdownCleanup._register" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static void Function() _register&lt;T&gt;(List&lt;_Registration&lt;T&gt;&gt; registrations, T entry)</code>
+                      </div>
+                      <div class="api-doc"><p>Appends [entry] to [registrations] and returns the canceller for it.</p></div>
+                    </div>
+                  </div>
                 </section>
-                <section id="TomSignalErrorHandler" class="api-declaration">
-                  <h3 class="api-decl-title">typedef TomSignalErrorHandler</h3>
-                  <code class="api-signature">typedef TomSignalErrorHandler = Function</code>
-                  <div class="api-doc"><p>Error handler function type for signal processing errors.</p></div>
+                <section id="_Registration" class="api-declaration">
+                  <h3 class="api-decl-title">class _Registration</h3>
+                  <code class="api-signature">class _Registration&lt;T&gt;</code>
+                  <div class="api-doc">
+                    <p>One registration on a [TomShutdownCleanup].</p>
+                    <p>
+                      A wrapper rather than the entry itself, so that the same object registered twice is two registrations, each with its own canceller, and so that a phase can tell the entries it has reached from those still to come.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="_Registration.new" class="api-member"><div class="api-member-head"><code class="api-signature">_Registration.new(T entry)</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="_Registration.entry" class="api-member"><div class="api-member-head"><code class="api-signature">final T entry</code></div></div>
+                    <div id="_Registration.reached" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool reached</code></div>
+                      <div class="api-doc"><p>Whether the phase this registration belongs to has called [entry].</p></div>
+                    </div>
+                  </div>
+                </section>
+                <section id="TomShutdownUnregister" class="api-declaration">
+                  <h3 class="api-decl-title">typedef TomShutdownUnregister</h3>
+                  <code class="api-signature">typedef TomShutdownUnregister = void Function()</code>
+                  <div class="api-doc">
+                    <p>Takes back one registration made on a [TomShutdownCleanup].</p>
+                    <p>
+                      Returned by [TomShutdownCleanup.addSignalHandler], [TomShutdownCleanup.addClosable] and [TomShutdownCleanup.addDisposable], in the manner of a stream subscription's 
+                      <code>cancel</code>. Calling it removes that registration and nothing else — the same object registered twice has two registrations — and releases the coordinator's reference to the entry. Calling it again, or after the entry has run, does nothing.
+                    </p>
+                  </div>
                 </section>
                 <section id="TomSignalHandler" class="api-declaration">
                   <h3 class="api-decl-title">typedef TomSignalHandler</h3>
-                  <code class="api-signature">typedef TomSignalHandler = void Function(ProcessSignal)</code>
+                  <code class="api-signature">typedef TomSignalHandler = FutureOr&lt;void&gt; Function(ProcessSignal)</code>
                   <div class="api-doc">
                     <p>Handler function type for processing system signals.</p>
                     <p>
                       Called when a registered signal is received by the process. The [onData] parameter contains the specific signal that was received.
                     </p>
+                    <p>
+                      A handler may be <code>async</code>: the shutdown awaits the future it returns before it calls the next handler, and before the closables phase begins.
+                    </p>
                   </div>
-                </section>
-                <section id="TomSignalOnDoneHandler" class="api-declaration">
-                  <h3 class="api-decl-title">typedef TomSignalOnDoneHandler</h3>
-                  <code class="api-signature">typedef TomSignalOnDoneHandler = void Function()</code>
-                  <div class="api-doc"><p>Handler function type called when signal stream completes.</p></div>
                 </section>
               </div>
             </div>

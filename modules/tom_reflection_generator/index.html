@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1386,7 +1392,7 @@
               <span style="display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap"><span class="badge b-pub"><span class="d"></span>Published</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">role: extension</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">license: BSD-3-Clause</span></span>
             </div>
             <h2>tom_reflection_generator</h2>
-            <div class="mono" style="color: #9FB6C9">tom_reflection_generator · v1.1.1</div>
+            <div class="mono" style="color: #9FB6C9">tom_reflection_generator · v1.8.1</div>
             <p style="margin-top: 10px">
               The standalone generator that produces the `.reflection.dart` files `tom_reflection` consumes. It runs as a build_runner builder or a CLI for one-off and CI builds.
               
@@ -1398,9 +1404,9 @@
           </div>
           <div class="statgrid">
             <div class="stat"><div class="k">Status</div><div class="v" style="font-size: 1.05rem; color: #0F7FB0">Published</div></div>
-            <div class="stat"><div class="k">LOC</div><div class="v">7.3k</div></div>
-            <div class="stat"><div class="k">Tests</div><div class="v">14</div></div>
-            <div class="stat"><div class="k">Test LOC</div><div class="v">200</div></div>
+            <div class="stat"><div class="k">LOC</div><div class="v">7.7k</div></div>
+            <div class="stat"><div class="k">Tests</div><div class="v">70</div></div>
+            <div class="stat"><div class="k">Test LOC</div><div class="v">1.1k</div></div>
           </div>
           <div class="dcols">
             <div>
@@ -1672,6 +1678,7 @@ reflectiongenerator version</code></pre>
                     <td><code>--useAllCapabilities</code></td>
                     <td>Emit full metadata regardless of declared capabilities.</td>
                   </tr>
+                  <tr><td><code>--check</code></td><td>Verify committed output instead of writing it; fail on drift.</td></tr>
                   <tr><td><code>--no-cache</code></td><td>Disable analyzer summary caching for dependencies.</td></tr>
                   <tr><td><code>--rebuild-cache</code></td><td>Force regeneration of all cached summaries.</td></tr>
                   <tr>
@@ -1688,6 +1695,16 @@ reflectiongenerator version</code></pre>
                 &gt; <strong>Summary caching:</strong> caching speeds up repeat runs by reusing analyzer &gt; summaries of unchanged dependencies (via 
                 <code>tom_analyzer_shared</code>). If a run in a &gt; compiled/AOT environment misbehaves on summary discovery, 
                 <code>--no-cache</code> is the &gt; reliable fallback while still producing correct output.
+              </p>
+              <h3>Checking that committed output is current</h3>
+              <p>
+                A generated file that has fallen behind its source is invisible to <code>dart analyze</code> and to the test suites — the stale part is metadata the tests never read. 
+                <code>--check</code> is the control for that: it runs the generator and <em>compares</em> the result with what is committed, instead of overwriting it.
+              </p>
+              <pre><code>dart run tom_reflection_generator --check      # this project
+./reflection_generation.sh --check             # same, via the project's script</code></pre>
+              <p>
+                It exits non-zero and names every file that differs or is missing, and modifies nothing. The remedy is always an ordinary generate run, followed by committing the result. A check costs a full generation (~20–30 s per package), which is why it is a deliberate step rather than something run on every save.
               </p>
               <h2>Versioning</h2>
               <p>

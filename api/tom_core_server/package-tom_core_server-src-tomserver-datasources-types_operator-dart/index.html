@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1436,7 +1442,16 @@
                     <div id="TomDbDate.of" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static TomDbDate of(String? s)</code></div>
                       <div class="api-doc">
-                        <p>Parses [s] via [TomZonedDate.parseFromString] (or <code>null</code> when [s] is <code>null</code>).</p>
+                        <p>Reads a stored <code>DATE</code> back via [parseSqlDate].</p>
+                        <p>
+                          Not [TomZonedDate.parseFromString] directly, which is what this used to call and which reads only Tom's 
+                          <code>@D@…</code> serialization — a form no <code>DATE</code> column contains, because [TomStandardSqlDialect.dateOp] writes 
+                          <code>'YYYY-MM-DD'</code>. The writer and the reader have to be a pair, and [parseSqlDate] is the reading half of the one this module writes; it still accepts 
+                          <code>@D@…</code>, for a date that reached a text column through [TomZonedDate.toString].
+                        </p>
+                        <p>
+                          A <code>null</code> <em>or empty</em> column yields a box holding <code>null</code>, matching [TomDbDateTime.of]: the driver reports an absent column either way depending on the row mapper.
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -1456,7 +1471,17 @@
                   <div class="api-members">
                     <div id="TomDbDateTime.of" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static TomDbDateTime of(String? s)</code></div>
-                      <div class="api-doc"><p>Parses [s] via [DateTime.parse] (or <code>null</code> when [s] is <code>null</code>).</p></div>
+                      <div class="api-doc">
+                        <p>Reads a stored instant back as <strong>UTC</strong>, via [parseOptionalSqlInstant].</p>
+                        <p>
+                          A <code>DATETIME</code> column carries no zone, and a bare [DateTime.parse] of its text therefore yields a 
+                          <em>local</em> value — the reader's wall clock, not the writer's moment. Every instant this server writes is UTC ([sqlInstant]), so reading it as UTC is what closes the round trip; see 
+                          <code>sql_instant.dart</code> for the convention this is the entity-column half of.
+                        </p>
+                        <p>
+                          A <code>null</code> <em>or empty</em> column yields a box holding <code>null</code>: the driver reports an absent instant either way depending on the row mapper.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>
@@ -1533,7 +1558,13 @@
                     <div id="TomDbTime.of" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static TomDbTime of(String? s)</code></div>
                       <div class="api-doc">
-                        <p>Parses [s] via [TomZonedTime.parseFromString] (or <code>null</code> when [s] is <code>null</code>).</p>
+                        <p>Reads a stored <code>TIME</code> back via [parseSqlTimeOfDay].</p>
+                        <p>
+                          The same pairing [TomDbDate.of] describes, for the other half a timestamp splits into: [TomStandardSqlDialect.timeOp] writes 
+                          <code>'HH:MM:SS'</code>, so that is what a <code>TIME</code> column holds and what has to be read. <code>@T@…</code>
+                           is accepted too.
+                        </p>
+                        <p>A <code>null</code> <em>or empty</em> column yields a box holding <code>null</code>.</p>
                       </div>
                     </div>
                   </div>
@@ -1595,6 +1626,9 @@
                       <div class="api-member-head"><code class="api-signature">Type returnType</code></div>
                       <div class="api-doc"><p>The runtime SQL return type [R], captured at construction.</p></div>
                     </div>
+                    <div id="TomOperator.children" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">List&lt;TomOperator&lt;dynamic&gt;&gt; children</code></div>
+                    </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
@@ -1642,6 +1676,17 @@
                     <div id="TomOperator.defaultDialect" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static TomStandardSqlDialect defaultDialect</code></div>
                       <div class="api-doc"><p>The dialect used when an operator is rendered without an explicit one.</p></div>
+                    </div>
+                    <div id="TomOperator.operandChildren" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static List&lt;TomOperator&lt;dynamic&gt;&gt; operandChildren(Object? operand)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Flattens an operand into the [children] contribution it represents: a nested operator yields itself, a 
+                          <code>List&lt;TomOperator&gt;</code> yields its elements, and a leaf value (a <code>String</code> column name, a Dart literal) yields nothing.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>

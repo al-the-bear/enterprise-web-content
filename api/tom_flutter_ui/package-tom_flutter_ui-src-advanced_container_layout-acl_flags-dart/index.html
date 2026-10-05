@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1393,8 +1399,21 @@
                   <h3 class="api-decl-title">class AclFlags</h3>
                   <code class="api-signature">class AclFlags</code>
                   <div class="api-doc">
-                    <p>Flags for component layout attributes in AclContainer.</p>
-                    <p>These flags mirror the Java AWT constants used in AdvancedContainerLike.</p>
+                    <p>Layout attribute flags for the components inside an <code>AclContainer</code>.</p>
+                    <p>
+                      The flags are composable bits carried in <code>AclComponent.flags</code>. Their values mirror the bit positions of the Java AWT constants used by 
+                      <code>AdvancedContainerLike</code>, which is why the assigned values are sparse rather than consecutive — bits 8 and 16 are unassigned here.
+                    </p>
+                    <p>
+                      Every constant in this class is part of the <strong>public</strong> component model, in both directions. Callers set them through 
+                      <code>AclBuilder.setAttr</code> (or the <code>expandX()</code> / <code>expandY()</code> / <code>expand()</code>
+                       shortcuts, or <code>sameWidthAs</code> / <code>sameHeightAs</code> / <code>sameSize</code>), and read them back through the named getters on 
+                      <code>AclComponent</code>: <code>expandX</code>, <code>expandY</code>, <code>isGap</code>, <code>useOtherDimX</code>, 
+                      <code>useOtherDimY</code>. A bit the engine never reads does not belong here: a flag a caller can set and the layout ignores is a promise the container does not keep, and it reads as a supported feature in the reference table.
+                    </p>
+                    <p>
+                      <code>test/advanced_container_layout/acl_flags_contract_test.dart</code> holds that line: it fails if a flag stops being read, stops being documented, or is documented with the wrong bit.
+                    </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
@@ -1404,39 +1423,64 @@
                   <div class="api-members">
                     <div id="AclFlags.expandX" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static int expandX</code></div>
-                      <div class="api-doc"><p>Expand component horizontally to fill available space</p></div>
+                      <div class="api-doc">
+                        <p>Expand the component horizontally to fill available space.</p>
+                        <p>
+                          Read back as <code>AclComponent.expandX</code>. This claims an <em>exclusive</em> right to the row's surplus width; see "Expand Flags" (§13) in 
+                          <code>doc/acl_design_specification.md</code> for why that differs from merely growing.
+                        </p>
+                      </div>
                     </div>
                     <div id="AclFlags.expandY" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static int expandY</code></div>
-                      <div class="api-doc"><p>Expand component vertically to fill available space</p></div>
+                      <div class="api-doc">
+                        <p>Expand the component vertically to fill available space.</p>
+                        <p>Read back as <code>AclComponent.expandY</code>.</p>
+                      </div>
                     </div>
                     <div id="AclFlags.gapElement" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static int gapElement</code></div>
-                      <div class="api-doc"><p>Internal flag: component is a gap/spacer element</p></div>
-                    </div>
-                    <div id="AclFlags.panelBackground" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static int panelBackground</code></div>
-                      <div class="api-doc"><p>Component background should follow parent container background</p></div>
-                    </div>
-                    <div id="AclFlags.charDim" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static int charDim</code></div>
-                      <div class="api-doc"><p>Size is specified in character units rather than pixels</p></div>
+                      <div class="api-doc">
+                        <p>Marks the component as an elastic gap slot rather than as content.</p>
+                        <p>
+                          Read back as <code>AclComponent.isGap</code>. A component carrying this bit is <strong>not rendered</strong>: the container skips its 
+                          <code>child</code> in both the measuring and the building pass and puts a <code>Spacer</code> (or a fixed 
+                          <code>SizedBox</code>) in its place, sized from <code>AclComponent.gapWeight</code> relative to the other gap slots in the same row. That is why 
+                          <code>AclBuilder.gap()</code> passes a <code>SizedBox.shrink()</code> as the child — it is a placeholder that is never built.
+                        </p>
+                        <p>
+                          Prefer <code>AclBuilder.gap()</code> over setting this bit through <code>setAttr</code>. The builder sets the weight and the placeholder together and then stops targeting the slot, so a later per-component call cannot land on it. Setting the bit by hand on an appended component silently discards that component's widget.
+                        </p>
+                      </div>
                     </div>
                     <div id="AclFlags.otherDimX" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static int otherDimX</code></div>
-                      <div class="api-doc"><p>Use X dimension from reference component</p></div>
+                      <div class="api-doc">
+                        <p>Take the X dimension from the component named by <code>AclComponent.referenceKey</code>.</p>
+                        <p>
+                          Read back as <code>AclComponent.useOtherDimX</code>; set through <code>AclBuilder.sameWidthAs</code>.
+                        </p>
+                      </div>
                     </div>
                     <div id="AclFlags.otherDimY" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static int otherDimY</code></div>
-                      <div class="api-doc"><p>Use Y dimension from reference component</p></div>
+                      <div class="api-doc">
+                        <p>Take the Y dimension from the component named by <code>AclComponent.referenceKey</code>.</p>
+                        <p>
+                          Read back as <code>AclComponent.useOtherDimY</code>; set through <code>AclBuilder.sameHeightAs</code>.
+                        </p>
+                      </div>
                     </div>
                     <div id="AclFlags.otherDim" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static int otherDim</code></div>
-                      <div class="api-doc"><p>Use both dimensions from reference component</p></div>
+                      <div class="api-doc">
+                        <p>Convenience: take both dimensions from the reference component.</p>
+                        <p>Set through <code>AclBuilder.sameSize</code>.</p>
+                      </div>
                     </div>
                     <div id="AclFlags.expand" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static int expand</code></div>
-                      <div class="api-doc"><p>Convenience: expand in both directions</p></div>
+                      <div class="api-doc"><p>Convenience: expand in both directions.</p></div>
                     </div>
                   </div>
                 </section>

@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1420,7 +1426,7 @@
                     <div id="BridgedClass.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          BridgedClass.new({required Type nativeType, required String name, List&lt;String&gt;? nativeNames, int typeParameterCount = 0, bool canBeUsedAsMixin = false, bool isAbstract = false, int hierarchyDepth = 0, bool Function(Object?)?? isAssignable, Map&lt;String, Object? Function(InterpreterVisitor, List&lt;Object?&gt;, Map&lt;String, Object?&gt;)&gt; constructors = const {}, Map&lt;String, Object? Function(InterpreterVisitor, List&lt;Object?&gt;, Map&lt;String, Object?&gt;, List&lt;RuntimeType&gt;?)&gt; staticMethods = const {}, Map&lt;String, Object? Function(InterpreterVisitor)&gt; staticGetters = const {}, Map&lt;String, void Function(InterpreterVisitor, Object?)&gt; staticSetters = const {}, Map&lt;String, Object? Function(InterpreterVisitor, Object, List&lt;Object?&gt;, Map&lt;String, Object?&gt;, List&lt;RuntimeType&gt;?)&gt; methods = const {}, Map&lt;String, Object? Function(InterpreterVisitor?, Object)&gt; getters = const {}, Map&lt;String, void Function(InterpreterVisitor?, Object, Object?)&gt; setters = const {}, Map&lt;String, String&gt; constructorSignatures = const {}, Map&lt;String, String&gt; methodSignatures = const {}, Map&lt;String, String&gt; staticMethodSignatures = const {}, Map&lt;String, String&gt; staticGetterSignatures = const {}, Map&lt;String, String&gt; staticSetterSignatures = const {}, Map&lt;String, String&gt; getterSignatures = const {}, Map&lt;String, String&gt; setterSignatures = const {}, bool Function(BridgedClass, {Object? value})?? isSubtypeOfFunc})
+                          BridgedClass.new({required Type nativeType, required String name, int? typedefRequiredPositional, int? typedefMaxPositional, List&lt;String&gt;? nativeNames, int typeParameterCount = 0, bool canBeUsedAsMixin = false, bool isAbstract = false, int hierarchyDepth = 0, bool Function(Object?)?? isAssignable, Map&lt;String, Object? Function(InterpreterVisitor, List&lt;Object?&gt;, Map&lt;String, Object?&gt;)&gt; constructors = const {}, Map&lt;String, Object? Function(InterpreterVisitor, List&lt;Object?&gt;, Map&lt;String, Object?&gt;, List&lt;RuntimeType&gt;?)&gt; staticMethods = const {}, Map&lt;String, Object? Function(InterpreterVisitor)&gt; staticGetters = const {}, Map&lt;String, void Function(InterpreterVisitor, Object?)&gt; staticSetters = const {}, Map&lt;String, Object? Function(InterpreterVisitor, Object, List&lt;Object?&gt;, Map&lt;String, Object?&gt;, List&lt;RuntimeType&gt;?)&gt; methods = const {}, Map&lt;String, Object? Function(InterpreterVisitor?, Object)&gt; getters = const {}, Map&lt;String, void Function(InterpreterVisitor?, Object, Object?)&gt; setters = const {}, Map&lt;String, String&gt; constructorSignatures = const {}, Map&lt;String, String&gt; methodSignatures = const {}, Map&lt;String, String&gt; staticMethodSignatures = const {}, Map&lt;String, String&gt; staticGetterSignatures = const {}, Map&lt;String, String&gt; staticSetterSignatures = const {}, Map&lt;String, String&gt; getterSignatures = const {}, Map&lt;String, String&gt; setterSignatures = const {}, bool Function(BridgedClass, {Object? value})?? isSubtypeOfFunc})
                         </code>
                       </div>
                     </div>
@@ -1596,6 +1602,33 @@
                     <div id="BridgedClass.setterSignatures" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Map&lt;String, String&gt; setterSignatures</code></div>
                     </div>
+                    <div id="BridgedClass.typedefRequiredPositional" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final int? typedefRequiredPositional</code></div>
+                      <div class="api-doc">
+                        <p>
+                          SCD137 — the positional arity of the FUNCTION TYPEDEF this bridge stands for, when it stands for one. 
+                          <code>null</code> on every other bridge, and on a typedef bridge generated before the generator carried the signature through — in which case 
+                          <code>FunctionRuntimeType.isSubtypeOf</code> keeps scd136's arity-blind acceptance.
+                        </p>
+                        <p>
+                          A function typedef has no bridgeable class, so it is registered as <code>BridgedClass(nativeType: Function, name: typedef.name)</code>. That discarded the signature, which is why 
+                          <code>VoidCallback</code> and <code>ValueChanged</code> were indistinguishable to the interpreter.
+                        </p>
+                        <p>
+                          Only POSITIONAL arity is carried, and only these two numbers. Return types are deliberately absent: an interpreted closure always resolves to 
+                          <code>dynamic Function(...)</code>, so checking returns would refuse working callbacks wholesale.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="BridgedClass.typedefMaxPositional" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final int? typedefMaxPositional</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The most positional arguments the typedef may pass — required plus optional. See [typedefRequiredPositional].
+                        </p>
+                      </div>
+                    </div>
+                    <div id="BridgedClass.hashCode" class="api-member"><div class="api-member-head"><code class="api-signature">int hashCode</code></div></div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
@@ -1646,12 +1679,92 @@
                         <code class="api-signature">void Function(InterpreterVisitor?, Object, Object?)?? findInstanceSetterAdapter(String name)</code>
                       </div>
                     </div>
+                    <div id="BridgedClass.findReachableMethodAdapter" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          Object? Function(InterpreterVisitor, Object, List&lt;Object?&gt;, Map&lt;String, Object?&gt;, List&lt;RuntimeType&gt;?)?? findReachableMethodAdapter(String memberName, InterpreterVisitor? visitor)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          [findInstanceMethodAdapter] as a subclass of this bridge sees it: this bridge's own adapter, else that of the first registered supertype bridge, in [transitiveSupertypeNames] order, that declares [memberName].
+                        </p>
+                        <p>
+                          A bridge carries only the members its class DECLARES, so the <code>ListQueue</code> bridge has no <code>elementAt</code>. A bare 
+                          <code>ListQueue</code> instance reaches <code>Iterable.elementAt</code> through the visitor's supertype walk; an interpreted 
+                          <code>class MyQ extends ListQueue</code> needs the same walk, or every member the bridged superclass inherits is absent from 
+                          <code>this</code>, bare and <code>super.</code> access alike. Supertype names resolve in [visitor]'s environment; with no visitor only this bridge's own adapter is found.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="BridgedClass.findReachableGetterAdapter" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          Object? Function(InterpreterVisitor?, Object)?? findReachableGetterAdapter(String memberName, InterpreterVisitor? visitor)
+                        </code>
+                      </div>
+                      <div class="api-doc"><p>[findInstanceGetterAdapter] with the supertype walk of [findReachableMethodAdapter].</p></div>
+                    </div>
+                    <div id="BridgedClass.findReachableSetterAdapter" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          void Function(InterpreterVisitor?, Object, Object?)?? findReachableSetterAdapter(String memberName, InterpreterVisitor? visitor)
+                        </code>
+                      </div>
+                      <div class="api-doc"><p>[findInstanceSetterAdapter] with the supertype walk of [findReachableMethodAdapter].</p></div>
+                    </div>
+                    <div id="BridgedClass._findReachable" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">T? _findReachable&lt;T&gt;(InterpreterVisitor? visitor, T? Function(BridgedClass) pick)</code>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Operators</h4>
+                  <div class="api-members">
+                    <div id="BridgedClass.==" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">bool operator ==(Object other)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          SCD198 — a bare class name is a VALUE in a script, and it has to hash like the <code>Type</code> it denotes.
+                        </p>
+                        <p>
+                          <code>x.runtimeType == Foo</code> was already reconciled, in <code>visitBinaryExpression</code>: a <code>Type</code>
+                           against a <code>BridgedClass</code> compares their native types and answers correctly. Hashing was not, and it cannot be reconciled there — 
+                          <code>Map</code> and <code>Set</code> call <code>.hashCode</code> on the Dart object itself, with no interpreter in between. So 
+                          <code>{String: 's'}</code> keyed by a class name and looked up by <code>'x'.runtimeType</code> missed, as did 
+                          <code>Set&lt;Type&gt;.contains</code> and <code>List&lt;Type&gt;.indexOf</code>, while <code>==</code>
+                           on the same two values said true.
+                        </p>
+                        <p>
+                          Equal objects with different hash codes is an <code>Object</code> contract violation, and it is SCC32's shape exactly — that todo fixed it for 
+                          <code>BridgedInstance</code> wrappers and this is the same defect on the class-name value. Delegating both to [nativeType] is what makes the two agree.
+                        </p>
+                        <p>
+                          TWO BRIDGES FOR ONE NATIVE TYPE NOW COMPARE EQUAL, which is deliberate and is what a re-export is: <code>scd195_registry_collision_test.dart</code>
+                           measures 1 659 names reached through more than one barrel, every one of them the same <code>nativeType</code>. Nothing in the registry depends on the old identity semantics — the shadow machinery uses 
+                          <code>identical</code> throughout, and there is no <code>Map&lt;BridgedClass, …&gt;</code> or <code>Set&lt;BridgedClass&gt;</code>
+                           in either tree.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
                     <div id="BridgedClass._supertypeRegistry" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static Map&lt;String, Set&lt;String&gt;&gt; _supertypeRegistry</code></div>
                       <div class="api-doc"><p>Static registry of supertype relationships for bridged classes.</p></div>
+                    </div>
+                    <div id="BridgedClass._transitiveCache" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Map&lt;String, List&lt;String&gt;&gt; _transitiveCache</code></div>
+                      <div class="api-doc">
+                        <p>Memoised results of [transitiveSupertypeNames], dropped wholesale by [registerSupertypes].</p>
+                        <p>
+                          SCC19: the closure is read on every <code>is</code> and every <code>catch</code> once [isSubtypeOf] consults it, and recomputing it allocates three collections per query — measured at 0.38us against 0.057us for the direct-supertype short circuit. Registration happens at startup and the closures are immutable between registrations, so caching is exact rather than approximate.
+                        </p>
+                      </div>
                     </div>
                     <div id="BridgedClass.registerSupertypes" class="api-member">
                       <div class="api-member-head">
@@ -1674,6 +1787,13 @@
                         <p>
                           Walk the registered supertype chain transitively. Mirror of the tom_d4rt_ast helper; used by interface-proxy resolution so e.g. 
                           <code>PanelTheme extends InheritedTheme</code> finds a proxy factory registered for <code>InheritedWidget</code>.
+                        </p>
+                        <p>
+                          Breadth-first and nearest-first, so callers that want the most specific supertype can take the first match. The 
+                          <code>seen</code> set is what makes the walk safe on a cyclic registry — nothing stops a caller registering one.
+                        </p>
+                        <p>
+                          The result is unmodifiable: it is shared with every other caller through [_transitiveCache], so mutating it would corrupt the next query.
                         </p>
                       </div>
                     </div>
@@ -1703,13 +1823,32 @@
                       <div class="api-member-head"><code class="api-signature">final List&lt;RuntimeType&gt; typeArguments</code></div>
                     </div>
                     <div id="BridgedInstance.valueType" class="api-member"><div class="api-member-head"><code class="api-signature">RuntimeType valueType</code></div></div>
+                    <div id="BridgedInstance.hashCode" class="api-member"><div class="api-member-head"><code class="api-signature">int hashCode</code></div></div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
                     <div id="BridgedInstance.get" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">Object? get(String name)</code>
+                        <code class="api-signature">Object? get(String name, [InterpreterVisitor? visitor])</code>
                         <span class="api-badge api-badge--override">override</span>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Resolves [name] the way the interpreter's readers do: bridged GETTER first, then bound instance METHOD, then 
+                          <code>name</code> / <code>index</code> on a wrapped enum.
+                        </p>
+                        <p>
+                          This is the order <code>visitPropertyAccess</code>, <code>visitPrefixedIdentifier</code> and the cascade branch use for a bridged member. SCE232 made the primitive agree with them. It used to be methods-only and threw for a getter.
+                        </p>
+                        <p>
+                          <strong>The order can only matter for a name that is both a getter and a method, and no bridge may declare one.</strong>
+                           <code>scd196_member_map_disjointness_test.dart</code>, in both interpreter trees, fails on any name in two of a class's member maps. That test is what made the change a no-op for every method name.
+                        </p>
+                        <p>
+                          [visitor] is forwarded to the getter adapter, as [set] forwards it to the setter. The adapter type allows 
+                          <code>null</code>, and on 2026-09-29 none of the 824 stdlib getters or the 20 901 Flutter getters read it. Nothing in the interpreter calls this method either (0 calls across the 
+                          <code>tom_d4rt</code> suite of 4 416 tests): it is a primitive for host code.
+                        </p>
                       </div>
                     </div>
                     <div id="BridgedInstance.set" class="api-member">
@@ -1722,6 +1861,42 @@
                       <div class="api-member-head">
                         <code class="api-signature">String toString()</code>
                         <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Operators</h4>
+                  <div class="api-members">
+                    <div id="BridgedInstance.==" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">bool operator ==(Object other)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                      <div class="api-doc">
+                        <p>SCC32: value equality, delegated to the wrapped native.</p>
+                        <p>
+                          Without this the wrapper compared by identity, so two separately constructed wrappers around equal natives were different keys. The interpreted 
+                          <code>a == b</code> expression looked right only because <code>visitBinaryExpression</code> unwraps both operands before comparing — the wrapper itself was never consulted. So a script got 
+                          <code>true</code> from <code>==</code> and a miss from every hash-based collection, with no error either way. 
+                          <code>List</code> membership was wrong too (<code>[Duration(seconds: 1)].contains(Duration( seconds: 1))</code>
+                           was false), which no amount of hashing would explain and which is why <code>hashCode</code> alone was not the fix.
+                        </p>
+                        <p>
+                          <strong>Equality with the raw native is deliberate</strong>, and it is the same choice [BridgedEnumValue] already made for the same reason.
+                        </p>
+                        <p>
+                          <strong>SCD98 removed the inconsistency this was written to survive, and this operator stays anyway.</strong>
+                           When this comment was written a constructor call yielded a wrapper while every bridged <em>method</em>
+                           return yielded a bare native, so <code>DateTime(2021).difference(x)</code> and <code>Duration(seconds: 1)</code>
+                           were the same value in two representations that routinely met in one collection. The constructor now yields the native too, so nothing the interpreter PRODUCES is a wrapper and that particular collision cannot arise. What remains is the boundary this type exists for: 
+                          <code>Environment.toBridgedInstance</code> still hands a wrapper to bridge dispatch, and an embedder can put one into a collection itself. So the operator is no longer a workaround for an internal inconsistency — it is what it reads as, a courtesy to a wrapper that arrives from outside.
+                        </p>
+                        <p>
+                          This is asymmetric, which is normally a hazard — <code>raw == wrapper</code> stays false because a native's 
+                          <code>==</code> rejects a foreign type, and nothing here can change that. It is safe because Dart's hash lookup calls 
+                          <code>lookupKey == storedKey</code>, making the lookup key the receiver: whenever the wrapper is the value being looked 
+                          <em>up</em>, this operator runs and the comparison succeeds regardless of how the key was stored. The opposite direction — a raw native looking up a stored wrapper — would fall on the unfixable side, which is why hash keys are additionally normalized to the native at storage time (see 
+                          <code>_unwrapHashKey</code> in the interpreter). Between the two, no stored key is ever a wrapper and every lookup resolves.
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -1759,6 +1934,13 @@
                         <code class="api-signature">String toString()</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="TypeParameter._isTopType" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static bool _isTopType(RuntimeType other)</code></div>
+                      <div class="api-doc"><p>DFUB7: the Dart top types an unbounded type parameter is a subtype of.</p></div>
                     </div>
                   </div>
                 </section>

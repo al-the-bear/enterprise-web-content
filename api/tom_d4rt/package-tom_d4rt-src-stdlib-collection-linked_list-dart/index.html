@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1390,6 +1396,9 @@
                   <a class="leaf" href="#BridgedLinkedListEntry">BridgedLinkedListEntry</a>
                   <a class="leaf" href="#LinkedListCollection">LinkedListCollection</a>
                   <a class="leaf" href="#LinkedListEntryCollection">LinkedListEntryCollection</a>
+                  <a class="leaf" href="#_OwnedLinkedListEntry">_OwnedLinkedListEntry</a>
+                  <a class="leaf" href="#_exposed">_exposed</a>
+                  <a class="leaf" href="#_nativeEntry">_nativeEntry</a>
                 </div>
               </div>
               <div class="reader">
@@ -1398,29 +1407,48 @@
                 <section id="BridgedLinkedListEntry" class="api-declaration">
                   <h3 class="api-decl-title">class BridgedLinkedListEntry</h3>
                   <code class="api-signature">final class BridgedLinkedListEntry extends LinkedListEntry&lt;BridgedLinkedListEntry&gt;</code>
+                  <div class="api-doc">
+                    <p>
+                      The concrete stand-in this package ships for the SDK's abstract <code>LinkedListEntry</code>, and the bridge's native type.
+                    </p>
+                    <p>
+                      Its surface is deliberately EXACTLY the SDK's — everything it has, it inherits from <code>LinkedListEntry</code>
+                       — because the member audit reflects over this class to decide what a script should be able to reach. A field added here reads as a member of 
+                      <code>LinkedListEntry</code> that nothing bridges, which is why the owner link and the proxy marker live on [_OwnedLinkedListEntry] below rather than here.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
-                    <div id="BridgedLinkedListEntry.new" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">BridgedLinkedListEntry.new(Object? value)</code></div>
-                    </div>
-                  </div>
-                  <h4 class="api-group-title">Properties</h4>
-                  <div class="api-members">
-                    <div id="BridgedLinkedListEntry.value" class="api-member"><div class="api-member-head"><code class="api-signature">final Object? value</code></div></div>
-                  </div>
-                  <h4 class="api-group-title">Methods</h4>
-                  <div class="api-members">
-                    <div id="BridgedLinkedListEntry.toString" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">String toString()</code>
-                        <span class="api-badge api-badge--override">override</span>
-                      </div>
-                    </div>
+                    <div id="BridgedLinkedListEntry.new" class="api-member"><div class="api-member-head"><code class="api-signature">BridgedLinkedListEntry.new()</code></div></div>
                   </div>
                 </section>
                 <section id="LinkedListCollection" class="api-declaration">
                   <h3 class="api-decl-title">class LinkedListCollection</h3>
                   <code class="api-signature">class LinkedListCollection</code>
+                  <div class="api-doc">
+                    <p><code>LinkedList</code> bridges only the members that are LinkedList's OWN.</p>
+                    <p>
+                      The whole <code>Iterable</code> surface — 25 members, from <code>map</code> and <code>where</code> down to 
+                      <code>iterator</code> and <code>toList</code> — is reachable through the <code>LinkedList -&gt; Iterable</code>
+                       edge registered by <code>CollectionHierarchyCollection</code>, not through adapters here. Do not add an adapter for an inherited member: it shadows the fallback with a second implementation that then has to be kept correct.
+                    </p>
+                    <p>
+                      <code>LinkedListEntry</code> IS THE ENTRY POINT, and the bridge follows the SDK's shape for it: an implicit zero-argument constructor and the six members 
+                      <code>list</code>, <code>next</code>, <code>previous</code>, <code>insertAfter</code>, <code>insertBefore</code>, 
+                      <code>unlink</code>. A script declares <code>class E extends LinkedListEntry&lt;E&gt;</code> — the SDK declares it 
+                      <code>abstract base mixin class</code> over a self-referential type parameter, so there is no other way in — and carries its payload on that class, where Dart carries it.
+                    </p>
+                    <p>
+                      A <code>LinkedListEntry(value)</code> CONSTRUCTOR AND A <code>value</code> GETTER are therefore both absent, and were both present until SCE84. Neither is in the SDK, so a script using them ran here and did not compile as Dart — the same judgement 
+                      <code>removeFirst</code> gets below, applied to a constructor and a getter.
+                    </p>
+                    <p>
+                      <code>removeFirst</code> is DELIBERATELY ABSENT. Dart's <code>LinkedList</code> has no such member — 
+                      <code>Queue</code> does, which is where the expectation comes from — and the portable way to drop the head is 
+                      <code>list.first.unlink()</code>. Bridging it made scripts that used it run here and fail to compile as Dart, which is the one class of bridge defect no test can catch by itself; F-SCC8-5 in 
+                      <code>test/stdlib/collection/linked_list_test.dart</code> pins the absence.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="LinkedListCollection.new" class="api-member"><div class="api-member-head"><code class="api-signature">LinkedListCollection.new()</code></div></div>
@@ -1442,6 +1470,81 @@
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
                     <div id="LinkedListEntryCollection.definition" class="api-member"><div class="api-member-head"><code class="api-signature">static BridgedClass definition</code></div></div>
+                  </div>
+                </section>
+                <section id="_OwnedLinkedListEntry" class="api-declaration">
+                  <h3 class="api-decl-title">class _OwnedLinkedListEntry</h3>
+                  <code class="api-signature">final class _OwnedLinkedListEntry extends BridgedLinkedListEntry implements D4InterpretedProxy</code>
+                  <div class="api-doc">
+                    <p>The entry the bridge mints, which can stand for a script's own subclass.</p>
+                    <p>
+                      A script writes <code>class E extends LinkedListEntry&lt;E&gt;</code>; the interpreter calls the bridged constructor for the implicit 
+                      <code>super()</code> and assigns the result as the instance's <code>bridgedSuperObject</code>. The adapter is called without 
+                      <code>this</code>, so the tie is made later — when the entry ENTERS a list, the only moment both halves are in one place.
+                    </p>
+                    <p>
+                      [D4InterpretedProxy] is what makes <code>list.first.myField</code> reach the script's class: the native list can only hold native entries, so 
+                      <code>Iterable</code>'s adapters hand out THIS object, and the interpreter's existing proxy unwrapping turns it back into the instance on property access, member invocation and 
+                      <code>as</code>.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="_OwnedLinkedListEntry.new" class="api-member"><div class="api-member-head"><code class="api-signature">_OwnedLinkedListEntry.new()</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="_OwnedLinkedListEntry.owner" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Object? owner</code></div>
+                      <div class="api-doc"><p>The script's own entry object, or null for an entry standing for nothing.</p></div>
+                    </div>
+                    <div id="_OwnedLinkedListEntry.d4rtInstance" class="api-member"><div class="api-member-head"><code class="api-signature">Object d4rtInstance</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="_OwnedLinkedListEntry.toString" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">String toString()</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                      <div class="api-doc">
+                        <p>The owner's own <code>toString</code> when there is one.</p>
+                        <p>
+                          SCE120. This used to read <code>LinkedListEntry(&lt;owner&gt;)</code>, and it is the one place the proxy leaked: 
+                          <code>list.first.myField</code> reaches the script's class through [D4InterpretedProxy], but <code>toString</code>
+                           does not, because the unwrap is a FALLBACK after the bridge's own members fail and this one succeeded. A script that declares 
+                          <code>String toString() =&gt; 'E:' + …</code> saw <code>LinkedListEntry(E:1)</code> — its own rendering wrapped in the name of a class it never mentioned.
+                        </p>
+                        <p>
+                          <code>owner</code> is an <code>InterpretedInstance</code>, whose <code>toString()</code> dispatches to the script's override and degrades to the diagnostic form when there is none (SCD72, shared since SCE116), so this is the script's answer or the interpreter's — never the wrapper's.
+                        </p>
+                        <p>
+                          The unowned case keeps the old shape: there is no script object to speak for, and the name is the useful thing to print.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="_exposed" class="api-declaration">
+                  <h3 class="api-decl-title">function _exposed</h3>
+                  <code class="api-signature">Object? _exposed(BridgedLinkedListEntry? entry)</code>
+                  <div class="api-doc">
+                    <p>
+                      What a script should see for [entry]: its own object when it declared one, and the native entry otherwise.
+                    </p>
+                  </div>
+                </section>
+                <section id="_nativeEntry" class="api-declaration">
+                  <h3 class="api-decl-title">function _nativeEntry</h3>
+                  <code class="api-signature">BridgedLinkedListEntry? _nativeEntry(Object? arg)</code>
+                  <div class="api-doc">
+                    <p>
+                      The native entry behind [arg], whichever way the script produced it, with its [BridgedLinkedListEntry.owner] linked.
+                    </p>
+                    <p>
+                      A script writes <code>class E extends LinkedListEntry&lt;E&gt;</code>, so what arrives is an [InterpretedInstance] whose 
+                      <code>bridgedSuperObject</code> is the native entry the implicit <code>super()</code> created. The native list can only hold native entries, so this is where the two are tied together.
+                    </p>
                   </div>
                 </section>
               </div>

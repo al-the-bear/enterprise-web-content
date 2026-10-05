@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1387,15 +1393,49 @@
             <div class="treewrap">
               <div class="treepane">
                 <div class="treenodes">
+                  <a class="leaf" href="#_canonicalize">_canonicalize</a>
+                  <a class="leaf" href="#_containsGlobChar">_containsGlobChar</a>
+                  <a class="leaf" href="#_isProjectPathPattern">_isProjectPathPattern</a>
                   <a class="leaf" href="#_scanRecursive">_scanRecursive</a>
                   <a class="leaf" href="#findWorkspaceRoot">findWorkspaceRoot</a>
                   <a class="leaf" href="#isWorkspaceBoundary">isWorkspaceBoundary</a>
                   <a class="leaf" href="#scanForDartProjects">scanForDartProjects</a>
+                  <a class="leaf" href="#validateProjectPathsExist">validateProjectPathsExist</a>
+                  <a class="leaf" href="#validateProjectPathsWithinRoot">validateProjectPathsWithinRoot</a>
+                  <a class="leaf" href="#validateScanPathWithinRoot">validateScanPathWithinRoot</a>
                 </div>
               </div>
               <div class="reader">
                 <h2 class="api-library-title">package:tom_build_base/src/v2/workspace_utils.dart</h2>
                 <code class="api-import">import 'package:tom_build_base/src/v2/workspace_utils.dart';</code>
+                <section id="_canonicalize" class="api-declaration">
+                  <h3 class="api-decl-title">function _canonicalize</h3>
+                  <code class="api-signature">String _canonicalize(String path)</code>
+                  <div class="api-doc">
+                    <p>
+                      Resolve [path] to a normalised absolute path, following symlinks when the path exists. Falls back to a plain normalised-absolute path when the target does not exist (e.g. a mistyped scan path), so the function never throws.
+                    </p>
+                  </div>
+                </section>
+                <section id="_containsGlobChar" class="api-declaration">
+                  <h3 class="api-decl-title">function _containsGlobChar</h3>
+                  <code class="api-signature">bool _containsGlobChar(String pattern)</code>
+                  <div class="api-doc">
+                    <p>
+                      Whether a pattern contains a glob metacharacter, in which case it may legitimately match zero directories and must not be existence-checked.
+                    </p>
+                  </div>
+                </section>
+                <section id="_isProjectPathPattern" class="api-declaration">
+                  <h3 class="api-decl-title">function _isProjectPathPattern</h3>
+                  <code class="api-signature">bool _isProjectPathPattern(String pattern)</code>
+                  <div class="api-doc">
+                    <p>Whether a <code>--project</code> pattern is path-style (contains a directory separator).</p>
+                    <p>
+                      Mirrors the path/basename split [FilterPipeline] uses: a value with <code>/</code> or <code>\</code> is matched against project paths, anything else against ids / names.
+                    </p>
+                  </div>
+                </section>
                 <section id="_scanRecursive" class="api-declaration">
                   <h3 class="api-decl-title">function _scanRecursive</h3>
                   <code class="api-signature">
@@ -1437,6 +1477,59 @@
                       <code>buildkit_skip.yaml</code>)
                     </p>
                     <p>When [recursive] is false, only checks immediate subdirectories and the root itself.</p>
+                  </div>
+                </section>
+                <section id="validateProjectPathsExist" class="api-declaration">
+                  <h3 class="api-decl-title">function validateProjectPathsExist</h3>
+                  <code class="api-signature">String? validateProjectPathsExist(List&lt;String&gt; projectPatterns, String executionRoot)</code>
+                  <div class="api-doc">
+                    <p>
+                      Validate that every <em>path-style, non-glob</em> <code>--project</code> pattern resolves to an existing directory under [executionRoot].
+                    </p>
+                    <p>
+                      A <code>--project</code> filter can be a project id, a project name, a folder-name glob, or a path. Ids, names, and globs legitimately may match zero projects, so they are never treated as "not found": only a 
+                      <strong>path</strong> pattern names a concrete directory. When such a path is <strong>non-glob</strong>
+                       (no <code>*</code>, <code>?</code>, <code>[</code>, <code>{</code>) and the directory does not exist, the user mistyped it. Previously the run scanned, matched nothing, and exited 
+                      <code>0</code> — masking the typo and making the tool look like a successful no-op (this is the bug #19 regression DEP_ERR01 guards against).
+                    </p>
+                    <p>
+                      Relative patterns are resolved against [executionRoot] (the workspace root), matching how [FilterPipeline] interprets relative 
+                      <code>--project</code> paths; absolute patterns are checked as-is (an absolute path <em>outside</em> the root is rejected earlier by [validateProjectPathsWithinRoot], so this only sees in-root absolutes). Returns a human-readable error (mentioning "not found") for the first missing path pattern, or 
+                      <code>null</code> when every path pattern exists.
+                    </p>
+                  </div>
+                </section>
+                <section id="validateProjectPathsWithinRoot" class="api-declaration">
+                  <h3 class="api-decl-title">function validateProjectPathsWithinRoot</h3>
+                  <code class="api-signature">String? validateProjectPathsWithinRoot(List&lt;String&gt; projectPatterns, String executionRoot)</code>
+                  <div class="api-doc">
+                    <p>Validate that no absolute <code>--project</code> pattern points outside [executionRoot].</p>
+                    <p>
+                      <code>--project</code> patterns are filters resolved against the scanned tree: a project id, a project name, a folder-name glob, or a relative path are all contained by construction — they can only ever match something 
+                      <em>inside</em> the workspace. The single way a <code>--project</code> value can escape the workspace is an 
+                      <strong>absolute path</strong> that resolves outside the execution root. A tool that silently matches nothing in that case looks like a successful no-op while actually being asked to operate on a path it must never touch.
+                    </p>
+                    <p>
+                      This function therefore checks only the absolute patterns: each must equal [executionRoot] or be contained within it. The first offending pattern yields a human-readable error string (mentioning "outside", "path", and "within" so callers and tests can recognise the rejection); a return of 
+                      <code>null</code> means all patterns are safe.
+                    </p>
+                  </div>
+                </section>
+                <section id="validateScanPathWithinRoot" class="api-declaration">
+                  <h3 class="api-decl-title">function validateScanPathWithinRoot</h3>
+                  <code class="api-signature">String? validateScanPathWithinRoot(String scan, String executionRoot)</code>
+                  <div class="api-doc">
+                    <p>Validate that the <code>--scan</code> path does not point outside [executionRoot].</p>
+                    <p>
+                      Unlike <code>--project</code> (a filter over the scanned tree), <code>--scan</code> names the real directory the traversal walks: the scanner runs 
+                      <code>Directory(scan)</code> directly, resolving a relative value against the current directory and using an absolute value as-is. Either form can therefore escape the workspace — an absolute path such as 
+                      <code>/tmp</code>, or a relative <code>../../sibling</code>. As with <code>--project</code>, a scan that lands outside the workspace previously produced an empty result and an exit code of 
+                      <code>0</code>, masking the fact that the tool was pointed at a location it must not walk.
+                    </p>
+                    <p>
+                      This resolves [scan] to an absolute, normalised path the same way the scanner does (relative-to-cwd) and requires it to equal or be contained within the resolved [executionRoot]. Returns a human-readable error string (mentioning "outside", "path", and "within") for an out-of-root scan, or 
+                      <code>null</code> when the scan is safe.
+                    </p>
                   </div>
                 </section>
               </div>

@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1393,7 +1399,7 @@
                   <a class="leaf" href="#ValidationPristine">ValidationPristine</a>
                   <a class="leaf" href="#ValidationResult">ValidationResult</a>
                   <a class="leaf" href="#ValidationSuccess">ValidationSuccess</a>
-                  <a class="leaf" href="#Validator">Validator</a>
+                  <a class="leaf" href="#TomValidator">TomValidator</a>
                 </div>
               </div>
               <div class="reader">
@@ -1462,6 +1468,20 @@
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
+                    <div id="ValidationError.interpolate" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String interpolate(String template)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Substitutes this error's [params] into a resolved message [template], replacing each <code>{name}</code>
+                           placeholder with its value.
+                        </p>
+                        <p>
+                          This lives on the error rather than inside a resolver because <em>two</em> resolvers need it — [TomField.resolvedErrorMessage] and the decoration layer's 
+                          <code>resolveFieldValidationMessage</code>, which is the one that actually paints the message. While only the former interpolated, every parameterised built-in (<code>minLength</code>, 
+                          <code>maxLength</code>, <code>min</code>, <code>max</code>, <code>minItems</code>, <code>maxItems</code>) rendered its template verbatim on screen — a field would say "Use at least {min} characters." Keeping the substitution with the data it substitutes is what stops the two paths drifting apart again.
+                        </p>
+                      </div>
+                    </div>
                     <div id="ValidationError.toString" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">String toString()</code>
@@ -1599,9 +1619,9 @@
                     </div>
                   </div>
                 </section>
-                <section id="Validator" class="api-declaration">
-                  <h3 class="api-decl-title">typedef Validator</h3>
-                  <code class="api-signature">typedef Validator&lt;T&gt; = FutureOr&lt;ValidationResult&gt; Function(T)</code>
+                <section id="TomValidator" class="api-declaration">
+                  <h3 class="api-decl-title">typedef TomValidator</h3>
+                  <code class="api-signature">typedef TomValidator&lt;T&gt; = FutureOr&lt;ValidationResult&gt; Function(T)</code>
                   <div class="api-doc">
                     <p>A function that validates a value of type [T].</p>
                     <p>

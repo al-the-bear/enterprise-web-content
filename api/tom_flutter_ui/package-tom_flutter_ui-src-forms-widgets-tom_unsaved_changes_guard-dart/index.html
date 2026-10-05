@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1409,7 +1415,7 @@
                     <div id="TomUnsavedChangesGuard.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          const TomUnsavedChangesGuard.new({Key? key, required TomForm&lt;InvalidType&gt; form, required Widget child, String title = 'Unsaved changes', String message = 'You have unsaved edits. What would you like to do?'})
+                          const TomUnsavedChangesGuard.new({Key? key, required TomForm&lt;InvalidType&gt; form, required Widget child, String? title, String? message})
                         </code>
                       </div>
                     </div>
@@ -1420,8 +1426,14 @@
                       <div class="api-member-head"><code class="api-signature">final TomForm&lt;InvalidType&gt; form</code></div>
                     </div>
                     <div id="TomUnsavedChangesGuard.child" class="api-member"><div class="api-member-head"><code class="api-signature">final Widget child</code></div></div>
-                    <div id="TomUnsavedChangesGuard.title" class="api-member"><div class="api-member-head"><code class="api-signature">final String title</code></div></div>
-                    <div id="TomUnsavedChangesGuard.message" class="api-member"><div class="api-member-head"><code class="api-signature">final String message</code></div></div>
+                    <div id="TomUnsavedChangesGuard.title" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? title</code></div>
+                      <div class="api-doc"><p>Heading of the prompt; <code>null</code> resolves it through [TomFormLabels].</p></div>
+                    </div>
+                    <div id="TomUnsavedChangesGuard.message" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? message</code></div>
+                      <div class="api-doc"><p>Body of the prompt; <code>null</code> resolves it through [TomFormLabels].</p></div>
+                    </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
@@ -1501,7 +1513,7 @@
                 <section id="guardUnsavedChanges" class="api-declaration">
                   <h3 class="api-decl-title">function guardUnsavedChanges</h3>
                   <code class="api-signature">
-                    Future&lt;UnsavedChangesChoice&gt; guardUnsavedChanges({required BuildContext context, required TomForm&lt;InvalidType&gt; form, required Future&lt;void&gt; Function() action, String title = 'Unsaved changes', String message = 'You have unsaved edits. What would you like to do?', String saveLabel = 'Save', String discardLabel = 'Discard', String cancelLabel = 'Cancel'})
+                    Future&lt;UnsavedChangesChoice&gt; guardUnsavedChanges({required BuildContext context, required TomForm&lt;InvalidType&gt; form, required Future&lt;void&gt; Function() action, String? title, String? message, String? saveLabel, String? discardLabel, String? cancelLabel})
                   </code>
                   <div class="api-doc">
                     <p>
@@ -1512,7 +1524,11 @@
                       <code>discard</code> (nothing to save).
                     </p>
                     <p>
-                      Used by [TomMasterDetailScaffold] for selection changes and by route pop guards. Keeps the spec's §15 master-detail Save/Discard/Cancel pattern in one place instead of being duplicated per demo.
+                      Used by [TomMasterDetailListForm] for selection changes and by route pop guards. Keeps the <code>tom_ui_widgets_forms.md</code>
+                       §15 master-detail Save/Discard/Cancel pattern in one place instead of being duplicated per demo.
+                    </p>
+                    <p>
+                      The five captions default to <code>null</code> rather than to English: left unset they resolve through [TomFormLabels] against the form's own resource scope, so a localised application gets a localised prompt without passing anything. Passing a string still wins outright, which is what a caller wanting one specific wording here — and only here — is asking for.
                     </p>
                   </div>
                 </section>

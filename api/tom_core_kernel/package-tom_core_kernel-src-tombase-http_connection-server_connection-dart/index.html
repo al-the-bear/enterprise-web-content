@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1391,6 +1397,7 @@
                   <a class="leaf" href="#TomHttpClientAbstractFactory">TomHttpClientAbstractFactory</a>
                   <a class="leaf" href="#TomHttpClientFactory">TomHttpClientFactory</a>
                   <a class="leaf" href="#TomRequestAbortedException">TomRequestAbortedException</a>
+                  <a class="leaf" href="#TomRequestTimeoutException">TomRequestTimeoutException</a>
                   <a class="leaf" href="#TomServerCall">TomServerCall</a>
                   <a class="leaf" href="#TomServerCallError">TomServerCallError</a>
                   <a class="leaf" href="#TomServerCallLoad">TomServerCallLoad</a>
@@ -1433,8 +1440,13 @@ final response = await call.readAsString(utf8);</code></pre>
                 </div>
                 <section id="TomDefaultHttpClientFactory" class="api-declaration">
                   <h3 class="api-decl-title">class TomDefaultHttpClientFactory</h3>
-                  <code class="api-signature">class TomDefaultHttpClientFactory extends TomHttpClientFactory</code>
-                  <div class="api-doc"><p>Default HTTP client factory using platform-specific clients.</p></div>
+                  <code class="api-signature">class TomDefaultHttpClientFactory implements TomHttpClientAbstractFactory</code>
+                  <div class="api-doc">
+                    <p>Default HTTP client factory using platform-specific clients.</p>
+                    <p>
+                      It <em>produces</em>, so it implements the contract rather than extending the resolver: there is nothing for it to delegate to.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomDefaultHttpClientFactory.new" class="api-member">
@@ -1453,12 +1465,27 @@ final response = await call.readAsString(utf8);</code></pre>
                 </section>
                 <section id="TomHttpClientAbstractFactory" class="api-declaration">
                   <h3 class="api-decl-title">class TomHttpClientAbstractFactory</h3>
-                  <code class="api-signature">class TomHttpClientAbstractFactory</code>
-                  <div class="api-doc"><p>Abstract base class for HTTP client factories.</p></div>
+                  <code class="api-signature">abstract interface class TomHttpClientAbstractFactory</code>
+                  <div class="api-doc">
+                    <p>The contract for producing an HTTP client.</p>
+                    <p>
+                      Implement it to supply a client of your own — one carrying an interceptor, a proxy, a pinned certificate, or a scripted response in a test:
+                    </p>
+                    <pre><code>class MyClientFactory implements TomHttpClientAbstractFactory {
+  @override
+  Client getClient() =&gt; MyClient();
+}
+
+TomHttpClientFactory.setGlobalHttpClientFactory(MyClientFactory());</code></pre>
+                    <p>
+                      Implementing this rather than extending [TomHttpClientFactory] is what a producing factory wants: [TomHttpClientFactory] is the 
+                      <em>resolver</em>, whose <code>getClient</code> forwards to an instance factory or to the global one, and a subclass that forgets to override it forwards forever — registered as the global, to itself.
+                    </p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
-                    <div id="TomHttpClientAbstractFactory._" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">const TomHttpClientAbstractFactory._()</code></div>
+                    <div id="TomHttpClientAbstractFactory.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomHttpClientAbstractFactory.new()</code></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
@@ -1473,9 +1500,10 @@ final response = await call.readAsString(utf8);</code></pre>
                   <h3 class="api-decl-title">class TomHttpClientFactory</h3>
                   <code class="api-signature">class TomHttpClientFactory implements TomHttpClientAbstractFactory</code>
                   <div class="api-doc">
-                    <p>Factory for creating HTTP clients.</p>
+                    <p>Resolves an HTTP client through a per-instance override or the global factory.</p>
                     <p>
-                      Supports global configuration and per-instance overrides. Uses [TomDefaultHttpClientFactory] if no custom factory is set.
+                      It produces no client of its own — [TomDefaultHttpClientFactory] does that, and so does any [TomHttpClientAbstractFactory] an application registers. This is the type the framework holds when it has somewhere to 
+                      <em>ask</em>: a [TomServerChannel] with no factory of its own carries one, and it answers from whatever the process has been configured with.
                     </p>
                     <h2>Example</h2>
                     <pre><code>// Set a custom global factory
@@ -1494,8 +1522,17 @@ TomHttpClientFactory.initialize();</code></pre>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
                     <div id="TomHttpClientFactory.instanceClientFactory" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">TomHttpClientFactory? instanceClientFactory</code></div>
+                      <div class="api-member-head"><code class="api-signature">TomHttpClientAbstractFactory? instanceClientFactory</code></div>
                       <div class="api-doc"><p>Instance-specific client factory override.</p></div>
+                    </div>
+                    <div id="TomHttpClientFactory._resolvingClient" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool _resolvingClient</code></div>
+                      <div class="api-doc">
+                        <p>Whether this instance is part of a delegation currently in progress.</p>
+                        <p>
+                          Reading it inside [getClient] is what turns a delegation cycle into an error. Safe as plain instance state because [getClient] is synchronous: no other call can interleave between setting and clearing it.
+                        </p>
+                      </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
@@ -1505,20 +1542,34 @@ TomHttpClientFactory.initialize();</code></pre>
                         <code class="api-signature">Client getClient()</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
+                      <div class="api-doc">
+                        <p>
+                          Resolves a client, delegating to [instanceClientFactory] — or, if none was set, to the global factory.
+                        </p>
+                        <p>
+                          This class creates no clients of its own; it only forwards. A [TomHttpClientAbstractFactory] implementation is what eventually produces one. Delegation therefore has to end somewhere, and it does not when the chain leads back to a factory already in it — most easily by registering a plain 
+                          <code>TomHttpClientFactory</code> as the global, which then forwards to itself.
+                        </p>
+                        <p>
+                          Such a chain would recurse until the stack ran out, reporting a wiring mistake as a <code>StackOverflowError</code>
+                           that names neither the factory nor the registration. It is refused under <code>server.connect.client_factory_delegation_cycle</code>
+                           instead.
+                        </p>
+                      </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
                     <div id="TomHttpClientFactory._initialized" class="api-member"><div class="api-member-head"><code class="api-signature">static bool _initialized</code></div></div>
                     <div id="TomHttpClientFactory._defaultHttpClientFactory" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static TomHttpClientFactory? _defaultHttpClientFactory</code></div>
+                      <div class="api-member-head"><code class="api-signature">static TomHttpClientAbstractFactory? _defaultHttpClientFactory</code></div>
                     </div>
                     <div id="TomHttpClientFactory._globalClientFactory" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static TomHttpClientFactory? _globalClientFactory</code></div>
+                      <div class="api-member-head"><code class="api-signature">static TomHttpClientAbstractFactory? _globalClientFactory</code></div>
                     </div>
                     <div id="TomHttpClientFactory.setGlobalHttpClientFactory" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">static void setGlobalHttpClientFactory(TomHttpClientFactory factory)</code>
+                        <code class="api-signature">static void setGlobalHttpClientFactory(TomHttpClientAbstractFactory factory)</code>
                       </div>
                       <div class="api-doc">
                         <p>Sets the global HTTP client factory.</p>
@@ -1528,10 +1579,30 @@ TomHttpClientFactory.initialize();</code></pre>
                       </div>
                     </div>
                     <div id="TomHttpClientFactory.initialize" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static void initialize([TomHttpClientFactory? defaultFactory])</code></div>
+                      <div class="api-member-head">
+                        <code class="api-signature">static void initialize([TomHttpClientAbstractFactory? defaultFactory])</code>
+                      </div>
                       <div class="api-doc">
                         <p>Initializes the factory system.</p>
                         <p>If not already initialized, sets the global factory to the provided factory or the default.</p>
+                        <p>
+                          Deliberately one-shot: the first caller in a process wins, so a library initializing on the way past cannot displace the host's choice. The consequence is that [defaultFactory] is 
+                          <em>ignored</em> once anything has initialized — call [resetGlobalHttpClientFactory] first if you need a second initialization to take effect.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomHttpClientFactory.resetGlobalHttpClientFactory" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static void resetGlobalHttpClientFactory()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Returns the factory system to its unconfigured state, so a later [initialize] or [setGlobalHttpClientFactory] takes effect again.
+                        </p>
+                        <p>
+                          The global factory is process-wide state and [initialize] is one-shot, so without this a test suite would be stuck with whatever the first test installed, and every test after it would silently share that decision.
+                        </p>
+                        <p>
+                          Only the statics are restored. A [TomHttpClientFactory] that has already resolved keeps the delegate it cached in [instanceClientFactory]; discard such instances rather than expecting this to reach them.
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -1548,7 +1619,27 @@ TomHttpClientFactory.initialize();</code></pre>
                     <div id="TomRequestAbortedException.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomRequestAbortedException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, Object? stack, Object? rootException, bool autoLog = false, String? requestUuid})
+                          TomRequestAbortedException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, StackTrace? stack, Object? rootException, bool autoLog = false, String? requestUuid})
+                        </code>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="TomRequestTimeoutException" class="api-declaration">
+                  <h3 class="api-decl-title">class TomRequestTimeoutException</h3>
+                  <code class="api-signature">class TomRequestTimeoutException extends TomException</code>
+                  <div class="api-doc">
+                    <p>Exception thrown when a request outlives its [TomServerCallSpecs.timeout].</p>
+                    <p>
+                      Deliberately <em>not</em> a subtype of [TomRequestAbortedException], even though a timeout aborts the request on its way out: the two mean opposite things to the caller. An abort is this application's own decision and repeating it would be pointless; a timeout is the server failing to answer in time, which is the textbook case for a retry. A caller that wants to treat them alike can catch [TomException]; one that wants to retry only timeouts could not separate them again if this were a subclass.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomRequestTimeoutException.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          TomRequestTimeoutException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, StackTrace? stack, Object? rootException, bool autoLog = false, String? requestUuid})
                         </code>
                       </div>
                     </div>
@@ -1614,7 +1705,18 @@ final response = utf8.decode(bytes);</code></pre>
                     </div>
                     <div id="TomServerCall.applyLoadValues" class="api-member">
                       <div class="api-member-head"><code class="api-signature">void applyLoadValues(TomServerCallLoad load)</code></div>
-                      <div class="api-doc"><p>Applies payload values to the request.</p></div>
+                      <div class="api-doc">
+                        <p>Applies payload values to the request.</p>
+                        <p>
+                          Writes whichever body [load] carries. It carries at most one — the type checks that when it is built and cannot be changed afterwards — so nothing is re-checked here. Were two ever to arrive, the fields would be applied in order and 
+                          <code>package:http</code> would reject the second against the content type the first had already set, leaving the request half-written.
+                        </p>
+                        <p>
+                          The order of the two lines that precede the body is load-bearing, because <code>package:http</code> reads both back when the body is assigned. The encoding is the charset the body is encoded with, and the content type is the header that charset is then written into; a type applied 
+                          <em>after</em> the body would be a type the body never saw, replacing the labelling <code>package:http</code>
+                           had just derived and dropping the charset with it.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomServerCall.reset" class="api-member">
                       <div class="api-member-head">
@@ -1632,16 +1734,79 @@ final response = utf8.decode(bytes);</code></pre>
                         <p>
                           Can only be called once per call instance (use [reset] to retry). Returns this instance for method chaining.
                         </p>
+                        <p>
+                          The rejection of an already-sent call happens before anything is applied, so a refused <code>send</code>
+                           leaves the request describing what was actually sent. A rejection that still mutated would leave the object describing a request that never happened, which a caller inspecting it after the throw, or a later [reset], would read back as real.
+                        </p>
+                        <p>
+                          [load] needs no check here: it is immutable and validated its single body on construction, so the value that arrives is the value that was built.
+                        </p>
                         <p>Throws [TomServerConnectionException] if called more than once.</p>
+                      </div>
+                    </div>
+                    <div id="TomServerCall._requireSent" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void _requireSent(String what)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Refuses a read of [what] before [send], under the one key <code>server.send.illegal_state_read_must_be_after_send</code>.
+                        </p>
+                        <p>
+                          The key lives here rather than at each reader, for the same reason it does in [_ensureNotYetRead]: a key's last segment names the 
+                          <em>condition</em> (see [TomException]), and "nothing has been sent" is one condition however many members can meet it. Supplied by the caller it became seven keys for that one condition — six accessors each naming itself, plus [read] — so code handling "this call has not been sent" had to match seven, and an eighth reader would have brought an eighth.
+                        </p>
+                        <p>
+                          [what] names in prose the value the caller was after ("the response headers"). It is the detail those seven keys were carrying, and it reaches the message and the 
+                          <code>read</code> parameter instead, where a detail belongs and costs the contract nothing. <strong>A new reader passes only [what]</strong>
+                           — there is no key to choose, so the convention holds without anyone deciding again.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomServerCall._requireSentResponse" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;StreamedResponse&gt; _requireSentResponse(String what)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Awaits the in-flight response, refusing a read of [what] before [send] exactly as [_requireSent] does.
+                        </p>
+                        <p>
+                          Split from [_requireSent] because [read] needs the guard <em>without</em> the await: it defers awaiting the response into [_awaitTransfer] so that its timeout covers the headers as well as the body.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomServerCall._ensureNotYetRead" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void _ensureNotYetRead()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Guards against reading the response more than once, throwing [TomServerConnectionException] when the body has already been consumed.
+                        </p>
+                        <p>
+                          The key lives here rather than at each reader: there is one "already consumed" condition, so it has to raise one key. Letting each caller pass its own turned a single condition into a contract that could drift — and it did, one reader having spelled the key 
+                          <code>read_only_once</code>.
+                        </p>
                       </div>
                     </div>
                     <div id="TomServerCall.read" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Future&lt;Uint8List&gt; read()</code></div>
                       <div class="api-doc">
                         <p>Reads the response body as bytes.</p>
-                        <p>Can only be called once after [send].</p>
                         <p>
-                          Throws [TomServerConnectionException] if called before send or more than once. Throws [TomRequestAbortedException] if the request was aborted.
+                          Can only be called once after [send] — the body is a stream, and draining it leaves nothing for a second reader. Every reader reaches the body through here, so all of them refuse a second read under the one key 
+                          <code>server.send.illegal_state_only_read_once</code>.
+                        </p>
+                        <p>
+                          Throws [TomServerConnectionException] under <code>server.send.illegal_state_read_must_be_after_send</code>
+                           if called before send, or <code>server.send.illegal_state_only_read_once</code> if called again. Throws [TomRequestAbortedException] if the request was aborted.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomServerCall._awaitTransfer" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;Uint8List&gt; _awaitTransfer()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Awaits the response and drains its body, translating an abort raised by either stage into [TomRequestAbortedException].
+                        </p>
+                        <p>
+                          Split out of [read] so that a single deadline can be placed around both stages at once, and so that an abort arriving 
+                          <em>before</em> the headers do is reported the same way as one arriving mid-body.
                         </p>
                       </div>
                     </div>
@@ -1649,49 +1814,70 @@ final response = utf8.decode(bytes);</code></pre>
                       <div class="api-member-head"><code class="api-signature">Future&lt;String&gt; readAsString(Encoding ec)</code></div>
                       <div class="api-doc">
                         <p>Reads the response body as a string with the given encoding.</p>
-                        <p>Can only be called once after [send].</p>
+                        <p>
+                          Can only be called once after [send], and refuses a second read exactly as [read] does — it <em>is</em>
+                           [read], with a decode on the end, so it carries no guard of its own.
+                        </p>
                       </div>
                     </div>
                     <div id="TomServerCall.getResponseHeaders" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Future&lt;Map&lt;String, String&gt;&gt; getResponseHeaders()</code></div>
                       <div class="api-doc">
                         <p>Gets the response headers after sending.</p>
-                        <p>Throws [TomServerConnectionException] if called before send.</p>
+                        <p>
+                          Throws [TomServerConnectionException] under <code>server.send.illegal_state_read_must_be_after_send</code>
+                           if called before send.
+                        </p>
                       </div>
                     </div>
                     <div id="TomServerCall.getResponseStatusCode" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Future&lt;int&gt; getResponseStatusCode()</code></div>
                       <div class="api-doc">
                         <p>Gets the HTTP status code after sending.</p>
-                        <p>Throws [TomServerConnectionException] if called before send.</p>
+                        <p>
+                          Throws [TomServerConnectionException] under <code>server.send.illegal_state_read_must_be_after_send</code>
+                           if called before send.
+                        </p>
                       </div>
                     </div>
                     <div id="TomServerCall.getResponseContentLength" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Future&lt;int?&gt; getResponseContentLength()</code></div>
                       <div class="api-doc">
                         <p>Gets the response content length after sending.</p>
-                        <p>Throws [TomServerConnectionException] if called before send.</p>
+                        <p>
+                          Throws [TomServerConnectionException] under <code>server.send.illegal_state_read_must_be_after_send</code>
+                           if called before send.
+                        </p>
                       </div>
                     </div>
                     <div id="TomServerCall.getResponseIsRedirect" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Future&lt;bool&gt; getResponseIsRedirect()</code></div>
                       <div class="api-doc">
                         <p>Checks if the response is a redirect after sending.</p>
-                        <p>Throws [TomServerConnectionException] if called before send.</p>
+                        <p>
+                          Throws [TomServerConnectionException] under <code>server.send.illegal_state_read_must_be_after_send</code>
+                           if called before send.
+                        </p>
                       </div>
                     </div>
                     <div id="TomServerCall.getResponseReasonPhrase" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Future&lt;String?&gt; getResponseReasonPhrase()</code></div>
                       <div class="api-doc">
                         <p>Gets the reason phrase after sending (e.g., "OK", "Not Found").</p>
-                        <p>Throws [TomServerConnectionException] if called before send.</p>
+                        <p>
+                          Throws [TomServerConnectionException] under <code>server.send.illegal_state_read_must_be_after_send</code>
+                           if called before send.
+                        </p>
                       </div>
                     </div>
                     <div id="TomServerCall.getResponseRequest" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Future&lt;BaseRequest?&gt; getResponseRequest()</code></div>
                       <div class="api-doc">
                         <p>Gets the original request from the response after sending.</p>
-                        <p>Throws [TomServerConnectionException] if called before send.</p>
+                        <p>
+                          Throws [TomServerConnectionException] under <code>server.send.illegal_state_read_must_be_after_send</code>
+                           if called before send.
+                        </p>
                       </div>
                     </div>
                     <div id="TomServerCall.abort" class="api-member">
@@ -1701,17 +1887,23 @@ final response = utf8.decode(bytes);</code></pre>
                   </div>
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
-                    <div id="TomServerCall._bodyTest" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">static bool _bodyTest(String? string, Uint8List? byte, Map&lt;String, String&gt;? fields)</code>
+                    <div id="TomServerCall._requireFormContentType" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static void _requireFormContentType(String? contentType)</code></div>
+                      <div class="api-doc">
+                        <p>Refuses a form body that [contentType] labels as something else.</p>
+                        <p>
+                          <code>package:http</code> encodes form fields as <code>application/x-www-form-urlencoded</code> and rejects any other declared type — with a bare 
+                          <code>StateError</code> that names neither the call nor the setting that disagreed, raised partway through writing the request.
+                        </p>
+                        <p>
+                          The check belongs here rather than on [TomServerCallLoad] because the label has two sources: the load's own 
+                          <code>contentType</code> and the spec's <code>headers</code>. Only the request has seen both, so a constructor check would pass every load whose spec carried the offending header — a guard that reads as complete and is not.
+                        </p>
+                        <p>
+                          A type that merely carries parameters — <code>...urlencoded; charset=utf-8</code> — is the same type, so the media types are compared rather than the strings. An unparseable value is left alone: 
+                          <code>package:http</code> reports a malformed content type in its own terms, and guessing here would name the wrong fault.
+                        </p>
                       </div>
-                      <div class="api-doc"><p>Validates that only one type of body is provided.</p></div>
-                    </div>
-                    <div id="TomServerCall._bodyCount" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">static int _bodyCount(String? string, Uint8List? byte, Map&lt;String, String&gt;? fields)</code>
-                      </div>
-                      <div class="api-doc"><p>Counts how many body types are set.</p></div>
                     </div>
                   </div>
                 </section>
@@ -1734,7 +1926,7 @@ if (error?.hasError ?? false) {
                     <div id="TomServerCallError.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomServerCallError.new({int statusCode = 200, String? response, int internalError = 0, Map&lt;String, Object&gt; headers = const {}, bool isRedirect = false, String? reasonPhrase, Object? exception, StackTrace? stackTrace, Object? statusCodeResponse})
+                          TomServerCallError.new({int statusCode = 200, String? response, int internalError = 0, Map&lt;String, Object&gt;? headers, bool isRedirect = false, String? reasonPhrase, Object? exception, StackTrace? stackTrace, Object? statusCodeResponse})
                         </code>
                       </div>
                       <div class="api-doc"><p>Creates a new server call error/response object.</p></div>
@@ -1752,7 +1944,13 @@ if (error?.hasError ?? false) {
                     </div>
                     <div id="TomServerCallError.statusCodeResponse" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Object? statusCodeResponse</code></div>
-                      <div class="api-doc"><p>Deserialized response object for non-200 status codes.</p></div>
+                      <div class="api-doc">
+                        <p>The deserialized body, whichever type it was read as.</p>
+                        <p>
+                          On a success this is the same object [TomServerEndpoint.send] returns as its result. On a failure whose status has an entry in the endpoint's 
+                          <code>statusCodeResponseTypes</code> it is an instance of <em>that</em> type; on a failure with no entry it stays null.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomServerCallError.internalError" class="api-member">
                       <div class="api-member-head"><code class="api-signature">int internalError</code></div>
@@ -1760,7 +1958,13 @@ if (error?.hasError ?? false) {
                     </div>
                     <div id="TomServerCallError.headers" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Map&lt;String, Object&gt; headers</code></div>
-                      <div class="api-doc"><p>Response headers from the server.</p></div>
+                      <div class="api-doc">
+                        <p>Response headers from the server, empty when there were none.</p>
+                        <p>
+                          Always a mutable map belonging to this error. The constructor copies what it is given rather than keeping the caller's map, for two reasons: a response that carried no headers supplies a 
+                          <code>const {}</code> that would reject every write, and [TomServerEndpoint.send] hands over the live response header map, which annotating an error would otherwise rewrite in place.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomServerCallError.isRedirect" class="api-member">
                       <div class="api-member-head"><code class="api-signature">bool isRedirect</code></div>
@@ -1817,11 +2021,42 @@ if (error?.hasError ?? false) {
                     </div>
                     <div id="TomServerCallError.noResponseError" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static int noResponseError</code></div>
-                      <div class="api-doc"><p>Internal error code when no response was received.</p></div>
+                      <div class="api-doc">
+                        <p>Internal error code when no response was received.</p>
+                        <p>
+                          Raised by [TomServerEndpoint.send] when the request never produced a response — a refused connection, an expired deadline, an aborted request. Such an error carries no status (<code>statusCode</code>
+                           is 0) and no body; the underlying failure is in [exception].
+                        </p>
+                      </div>
                     </div>
                     <div id="TomServerCallError.serverError" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static int serverError</code></div>
-                      <div class="api-doc"><p>Internal error code for general server errors.</p></div>
+                      <div class="api-doc">
+                        <p>Internal error code for general server errors.</p>
+                        <p>
+                          Distinct from [noResponseError] because the two are different answers to the same question: this one means the server replied and the reply was a failure, that one means there was no reply to read. A caller switching on [internalError] has to be able to tell "the service said no" from "the service was not reachable" — they call for different handling and different retries.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomServerCallError.isSuccessStatusCode" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static bool isSuccessStatusCode(int statusCode)</code></div>
+                      <div class="api-doc">
+                        <p>Whether [statusCode] is in the HTTP 2xx success range.</p>
+                        <p>
+                          The one definition of "the server accepted this" in the module. Both [hasError] and the response handling in [TomServerEndpoint.send] read it, because when each spelled the test for itself they disagreed: 
+                          <code>send</code> treated anything other than exactly 200 as a failure, so a <code>201 Created</code>
+                           was routed away from the deserializer while <code>hasError</code> went on reporting no error.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomServerCallError.isNoContentStatusCode" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static bool isNoContentStatusCode(int statusCode)</code></div>
+                      <div class="api-doc">
+                        <p>Whether a response with [statusCode] is defined to carry no body.</p>
+                        <p>
+                          <code>204 No Content</code> and <code>205 Reset Content</code> have no payload by definition (RFC 9110 §15.3.5–6), so for those an empty body is the expected shape and there is nothing to deserialize — as opposed to a status that promised a body and sent none, which stays a failure to parse.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>
@@ -1833,7 +2068,9 @@ if (error?.hasError ?? false) {
                     <p>
                       Supports three types of body content: - [stringBody] - Text content (JSON, XML, etc.) - [byteBody] - Binary content (files, images, etc.) - [bodyFields] - Form fields for URL-encoded requests
                     </p>
-                    <p>Only one type of body can be set at a time.</p>
+                    <p>
+                      Only one type of body can be set at a time, and a load never changes after it is built: every field is final, so the constructor's check is a promise about the whole object rather than about one moment in its life. A load that exists describes exactly one request body — no consumer has to re-check it.
+                    </p>
                     <h2>Example</h2>
                     <pre><code>// JSON body
 final jsonLoad = TomServerCallLoad(
@@ -1852,13 +2089,16 @@ final formLoad = TomServerCallLoad(
                     <div id="TomServerCallLoad.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomServerCallLoad.new({String? stringBody, Uint8List? byteBody, Map&lt;String, String&gt;? bodyFields, String? contentType, Encoding? encoding, int? contentLength})
+                          TomServerCallLoad.new({String? stringBody, Uint8List? byteBody, Map&lt;String, String&gt;? bodyFields, String? contentType, Encoding? encoding})
                         </code>
                       </div>
                       <div class="api-doc">
                         <p>Creates a new request payload.</p>
                         <p>
-                          Only one of [stringBody], [byteBody], or [bodyFields] may be set. Setting multiple will throw [TomServerConnectionException].
+                          Only one of [stringBody], [byteBody], or [bodyFields] may be set; supplying more than one throws [TomServerConnectionException]. Because the fields are final, passing that check is the only way a load can come into existence.
+                        </p>
+                        <p>
+                          A [bodyFields] body must also be labelled as a form, but that check is not here: the label can equally come from [TomServerCallSpecs.headers], which a load never sees. It is made once, against the request's effective content type, in [TomServerCall.applyLoadValues].
                         </p>
                       </div>
                     </div>
@@ -1867,27 +2107,54 @@ final formLoad = TomServerCallLoad(
                   <div class="api-members">
                     <div id="TomServerCallLoad.contentType" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final String? contentType</code></div>
-                      <div class="api-doc"><p>The Content-Type header value.</p></div>
+                      <div class="api-doc">
+                        <p>The <code>Content-Type</code> header value, or <code>null</code> to let the body choose one.</p>
+                        <p>
+                          Applied to the request ahead of the body, so <code>package:http</code> labels the bytes with what the caller named. Left 
+                          <code>null</code>, the body picks the default its own shape implies: <code>text/plain</code> for [stringBody] and 
+                          <code>application/x-www-form-urlencoded</code> for [bodyFields], both carrying the [encoding]'s charset. [byteBody] implies nothing and stays unlabelled.
+                        </p>
+                        <p>
+                          There is deliberately no <code>contentLength</code> beside this. A <code>Content-Type</code> is the caller's to state — the bytes do not say what they mean — whereas a 
+                          <code>Content-Length</code> is a fact about the body that the request measures for itself, and that this module's non-streaming request refuses to be told. Streaming uploads, where the length genuinely is unknown until it is declared, go through [TomHttpFileTransferClient] rather than through a load.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomServerCallLoad.encoding" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final Encoding? encoding</code></div>
                       <div class="api-doc"><p>Character encoding for the body.</p></div>
                     </div>
-                    <div id="TomServerCallLoad.contentLength" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">int? contentLength</code></div>
-                      <div class="api-doc"><p>Content-Length header value.</p></div>
-                    </div>
                     <div id="TomServerCallLoad.stringBody" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">String? stringBody</code></div>
+                      <div class="api-member-head"><code class="api-signature">final String? stringBody</code></div>
                       <div class="api-doc"><p>String body content (mutually exclusive with [byteBody] and [bodyFields]).</p></div>
                     </div>
                     <div id="TomServerCallLoad.byteBody" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">Uint8List? byteBody</code></div>
+                      <div class="api-member-head"><code class="api-signature">final Uint8List? byteBody</code></div>
                       <div class="api-doc"><p>Binary body content (mutually exclusive with [stringBody] and [bodyFields]).</p></div>
                     </div>
                     <div id="TomServerCallLoad.bodyFields" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">Map&lt;String, String&gt;? bodyFields</code></div>
-                      <div class="api-doc"><p>Form field body (mutually exclusive with [stringBody] and [byteBody]).</p></div>
+                      <div class="api-member-head"><code class="api-signature">final Map&lt;String, String&gt;? bodyFields</code></div>
+                      <div class="api-doc">
+                        <p>Form field body (mutually exclusive with [stringBody] and [byteBody]).</p>
+                        <p>
+                          A copy of what the constructor was given, so later edits to the caller's map cannot add a body to a load that was built without one.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="TomServerCallLoad._bodyTest" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static void _bodyTest(String? string, Uint8List? byte, Map&lt;String, String&gt;? fields)</code>
+                      </div>
+                      <div class="api-doc"><p>Validates that at most one type of body is provided.</p></div>
+                    </div>
+                    <div id="TomServerCallLoad._bodyCount" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static int _bodyCount(String? string, Uint8List? byte, Map&lt;String, String&gt;? fields)</code>
+                      </div>
+                      <div class="api-doc"><p>Counts how many body types are set.</p></div>
                     </div>
                   </div>
                 </section>
@@ -1912,7 +2179,7 @@ final formLoad = TomServerCallLoad(
                     <div id="TomServerCallSpecs.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomServerCallSpecs.new(String method, Uri url, {int? contentLength, bool? followRedirects, Map&lt;String, String&gt;? headers = const {}, int? maxRedirects, bool? persistentConnection, bool includeBearerAuthentication = true, Encoding? requestEncoding, Encoding? fallbackResponseEncoding})
+                          TomServerCallSpecs.new(String method, Uri url, {bool? followRedirects, Map&lt;String, String&gt;? headers, int? maxRedirects, bool? persistentConnection, bool includeBearerAuthentication = true, Encoding? requestEncoding, Encoding? fallbackResponseEncoding, Duration? timeout})
                         </code>
                       </div>
                       <div class="api-doc"><p>Creates a new server call specification.</p></div>
@@ -1933,8 +2200,15 @@ final formLoad = TomServerCallLoad(
                       <div class="api-doc"><p>Whether to automatically follow HTTP redirects.</p></div>
                     </div>
                     <div id="TomServerCallSpecs.headers" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final Map&lt;String, String&gt;? headers</code></div>
-                      <div class="api-doc"><p>HTTP headers to include in the request.</p></div>
+                      <div class="api-member-head"><code class="api-signature">final Map&lt;String, String&gt; headers</code></div>
+                      <div class="api-doc">
+                        <p>HTTP headers to include in the request, empty when the caller named none.</p>
+                        <p>
+                          Non-null and mutable, on the same terms as [TomServerCallError.headers]: the constructor copies what it is given, so the map is this spec's own and writing to it always works. A nullable field with a 
+                          <code>const {}</code> default would be the worst of both: never actually null, so every <code>!= null</code>
+                           test against it is true, and unmodifiable, so every write to it throws.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomServerCallSpecs.maxRedirects" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final int? maxRedirects</code></div>
@@ -1956,6 +2230,18 @@ final formLoad = TomServerCallLoad(
                       <div class="api-member-head"><code class="api-signature">final Encoding? fallbackResponseEncoding</code></div>
                       <div class="api-doc"><p>Fallback encoding for parsing response body.</p></div>
                     </div>
+                    <div id="TomServerCallSpecs.timeout" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Duration? timeout</code></div>
+                      <div class="api-doc">
+                        <p>How long [TomServerCall.read] may wait before giving up, or <code>null</code> for no deadline.</p>
+                        <p>
+                          The budget covers the whole exchange — waiting for the response and draining its body — rather than restarting per stage, because a server that sends headers promptly and then stalls mid-body hangs the caller just as effectively as one that never answers.
+                        </p>
+                        <p>
+                          <code>null</code> by default: a deadline that suits a JSON call would truncate a long upload, and this type cannot tell which it is being used for. The caller knows, so the caller states it.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </section>
                 <section id="TomServerChannel" class="api-declaration">
@@ -1974,7 +2260,7 @@ channel.close(); // Close when done</code></pre>
                   <div class="api-members">
                     <div id="TomServerChannel.new" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">TomServerChannel.new(String host, int port, {TomHttpClientFactory? clientFactory})</code>
+                        <code class="api-signature">TomServerChannel.new(String host, int port, {TomHttpClientAbstractFactory? clientFactory})</code>
                       </div>
                       <div class="api-doc">
                         <p>Creates a new server channel.</p>
@@ -1983,6 +2269,22 @@ channel.close(); // Close when done</code></pre>
                           <li>[port]: The server port</li>
                           <li>[clientFactory]: Optional custom client factory</li>
                         </ul>
+                      </div>
+                    </div>
+                    <div id="TomServerChannel.forUri" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">factory TomServerChannel.forUri(Uri uri, {TomHttpClientAbstractFactory? clientFactory})</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Creates a channel for the server [uri] addresses.</p>
+                        <p>
+                          The port is [uri]'s own when it names one, and otherwise its scheme's: <code>443</code> for <code>https</code>, 
+                          <code>80</code> for anything else. A URI writes its port only when it differs from the scheme's default, so deriving it any other way sends an ordinary 
+                          <code>https://host/path</code> to port 80.
+                        </p>
+                        <p>
+                          This is the derivation every caller that builds a channel from a URI shares — the channel behind an endpoint, a file-transfer client, a server's own login call — so the address a channel opens agrees with the address written into the call's specs.
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -2001,7 +2303,7 @@ channel.close(); // Close when done</code></pre>
                       <div class="api-doc"><p>The server port.</p></div>
                     </div>
                     <div id="TomServerChannel.clientFactory" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">TomHttpClientFactory clientFactory</code></div>
+                      <div class="api-member-head"><code class="api-signature">TomHttpClientAbstractFactory clientFactory</code></div>
                       <div class="api-doc"><p>Factory for creating HTTP clients.</p></div>
                     </div>
                   </div>
@@ -2035,7 +2337,7 @@ channel.close(); // Close when done</code></pre>
                     <div id="TomServerConnectionException.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomServerConnectionException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, Object? stack, Object? rootException, bool autoLog = false, String? requestUuid, String? uuid, TomServerCallError? serverCallError})
+                          TomServerConnectionException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, StackTrace? stack, Object? rootException, bool autoLog = false, String? requestUuid, String? uuid, TomServerCallError? serverCallError})
                         </code>
                       </div>
                     </div>
@@ -2085,7 +2387,12 @@ if (error?.hasError ?? false) {
                     </div>
                     <div id="TomServerEndpoint.statusCodeResponseTypes" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Map&lt;int, Type&gt;? statusCodeResponseTypes</code></div>
-                      <div class="api-doc"><p>Maps status codes to response types for error handling.</p></div>
+                      <div class="api-doc">
+                        <p>Maps <em>failing</em> status codes to the types their bodies carry.</p>
+                        <p>
+                          Consulted only when the response is not a 2xx, so an entry never diverts a success away from [R]. An entry is honoured whatever type it names, [R] included: a failing status does not fill the result object, so the body arrives as [TomServerCallError.statusCodeResponse] either way.
+                        </p>
+                      </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
@@ -2099,6 +2406,10 @@ if (error?.hasError ?? false) {
                         <p>
                           Returns a tuple of (response, error). Check [TomServerCallError.hasError] to determine if the request succeeded.
                         </p>
+                        <p>
+                          Every way a call can fail reaches the caller through that tuple, including the ones where no response arrives at all — a refused connection, an expired deadline, an aborted request all come back as [TomServerCallError.noResponseError] with the underlying failure in 
+                          <code>exception</code>, not as a throw past the tuple. The one exception is a server error that asks the client to rethrow, which raises [TomServerConnectionException] by request of the server.
+                        </p>
                         <ul>
                           <li>[load]: The request object to send</li>
                           <li>[responseObject]: Optional pre-created response object to populate</li>
@@ -2111,7 +2422,7 @@ if (error?.hasError ?? false) {
                     <div id="TomServerEndpoint.createApiServerEndpoint" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          static TomServerEndpoint&lt;requestType, responseType&gt; createApiServerEndpoint&lt;requestType extends Object, responseType extends Object&gt;(TomApiEndpoint&lt;dynamic, dynamic&gt; apiEndpoint, {TomServerCallSpecs? specs, TomServerChannel? channel, Uri? baseUri})
+                          static TomServerEndpoint&lt;requestType, responseType&gt; createApiServerEndpoint&lt;requestType extends Object, responseType extends Object&gt;(TomApiEndpoint&lt;dynamic, dynamic&gt; apiEndpoint, {Map&lt;String, Object?&gt; parameters = const {}, TomServerCallSpecs? specs, TomServerChannel? channel, Uri? baseUri})
                         </code>
                       </div>
                       <div class="api-doc">
@@ -2119,17 +2430,20 @@ if (error?.hasError ?? false) {
                         <p>
                           Automatically configures the channel, specs, and error handling based on the [TomApiEndpoint] configuration.
                         </p>
+                        <p>
+                          The address comes from [TomApiEndpoint.resolveUri], so this factory addresses exactly the route the declaration describes: path captures are substituted and mapped query parameters appended under the endpoint's own [TomApiEndpoint.urlParameterMapping]. Joining the templates here instead would make the declarative half of the contract unreachable through the very API that exists to build a call from it.
+                        </p>
                         <ul>
                           <li>[apiEndpoint]: The endpoint definition from a [TomApi]</li>
-                          <li>[specs]: Optional custom call specs</li>
-                          <li>[channel]: Optional custom server channel</li>
-                          <li>[baseUri]: Optional base URI override</li>
+                          <li>[parameters]: Values for the endpoint's URL parameters, keyed by</li>
                         </ul>
+                        <p>
+                          <strong>request-DTO field name</strong> — see [TomApiEndpoint.resolveUri] for how the two kinds bind. Ignored when [specs] names the address itself. - [specs]: Optional custom call specs. Supplying these bypasses resolution: the caller has then named the address outright. - [channel]: Optional custom server channel - [baseUri]: Where to address the call, defaulting to [TomClientRemoteContext.baseUri] — the API server. An authentication endpoint passes [TomClientRemoteContext.authenticationUri] here explicitly; that URI addresses the authentication server and nothing else, and the two differ only in a split deployment, so a call that named the wrong one would look correct on a single host.
+                        </p>
+                        <p>
+                          Throws [TomEndpointException] when [apiEndpoint] does not match the type arguments, or when one of its path captures has no answering entry in [parameters].
+                        </p>
                       </div>
-                    </div>
-                    <div id="TomServerEndpoint.removeLeadingSlash" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static String removeLeadingSlash(String s)</code></div>
-                      <div class="api-doc"><p>Removes a leading slash from a string if present.</p></div>
                     </div>
                   </div>
                 </section>

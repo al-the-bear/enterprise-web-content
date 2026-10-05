@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1388,6 +1394,7 @@
               <div class="treepane">
                 <div class="treenodes">
                   <a class="leaf" href="#ExceptionCore">ExceptionCore</a>
+                  <a class="leaf" href="#ExceptionHierarchyCore">ExceptionHierarchyCore</a>
                   <a class="leaf" href="#FormatExceptionCore">FormatExceptionCore</a>
                 </div>
               </div>
@@ -1404,6 +1411,42 @@
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
                     <div id="ExceptionCore.definition" class="api-member"><div class="api-member-head"><code class="api-signature">static BridgedClass definition</code></div></div>
+                  </div>
+                </section>
+                <section id="ExceptionHierarchyCore" class="api-declaration">
+                  <h3 class="api-decl-title">class ExceptionHierarchyCore</h3>
+                  <code class="api-signature">class ExceptionHierarchyCore</code>
+                  <div class="api-doc">
+                    <p>Declares the <code>dart:core</code> <strong>exception</strong> chain to the subtype registry.</p>
+                    <p>
+                      The sibling of <code>ErrorHierarchyCore</code>, and it was missing entirely: the error side has declared its edges since RC-7, the exception side had none. So 
+                      <code>FormatException('x') is Exception</code> answered <code>false</code>, and so did the same question about every other bridged exception in the workspace.
+                    </p>
+                    <p>
+                      Nothing noticed for a long time because the one place scripts ask it most — <code>on Exception catch (e)</code>
+                       — did not go through the type test at all. It had its own <code>case 'Exception': thrownValue is Exception</code>
+                       arm, which reads the native object directly and is therefore right for a <em>native</em> operand while saying nothing about the bridged one. SCC20 deleted that arm along with the rest of the hand-written catch-clause switch, and the missing edges surfaced immediately: 
+                      <code>on Exception</code> stopped catching a thrown <code>FormatException</code>.
+                    </p>
+                    <p>
+                      Registry edges are the whole fix — no <code>isAssignable</code> is added to the <code>Exception</code>
+                       bridge. That distinction is load-bearing. <code>isAssignable</code> decides which bridge <em>owns</em>
+                       a native object, so putting one on a root type makes the root match every value in its hierarchy and steal member dispatch from its own subtypes (the failure 
+                      <code>ConvertHierarchyConvert</code> documents for <code>ChunkedConversionSink</code>). The registry feeds 
+                      <code>isSubtypeOf</code> only, so <code>FormatException</code> keeps its <code>message</code> / <code>source</code>
+                       / <code>offset</code> getters and merely gains a truthful answer about its supertype.
+                    </p>
+                    <p>
+                      Each edge is declared ONCE, as the SDK declares it; the closure is computed by the registry walk (SCC19).
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="ExceptionHierarchyCore.new" class="api-member"><div class="api-member-head"><code class="api-signature">ExceptionHierarchyCore.new()</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="ExceptionHierarchyCore.register" class="api-member"><div class="api-member-head"><code class="api-signature">static void register()</code></div></div>
                   </div>
                 </section>
                 <section id="FormatExceptionCore" class="api-declaration">

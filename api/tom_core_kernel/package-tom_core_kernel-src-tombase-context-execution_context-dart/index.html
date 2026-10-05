@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1415,9 +1421,32 @@ final context = TomExecutionContext({
 });
 
 context.runInContext(() {
-  // Access context values from anywhere in this zone
-  final userId = getFromCurrentZone&lt;String&gt;();
+  // Access context values from anywhere in this zone, by entry name
+  final userId = TomExecutionContext.getValueFromCurrentZone&lt;String&gt;('userId');
 });</code></pre>
+                  <h2>Two reads, and which one to use</h2>
+                  <p>
+                    A zone is keyed by <code>Type</code>, and [runInContext] installs exactly two keys: [TomExecutionContext] and [TomZoneValues]. 
+                    <strong>Both are reserved.</strong> They are ordinary <code>Type</code> keys, which is what makes the reads below possible — a private sentinel would be collision-proof and unreadable — so a bare 
+                    <code>runZoned(zoneValues: {TomZoneValues: something})</code> can put a foreign value under one of them. Use a key of your own instead; a collision made that way is refused with 
+                    <code>context.zone_key.reserved_key_holds_foreign_value</code> the next time a run nests, rather than silently inheriting nothing. Passing either type through [runInContext]'s own 
+                    <code>zoneValues:</code> is not a collision: that map is nested inside the container, not merged into the zone.
+                  </p>
+                  <p>
+                    Everything else lives <em>inside</em> one of those two containers, so which read applies depends on what is being fetched:
+                  </p>
+                  <ul><li><strong>The containers themselves</strong> are read by type, with</li></ul>
+                  <p>
+                    <code>getFromCurrentZone&lt;TomExecutionContext&gt;()</code> and <code>getFromCurrentZone&lt;TomZoneValues&gt;()</code>. - 
+                    <strong>A named context entry</strong> is read by name, with [TomExecutionContext.getValueFromCurrentZone]. Its type parameter selects the entry's 
+                    <em>value</em> type; it is not a zone key. - <strong>An ad-hoc zone value</strong> passed as <code>zoneValues:</code>
+                     is read through the container: <code>getFromCurrentZone&lt;TomZoneValues&gt;()?['requestId']</code>.
+                  </p>
+                  <p>
+                    Reaching for the wrong one returns <code>null</code> rather than failing, so it is worth being deliberate: 
+                    <code>getFromCurrentZone&lt;String&gt;()</code> never sees an entry named <code>'userId'</code>, however that entry is typed, because nothing ever installs 
+                    <code>String</code> as a zone key.
+                  </p>
                 </div>
                 <section id="TomContextEntry" class="api-declaration">
                   <h3 class="api-decl-title">class TomContextEntry</h3>
@@ -1428,7 +1457,17 @@ context.runInContext(() {
                       [TomContextEntry] wraps a function that provides a context value. The value is computed lazily when accessed.
                     </p>
                     <h2>Type Parameter</h2>
-                    <p>The type parameter [T] specifies the type of value this entry provides.</p>
+                    <p>
+                      The type parameter [T] specifies the type of value this entry provides, and [TomExecutionContext.getEntry] reads it by assignability — an entry is found by a read for [T] or for any supertype of it, so a 
+                      <code>TomContextEntry&lt;int&gt;</code> answers <code>getEntry&lt;num&gt;</code>.
+                    </p>
+                    <p>
+                      <strong>Always write [T] explicitly when registering an entry.</strong> The context constructor takes a 
+                      <code>Map&lt;String, TomContextEntry&gt;</code>, which supplies <code>TomContextEntry&lt;dynamic&gt;</code>
+                       as the downward inference context, so a raw <code>TomContextEntry(() =&gt; 'acme')</code> written inside that map literal is a 
+                      <code>TomContextEntry&lt;dynamic&gt;</code> regardless of the value it returns — and every typed read of it then yields 
+                      <code>null</code>. (The same expression assigned to a local infers <code>String</code>, which is what makes the trap easy to miss.)
+                    </p>
                     <h2>Example</h2>
                     <pre><code>// Static value
 final entry = TomContextEntry&lt;String&gt;(() =&gt; 'constant');
@@ -1484,6 +1523,21 @@ final entry = TomContextEntry&lt;User&gt;(() =&gt; getFromCurrentZone&lt;User&gt
                       <li><strong>Language/Country/Timezone</strong>: Server locale settings</li>
                       <li><strong>ClientLanguage/ClientCountry/ClientTimezone</strong>: Client locale settings</li>
                     </ul>
+                    <h2>Field readers, not a locale derivation</h2>
+                    <p>
+                      Each provider reads <strong>one</strong> field and answers a sentinel when it is absent. The stored pair and the device pair are reported separately and on purpose: a caller that needs a specific claim — an audit entry recording what the device said, a diagnostic naming what the user chose — must be able to ask for that one and not be handed a blend.
+                    </p>
+                    <p>
+                      Choosing <em>between</em> them is a different question with a different answer, and these providers deliberately do not answer it. To pick the locale to render text in for a recipient, use 
+                      <code>TomTextLocale.fromPrincipal</code> in <code>tom_core_server</code>'s resources module, which applies the precedence rule (stored preference over device) and answers 
+                      <code>null</code> — not a guess — when the principal names no locale at all.
+                    </p>
+                    <p>
+                      Composing these providers into a locale instead does not merely duplicate that rule, it gets a different one: 
+                      <code>TomTextLocale(getLanguage(), getCountry())</code> yields <code>en_XX</code> for a principal that names nothing, and 
+                      <code>XX</code> is a sentinel rather than a country (see [getCountry]). That combination is refused by 
+                      <code>TomTextLocale</code>'s country invariant, so the mistake fails rather than silently rendering through a bundle nobody asked for.
+                    </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
@@ -1491,6 +1545,19 @@ final entry = TomContextEntry&lt;User&gt;(() =&gt; getFromCurrentZone&lt;User&gt
                   </div>
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
+                    <div id="TomContextProviders._fromPrincipal" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static String _fromPrincipal(String? Function(TomPrincipal) select, String fallback)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Reads a single field from the current zone's [TomPrincipal], falling back to [fallback] when no principal is installed (or the field is null).
+                        </p>
+                        <p>
+                          Centralises the principal-from-zone read shared by every provider getter, so a change to how the principal is resolved lands in one place.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomContextProviders.getOrganization" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static String getOrganization()</code></div>
                       <div class="api-doc"><p>Returns the organization from the current principal, or "default".</p></div>
@@ -1505,27 +1572,49 @@ final entry = TomContextEntry&lt;User&gt;(() =&gt; getFromCurrentZone&lt;User&gt
                     </div>
                     <div id="TomContextProviders.getLanguage" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static String getLanguage()</code></div>
-                      <div class="api-doc"><p>Returns the server language from the current principal, or "en".</p></div>
+                      <div class="api-doc">
+                        <p>Returns the stored language from the current principal, or "en".</p>
+                        <p>
+                          The fallback is a value, not a derived answer: it says the principal named no language, not that this user reads English. A caller deciding what language to 
+                          <em>write to somebody in</em> wants <code>TomTextLocale.fromPrincipal</code>, which distinguishes the two by answering 
+                          <code>null</code>.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomContextProviders.getCountry" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static String getCountry()</code></div>
-                      <div class="api-doc"><p>Returns the server country from the current principal, or "XX".</p></div>
+                      <div class="api-doc">
+                        <p>
+                          Returns the stored country from the current principal, or [TomClientContext.noCountry] — the non-locale sentinel described there, which a consumer building a locale key must drop rather than treat as a region.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomContextProviders.getTimezone" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static String getTimezone()</code></div>
-                      <div class="api-doc"><p>Returns the server timezone from the current principal, or "utc".</p></div>
+                      <div class="api-doc">
+                        <p>Returns the server timezone from the current principal, or [TomClientContext.defaultTimezone].</p>
+                      </div>
                     </div>
                     <div id="TomContextProviders.getClientLanguage" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static String getClientLanguage()</code></div>
-                      <div class="api-doc"><p>Returns the client language from the current principal, or "en".</p></div>
+                      <div class="api-doc">
+                        <p>Returns the client language from the current principal, or [TomClientContext.defaultLanguage].</p>
+                      </div>
                     </div>
                     <div id="TomContextProviders.getClientCountry" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static String getClientCountry()</code></div>
-                      <div class="api-doc"><p>Returns the client country from the current principal, or "XX".</p></div>
+                      <div class="api-doc">
+                        <p>Returns the client country from the current principal, or [TomClientContext.noCountry].</p>
+                        <p>
+                          Here the sentinel is often the <em>stored</em> value rather than the fallback: [TomAuthenticationMessage.clientCountry] starts there, so a device that names no region sends it and it reaches the principal through an ordinary sign-in.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomContextProviders.getClientTimezone" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static String getClientTimezone()</code></div>
-                      <div class="api-doc"><p>Returns the client timezone from the current principal, or "utc".</p></div>
+                      <div class="api-doc">
+                        <p>Returns the client timezone from the current principal, or [TomClientContext.defaultTimezone].</p>
+                      </div>
                     </div>
                   </div>
                 </section>
@@ -1539,12 +1628,16 @@ final entry = TomContextEntry&lt;User&gt;(() =&gt; getFromCurrentZone&lt;User&gt
                     </p>
                     <h2>How It Works</h2>
                     <p>
-                      When code runs inside a context via [runInContext] or [runInContextAsync], the context values are stored in the zone and can be retrieved anywhere in that zone using [getFromCurrentZone].
+                      When code runs inside a context via [runInContext] or [runInContextAsync], this context is installed in the zone under the [TomExecutionContext] type key, so its entries are available anywhere in that zone. A single entry is read by 
+                      <em>name</em> with [getValueFromCurrentZone]; the context object itself is read by <em>type</em> with 
+                      <code>getFromCurrentZone&lt;TomExecutionContext&gt;()</code>. See the library documentation for the full distinction.
                     </p>
                     <h2>Context Composition</h2>
                     <p>Contexts can be nested and combined:</p>
-                    <pre><code>final baseContext = TomExecutionContext({'tenant': TomContextEntry(() =&gt; 'acme')});
-final userContext = TomExecutionContext({'user': TomContextEntry(() =&gt; 'john')});
+                    <pre><code>final baseContext =
+    TomExecutionContext({'tenant': TomContextEntry&lt;String&gt;(() =&gt; 'acme')});
+final userContext =
+    TomExecutionContext({'user': TomContextEntry&lt;String&gt;(() =&gt; 'john')});
 
 baseContext.runInContext(() {
   userContext.runInContext(() {
@@ -1562,17 +1655,43 @@ baseContext.runInContext(() {
                       </div>
                       <div class="api-doc">
                         <p>Creates an execution context with the given entries.</p>
-                        <p>[contextMap] A map of entry names to [TomContextEntry] objects.</p>
+                        <p>
+                          [contextMap] A map of entry names to [TomContextEntry] objects. Write each entry's type parameter explicitly — 
+                          <code>TomContextEntry&lt;String&gt;(...)</code>, not <code>TomContextEntry(...)</code> — or it infers 
+                          <code>dynamic</code> from this parameter's type and no typed read will find it; see [TomContextEntry].
+                        </p>
+                        <p>
+                          <strong>On a name held by both, [contextMap] wins over [parentContext].</strong> The parent is the inherited background and this map is the foreground, which is also what makes a nested [runInContext] override the values it inherits: nesting builds a new context this way, with the installed one as the parent.
+                        </p>
+                        <p>
+                          Note that [combineWith] resolves a collision from the opposite end — there the <em>argument</em> wins over the receiver. Both are the same rule seen from different sides — the map applied last wins, and it is the one named closest to the call — but the receiver's entries surviving here and losing there is worth knowing before relying on either.
+                        </p>
                       </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
+                    <div id="TomExecutionContext._entries" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Map&lt;String, TomContextEntry&lt;dynamic&gt;&gt; _entries</code></div>
+                      <div class="api-doc"><p>The entries, keyed by name.</p></div>
+                    </div>
                     <div id="TomExecutionContext.contextMap" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">final Map&lt;String, TomContextEntry&lt;dynamic&gt;&gt; contextMap</code>
                       </div>
-                      <div class="api-doc"><p>Map of context entry names to their entries.</p></div>
+                      <div class="api-doc">
+                        <p>The entries, keyed by name — a read-only view.</p>
+                        <p>
+                          Reading is the whole of what a consumer needs here, and the typed reads ([getEntry], [getValueFromCurrentZone]) are the ones to prefer: they answer with the entry's type rather than with 
+                          <code>TomContextEntry&lt;dynamic&gt;</code>. This view is for the questions they cannot answer — how many entries there are, which names exist, iterating them for a diagnostic.
+                        </p>
+                        <p>
+                          It is unmodifiable because a context is installed in a zone and every caller in that zone reads the same object: a write through this map would be a write into everyone else's context, from a place none of them can see. Changing a context is done through [add], [clear] and [combineWith], which say so at the call site — and are meant for a context you own, typically while assembling one before it is ever run.
+                        </p>
+                        <p>
+                          The container that <em>is</em> meant to be written from inside a zone is [TomZoneValues]; see [runInContext] for why the two differ.
+                        </p>
+                      </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
@@ -1580,8 +1699,15 @@ baseContext.runInContext(() {
                     <div id="TomExecutionContext.getEntry" class="api-member">
                       <div class="api-member-head"><code class="api-signature">TomContextEntry&lt;T&gt;? getEntry&lt;T&gt;(String name)</code></div>
                       <div class="api-doc">
+                        <p>Gets a context entry by name, when it can be read as [T].</p>
                         <p>
-                          Gets a context entry by name. [name] The name of the context entry. Returns the [TomContextEntry] if found, or null.
+                          [name] The name of the context entry. Returns the entry when it is a <code>TomContextEntry&lt;T&gt;</code>
+                           <em>or a subtype of one</em>, and null otherwise — so an entry declared <code>TomContextEntry&lt;int&gt;</code>
+                           is found by <code>getEntry&lt;num&gt;</code> and by <code>getEntry&lt;Object&gt;</code>, and its value can be read as either. The test is Dart's own, which is why it follows the language's variance rather than a rule of this module's invention.
+                        </p>
+                        <p>
+                          An entry whose type argument is <code>dynamic</code> is <strong>not</strong> a <code>TomContextEntry&lt;String&gt;</code>, so it is still invisible to a typed read. That is not a leftover of the old exact match: 
+                          <code>dynamic</code> is not a subtype of <code>String</code>, and the entry genuinely does not promise a String. It matters because the raw form is easy to write by accident — see [TomContextEntry] for how a map literal infers it.
                         </p>
                       </div>
                     </div>
@@ -1600,7 +1726,10 @@ baseContext.runInContext(() {
                       <div class="api-member-head"><code class="api-signature">void combineWith(TomExecutionContext other)</code></div>
                       <div class="api-doc">
                         <p>Merges another context's entries into this context.</p>
-                        <p>Entries from [other] will overwrite entries with the same name.</p>
+                        <p>
+                          <strong>On a name held by both, [other] wins over this context.</strong> This is the mirror image of the constructor, where a context's own map wins over its [parentContext]: the same rule — the map applied last wins — but the receiver's entries survive construction and lose a merge. Reach for 
+                          <code>other.combineWith(this)</code> when the receiver's values are the ones that should stand.
+                        </p>
                       </div>
                     </div>
                     <div id="TomExecutionContext.runInContext" class="api-member">
@@ -1610,13 +1739,47 @@ baseContext.runInContext(() {
                       <div class="api-doc">
                         <p>Runs synchronous code within this context.</p>
                         <p>
-                          Creates a new zone with this context's values merged with any existing context from the current zone.
+                          Creates a new zone whose typed context entries are this context's entries merged with any [TomExecutionContext] already installed in the current zone. On a colliding key 
+                          <strong>this context's entry wins</strong> (the inner/child context overrides the inherited one); the parent's map is never mutated.
+                        </p>
+                        <p>
+                          The optional [zoneValues] are arbitrary, untyped zone values threaded through alongside the typed context: they are wrapped in a [TomZoneValues] container that is merged with any [TomZoneValues] already in the current zone (existing values are preserved unless overridden by a matching key in [zoneValues]). They are read back through that container — 
+                          <code>getFromCurrentZone&lt;TomZoneValues&gt;()?['requestId']</code> — and <em>not</em> with [getValueFromCurrentZone], which looks in the context map.
+                        </p>
+                        <p>
+                          Despite sharing its name, its type and its position with <code>runZoned</code>'s own <code>zoneValues:</code>, this parameter does not install its keys in the zone directly: they go into the [TomZoneValues] container, which — alongside the [TomExecutionContext] — is the only thing installed. 
+                          <code>Zone.current[key]</code> therefore stays null for every key passed here, and that holds for a <code>Type</code>
+                           key just as much as for a <code>String</code> one: <code>zoneValues: {TomPrincipal: p}</code> does <em>not</em>
+                           make <code>getFromCurrentZone&lt;TomPrincipal&gt;()</code> resolve. (That form is correct when calling 
+                          <code>runZoned</code> directly, which is what makes it an easy mistake to carry over — and a silent one, since the failed read yields null rather than an error.)
+                        </p>
+                        <p>
+                          The indirection is deliberate. Routing the values through a container is what makes them <em>mutable</em>
+                           — code inside the zone can write <code>getFromCurrentZone&lt;TomZoneValues&gt;()?['requestId'] = id</code>
+                           — and what makes them <em>mergeable</em> across nested runs, since an inner <code>runInContext</code>
+                           folds its values into the values it inherits instead of shadowing them wholesale. Raw zone values are immutable once installed and replace rather than merge, so neither is achievable by passing the map straight to 
+                          <code>runZoned</code>.
+                        </p>
+                        <p>
+                          Use [zoneValues] for ad-hoc values that do not warrant a typed [TomContextEntry]; use the context map for the structured, named entries.
                         </p>
                         <p>Example:</p>
                         <pre><code>final result = context.runInContext(() {
-  // Context values available here
-  return computeResult();
-});</code></pre>
+  final user = TomExecutionContext.getValueFromCurrentZone&lt;String&gt;('userId');
+  final requestId = getFromCurrentZone&lt;TomZoneValues&gt;()?['requestId'];
+  return computeResult(user, requestId);
+}, zoneValues: {'requestId': id});</code></pre>
+                      </div>
+                    </div>
+                    <div id="TomExecutionContext._buildZoneValues" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Map&lt;Object, Object&gt; _buildZoneValues(Map&lt;Object?, Object?&gt; zoneValues)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Builds the zone-values map installed by [runInContext] / [runInContextAsync].</p>
+                        <p>
+                          The typed [TomExecutionContext] is this context's entries merged over any context already in the current zone (this context wins on collision, the parent's map is never mutated); the [TomZoneValues] container wraps [zoneValues] merged with any [TomZoneValues] already in the current zone.
+                        </p>
                       </div>
                     </div>
                     <div id="TomExecutionContext.runInContextAsync" class="api-member">
@@ -1628,13 +1791,28 @@ baseContext.runInContext(() {
                       <div class="api-doc">
                         <p>Runs asynchronous code within this context.</p>
                         <p>
-                          Creates a new zone with this context's values merged with any existing context from the current zone.
+                          Creates a new zone whose typed context entries are this context's entries merged with any [TomExecutionContext] already installed in the current zone. On a colliding key 
+                          <strong>this context's entry wins</strong> (the inner/child context overrides the inherited one); the parent's map is never mutated.
+                        </p>
+                        <p>
+                          This differs from [runInContext] only in its signature, not in the zone it installs: [body] is typed 
+                          <code>Future&lt;T&gt; Function()</code> and its future is handed back, so <code>T</code> names the <em>awaited</em>
+                           value. Zone propagation is not the distinction — the merged context and zone values remain available across 
+                          <code>await</code> boundaries under [runInContext] just as much as here, and reach callbacks scheduled from the body that fire after the call has returned. What this signature buys is that a body which drops its future is a compile error rather than a silent early return.
+                        </p>
+                        <p>
+                          The optional [zoneValues] are arbitrary, untyped zone values threaded through alongside the typed context: they are wrapped in a [TomZoneValues] container that is merged with any [TomZoneValues] already in the current zone (existing values are preserved unless overridden by a matching key in [zoneValues]). They are read back through that container — 
+                          <code>getFromCurrentZone&lt;TomZoneValues&gt;()?['requestId']</code> — and <em>not</em> with [getValueFromCurrentZone], which looks in the context map. The keys are not installed in the zone under themselves either, so 
+                          <code>Zone.current[key]</code> stays null — including for a <code>Type</code> key, which means <code>zoneValues: {TomPrincipal: p}</code>
+                           does not make <code>getFromCurrentZone&lt;TomPrincipal&gt;()</code> resolve. See [runInContext] for the synchronous variant and for why the values are routed through a container.
                         </p>
                         <p>Example:</p>
                         <pre><code>final result = await context.runInContextAsync(() async {
-  // Context values available here and in awaited calls
-  return await fetchData();
-});</code></pre>
+  // Entries and zone values stay available here and across every await
+  final user = TomExecutionContext.getValueFromCurrentZone&lt;String&gt;('userId');
+  final requestId = getFromCurrentZone&lt;TomZoneValues&gt;()?['requestId'];
+  return await fetchData(user, requestId);
+}, zoneValues: {'requestId': id});</code></pre>
                       </div>
                     </div>
                   </div>
@@ -1642,7 +1820,34 @@ baseContext.runInContext(() {
                   <div class="api-members">
                     <div id="TomExecutionContext.getValueFromCurrentZone" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static T? getValueFromCurrentZone&lt;T&gt;(String name)</code></div>
-                      <div class="api-doc"><p>Get value of a context in the current zone type and named</p></div>
+                      <div class="api-doc">
+                        <p>
+                          Reads the entry named [name] from the [TomExecutionContext] installed in the current zone, and returns its value.
+                        </p>
+                        <p>
+                          This is the read for a context entry. [T] is the entry's <em>value</em> type, not a zone key: the lookup finds the context by type and then the entry by name, so 
+                          <code>getFromCurrentZone&lt;T&gt;()</code> does not reach an entry (see the library documentation).
+                        </p>
+                        <p>
+                          Returns <code>null</code> when no context is installed, when no entry carries [name], or when the entry found cannot be read as [T] — the same answer for all three, so a caller that needs to tell them apart should use [getEntry] on the context directly.
+                        </p>
+                        <p>
+                          "Cannot be read as [T]" is assignability, not identity: an entry declared <code>TomContextEntry&lt;int&gt;</code>
+                           answers a <code>getValueFromCurrentZone&lt;num&gt;</code> read. An entry whose type argument is <code>dynamic</code>
+                           answers neither, since it promises nothing.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomExecutionContext._inheritedOrRefuse" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static T? _inheritedOrRefuse&lt;T&gt;()</code></div>
+                      <div class="api-doc">
+                        <p>The [T] this run inherits from the zone, or null when there is none.</p>
+                        <p>
+                          [getFromCurrentZone] answers null for both "nothing there" and "something there that is not a [T]", which is the right answer for a 
+                          <em>reader</em>: it asked for a [T] and there is none. It is the wrong answer here. The keys <code>TomExecutionContext</code>
+                           and <code>TomZoneValues</code> are reserved for these two containers, so a foreign value under one of them is not an absence — it is a collision, and inheriting nothing would silently drop every entry the enclosing run installed. Nesting would keep working and keep answering null, which is the shape of failure that survives a test suite.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>
@@ -1652,6 +1857,16 @@ baseContext.runInContext(() {
                   <div class="api-doc">
                     <p>A mutable container for zone values.</p>
                     <p>Provides indexed access to zone values for easier manipulation.</p>
+                    <p>
+                      This container — not the caller's keys — is what [TomExecutionContext.runInContext] installs in the zone, under the 
+                      <code>TomZoneValues</code> type key. A value threaded through <code>zoneValues:</code> is therefore read back through the container, 
+                      <code>getFromCurrentZone&lt;TomZoneValues&gt;()?[key]</code>; <code>Zone.current[key]</code> stays null whatever the key's type.
+                    </p>
+                    <p>
+                      The extra hop buys the two things raw zone values cannot offer: the entries stay <strong>mutable</strong>
+                       after the zone is entered, and a nested <code>runInContext</code> <strong>merges</strong> its values into the inherited ones (see the 
+                      <code>existingValues</code> constructor argument) instead of replacing them.
+                    </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
@@ -1659,14 +1874,27 @@ baseContext.runInContext(() {
                       <div class="api-member-head">
                         <code class="api-signature">TomZoneValues.new(Map&lt;Object?, Object?&gt;? zoneValues, {TomZoneValues? existingValues})</code>
                       </div>
-                      <div class="api-doc"><p>Creates a zone values container.</p></div>
+                      <div class="api-doc">
+                        <p>Creates a zone values container.</p>
+                        <p>
+                          [existingValues] is laid down first and [zoneValues] over it, so a nested run's own values win on a colliding key — the same rule as [TomExecutionContext]'s constructor, and for the same reason.
+                        </p>
+                      </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
                     <div id="TomZoneValues.zoneValues" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">Map&lt;Object?, Object?&gt; zoneValues</code></div>
-                      <div class="api-doc"><p>The underlying zone values map.</p></div>
+                      <div class="api-member-head"><code class="api-signature">final Map&lt;Object?, Object?&gt; zoneValues</code></div>
+                      <div class="api-doc">
+                        <p>The underlying zone values map.</p>
+                        <p>
+                          The map is mutable on purpose, and that is the whole point of this container: values routed through it can be written from inside the zone (<code>getFromCurrentZone&lt;TomZoneValues&gt;()?['requestId'] = id</code>), which raw zone values cannot. [TomExecutionContext.contextMap] is the opposite — a read-only view — because nothing is meant to write it from inside a zone. The two containers differ here on purpose; see [TomExecutionContext.runInContext].
+                        </p>
+                        <p>
+                          The <em>slot</em> is <code>final</code> even so. Reassigning it would swap the backing map of a container other code in the same zone is already reading through, which no amount of intended mutability asks for: writing a value is [operator []=], and emptying the map is [clear].
+                        </p>
+                      </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>

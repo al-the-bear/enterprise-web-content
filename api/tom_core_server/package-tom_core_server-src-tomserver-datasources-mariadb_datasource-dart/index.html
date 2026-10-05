@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1392,6 +1398,9 @@
                   <a class="leaf" href="#MariadbDatasourceException">MariadbDatasourceException</a>
                   <a class="leaf" href="#MariadbPreparedStatement">MariadbPreparedStatement</a>
                   <a class="leaf" href="#MariadbPreparedStatementException">MariadbPreparedStatementException</a>
+                  <a class="leaf" href="#_PendingReference">_PendingReference</a>
+                  <a class="leaf" href="#_toBindParams">_toBindParams</a>
+                  <a class="leaf" href="#_toBindValue">_toBindValue</a>
                 </div>
               </div>
               <div class="reader">
@@ -1405,6 +1414,21 @@
                     <p>
                       Connection settings ([username], [password], [host], [port], [databaseName], [timeOut]) are filled from the configuration map by reflection in [initialize], which then opens the [connection]. The driver implements the full data-source surface — [prepareStatement], [executeQuery] (with reflection-based row→object mapping), [executeCommand] — and participates in transactions via plain 
                       <code>START TRANSACTION</code> / <code>COMMIT</code> / <code>ROLLBACK</code> (see [MariaDbXADatasource] for the XA variant).
+                    </p>
+                    <h2>Connection lifecycle</h2>
+                    <p>
+                      <strong>A data source is opened explicitly, and never by the statement that wants to run.</strong> Opening it means either [initialize], which binds the settings and connects, or setting the connection fields and calling [connect] — the two forms the package documents. Every execution entry point ([prepareStatement], [executeQuery], [executeCommand]) then requires an open connection and throws a [MariadbDatasourceException] if it is reached before one exists, so all three behave the same way on the same data source.
+                    </p>
+                    <p>
+                      Opening on demand is not offered because it could not work: [connect] binds [host], [port] and the credentials, and until they are configured it would dial 
+                      <code>:-1</code> — turning "never opened" into "the database is unreachable".
+                    </p>
+                    <p>
+                      A link that <em>was</em> opened and has since dropped is a separate case, and is re-opened automatically: the settings are known, so every entry point reconnects and carries on.
+                    </p>
+                    <p>
+                      [close] releases the link <strong>and lets go of it</strong>, which puts the data source back to not-open: a closed data source refuses statements exactly as one that was never opened does, rather than being silently re-opened by the next one to arrive. Deliberate teardown is not a dropped link. [isOperational] and [connected] report the current state, and [toString] distinguishes the two ways of holding no connection — 
+                      <code>closed</code> from <code>never opened</code> — because they point at different faults.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1445,9 +1469,38 @@
                     </div>
                     <div id="MariaDbDatasource.connection" class="api-member">
                       <div class="api-member-head"><code class="api-signature">MySQLConnection? connection</code></div>
-                      <div class="api-doc"><p>The live MySQL connection (<code>null</code> until [connect] succeeds).</p></div>
+                      <div class="api-doc">
+                        <p>
+                          The live MySQL connection (<code>null</code> until [connect] succeeds, and again once [close] has let go of it).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="MariaDbDatasource._wasClosed" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool _wasClosed</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Whether [connection] is <code>null</code> because [close] released it, rather than because the data source was never opened.
+                        </p>
+                        <p>
+                          Only meaningful while [connection] is <code>null</code> — every reader checks that first — so re-opening does not clear it; it is simply not consulted again until the next [close] sets it anew.
+                        </p>
+                      </div>
                     </div>
                     <div id="MariaDbDatasource.connected" class="api-member"><div class="api-member-head"><code class="api-signature">bool connected</code></div></div>
+                    <div id="MariaDbDatasource._owner" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomTransaction? _owner</code></div>
+                      <div class="api-doc">
+                        <p>The transaction this data source's connection is enlisted in, or <code>null</code>.</p>
+                        <p>
+                          There is one connection and no pool, and a transaction is a property of the <em>connection</em>: every statement on it between 
+                          <code>START TRANSACTION</code> and <code>COMMIT</code> belongs to that transaction, whoever issued it. So while a transaction holds the connection, a statement from anywhere else — another request's transaction, or a request with none — waits for it to be released rather than running inside a transaction that is not its own.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="MariaDbDatasource._released" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Completer&lt;void&gt;? _released</code></div>
+                      <div class="api-doc"><p>Completes when [_owner] lets go of the connection.</p></div>
+                    </div>
                     <div id="MariaDbDatasource._transactional" class="api-member"><div class="api-member-head"><code class="api-signature">bool _transactional</code></div></div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
@@ -1460,6 +1513,9 @@
                           Throws a [MariadbDatasourceException] if the connection cannot be created or remains unconnected after the attempt.
                         </p>
                       </div>
+                    </div>
+                    <div id="MariaDbDatasource._openConnection" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;MySQLConnection&gt; _openConnection(String operation)</code></div>
                     </div>
                     <div id="MariaDbDatasource.prepareStatement" class="api-member">
                       <div class="api-member-head">
@@ -1477,11 +1533,30 @@
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
-                    <div id="MariaDbDatasource._processResult" class="api-member">
+                    <div id="MariaDbDatasource.mapResultSet" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          Future&lt;List&lt;T&gt;&gt; _processResult&lt;T extends Object&gt;(IResultSet qResult, [Type? resultType])
+                          Future&lt;List&lt;T&gt;&gt; mapResultSet&lt;T extends Object&gt;(IResultSet qResult, [Type? resultType, Map&lt;String, Type&gt;? groupedProjection])
                         </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Maps the driver's [qResult] onto a list of [T], choosing between the five row shapes this driver understands.
+                        </p>
+                        <p>
+                          This is the module's central decision, and which branch a result takes is determined entirely by what [resultType] (or [T]) declares:
+                        </p>
+                        <p>
+                          1. a <strong>grouped row</strong>, when [groupedProjection] is non-null — there is no class to reflect, so the query's own projection supplies the types; 2. a 
+                          <strong>table-less [TomClass]</strong>, bound by observable member name; 3. an <strong>annotated [TomClass]</strong>, bound by 
+                          <code>@TomDbColumn</code> name; 4. a <strong>plain reflected holder</strong> with no <code>@TomDbTable</code>, bound by declared field name — the shape an aggregate query lands on; 5. an 
+                          <strong>annotated entity</strong>, bound by its persistent column list.
+                        </p>
+                        <p>
+                          It is public, and takes the driver's result set rather than a connection, because nothing here needs a server: every branch reads column 
+                          <em>text</em> the protocol has already decoded. Only a <code>@TomReference</code> column reaches back to the database, and only after a row's own columns are set. Keeping the mapping reachable without a live server is what lets the row-shape decision be tested in the ordinary run rather than only in the 
+                          <code>db</code>-tagged one.
+                        </p>
                       </div>
                     </div>
                     <div id="MariaDbDatasource._getColumnValue" class="api-member">
@@ -1489,24 +1564,34 @@
                         <code class="api-signature">TomDbType&lt;dynamic&gt; _getColumnValue(ResultSetRow row, String field, Type? colType)</code>
                       </div>
                     </div>
-                    <div id="MariaDbDatasource._referenceValueStack" class="api-member">
+                    <div id="MariaDbDatasource._loadReferencedValues" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          void _referenceValueStack(List&lt;(TomColumnInformation, ClassMirror&lt;dynamic&gt;, VariableMirror, InstanceMirror, Type)&gt; refStack, TomColumnInformation column, ClassMirror&lt;dynamic&gt; classMirror, VariableMirror vm, InstanceMirror im, Type T)
+                          Future&lt;void&gt; _loadReferencedValues(List&lt;({TomColumnInformation column, VariableMirror field, ClassMirror&lt;dynamic&gt; owner, InstanceMirror row})&gt; refStack)
                         </code>
                       </div>
-                    </div>
-                    <div id="MariaDbDatasource._referenceValuesGet" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">
-                          Future&lt;int&gt; _referenceValuesGet&lt;TBLTYPE extends Object&gt;(List&lt;(TomColumnInformation, ClassMirror&lt;dynamic&gt;, VariableMirror, InstanceMirror, Type)&gt; refStack)
-                        </code>
+                      <div class="api-doc">
+                        <p>
+                          Fills each pending association in [refStack] by running its reference query and writing the results into the row that owes it.
+                        </p>
+                        <p>
+                          This is the whole implementation of <code>@TomReference</code>: [mapResultSet] cannot read an association while mapping a row — the query binds values from that same row — so it stacks the reference columns and calls this once the row's own columns are set.
+                        </p>
+                        <p>
+                          The sentence and its parameters come from [TomAnnotationAnalyzer.referenceQuery]; what is left here is the part that needs a connection: compile, run, and write the rows back through the field's mirror.
+                        </p>
                       </div>
                     </div>
                     <div id="MariaDbDatasource.initialize" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">Future&lt;void&gt; initialize(Map&lt;String, dynamic&gt; settings)</code>
                         <span class="api-badge api-badge--override">override</span>
+                      </div>
+                      <div class="api-doc">
+                        <p>Binds [settings] onto this driver's fields and opens the connection.</p>
+                        <p>
+                          [settings] is the datasource block minus the keys the registry reads itself (<code>TomDataSourceInfo.registryKeys</code>), and every key in it has already been checked against this class's fields — a block with a misspelling in it never reaches this method. So the shared, tolerant [tomReflectionInfo] is used here and nothing is lost by it: there is no unknown key left to tolerate. A driver written outside the framework inherits the same guarantee, because the check is the registry's rather than each driver's.
+                        </p>
                       </div>
                     </div>
                     <div id="MariaDbDatasource.isOperational" class="api-member">
@@ -1526,6 +1611,16 @@
                         <code class="api-signature">Future&lt;void&gt; close()</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
+                      <div class="api-doc">
+                        <p>Closes the connection and lets go of it.</p>
+                        <p>
+                          [connection] is cleared whatever the link's state was, so that a closed data source reads as closed rather than as one holding a dead connection. That distinction is load-bearing: [_openConnection] repairs a 
+                          <em>dropped</em> link, and a closed data source that still carried one would be silently re-opened by the next statement — resurrecting, on the shutdown path, a connection nothing would ever close again.
+                        </p>
+                        <p>
+                          A data source that was never opened has nothing to release, so closing it changes nothing and leaves it reading as never opened.
+                        </p>
+                      </div>
                     </div>
                     <div id="MariaDbDatasource.toString" class="api-member">
                       <div class="api-member-head">
@@ -1533,22 +1628,147 @@
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
+                    <div id="MariaDbDatasource._stateDescription" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String _stateDescription()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          How this data source describes its connection state: the link's own state while it holds one, and otherwise which of the two ways it came to hold none.
+                        </p>
+                      </div>
+                    </div>
                     <div id="MariaDbDatasource.getParticipantId" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">String getParticipantId()</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
+                      <div class="api-doc">
+                        <p>The database this source speaks to, not the object speaking to it.</p>
+                        <p>
+                          Two instances configured for one database therefore answer the same id, which is deliberate: a transaction wants the 
+                          <em>resource</em> enlisted once. What it does not permit is both of them enlisting — they are two connections with two transactions of their own, and only one of them can be the transaction's. 
+                          <code>TomTransaction.registerParticipant</code> refuses the second with <code>…duplicate_id</code> rather than dropping it, because a dropped connection's writes are neither committed with the transaction nor rolled back with it.
+                        </p>
+                        <p>
+                          A deployment that genuinely needs two enlistments against one database — two XA branches, say — gives the second source a distinct 
+                          <code>databaseName</code>, <code>host</code> or <code>port</code>, or overrides this.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="MariaDbDatasource._lifecycle" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;BigInt&gt; _lifecycle(String command)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Issues one of the transaction's own statements — <code>START TRANSACTION</code>, <code>COMMIT</code>, 
+                          <code>ROLLBACK</code>, the <code>XA</code> verbs — without passing admission.
+                        </p>
+                        <p>
+                          They belong to the connection's owner by definition, and admission would either enlist them in the very transaction they are starting or make them wait for a release only they can bring about. Routed through [executeCommand] rather than around it, so there stays one way a command reaches the connection.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="MariaDbDatasource._admit" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;void&gt; _admit()</code></div>
+                      <div class="api-doc">
+                        <p>Enlists this data source in the current transaction, at the point of use.</p>
+                        <p>
+                          Called before every statement — [_openConnection] and a prepared statement's execute both route through here — so a data source used inside a running transaction joins it without any call site asking. That is what makes 
+                          <code>@TomTransactional</code> mean anything: the pipeline opens and concludes the transaction, and it cannot know which data sources the endpoint will touch.
+                        </p>
+                        <p>Three cases, in order:</p>
+                        <ul>
+                          <li>the connection already belongs to the current transaction — admitted;</li>
+                          <li>it belongs to another — wait for [_released], then look again;</li>
+                          <li>it is free, and a transaction is running — take it and enlist. A</li>
+                        </ul>
+                        <p>
+                          participant that cannot start its transaction fails the statement that triggered the enlistment (<code>registerParticipant</code>
+                           raises): a statement that ran outside the transaction it was meant to join is the defect this exists to remove.
+                        </p>
+                        <p>
+                          Enlisting runs [startTransaction], which claims the connection (<code>_claimConnection</code>) and issues its statement without coming back here.
+                        </p>
+                        <p>
+                          The waiting has a cost worth naming: work that the owning transaction itself waits on, issued from a zone that does not carry it (a 
+                          <code>TomTransactionManager.runInTransactionScope</code> nested inside it), waits on its own transaction for good. Nothing in the framework does that.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="MariaDbDatasource._claimConnection" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;void&gt; _claimConnection(TomTransaction transaction)</code></div>
+                      <div class="api-doc">
+                        <p>Takes the connection for [transaction], waiting while another holds it.</p>
+                        <p>
+                          Called by [startTransaction] — whoever enlisted this data source, the point of use or an explicit <code>registerParticipant</code>
+                           — so the connection has exactly one owner from its <code>START TRANSACTION</code> to its release. A second transaction reaching a busy data source therefore waits its turn rather than being refused: two requests that each open a transaction are ordinary traffic, not a programming error.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="MariaDbDatasource._releaseConnection" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void _releaseConnection()</code></div>
+                      <div class="api-doc"><p>Hands the connection back, waking every statement waiting in [_admit].</p></div>
+                    </div>
+                    <div id="MariaDbDatasource._refuseNestedTransaction" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Never _refuseNestedTransaction([String? transactionId])</code></div>
+                      <div class="api-doc">
+                        <p>Refuses a transaction that would nest inside one already running.</p>
+                        <p>
+                          Shared by both lifecycles so the refusal cannot drift apart again — it is one programming error, reported one way, whichever data source hits it. [transactionId] names the branch already open where there is one; the plain lifecycle tracks a flag rather than an id, so it has nothing to name and omits the parameter.
+                        </p>
+                        <p>
+                          Thrown rather than reported as <code>false</code>, and <em>in front of</em> the <code>try</code> that turns a failed statement into 
+                          <code>false</code>, because the two are not the same kind of event. A <code>START TRANSACTION</code> the database refuses is a failure the caller may retry or route around; a second start on a busy data source is the caller's own mistake, and no retry fixes it. Carrying that distinction is the whole reason for the module's own exception type: a caller that catches 
+                          <code>Exception</code> to handle connection trouble would otherwise swallow this too, and never learn it has a bug.
+                        </p>
+                      </div>
                     </div>
                     <div id="MariaDbDatasource.startTransaction" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">Future&lt;bool&gt; startTransaction()</code>
+                        <code class="api-signature">Future&lt;bool&gt; startTransaction(TomTransaction transaction)</code>
                         <span class="api-badge api-badge--override">override</span>
+                      </div>
+                      <div class="api-doc">
+                        <p>Opens the connection's transaction, read-only when [transaction] is.</p>
+                        <p>
+                          <code>START TRANSACTION READ ONLY</code> is what makes the flag mean something: the server refuses every write on this connection until the transaction ends, with 
+                          <code>ER_CANT_EXECUTE_IN_READ_ONLY_TRANSACTION</code>. The coordinator cannot enforce it — it has no idea what a write is — so the resource that can is the only place it can be enforced, and a flag declared on an endpoint and enforced nowhere is a statement of intent a reader will take for a guarantee.
+                        </p>
                       </div>
                     </div>
                     <div id="MariaDbDatasource.endTransaction" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">Future&lt;bool&gt; endTransaction()</code>
                         <span class="api-badge api-badge--override">override</span>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Ends this participant's part of a transaction by releasing the connection to whatever is waiting for it; always succeeds.
+                        </p>
+                        <p>
+                          A one-phase <code>START TRANSACTION</code> / <code>COMMIT</code> has no prepare step, so there is no statement to issue — the XA lifecycle's 
+                          <code>XA END</code> + <code>XA PREPARE</code> has no plain equivalent (see [MariaDbXADatasource.endTransaction]). [commit] and [rollback] clear the in-transaction flag themselves; what is left is the connection's ownership (see 
+                          <code>_admit</code>), and this is where it ends, because the coordinator calls this on every participant after either conclusion.
+                        </p>
+                        <p>
+                          Reporting <code>true</code> is not a formality. The coordinator ands every participant's result into the outcome, so a 
+                          <code>false</code> here would fail a transaction that had in fact completed.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="MariaDbDatasource.prepare" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Future&lt;bool&gt; prepare()</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                      <div class="api-doc">
+                        <p>Phase one for a resource that has no phase one: always <code>true</code>.</p>
+                        <p>
+                          A plain <code>START TRANSACTION</code> / <code>COMMIT</code> has no statement that makes the commit certain without performing it, so there is nothing to issue here and nothing this data source can promise beyond what the connection is already doing. Its 
+                          <code>COMMIT</code> can still fail.
+                        </p>
+                        <p>
+                          That is the cost of enlisting it beside a two-phase participant, and it is worth naming: the transaction is atomic unless 
+                          <em>this</em> participant's commit fails, at which point the peers that prepared have already committed. A deployment that needs the full guarantee across two databases uses [MariaDbXADatasource] for both.
+                        </p>
                       </div>
                     </div>
                     <div id="MariaDbDatasource.commit" class="api-member">
@@ -1559,8 +1779,271 @@
                     </div>
                     <div id="MariaDbDatasource.rollback" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">Future&lt;void&gt; rollback()</code>
+                        <code class="api-signature">Future&lt;bool&gt; rollback()</code>
                         <span class="api-badge api-badge--override">override</span>
+                      </div>
+                      <div class="api-doc">
+                        <p>Undoes the connection's transaction, reporting whether it was undone.</p>
+                        <p>
+                          A <code>false</code> here is the outcome that needs a human: the statements this connection issued are neither committed nor rolled back. The coordinator puts this data source in [TomTransactionResult.failed] and reports the transaction as [TomTransactionOutcome.rolledBackWithFailures]; before the result carried it, a failed rollback returned the same 
+                          <code>true</code> as a clean one and the error log was the entire record.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="MariaDbDatasource._nonNullableElementTypes" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Map&lt;Type, Type&gt; _nonNullableElementTypes</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Maps each nullable element type an observable can report onto the non-nullable type the row mapper dispatches on.
+                        </p>
+                        <p>
+                          <code>TomObject&lt;T&gt;.getType()</code> answers <code>T</code> exactly as declared, so a <code>TomNString</code>
+                           reports <code>String?</code> and a <code>TomNDouble</code> reports <code>double?</code>. Dispatching on that answer directly means a nullable member matches no case at all — and since the nullable observables are the ordinary choice for a column that can be 
+                          <code>NULL</code>, that rejected most members of most result holders.
+                        </p>
+                        <p>
+                          Normalising once, here, is deliberate: the alternative — adding a nullable case beside every existing one — doubles each switch and has to be remembered again for every element type ever added.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="MariaDbDatasource._binaryRows" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Expando&lt;bool&gt; _binaryRows</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The rows [_rowsOf] handed out from a prepared statement's result, which arrived over MySQL's binary protocol. Keyed by the row object itself, so the mark lives exactly as long as the row and costs nothing to clear.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="MariaDbDatasource._binaryFraction" class="api-member"><div class="api-member-head"><code class="api-signature">static RegExp _binaryFraction</code></div></div>
+                    <div id="MariaDbDatasource._lifecycleZone" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Object _lifecycleZone</code></div>
+                      <div class="api-doc"><p>Marks a zone in which this data source issues one of its transaction's own statements.</p></div>
+                    </div>
+                    <div id="MariaDbDatasource._refuseMultipleStatements" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static void _refuseMultipleStatements(String command, String operation)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>The open connection to run [operation] on, re-opening a dropped link first.</p>
+                        <p>
+                          This is the one place the lifecycle rule stated in the class dartdoc is implemented, so that every execution entry point observes the same rule rather than each carrying its own guard.
+                        </p>
+                        <p>
+                          A [connection] of <code>null</code> means the data source is not open — never opened, or closed — and that is refused rather than repaired. Neither case is one a statement should quietly fix. Opening a never-opened data source here could not even work: [connect] binds [host], [port] and the credentials, which arrive only from [initialize] or a direct assignment, so before either it would dial 
+                          <code>:-1</code> — reporting an unreachable database where the truth is an unconfigured one, and sending the reader to the network for a configuration bug. Re-opening a 
+                          <em>closed</em> one could work, and that is precisely why it must not happen by accident: it would resurrect a data source the application deliberately let go.
+                        </p>
+                        <p>
+                          A link that <em>was</em> opened and has since dropped is the one case that is repaired: the settings are known, the caller never asked for the loss, and reconnecting is exactly what it wants.
+                        </p>
+                        <p>
+                          [operation] names the calling entry point and is carried in the thrown exception's parameters alongside the 
+                          <code>state</code> that refused it, so a log identifies both which call ran too early and which of the two faults it met. Refuses [command] when it holds more than one statement.
+                        </p>
+                        <p>
+                          <code>mysql_client</code> completes a call on the first reply it reads and never checks whether more follow, so every reply after the first stays on the wire and is read by the 
+                          <em>next</em> call on this connection — which is then answered by its predecessor's reply, and so on for the connection's life. Nothing reports it: a query comes back empty, an 
+                          <code>XA COMMIT</code> returns before the server has committed, and an error in any statement after the first is never raised. So one call carries one statement, and the check runs before the connection is touched. A script is split first, with [TomSqlLexer.splitStatements] — which is what the migration adaptor does.
+                        </p>
+                        <p>
+                          A terminating <code>;</code>, and a <code>;</code> inside a literal, quoted identifier or comment, are not separators; the lexer is quote- and comment-aware.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="MariaDbDatasource.toPositionalStatement" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static (String, List&lt;String&gt;) toPositionalStatement(String namedSql)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Translates the generated <code>:name</code> [namedSql] into the positional <code>?</code> form the MySQL binary protocol binds, returning the rewritten SQL and the placeholder names in the exact left-to-right order the 
+                          <code>?</code> slots appear.
+                        </p>
+                        <p>
+                          Delegates to the shared, quote-aware [SqlPlaceholderScan.toPositional] so the datasource and [TomSqlDatasourceRepository]'s name extraction stay in lock-step. A whole-identifier scan in occurrence order — not a per-name 
+                          <code>replaceAll(":$p", "?")</code> — is essential: <code>replaceAll</code> corrupts a placeholder that is a 
+                          <em>prefix</em> of another (<code>:id</code> vs <code>:idx</code> → <code>?x</code>) and collapses a repeated name to a single slot, desynchronising every following bind value. The scan is also string-literal aware, so a 
+                          <code>:name</code>-looking substring inside an inlined literal (<code>'x:y'</code>) is not mistaken for a slot.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="MariaDbDatasource._typeOf" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Type _typeOf&lt;X&gt;()</code></div>
+                      <div class="api-doc">
+                        <p>The <code>Type</code> literal for [X], including a nullable one.</p>
+                        <p>
+                          A nullable type cannot be written where a <code>Type</code> value is expected — there is no <code>double?</code>
+                           expression, and <code>case double?:</code> is not valid Dart — but it <em>can</em> be named through a type argument. This is the only way to obtain the 
+                          <code>double?</code> / <code>String?</code> values that a nullable observable reports, and it exists solely to build [_nonNullableElementTypes].
+                        </p>
+                      </div>
+                    </div>
+                    <div id="MariaDbDatasource._nonNullableElementType" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Type _nonNullableElementType(Type type)</code></div>
+                      <div class="api-doc"><p>[type] with its nullability removed, or [type] unchanged if it has none.</p></div>
+                    </div>
+                    <div id="MariaDbDatasource._setObservableMember" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static void _setObservableMember(ResultSetRow row, TomObject&lt;dynamic&gt; member, String field, {required String memberName, required String errorCode, required ClassMirror&lt;dynamic&gt; classMirror})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Populates one observable [member] of a [TomClass] row from [row].</p>
+                        <p>
+                          Both <code>TomClass</code> mapping variants land here. They differ only in how they find the column — the table-less one matches the member's own name, the annotated one takes the 
+                          <code>@TomDbColumn</code> name — so everything after that point (which element types are supported, how each is read, how an unsupported one is reported) is one decision, made once. They were previously two copies of that decision, and the nullable-member defect this method was extracted to fix was present in both.
+                        </p>
+                        <p>
+                          [field] is the result-column name to read; [memberName] and [errorCode] only shape the failure, which stays distinguishable per variant.
+                        </p>
+                        <p>
+                          A <code>NULL</code> column yields <code>null</code> for every element type, including <code>DateTime</code>. The 
+                          <code>DateTime</code> branch used to skip the assignment instead, which left the member holding whatever its field initialiser had put there — a stale value presented as if it had been read.
+                        </p>
+                        <p>
+                          A <code>DateTime</code> is read through [parseOptionalSqlInstant], the reading half of the instant convention this data source writes through (<code>sqlInstant</code>; see 
+                          <code>sql_instant.dart</code>). A bare <code>DateTime.parse</code> would read the column as <em>this node's</em>
+                           local time, which is not the moment the writing node stored.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="MariaDbDatasource._readInstant" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static DateTime? _readInstant(ResultSetRow row, String field)</code></div>
+                      <div class="api-doc">
+                        <p>Reads [field] as a UTC instant through [parseOptionalSqlInstant].</p>
+                        <p>
+                          The row-mapping face of [_readTemporal] for the paths that set a plain <code>DateTime</code> rather than a [TomDbDateTime] box.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="MariaDbDatasource._readTemporal" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static B _readTemporal&lt;B extends TomDbType&lt;dynamic&gt;&gt;(ResultSetRow row, String field, B Function(String?) read)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Reads [field]'s text through [read] — one of the <code>TomDbDateTime</code>, <code>TomDbDate</code> and 
+                          <code>TomDbTime</code> <code>of</code> factories — and refuses what it cannot.
+                        </p>
+                        <p>
+                          Those factories parse with the public <code>parseSql…</code> functions, which keep Dart's parse contract and throw a [FormatException]. That is the right answer for a caller parsing text it chose; a stored row is not that. It is data from outside the process, so an unreadable value is a failure of the read, and it is reported the way the numeric readers report theirs — keyed, naming the column and the value, with the parser's exception as the root. Unconverted, the 
+                          <code>FormatException</code> crossed the endpoints pipeline unclassified: no key, no <code>clientThrow</code>, no column.
+                        </p>
+                        <p>
+                          The key names what the column failed to be: <code>not_a_date</code> for a <code>DATE</code> holding a timestamp, 
+                          <code>not_a_time</code> for a <code>TIME</code> holding an interval, <code>not_an_instant</code> for a 
+                          <code>DATETIME</code> holding neither.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="MariaDbDatasource._rowsOf" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Iterable&lt;ResultSetRow&gt; _rowsOf(IResultSet result)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The rows of [result], each marked when [result] came over the binary protocol, so the temporal readers can repair what the driver renders there (see [_repairBinaryTemporalText]).
+                        </p>
+                        <p>
+                          Every loop that maps a row goes through this rather than <code>result.rows</code>: a row read without the mark is read as text-protocol text, and for a binary row that is the defect this exists to prevent.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="MariaDbDatasource._repairBinaryTemporalText" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String? _repairBinaryTemporalText(String? text)</code></div>
+                      <div class="api-doc">
+                        <p>Restores the six-digit fraction of a temporal value the driver rendered from the binary protocol.</p>
+                        <p>
+                          Over the binary protocol <code>mysql_client</code> builds a <code>DATETIME</code>'s text itself, and writes the microsecond field as a bare integer: 91 371 µs becomes 
+                          <code>.91371</code>, which every parser reads as 0.91371 s. So every instant whose fraction is under a tenth of a second came back up to 0.9 s late — one value in ten, with nothing failing. Over the text protocol the 
+                          <em>server</em> formats the value, with exactly the column's precision, so the same digits there mean what they say; that is why the repair applies only to rows [_rowsOf] marked, and why it cannot be done from the text alone: a binary 
+                          <code>.5</code> is 5 µs and a text <code>.5</code> from a <code>DATETIME(1)</code> is 500 000 µs.
+                        </p>
+                        <p>
+                          Anything that is not <code>&lt;date&gt; &lt;time&gt;.&lt;digits&gt;</code> is returned unchanged, <code>null</code>
+                           included.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="MariaDbDatasource._readDouble" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static double? _readDouble(ResultSetRow row, String field)</code></div>
+                      <div class="api-doc">
+                        <p>Reads [field] from [row] as a Dart <code>double</code>.</p>
+                        <p>
+                          <strong>This is the only place that knows how this driver yields a double</strong>, and it exists because 
+                          <code>typedColByName&lt;double&gt;</code> cannot be trusted to widen. <code>mysql_client</code> converts a column to 
+                          <code>double</code> only from a fixed whitelist of protocol types — TINY, SHORT, LONG, LONGLONG, INT24, FLOAT, DOUBLE (<code>mysql_column_type.dart</code>). 
+                          <code>DECIMAL</code>/<code>NEWDECIMAL</code> (246) is in neither that list nor the <code>int</code> one, so asking the driver for a 
+                          <code>double</code> there <em>throws</em> <code>MySQLProtocolException</code> instead of widening.
+                        </p>
+                        <p>
+                          That matters far beyond aggregates. <code>DECIMAL</code> is the correct SQL type for money — exact where 
+                          <code>DOUBLE</code> is approximate — so an ordinary business entity hits this on its first select. <code>SUM</code>/<code>AVG</code>
+                           over an integer column return <code>NEWDECIMAL</code> too, so an aggregate reaches it even where no column is declared 
+                          <code>DECIMAL</code> at all.
+                        </p>
+                        <p>
+                          Reading the raw text and parsing it here loses nothing: the driver's own conversion starts from exactly this text (the whitelist is a gate, not a decoder), and it reports 
+                          <code>DECIMAL</code> as best-matching Dart <code>String</code>. The exact text form ("1234.56", "43.0000") parses losslessly.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="MariaDbDatasource._readInt" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static int? _readInt(ResultSetRow row, String field)</code></div>
+                      <div class="api-doc">
+                        <p>Reads [field] from [row] as a Dart <code>int</code>.</p>
+                        <p>
+                          The <code>int</code> whitelist has the same <code>NEWDECIMAL</code> gap as the <code>double</code> one, and an 
+                          <code>int</code>-declared field over a <code>DECIMAL</code> column is not automatically a modelling error: 
+                          <code>DECIMAL(n,0)</code> <em>is</em> an exact integer type, and wide identifiers and counters are routinely declared that way. Rejecting the read for being 
+                          <code>DECIMAL</code> would therefore break a legitimate mapping.
+                        </p>
+                        <p>
+                          What must not happen is a silent truncation. Reading <code>DECIMAL(10,2)</code> into an <code>int</code>
+                           and quietly dropping the cents turns a modelling mistake into wrong money that no test would notice, so this 
+                          <strong>encodes the decision</strong> rather than leaving it to the driver: an exact integral value is read, and a value with a fractional part is refused by name. Neither outcome is the driver's raw 
+                          <code>MySQLProtocolException</code>, which said only that a conversion was unavailable and never which column it was reading.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="MariaDbDatasource.mapGroupedRow" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static TomGroupedRow mapGroupedRow(ResultSetRow row, Map&lt;String, Type&gt; projection)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Maps one driver [row] of a grouped result into a [TomGroupedRow], reading each alias in [projection] as the Dart type the query declared for it.
+                        </p>
+                        <p>
+                          The projection is the only type information available: a grouped row has no entity class and no persistent-column metadata, so the query's own declaration of "this alias is an 
+                          <code>int</code>" is what makes the read typed.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="MariaDbDatasource.normalizePort" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static Map&lt;String, dynamic&gt; normalizePort(Map&lt;String, dynamic&gt; settings)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Returns [settings] with its <code>port</code> value normalized to an <code>int</code> (G-DB-3).</p>
+                        <p>
+                          The datasource binds <code>port</code> to an <code>int</code> field, but application config may express the port either as an int or as a string — e.g. an environment substitution (<code>port: ${DB_PORT:3306}</code>) always yields a string. This folds a string port to an int before reflection binding so both forms work. When 
+                          <code>port</code> is absent or already an int the map is returned unchanged; when it is a string it is parsed via [parsePort].
+                        </p>
+                      </div>
+                    </div>
+                    <div id="MariaDbDatasource.parsePort" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static int parsePort(Object? raw)</code></div>
+                      <div class="api-doc">
+                        <p>Parses a configured port value into the <code>int</code> the driver binds (G-DB-3).</p>
+                        <p>
+                          Accepts an <code>int</code> verbatim or a <code>String</code> holding an integer literal; anything else (unparsable string, non-int/non-string, 
+                          <code>null</code>) throws a [MariadbDatasourceException].
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -1578,6 +2061,15 @@
                       <code>XA START</code> / <code>XA END</code> + <code>XA PREPARE</code> / <code>XA COMMIT</code> / <code>XA ROLLBACK</code>
                        against a per-transaction branch id, so this data source can take part in a two-phase commit across multiple resources.
                     </p>
+                    <p>
+                      The lifecycle maps onto the coordinator's two phases exactly: [prepare] issues <code>XA END</code> + 
+                      <code>XA PREPARE</code>, [commit] issues <code>XA COMMIT</code>, [rollback] issues <code>XA ROLLBACK</code>
+                       (preceded by <code>XA END</code> when the branch is still active), and [endTransaction] has nothing to do. That is what makes this data source able to keep the promise the phase asks for: a prepared branch commits.
+                    </p>
+                    <p>
+                      The branch id doubles as the in-transaction guard: [startTransaction] throws while one is set rather than opening a nested branch. 
+                      <strong>Every exit therefore clears it except a failing [prepare]</strong>, which hands it on to [rollback] — a veto is answered by rolling every participant back, this one included, and [rollback] needs the branch to name. An exit that forgets locks this data source out of every later transaction for good, and the caller cannot recover by rolling back, because the branch it would have to name never began.
+                    </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
@@ -1586,13 +2078,45 @@
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
                     <div id="MariaDbXADatasource._txId" class="api-member"><div class="api-member-head"><code class="api-signature">String? _txId</code></div></div>
+                    <div id="MariaDbXADatasource._ended" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool _ended</code></div>
+                      <div class="api-doc">
+                        <p>Whether the branch has been <code>XA END</code>ed — it is IDLE or PREPARED rather than ACTIVE.</p>
+                        <p>
+                          <code>XA END</code> is legal exactly once, on an ACTIVE branch, and a rollback has to know which side of it the branch is on: 
+                          <code>XA ROLLBACK</code> is refused on an ACTIVE branch — <code>XAER_RMFAIL: The command cannot be executed when global transaction is in the ACTIVE state</code>
+                           — and <code>XA END</code> is refused on an IDLE or PREPARED one. A rollback can arrive in any of the three states: before [prepare] ran, after its 
+                          <code>XA END</code> succeeded and its <code>XA PREPARE</code> did not, or after a prepare succeeded and the commit did not.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
+                    <div id="MariaDbXADatasource._newBranchId" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String _newBranchId()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          A new branch id: <code>&lt;database&gt;@&lt;host&gt;:&lt;port&gt;_&lt;process&gt;_&lt;time&gt;_&lt;counter&gt;</code>.
+                        </p>
+                        <p>
+                          Bounded and unique, in that order of necessity. MariaDB refuses a <code>gtrid</code> over [maxBranchIdBytes] as a syntax error, so a branch id built from the coordinates as written makes every XA transaction fail to start the moment a real hostname or database name is long enough. The unique tail is always kept whole and the readable head is what gets truncated: a shortened name still tells an operator reading 
+                          <code>XA RECOVER</code> whose branch it is, while a shortened tail could name two branches alike. The tail is unique across processes (a random tag) as well as within one (the time plus a counter). Characters outside 
+                          <code>[A-Za-z0-9_.@:-]</code> become <code>_</code>, which keeps the id single-byte and safe to quote.
+                        </p>
+                      </div>
+                    </div>
                     <div id="MariaDbXADatasource.startTransaction" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">Future&lt;bool&gt; startTransaction()</code>
+                        <code class="api-signature">Future&lt;bool&gt; startTransaction(TomTransaction transaction)</code>
                         <span class="api-badge api-badge--override">override</span>
+                      </div>
+                      <div class="api-doc">
+                        <p>Opens an XA branch. A read-only [transaction] cannot be honoured here.</p>
+                        <p>
+                          <code>XA START</code> has no <code>READ ONLY</code> form in MariaDB or MySQL, so this data source cannot ask the server to refuse writes the way its one-phase sibling does. Reported rather than ignored: a deployment that declared 
+                          <code>@TomTransactional(isReadOnly: true)</code> and reads nothing anywhere would otherwise believe the branch was protected.
+                        </p>
                       </div>
                     </div>
                     <div id="MariaDbXADatasource.endTransaction" class="api-member">
@@ -1600,18 +2124,75 @@
                         <code class="api-signature">Future&lt;bool&gt; endTransaction()</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
+                      <div class="api-doc">
+                        <p>
+                          Ends this participant's part of the transaction: it issues no statement and releases the connection, exactly as its one-phase sibling's does.
+                        </p>
+                        <p>
+                          Every XA statement belongs to a phase the coordinator decides something with, and this method is called after the decision — so a statement placed here could not influence the outcome it is part of. 
+                          <code>XA END</code> and <code>XA PREPARE</code> are [prepare]'s; <code>XA COMMIT</code> is [commit]'s.
+                        </p>
+                        <p>
+                          Reporting <code>true</code> is not a formality. The coordinator ands every participant's result into the outcome, so a 
+                          <code>false</code> here would fail a transaction that had in fact completed.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="MariaDbXADatasource.prepare" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Future&lt;bool&gt; prepare()</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                      <div class="api-doc">
+                        <p>Phase one: <code>XA END</code> then <code>XA PREPARE</code> against this branch, as two calls.</p>
+                        <p>
+                          Two calls, not one command: the driver reads only the first reply of a multi-statement command (see <code>_refuseMultipleStatements</code>), and a PREPARE's reply left on the wire is what a later 
+                          <code>XA COMMIT</code> would then return on — before the server had committed.
+                        </p>
+                        <p>
+                          This is the statement XA exists for. A prepared branch is one the server has undertaken to be able to commit — it survives a restart, and nothing but 
+                          <code>XA COMMIT</code> or <code>XA ROLLBACK</code> can resolve it — which is exactly the promise the coordinator's prepare phase asks every participant for.
+                        </p>
+                        <p>
+                          A failure here keeps <code>_txId</code>, and that is the opposite of every other exit. The coordinator answers a veto by rolling 
+                          <em>every</em> participant back, this one included, and [rollback] needs the branch to name; clearing it would send 
+                          <code>XA ROLLBACK null</code> and leave the real branch behind. [rollback] clears it in its <code>finally</code>, so the data source is not wedged either way.
+                        </p>
+                      </div>
                     </div>
                     <div id="MariaDbXADatasource.commit" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">Future&lt;bool&gt; commit()</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
+                      <div class="api-doc">
+                        <p>Phase two: <code>XA COMMIT</code> against the prepared branch.</p>
+                        <p>
+                          Reached only once every participant has prepared, so the branch here is always a prepared one and this call is the promise being kept. A failure is an in-doubt branch rather than a veto: the coordinator reports the transaction as partially committed and does not roll anybody back, because peers have already committed. The branch is left set and prepared so that an operator — or a later 
+                          <code>XA RECOVER</code> — has something to name.
+                        </p>
+                      </div>
                     </div>
                     <div id="MariaDbXADatasource.rollback" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">Future&lt;void&gt; rollback()</code>
+                        <code class="api-signature">Future&lt;bool&gt; rollback()</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="MariaDbXADatasource.maxBranchIdBytes" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static int maxBranchIdBytes</code></div>
+                      <div class="api-doc"><p>The most bytes an XA <code>gtrid</code> may hold; <code>XA START</code> refuses a longer one.</p></div>
+                    </div>
+                    <div id="MariaDbXADatasource._processTag" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String _processTag</code></div>
+                      <div class="api-doc"><p>Distinguishes this process's branches from another's on the same server.</p></div>
+                    </div>
+                    <div id="MariaDbXADatasource._branchCounter" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static int _branchCounter</code></div>
+                      <div class="api-doc"><p>Distinguishes this process's branches from each other within a clock tick.</p></div>
                     </div>
                   </div>
                 </section>
@@ -1624,7 +2205,7 @@
                     <div id="MariadbDatasourceException.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          MariadbDatasourceException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, Object? stack, Object? rootException, bool autoLog = false})
+                          MariadbDatasourceException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, StackTrace? stack, Object? rootException, bool autoLog = false})
                         </code>
                       </div>
                       <div class="api-doc">
@@ -1648,7 +2229,7 @@
                     <div id="MariadbPreparedStatement.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          MariadbPreparedStatement.new(PreparedStmt preparedStmt, List&lt;String&gt; parameterList, MariaDbDatasource datasource, Type? resultType, String command)
+                          MariadbPreparedStatement.new(PreparedStmt preparedStmt, List&lt;String&gt; parameterList, MariaDbDatasource datasource, Type? resultType, String command, {Map&lt;String, Type&gt;? groupedProjection})
                         </code>
                       </div>
                       <div class="api-doc">
@@ -1682,9 +2263,36 @@
                       <div class="api-member-head"><code class="api-signature">final String command</code></div>
                       <div class="api-doc"><p>The compiled SQL command (kept so the statement can be re-prepared).</p></div>
                     </div>
+                    <div id="MariadbPreparedStatement.groupedProjection" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Map&lt;String, Type&gt;? groupedProjection</code></div>
+                      <div class="api-doc">
+                        <p>
+                          For a grouped query, the Dart type of each projected result column keyed by its alias; <code>null</code>
+                           for every other statement.
+                        </p>
+                        <p>
+                          A grouped row is not an entity — its shape comes from the query, not from a class — so the projection types travel with the statement instead of being read off reflected column metadata at mapping time.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="MariadbPreparedStatement._lastGeneratedId" class="api-member"><div class="api-member-head"><code class="api-signature">int? _lastGeneratedId</code></div></div>
+                    <div id="MariadbPreparedStatement._lastAffectedRows" class="api-member"><div class="api-member-head"><code class="api-signature">int _lastAffectedRows</code></div></div>
+                    <div id="MariadbPreparedStatement.lastGeneratedId" class="api-member"><div class="api-member-head"><code class="api-signature">int? lastGeneratedId</code></div></div>
+                    <div id="MariadbPreparedStatement.lastAffectedRows" class="api-member"><div class="api-member-head"><code class="api-signature">int lastAffectedRows</code></div></div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
+                    <div id="MariadbPreparedStatement._captureExecuteResult" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void _captureExecuteResult(IResultSet result)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Records the per-execution metadata carried by an execute's [result]: the generated key and the affected-row count.
+                        </p>
+                        <p>
+                          Both are captured in one place so that the retry branch of [execute] cannot pick up one and forget the other.
+                        </p>
+                      </div>
+                    </div>
                     <div id="MariadbPreparedStatement.execute" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">Future&lt;List&lt;T&gt;&gt; execute([Map&lt;String, Object?&gt;? params])</code>
@@ -1705,13 +2313,56 @@
                       </div>
                     </div>
                   </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="MariadbPreparedStatement.normalizeGeneratedId" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static int? normalizeGeneratedId(BigInt rawLastInsertId)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Normalises a driver-reported last-insert id into a generated key: the driver reports <code>0</code> when a statement generated no AUTO_INCREMENT value (e.g. an 
+                          <code>UPDATE</code>, or an <code>INSERT</code> into a table without one), and a real AUTO_INCREMENT value is never 
+                          <code>0</code> — so <code>0</code> maps to <code>null</code> ("no generated key") and every other value passes through as an 
+                          <code>int</code>.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="MariadbPreparedStatement.buildPositionalParameters" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static List&lt;Object?&gt; buildPositionalParameters(List&lt;String&gt; parameterList, Map&lt;String, Object?&gt;? params)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Maps the named [params] onto the positional bind list its [parameterList] expects, in placeholder order.
+                        </p>
+                        <p>
+                          Values are taken <strong>raw</strong> — a Dart <code>null</code> stays <code>null</code> (so it binds SQL 
+                          <code>NULL</code>), a <code>String</code> keeps its exact characters (no surrounding quotes), an <code>int</code>/<code>double</code>/<code>DateTime</code>
+                           keeps its native value. They must <strong>not</strong> be rendered through the SQL-literal renderer (<code>objectOp</code>), which would double-encode them over the binary protocol — a 
+                          <code>null</code> would bind the text <code>"NULL"</code> and a string would carry literal quote characters.
+                        </p>
+                        <p>
+                          A [TomDbType] box is the one value that is <em>not</em> bound raw: it is the SQL representation a column's 
+                          <code>toDbConverter</code> produces (e.g. an enum mapped to a <code>TomDbString</code>), and the driver only understands primitives. Binding the box directly would marshal it through its 
+                          <code>toString()</code> — <code>"TomDbType TomDbString full"</code> — which the server rejects (an <code>ENUM</code>
+                           column truncates it to <code>''</code>, error 1265). Unwrapping the box to its primitive here keeps that kernel→driver translation at the single data-source boundary that owns it. Returns an empty list when [params] is 
+                          <code>null</code>.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </section>
                 <section id="MariadbPreparedStatementException" class="api-declaration">
                   <h3 class="api-decl-title">class MariadbPreparedStatementException</h3>
                   <code class="api-signature">class MariadbPreparedStatementException extends TomServerException</code>
                   <div class="api-doc">
                     <p>
-                      Thrown when a MariaDB prepared statement fails (e.g. a closed connection), signalling that a single reconnect-and-retry may recover it.
+                      Thrown when a MariaDB prepared statement failed with no live link to have run on, signalling that a single reconnect-and-retry may recover it.
+                    </p>
+                    <p>
+                      The type carries the whole signal: [MariadbPreparedStatement.execute] catches this and nothing else, so raising it 
+                      <em>is</em> the decision to retry. Which failures qualify is settled by <code>isLostConnectionFailure</code>.
                     </p>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
@@ -1719,7 +2370,7 @@
                     <div id="MariadbPreparedStatementException.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          MariadbPreparedStatementException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, Object? stack, Object? rootException, bool autoLog = false})
+                          MariadbPreparedStatementException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, StackTrace? stack, Object? rootException, bool autoLog = false})
                         </code>
                       </div>
                       <div class="api-doc">
@@ -1728,6 +2379,64 @@
                         </p>
                       </div>
                     </div>
+                  </div>
+                </section>
+                <section id="_PendingReference" class="api-declaration">
+                  <h3 class="api-decl-title">typedef _PendingReference</h3>
+                  <code class="api-signature">
+                    typedef _PendingReference = ({TomColumnInformation column, VariableMirror field, ClassMirror&lt;dynamic&gt; owner, InstanceMirror row})
+                  </code>
+                  <div class="api-doc">
+                    <p>
+                      One association read that a mapped row still owes: the <code>@TomReference</code> [column], the [owner] mirror that declares it, the [field] to fill, and the [row] instance to fill it in.
+                    </p>
+                    <p>
+                      A reference cannot be read while the row is being mapped, because its query binds values from that same row — so the mapper collects these and drains them once the row's own columns are set.
+                    </p>
+                  </div>
+                </section>
+                <section id="_toBindParams" class="api-declaration">
+                  <h3 class="api-decl-title">function _toBindParams</h3>
+                  <code class="api-signature">Map&lt;String, dynamic&gt;? _toBindParams(Map&lt;String, dynamic&gt;? params)</code>
+                  <div class="api-doc">
+                    <p>Marshals a whole named-parameter map through [_toBindValue].</p>
+                    <p>
+                      Both statement paths need this and only one of them used to have it. The prepared-statement path marshals positionally through [MariadbPreparedStatement.buildPositionalParameters]; 
+                      <code>executeQuery</code> and <code>executeCommand</code> handed their map to the driver untouched, so a hand-written store binding a 
+                      <code>DateTime</code> or a <code>bool</code> got the driver's own encoding rather than this one — a local wall-clock reading in a column read back as UTC, and the string 
+                      <code>'false'</code> in an integer column. That is why the scheduling, audit and OAuth-state stores render every instant with 
+                      <code>sqlInstant</code> before binding it: they were routing around this hole rather than choosing to. Marshalling here makes the boundary one boundary, whichever path a statement takes.
+                    </p>
+                  </div>
+                </section>
+                <section id="_toBindValue" class="api-declaration">
+                  <h3 class="api-decl-title">function _toBindValue</h3>
+                  <code class="api-signature">Object? _toBindValue(Object? value)</code>
+                  <div class="api-doc">
+                    <p>
+                      Marshals one bind [value] into a driver primitive: a [TomDbType] box is unwrapped to the Dart value it holds; a Dart 
+                      <code>bool</code> becomes its MariaDB integer encoding; a [TomZonedDate] becomes its <code>DATE</code>
+                       text and a [TomZonedTime] its <code>TIME</code> text; any other [DateTime] becomes its UTC <code>DATETIME(6)</code>
+                       text; every other value is bound as-is.
+                    </p>
+                    <p>
+                      MariaDB has no native boolean type — <code>BOOLEAN</code> is an alias for <code>TINYINT(1)</code> stored as 
+                      <code>1</code>/<code>0</code>. The driver serializes a bound Dart <code>bool</code> as the <em>string</em>
+                       <code>'true'</code>/<code>'false'</code>, which the server rejects for an integer column ("Incorrect integer value: 'false'", error 1366). Translating 
+                      <code>bool</code>→<code>int</code> here keeps that kernel→driver mapping at the single data-source boundary that already owns the [TomDbType] unwrap.
+                    </p>
+                    <p>
+                      MariaDB has no zone-aware <code>DATETIME</code> either, and the driver serializes a bound [DateTime] through its 
+                      <code>toString()</code> — which for a UTC instant ends in <code>Z</code>. The server rejects the suffix ("Incorrect datetime value: '2000-01-01 00:00:00.000Z'", error 1292), so a 
+                      <code>DateTime</code> must reach the driver with no zone designator — <code>DateTime.utc(...)</code> is the ordinary case, not an exotic one.
+                    </p>
+                    <p>
+                      Rendered through [sqlInstant] rather than converted with <code>toLocal()</code>. <code>toLocal()</code>
+                       also produces an acceptable suffix-less value and round-trips on the node that wrote it, which is why it stood for a while — but what it stores is 
+                      <em>that node's wall clock</em>, so two servers of one cluster leave different characters in the column for the same moment and each reads the other's rows off by the difference in their offsets. [sqlInstant] writes the instant, identically everywhere, and 
+                      <code>TomDbDateTime.of</code> reads it back as UTC. Callers keep whichever flag they like on their own 
+                      <code>DateTime</code>; only what reaches the driver is normalised.
+                    </p>
                   </div>
                 </section>
               </div>

@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1395,7 +1401,7 @@
                   <div class="api-doc">
                     <p>Built-in validators for common field validation scenarios.</p>
                     <p>
-                      Each method returns a [Validator&lt;T&gt;] that can be added to a field's validator list. Error keys follow the 
+                      Each method returns a [TomValidator&lt;T&gt;] that can be added to a field's validator list. Error keys follow the 
                       <code>error.*</code> convention and are resolved relative to the field's basePath.
                     </p>
                   </div>
@@ -1420,7 +1426,7 @@
                       <div class="api-doc">
                         <p>
                           Singleton required validator (for identity-based detection). Accepts [dynamic] so it can be stored in validators lists of any field type. Dart's contravariance allows 
-                          <code>Validator&lt;dynamic&gt;</code> to also serve as <code>Validator&lt;String&gt;</code>.
+                          <code>TomValidator&lt;dynamic&gt;</code> to also serve as <code>TomValidator&lt;String&gt;</code>.
                         </p>
                       </div>
                     </div>
@@ -1465,6 +1471,30 @@
                         <code class="api-signature">static FutureOr&lt;ValidationResult&gt; Function(num) max(num maxValue)</code>
                       </div>
                       <div class="api-doc"><p>Validates that a numeric value is at most [maxValue].</p></div>
+                    </div>
+                    <div id="Validators.minItems" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static FutureOr&lt;ValidationResult&gt; Function(Iterable&lt;Object?&gt;) minItems(int min)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Validates that a collection holds at least [min] entries.</p>
+                        <p>
+                          This is the lower selection bound of the multi-choice fields: an element declares <code>minSelections</code>, which desugars to this rule exactly as a numeric field's 
+                          <code>minValue</code> desugars to [min]. Typed over <code>Iterable&lt;Object?&gt;</code> so, by function contravariance, it is assignable wherever a 
+                          <code>TomValidator&lt;List&lt;String&gt;&gt;</code> or <code>TomValidator&lt;List&lt;int&gt;&gt;</code>
+                           is expected.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="Validators.maxItems" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static FutureOr&lt;ValidationResult&gt; Function(Iterable&lt;Object?&gt;) maxItems(int max)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Validates that a collection holds at most [max] entries — the upper selection bound (<code>maxSelections</code>). See [minItems].
+                        </p>
+                      </div>
                     </div>
                     <div id="Validators.compose" class="api-member">
                       <div class="api-member-head">

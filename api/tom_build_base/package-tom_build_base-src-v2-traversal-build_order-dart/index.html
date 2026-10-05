@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1385,7 +1391,12 @@
             <h2></h2>
             <a class="crosslink" href="/api/tom_build_base">← tom_build_base API</a>
             <div class="treewrap">
-              <div class="treepane"><div class="treenodes"><a class="leaf" href="#BuildOrderComputer">BuildOrderComputer</a></div></div>
+              <div class="treepane">
+                <div class="treenodes">
+                  <a class="leaf" href="#BuildOrderComputer">BuildOrderComputer</a>
+                  <a class="leaf" href="#BuildOrderResult">BuildOrderResult</a>
+                </div>
+              </div>
               <div class="reader">
                 <h2 class="api-library-title">package:tom_build_base/src/v2/traversal/build_order.dart</h2>
                 <code class="api-import">import 'package:tom_build_base/src/v2/traversal/build_order.dart';</code>
@@ -1420,12 +1431,67 @@
                           [allProjectPaths] - All project paths to consider for dependency graph. [includeDev] - Whether to include dev_dependencies.
                         </p>
                         <p>Returns ordered list of paths (dependencies first), or null if a circular dependency is detected.</p>
+                        <p>
+                          Use [computeBuildOrderResult] instead when you also need to know which projects participate in a detected cycle (for diagnostics).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="BuildOrderComputer.computeBuildOrderResult" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static BuildOrderResult computeBuildOrderResult(List&lt;String&gt; allProjectPaths, {bool includeDev = false})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Compute build order and report cycle participants on failure.</p>
+                        <p>
+                          Like [computeBuildOrder], but returns a [BuildOrderResult] so callers can distinguish a genuine cycle from an empty order and surface an actionable diagnostic naming the projects involved.
+                        </p>
                       </div>
                     </div>
                     <div id="BuildOrderComputer.getProjectName" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static String getProjectName(String projectPath)</code></div>
                       <div class="api-doc"><p>Get project name from pubspec.yaml, or folder basename as fallback.</p></div>
                     </div>
+                  </div>
+                </section>
+                <section id="BuildOrderResult" class="api-declaration">
+                  <h3 class="api-decl-title">class BuildOrderResult</h3>
+                  <code class="api-signature">class BuildOrderResult</code>
+                  <div class="api-doc">
+                    <p>Outcome of a build-order computation.</p>
+                    <p>
+                      Carries either a successfully computed [order] (dependencies first) or, when a circular dependency prevents ordering, the set of [cycleParticipants] so callers can produce an actionable diagnostic instead of silently falling back to scan order.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="BuildOrderResult.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">const BuildOrderResult.new(List&lt;String&gt;? order, List&lt;String&gt; cycleParticipants)</code>
+                      </div>
+                      <div class="api-doc"><p>Creates a result with the given [order] and [cycleParticipants].</p></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="BuildOrderResult.order" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final List&lt;String&gt;? order</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Ordered project paths (dependencies first), or <code>null</code> if a cycle was detected and no valid order exists.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="BuildOrderResult.cycleParticipants" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final List&lt;String&gt; cycleParticipants</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Names of the projects that could not be ordered because they participate in (or are blocked by) a dependency cycle. Empty when [order] is non-null.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="BuildOrderResult.hasCycle" class="api-member"><div class="api-member-head"><code class="api-signature">bool hasCycle</code></div></div>
                   </div>
                 </section>
               </div>

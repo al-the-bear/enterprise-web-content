@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1388,8 +1394,8 @@
               <div class="treepane">
                 <div class="treenodes">
                   <a class="leaf" href="#TomConfigProvider">TomConfigProvider</a>
-                  <a class="leaf" href="#TomEnvironment">TomEnvironment</a>
-                  <a class="leaf" href="#TomPlatform">TomPlatform</a>
+                  <a class="leaf" href="#TomConfigEnvironment">TomConfigEnvironment</a>
+                  <a class="leaf" href="#TomConfigPlatform">TomConfigPlatform</a>
                 </div>
               </div>
               <div class="reader">
@@ -1409,7 +1415,7 @@
                     <div id="TomConfigProvider.create" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomConfigProvider.create({required TomEnvironment environment, required TomPlatform platform, Map&lt;String, Object&gt; flags = const {}})
+                          TomConfigProvider.create({required TomConfigEnvironment environment, required TomConfigPlatform platform, Map&lt;String, Object&gt; flags = const {}})
                         </code>
                       </div>
                       <div class="api-doc"><p>Creates a configuration with the given environment, platform, and flags.</p></div>
@@ -1418,11 +1424,11 @@
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
                     <div id="TomConfigProvider.environment" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final TomEnvironment environment</code></div>
+                      <div class="api-member-head"><code class="api-signature">final TomConfigEnvironment environment</code></div>
                       <div class="api-doc"><p>The current environment.</p></div>
                     </div>
                     <div id="TomConfigProvider.platform" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final TomPlatform platform</code></div>
+                      <div class="api-member-head"><code class="api-signature">final TomConfigPlatform platform</code></div>
                       <div class="api-doc"><p>The current platform.</p></div>
                     </div>
                     <div id="TomConfigProvider._flags" class="api-member">
@@ -1437,7 +1443,28 @@
                     </div>
                     <div id="TomConfigProvider.isEnabled" class="api-member">
                       <div class="api-member-head"><code class="api-signature">bool isEnabled(String name)</code></div>
-                      <div class="api-doc"><p>Whether a feature flag is truthy.</p></div>
+                      <div class="api-doc">
+                        <p>Whether the feature flag [name] is enabled.</p>
+                        <p>
+                          A flag is enabled when it is the boolean <code>true</code>, a number equal to <code>1</code> (so <code>1.0</code>
+                           counts), or a string reading <code>true</code> or <code>1</code> once case and surrounding whitespace are folded away. Everything else is disabled: 
+                          <code>false</code>, <code>0</code>, <code>'false'</code>, a value outside that vocabulary (<code>'yes'</code>, 
+                          <code>2</code>), a value of some other type, and a flag that was never set.
+                        </p>
+                        <p>
+                          The tolerance exists because a flag arrives spelled differently depending on where it was authored — Dart hands over a 
+                          <code>bool</code>, YAML and JSON a <code>bool</code> or a <code>num</code>, and <code>--dart-define</code>
+                           and environment variables can only carry text. Which source a flag came through must not change what it means.
+                        </p>
+                        <p>
+                          It stops at spelling. Synonyms — <code>'yes'</code>, <code>'on'</code>, <code>'y'</code> — are <em>not</em>
+                           enabled, because admitting one commits this to a list of them that nobody agreed on. It is the line [AllColorsAdapter] already draws: it folds case in 
+                          <code>#FFF</code> and <code>rgb(...)</code> syntax and still does not know what <code>crimson</code> means.
+                        </p>
+                        <p>
+                          Being outside the vocabulary is not the same as being lost — [feature] still reports the value unchanged, which is where anything richer than on/off belongs.
+                        </p>
+                      </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Static</h4>
@@ -1458,45 +1485,47 @@
                     </div>
                   </div>
                 </section>
-                <section id="TomEnvironment" class="api-declaration">
-                  <h3 class="api-decl-title">enum TomEnvironment</h3>
-                  <code class="api-signature">enum TomEnvironment</code>
+                <section id="TomConfigEnvironment" class="api-declaration">
+                  <h3 class="api-decl-title">enum TomConfigEnvironment</h3>
+                  <code class="api-signature">enum TomConfigEnvironment</code>
                   <div class="api-doc"><p>Application deployment environment.</p></div>
                   <h4 class="api-group-title">Values</h4>
                   <div class="api-members">
-                    <div id="TomEnvironment.development" class="api-member"><div class="api-member-head"><code class="api-signature">development</code></div></div>
-                    <div id="TomEnvironment.staging" class="api-member"><div class="api-member-head"><code class="api-signature">staging</code></div></div>
-                    <div id="TomEnvironment.production" class="api-member"><div class="api-member-head"><code class="api-signature">production</code></div></div>
+                    <div id="TomConfigEnvironment.development" class="api-member"><div class="api-member-head"><code class="api-signature">development</code></div></div>
+                    <div id="TomConfigEnvironment.staging" class="api-member"><div class="api-member-head"><code class="api-signature">staging</code></div></div>
+                    <div id="TomConfigEnvironment.production" class="api-member"><div class="api-member-head"><code class="api-signature">production</code></div></div>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
-                    <div id="TomEnvironment.new" class="api-member"><div class="api-member-head"><code class="api-signature">const TomEnvironment.new()</code></div></div>
+                    <div id="TomConfigEnvironment.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">const TomConfigEnvironment.new()</code></div>
+                    </div>
                   </div>
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
-                    <div id="TomEnvironment.values" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static List&lt;TomEnvironment&gt; values</code></div>
+                    <div id="TomConfigEnvironment.values" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static List&lt;TomConfigEnvironment&gt; values</code></div>
                     </div>
                   </div>
                 </section>
-                <section id="TomPlatform" class="api-declaration">
-                  <h3 class="api-decl-title">enum TomPlatform</h3>
-                  <code class="api-signature">enum TomPlatform</code>
+                <section id="TomConfigPlatform" class="api-declaration">
+                  <h3 class="api-decl-title">enum TomConfigPlatform</h3>
+                  <code class="api-signature">enum TomConfigPlatform</code>
                   <div class="api-doc"><p>Application target platform (logical, not physical).</p></div>
                   <h4 class="api-group-title">Values</h4>
                   <div class="api-members">
-                    <div id="TomPlatform.mobile" class="api-member"><div class="api-member-head"><code class="api-signature">mobile</code></div></div>
-                    <div id="TomPlatform.web" class="api-member"><div class="api-member-head"><code class="api-signature">web</code></div></div>
-                    <div id="TomPlatform.desktop" class="api-member"><div class="api-member-head"><code class="api-signature">desktop</code></div></div>
+                    <div id="TomConfigPlatform.mobile" class="api-member"><div class="api-member-head"><code class="api-signature">mobile</code></div></div>
+                    <div id="TomConfigPlatform.web" class="api-member"><div class="api-member-head"><code class="api-signature">web</code></div></div>
+                    <div id="TomConfigPlatform.desktop" class="api-member"><div class="api-member-head"><code class="api-signature">desktop</code></div></div>
                   </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
-                    <div id="TomPlatform.new" class="api-member"><div class="api-member-head"><code class="api-signature">const TomPlatform.new()</code></div></div>
+                    <div id="TomConfigPlatform.new" class="api-member"><div class="api-member-head"><code class="api-signature">const TomConfigPlatform.new()</code></div></div>
                   </div>
                   <h4 class="api-group-title">Static</h4>
                   <div class="api-members">
-                    <div id="TomPlatform.values" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">static List&lt;TomPlatform&gt; values</code></div>
+                    <div id="TomConfigPlatform.values" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static List&lt;TomConfigPlatform&gt; values</code></div>
                     </div>
                   </div>
                 </section>

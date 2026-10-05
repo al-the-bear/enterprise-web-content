@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1392,6 +1398,25 @@
                 <section id="StringSinkCore" class="api-declaration">
                   <h3 class="api-decl-title">class StringSinkCore</h3>
                   <code class="api-signature">class StringSinkCore</code>
+                  <div class="api-doc">
+                    <p><code>dart:core</code>'s <code>StringSink</code>.</p>
+                    <p>
+                      <strong>There is deliberately no <code>isAssignable</code> predicate, and it is not an oversight.</strong>
+                       SCC77 was filed to add one, on the reasoning that without it "a native object is never recognised as a 
+                      <code>StringSink</code>". That was true when it was written and is not any more: SCC56 declared the supertype edges (<code>StringBuffer -&gt; StringSink</code>, 
+                      <code>IOSink -&gt; StreamSink, StringSink</code>) and those carry the whole answer. Measured 2026-09-06 with the predicate added and then removed again, resolution is IDENTICAL either way —
+                    </p>
+                    <p>
+                      StringBuffer         -&gt; StringBuffer stdout               -&gt; Stdout ClosableStringSink   -&gt; ClosableStringSink
+                    </p>
+                    <p>
+                      — because every <code>StringSink</code> the stdlib can hand a script already has a more specific bridge of its own. The predicate would be a no-op today and a latent hazard tomorrow: it is what lets a bridge win the 
+                      <code>isAssignable</code> fallback pass, so the first stdlib type that implements <code>StringSink</code>
+                       without its own bridge would start resolving HERE and lose whatever members its real class declares. That is the SCB26 failure shape, arriving from the other direction. 
+                      <code>core_hierarchy.dart</code> makes the same argument for <code>Comparable</code> and <code>Pattern</code>, which are predicate-free for the same reason.
+                    </p>
+                    <p>Add one only with a value in hand that needs it, and pin that value.</p>
+                  </div>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="StringSinkCore.new" class="api-member"><div class="api-member-head"><code class="api-signature">StringSinkCore.new()</code></div></div>

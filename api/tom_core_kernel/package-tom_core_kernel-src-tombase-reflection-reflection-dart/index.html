@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1390,6 +1396,7 @@
                   <a class="leaf" href="#TomReflectionInfo">TomReflectionInfo</a>
                   <a class="leaf" href="#TomReflector">TomReflector</a>
                   <a class="leaf" href="#TomReflectorException">TomReflectorException</a>
+                  <a class="leaf" href="#TomRequiredField">TomRequiredField</a>
                 </div>
               </div>
               <div class="reader">
@@ -1417,6 +1424,17 @@ final loaded = tomReflectionInfo.createInstanceFromJson&lt;Person&gt;(mirror, js
                     <p>Extract all field values from an object as a JSON-compatible map:</p>
                     <pre><code>final json = tomReflectionInfo.getValues(person);
 final jsonString = tomReflectionInfo.convertToJsonString(person);</code></pre>
+                    <h2>There is exactly one reflector, and it is not a parameter</h2>
+                    <p>
+                      Every operation goes through the global [tomReflector]. The class used to take a reflector as a constructor argument, which read as an extension point and was not one: the code generator that produces the mirror data refuses to emit anything for a class that is not a 
+                      <strong>direct</strong> subclass of <code>Reflection</code> (it warns <em>"An indirect subclass of <code>Reflection</code> will not work as a reflector"</em>
+                       and skips it). [TomReflector] is that direct subclass, so a subclass of <em>it</em> is one step too far and silently gets no data at all; and because [TomReflector]'s constructor is 
+                      <code>const</code>, every <code>const TomReflector()</code> is canonicalised to the very same object as [tomReflector]. The parameter could therefore only ever be handed the global — or a value guaranteed to fail at the first mirror lookup.
+                    </p>
+                    <p>
+                      Do not reintroduce it. A genuine second reflector would need a second direct subclass of <code>Reflection</code>
+                       and a field typed to their common supertype, which is a different design and one nothing currently asks for.
+                    </p>
                     <h2>Debug Switches</h2>
                     <p>
                       Enable debug logging for troubleshooting reflection operations: - [debugSwitchLogReflectionDetailsMembers]: Log class member information - [debugSwitchLogReflectionDetailsValues]: Log value setting operations - [debugSwitchLogReflectionDetailsTypes]: Log type resolution details
@@ -1425,27 +1443,35 @@ final jsonString = tomReflectionInfo.convertToJsonString(person);</code></pre>
                   <h4 class="api-group-title">Constructors</h4>
                   <div class="api-members">
                     <div id="TomReflectionInfo.new" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">TomReflectionInfo.new(TomReflector reflector)</code></div>
+                      <div class="api-member-head"><code class="api-signature">TomReflectionInfo.new({bool strictUnknownFields = false})</code></div>
                       <div class="api-doc">
+                        <p>Creates a converter over the global [tomReflector].</p>
                         <p>
-                          Creates a new [TomReflectionInfo] with the given reflector. Creates a new [TomReflectionInfo] with the given reflector.
+                          It takes no reflector, and that is not an omission — see the class documentation for why a second one cannot exist. Prefer the shared [tomReflectionInfo] instance; construct your own only to choose a different [strictUnknownFields], which is the whole of the instance state.
                         </p>
                       </div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="TomReflectionInfo.reflector" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final TomReflector reflector</code></div>
-                      <div class="api-doc"><p>The reflector instance used for all reflection operations.</p></div>
-                    </div>
-                    <div id="TomReflectionInfo._elementTypeExp" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">final RegExp _elementTypeExp</code></div>
+                    <div id="TomReflectionInfo.strictUnknownFields" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final bool strictUnknownFields</code></div>
                       <div class="api-doc">
-                        <p>Regular expression to extract element types from generic type strings.</p>
+                        <p>Whether [setValues] rejects a key that names no declaration on the target.</p>
                         <p>
-                          Matches the type parameter(s) inside angle brackets, e.g., <code>List&lt;String&gt;</code> -&gt; <code>String</code>, 
-                          <code>Map&lt;String, int&gt;</code> -&gt; <code>String, int</code>.
+                          False by default, which is what the shared [tomReflectionInfo] uses: on the wire, tolerating unknown keys is a feature. A newer client talking to an older server, or a stored document holding fields since removed, sends keys the target no longer declares, and failing the whole payload for them would make the format non-forward-compatible.
+                        </p>
+                        <p>
+                          Where the payload is under the caller's own control that tolerance is a liability instead, because it hides the commonest deserialization bug there is — a renamed field, or a typo, silently dropped. Construct a strict converter there:
+                        </p>
+                        <pre><code>final strict = TomReflectionInfo(strictUnknownFields: true);
+strict.setValues(person, {'nickname': 'Jo'});
+// throws reflection.set.unknown_field</code></pre>
+                        <p>
+                          It is a property of the converter rather than of the call so that nested objects inherit it: the walk recurses through [createInstanceFromJson] on this same instance, so a strict converter is strict all the way down.
+                        </p>
+                        <p>
+                          It governs unknown keys only. A key naming a member that exists but cannot be written is an error in both modes — see [_handleMissingField].
                         </p>
                       </div>
                     </div>
@@ -1464,7 +1490,15 @@ final jsonString = tomReflectionInfo.convertToJsonString(person);</code></pre>
                         <pre><code>Map&lt;String, Person&gt; people = {};
 final valueMirror = tomReflectionInfo.mapValueElementType(people);
 // valueMirror is the ClassMirror for Person</code></pre>
-                        <p>Throws [TomReflectorException] if the value type is not found among annotated classes.</p>
+                        <p>
+                          <strong>Resolved by simple name</strong>, because a collection value carries its type arguments only as text: two annotated classes sharing a simple name make this lookup refuse (<code>reflector.classmirror.ambiguous_simple_name</code>). Deserializing a field is not affected — it reads the field's own mirror.
+                        </p>
+                        <p>
+                          Exactly two type arguments are required. A collection with any other arity is refused rather than resolved: with one, the caller wanted [singleElementType] and the message says so; with three or more, there is no "the value type" to return, and picking the second argument would be a guess that reads like an answer.
+                        </p>
+                        <p>
+                          Throws [TomReflectorException] if the value type is not found among annotated classes, or if it is itself generic — see [singleElementType] for why one level is the limit.
+                        </p>
                       </div>
                     </div>
                     <div id="TomReflectionInfo.singleElementType" class="api-member">
@@ -1479,7 +1513,30 @@ final valueMirror = tomReflectionInfo.mapValueElementType(people);
                         <pre><code>List&lt;Person&gt; people = [];
 final elementMirror = tomReflectionInfo.singleElementType(people);
 // elementMirror is the ClassMirror for Person</code></pre>
-                        <p>Throws [TomReflectorException] if the element type is not found among annotated classes.</p>
+                        <p>
+                          <strong>Resolved by simple name</strong>, because a collection value carries its type arguments only as text: two annotated classes sharing a simple name make this lookup refuse (<code>reflector.classmirror.ambiguous_simple_name</code>). Deserializing a field is not affected — it reads the field's own mirror.
+                        </p>
+                        <p>
+                          Throws [TomReflectorException] if the element type is not found among annotated classes, or if it is itself generic: both methods resolve a name against the classes annotated with 
+                          <code>@tomReflector</code>, and a generic instantiation such as <code>List&lt;String&gt;</code> is not one of those and never can be. One level of nesting is therefore the supported depth, and the exception says so rather than reporting a name that was never going to match.
+                        </p>
+                        <p>
+                          Exactly one type argument is required. Passing a <code>Map&lt;K, V&gt;</code> used to succeed and return the mirror for 
+                          <code>K</code> — a valid mirror for the wrong half of the collection, which no caller could detect, so the arity is checked before the name is resolved.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomReflectionInfo._resolveTypeArgument" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          ClassMirror&lt;dynamic&gt; _resolveTypeArgument(String typeArgument, Object collection, String method, String notFoundErrorKey)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Resolves one parsed type argument to its [ClassMirror].</p>
+                        <p>
+                          [method] and [collection] appear in the message so the caller can see which collection was being resolved, named as Dart names it.
+                        </p>
                       </div>
                     </div>
                     <div id="TomReflectionInfo._findClassMirror" class="api-member">
@@ -1491,7 +1548,50 @@ final elementMirror = tomReflectionInfo.singleElementType(people);
                         <p>
                           Searches through all classes annotated with <code>@tomReflector</code> to find one matching the given [typeName].
                         </p>
+                        <p>
+                          The one name-based lookup in this class, and reached only from [singleElementType] and [mapValueElementType]: they are handed a bare collection, whose element type exists at run time only as the text of its 
+                          <code>runtimeType</code>, so a simple name is all there is to go on. The field walk never comes here — it reads a field's element type from the field's own mirror — which is why a shared simple name refuses these two helpers and nothing else.
+                        </p>
                         <p>Throws [TomReflectorException] with the provided [errorKey] and [errorMessage] if not found.</p>
+                      </div>
+                    </div>
+                    <div id="TomReflectionInfo._reflect" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">InstanceMirror _reflect(Object o, String operation)</code></div>
+                      <div class="api-doc">
+                        <p>Reflects [o] through the global [tomReflector] on behalf of [operation].</p>
+                        <p>
+                          The single door through which every instance-mirror lookup passes, so that the one thing that can go wrong here goes wrong the same way everywhere. That thing is an object whose class carries no 
+                          <code>@tomReflector</code>: <code>tom_reflection</code> answers with a <code>NoSuchCapabilityError</code>
+                           naming the type and nothing else — not the operation that wanted it, not the annotation that would fix it, and not in the exception type the rest of this class raises. Callers that catch [TomReflectorException] would miss it entirely.
+                        </p>
+                        <p>
+                          [operation] is the public method the caller is inside, so the message says which of serialization, deserialization or reporting failed.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomReflectionInfo._annotatedType" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">ClassMirror&lt;dynamic&gt; _annotatedType(InstanceMirror im, Object o, String operation)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Resolves the class mirror of [im], insisting it carries <code>@tomReflector</code>.</p>
+                        <p>
+                          Reflecting successfully is not the same as being one of ours. The capability set includes deep type-annotation quantification, so every type that appears as a 
+                          <em>field type</em> of an annotated class — <code>String</code>, <code>int</code>, <code>double</code>, 
+                          <code>bool</code>, <code>DateTime</code>, <code>List</code>, <code>Map</code>, <code>Object</code> — gets generated data too. Those types reflect happily and then contribute no settable declarations, which is how 
+                          <code>getValues('hello')</code> came to return <code>{}</code> and <code>convertToJsonString('hello')</code>
+                           the string <code>"{}"</code>: a valid-looking payload with every field dropped, reported as success. 
+                          <code>setValues</code> was the mirror image, returning the object untouched.
+                        </p>
+                        <p>
+                          The test is the <code>@tomReflector</code> metadata rather than membership of [Reflection.annotatedClasses], for two independent reasons. That list holds the quantified types as well, so it cannot separate them; and it holds 
+                          <em>declaration</em> mirrors, so the instantiated mirror of an annotated generic — <code>GenericHolder&lt;int&gt;</code>
+                           — is not in it, and a membership test would reject a class the developer did annotate. Metadata survives instantiation and marks exactly the annotated set.
+                        </p>
+                        <p>
+                          Resolving the mirror is itself inside the guard: for a generic instantiation the reflector does not own, 
+                          <code>im.type</code> throws a bare <code>_TypeError</code> from inside <code>tom_reflection</code>, naming neither the type nor the operation.
+                        </p>
                       </div>
                     </div>
                     <div id="TomReflectionInfo.reportReflectObject" class="api-member">
@@ -1518,7 +1618,7 @@ tomReflectionInfo.reportReflectObject(person);</code></pre>
                     </div>
                     <div id="TomReflectionInfo._printDeclarations" class="api-member">
                       <div class="api-member-head"><code class="api-signature">void _printDeclarations(ClassMirror&lt;dynamic&gt; cm)</code></div>
-                      <div class="api-doc"><p>Prints all declarations of a class. Prints all declarations of a class.</p></div>
+                      <div class="api-doc"><p>Prints all declarations of a class.</p></div>
                     </div>
                     <div id="TomReflectionInfo._printInstanceMembers" class="api-member">
                       <div class="api-member-head"><code class="api-signature">void _printInstanceMembers(ClassMirror&lt;dynamic&gt; cm)</code></div>
@@ -1539,31 +1639,41 @@ tomReflectionInfo.reportReflectObject(person);</code></pre>
                         <pre><code>final person = Person();
 tomReflectionInfo.convertFromJsonString(person, '{"name": "John", "age": 30}');
 print(person.name); // "John"</code></pre>
-                        <p>Returns the same object [o] with fields populated.</p>
+                        <p>
+                          Returns [o] with its fields populated — except for a class declaring a <code>fromJson</code> constructor, where it returns the instance that constructor built. Assign the result rather than reading [o] back; see [setValues].
+                        </p>
                       </div>
                     </div>
                     <div id="TomReflectionInfo.createInstanceFromJsonString" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          T? createInstanceFromJsonString&lt;T extends Object&gt;(ClassMirror&lt;dynamic&gt; objectMirror, String s)
+                          T createInstanceFromJsonString&lt;T extends Object&gt;(ClassMirror&lt;dynamic&gt; objectMirror, String s)
                         </code>
                       </div>
                       <div class="api-doc">
                         <p>Creates a new instance of type [T] from a JSON string.</p>
                         <p>Uses the provided [ClassMirror] to instantiate the object, then populates it from the parsed JSON.</p>
-                        <p>Returns the new instance, or null if creation fails.</p>
+                        <p>
+                          Returns the new instance. There is no failure value: every way this can go wrong throws. [s] is parsed before any reflection happens, so malformed JSON raises a [FormatException] from 
+                          <code>jsonDecode</code>; everything after that is [createInstanceFromJson] and raises [TomReflectorException].
+                        </p>
                       </div>
                     </div>
                     <div id="TomReflectionInfo.createInstanceFromJson" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          T? createInstanceFromJson&lt;T extends Object&gt;(ClassMirror&lt;dynamic&gt; objectMirror, Map&lt;String, Object?&gt; jsonData)
+                          T createInstanceFromJson&lt;T extends Object&gt;(ClassMirror&lt;dynamic&gt; objectMirror, Map&lt;String, Object?&gt; jsonData)
                         </code>
                       </div>
                       <div class="api-doc">
                         <p>Creates a new instance of type [T] from JSON data.</p>
                         <p>
-                          This method first attempts to use a <code>fromJson</code> constructor if available. If not, it creates an instance using the default constructor and populates fields via [setValues].
+                          The inbound entry point for the case where there is no object yet. It honours the same hooks in the same order as [setValues] — see there for the precedence and why it is in that order — reaching them by the only route open to it: the 
+                          <code>fromJson</code> constructor if the class declares one, otherwise the default constructor followed by [setValues], which settles [TomClass], 
+                          <code>jsonDecode</code> and the field walk.
+                        </p>
+                        <p>
+                          The two entry points therefore agree. A class carrying a <code>fromJson</code> constructor decodes through it whichever of the two is called, which is what [setValues] gives up identity for.
                         </p>
                         <p>Example:</p>
                         <pre><code>final mirror = tomReflector.reflectType(Person) as ClassMirror;
@@ -1571,21 +1681,51 @@ final person = tomReflectionInfo.createInstanceFromJson&lt;Person&gt;(
   mirror,
   {'name': 'Jane', 'age': 25},
 );</code></pre>
-                        <p>Returns the new instance, or null if creation fails.</p>
+                        <p>
+                          Returns the new instance. There is no failure value: a class that cannot be built, a <code>fromJson</code>
+                           that raises, and a payload the target rejects all throw [TomReflectorException]. A caller testing the result for null is writing a branch that cannot be entered.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomReflectionInfo._invokeFromJson" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          T _invokeFromJson&lt;T extends Object&gt;(ClassMirror&lt;dynamic&gt; cm, Map&lt;String, dynamic&gt; jsonData)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Invokes the <code>fromJson</code> constructor of [cm], which must declare one.</p>
+                        <p>
+                          Shared by [createInstanceFromJson] and [setValues] so that the two cannot drift: the hook is one hook, and a class must not decode differently depending on which entry point reached it. Callers check [_declaresConstructor] first — absence is settled before anything runs, per [_hookFailed], so everything caught here is a hook that exists and failed.
+                        </p>
                       </div>
                     </div>
                     <div id="TomReflectionInfo.createInstance" class="api-member">
                       <div class="api-member-head"><code class="api-signature">T createInstance&lt;T extends Object&gt;([Type? type])</code></div>
                       <div class="api-doc">
-                        <p>Creates a new instance of type [T] using its default constructor.</p>
+                        <p>Creates a new instance using its default constructor.</p>
                         <p>
-                          The type must be annotated with <code>@tomReflector</code> and have a default (no-argument) constructor.
+                          The class must be annotated with <code>@tomReflector</code> and have a default (no-argument) constructor.
                         </p>
-                        <p>Example:</p>
-                        <pre><code>final person = tomReflectionInfo.createInstance&lt;Person&gt;();
-// Or with explicit type:
-final person = tomReflectionInfo.createInstance(Person);</code></pre>
-                        <p>Throws [TomReflectorException] if instantiation fails.</p>
+                        <p>
+                          The type is named twice over, and the two are not the same question: [type] says <em>what to build</em>, [T] says 
+                          <em>what to call the result</em> and is applied to it as a cast. Each defaults to the other, so most calls pass only one.
+                        </p>
+                        <pre><code>// The type is known here; T carries it and the result is a Person.
+final person = tomReflectionInfo.createInstance&lt;Person&gt;();
+
+// Only a runtime Type is available. Nothing infers T, so it falls to its
+// bound: the instance is a Person, but the static type is Object.
+final instance = tomReflectionInfo.createInstance(someType);
+
+// Both: build someType, hand it back typed as a supertype it satisfies.
+final person = tomReflectionInfo.createInstance&lt;Person&gt;(someType);</code></pre>
+                        <p>
+                          Passing both is only worthwhile when they differ, and nothing checks that they agree until the cast runs — a [type] that is not a [T] is not a compile error.
+                        </p>
+                        <p>
+                          Throws [TomReflectorException] (<code>reflector.instance_creation.failed</code>) if the class cannot be reflected or constructed, or if the result is not a [T].
+                        </p>
                       </div>
                     </div>
                     <div id="TomReflectionInfo.setValues" class="api-member">
@@ -1594,13 +1734,26 @@ final person = tomReflectionInfo.createInstance(Person);</code></pre>
                       </div>
                       <div class="api-doc">
                         <p>Sets values on an object from a map of field names to values.</p>
-                        <p>This is the main entry point for deserialization. The method handles:</p>
-                        <ul>
-                          <li><strong>TomClass objects</strong>: Delegates to <code>TomClass.setValues()</code> for observable</li>
-                        </ul>
                         <p>
-                          field handling - <strong>Objects with <code>jsonDecode</code> method</strong>: Invokes that method directly - 
-                          <strong>Other objects</strong>: Sets fields via reflection
+                          This is <strong>the</strong> inbound entry point, and it honours every decoding hook the framework recognises. [createInstanceFromJson] resolves to the same order, so the answer does not depend on which of the two a caller happens to reach for.
+                        </p>
+                        <h2>Precedence</h2>
+                        <p>The first match wins:</p>
+                        <p>
+                          1. <strong>[TomClass]</strong> — delegates to <code>TomClass.setValues()</code>, which knows how to write observable fields. An 
+                          <code>is</code> test. 2. <strong>a <code>fromJson</code> constructor</strong> — construction <em>is</em>
+                           the hook, so this returns a <strong>new instance</strong> built from [values]; see below. 3. <strong>a <code>jsonDecode</code> method</strong>
+                           — invoked on [o], which decodes itself. 4. <strong>the reflected fields</strong> — written one by one.
+                        </p>
+                        <h2>A <code>fromJson</code> class does not preserve identity</h2>
+                        <p>
+                          Steps 1, 3 and 4 fill [o] and return it. Step 2 cannot: a constructor produces an object, it does not populate one, and a type that declares 
+                          <code>fromJson</code> has said that building from a payload is <em>its</em> business. So for such a type this method returns the constructed instance and leaves [o] untouched.
+                        </p>
+                        <p>
+                          <strong>Use the return value.</strong> <code>converter.setValues(x, map)</code> and then reading <code>x</code>
+                           is correct for every other shape and wrong for this one; write <code>x = converter.setValues(x, map)</code>. The alternative — field-walking a 
+                          <code>fromJson</code> type — would mean the same class decodes two different ways depending on the entry point, which is the asymmetry this ordering exists to remove.
                         </p>
                         <h2>Supported Field Types</h2>
                         <ul>
@@ -1612,9 +1765,10 @@ final person = tomReflectionInfo.createInstance(Person);</code></pre>
                           </li>
                           <li>Nested objects: Any class annotated with <code>@tomReflector</code></li>
                           <li>
-                            Collections: <code>List&lt;T&gt;</code> and <code>Map&lt;String, T&gt;</code> where T is a supported type
+                            Collections: <code>List&lt;T&gt;</code> and <code>Map&lt;String, T&gt;</code> where T is a supported type,
                           </li>
                         </ul>
+                        <p>and <code>Set&lt;T&gt;</code> of a primitive T — filled from the JSON array a set serializes to</p>
                         <p>Example:</p>
                         <pre><code>final person = Person();
 tomReflectionInfo.setValues(person, {
@@ -1623,17 +1777,90 @@ tomReflectionInfo.setValues(person, {
   'address': {'street': '123 Main St', 'city': 'NYC'},
   'tags': ['developer', 'dart'],
 });</code></pre>
-                        <p>Returns the same object [o] with fields populated.</p>
+                        <p>
+                          Returns [o] with its fields populated, or — for a class declaring a <code>fromJson</code> constructor — the instance that constructor built.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomReflectionInfo.unknownFields" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">List&lt;String&gt; unknownFields&lt;T extends Object&gt;(T o, Map&lt;String, dynamic&gt; values)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>The keys of [values] that name no writable declaration on [o], in the order they appear.</p>
+                        <p>
+                          The question [strictUnknownFields] answers as it goes, asked in advance and answered for the whole map rather than for the first offender. A caller binding a document it owns — a configuration block, a settings map — uses this to report 
+                          <em>every</em> misspelled key at once, in its own vocabulary and naming the document the keys came from, which is context this converter does not have and cannot invent.
+                        </p>
+                        <pre><code>final unknown = tomReflectionInfo.unknownFields(driver, settings);
+if (unknown.isNotEmpty) throw MyConfigException(name, unknown);</code></pre>
+                        <p>
+                          It applies the same rule as the field walk, so the two cannot drift: a key is unknown when the target declares neither a getter nor a setter for it. A member that exists but cannot be written — static, final, private — is 
+                          <strong>not</strong> listed, because it is not unknown; [setValues] raises on it in both modes, which is where that fault belongs.
+                        </p>
+                        <p>
+                          Returns empty for a [TomClass], for a class declaring a <code>fromJson</code> constructor, and for one declaring a 
+                          <code>jsonDecode</code> hook. Each of those takes the map over entirely, so what counts as a known key is theirs to define and this converter has no view of it — reporting their keys as unknown would be an answer to a question that was never asked here.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomReflectionInfo.canReflect" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool canReflect(Object o)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Whether [o] can be reflected here: its class carries <code>@tomReflector</code> and generated reflection data has been installed in this isolate.
+                        </p>
+                        <p>
+                          For callers that have something to do when reflection is <em>not</em> available, rather than a failure to report. Every other method on this class treats an unreflectable object as a fault, because it was asked to convert one and cannot; a caller asking a question 
+                          <em>about</em> a class — "does this one declare a required field?" — may legitimately have no question to ask when the class has no mirrors at all.
+                        </p>
+                        <p>
+                          The two conditions are one answer on purpose. <code>tomReflector.canReflect</code> consults the generated registry, which raises rather than answering when nothing has installed one, and both cases mean the same thing to a caller asking whether reflection is available 
+                          <em>here</em>.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomReflectionInfo.missingRequiredFields" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          List&lt;String&gt; missingRequiredFields&lt;T extends Object&gt;(T o, Map&lt;String, dynamic&gt; values)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>The names of [o]'s [TomRequiredField] fields that [values] supplies no value for.</p>
+                        <p>
+                          The mirror image of [unknownFields]: that one names keys with no field, this one names fields with no key. Neither is answered by binding — a setting nobody supplied leaves the field at its initialiser, which reads exactly like a setting nobody required.
+                        </p>
+                        <pre><code>final missing = tomReflectionInfo.missingRequiredFields(config, values);
+if (missing.isNotEmpty) throw MyConfigException(missing);</code></pre>
+                        <p>
+                          Reporting rather than throwing keeps the vocabulary with the caller, who knows which document the map was merged from and what to call it. Every missing setting is reported at once, so a deployment fixes them in one pass rather than one restart at a time.
+                        </p>
+                        <p>
+                          <strong>Supplied means the key carries a value, not that the value looks filled.</strong> An explicitly empty one counts: 
+                          <code>dbUrl=</code> on a command line sets the setting to nothing deliberately, and refusing it would conflate "set to nothing" with "not set". A 
+                          <strong>null</strong> value does not count — a <code>.env</code> line <code>DB_URL=</code> parses to null, which names the setting without giving it one, and 
+                          <code>TomEnvFile.resolveEnvironment</code> already drops such a key rather than carrying it.
+                        </p>
+                        <p>
+                          Fields are reported in declaration order, the instance's own class first and then up the superclass chain: an application's configuration is usually the most derived class, so what it declares is what its operator recognises first.
+                        </p>
+                        <p>
+                          Returns empty for a [TomClass], for a class declaring a <code>fromJson</code> constructor, and for one declaring a 
+                          <code>jsonDecode</code> hook — the same guard [unknownFields] carries, for the same reason. Each takes the map over entirely, so a field one of them filled from a differently-named key is not missing, and this method has no view of that.
+                        </p>
                       </div>
                     </div>
                     <div id="TomReflectionInfo._tryInvokeJsonDecode" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">bool _tryInvokeJsonDecode(InstanceMirror im, Map&lt;String, dynamic&gt; values)</code>
+                        <code class="api-signature">
+                          bool _tryInvokeJsonDecode(InstanceMirror im, ClassMirror&lt;dynamic&gt; cm, Object o, Map&lt;String, dynamic&gt; values)
+                        </code>
                       </div>
                       <div class="api-doc">
+                        <p>Invokes the optional <code>jsonDecode</code> hook, if [cm] declares one.</p>
                         <p>
-                          Attempts to invoke a <code>jsonDecode</code> method on the object. Attempts to invoke a <code>jsonDecode</code>
-                           method on the object.
+                          Returns true when the hook ran, having taken over deserialization entirely. Returns false only when there is no such hook — a hook that exists and raises propagates rather than being mistaken for an absent one and quietly replaced by the field walk it was written to override. See [_hookFailed].
                         </p>
                       </div>
                     </div>
@@ -1667,11 +1894,21 @@ tomReflectionInfo.setValues(person, {
                     </div>
                     <div id="TomReflectionInfo._handleMissingField" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">void _handleMissingField(MethodMirror? imGet, MapEntry&lt;String, dynamic&gt; entry)</code>
+                        <code class="api-signature">
+                          void _handleMissingField(ClassMirror&lt;dynamic&gt; cm, MethodMirror? imGet, MethodMirror? imSet, MapEntry&lt;String, dynamic&gt; entry)
+                        </code>
                       </div>
                       <div class="api-doc">
-                        <p>Handles cases where a field getter exists but no setter.</p>
-                        <p>This typically indicates a static, final, or private field.</p>
+                        <p>Handles an entry the field walk could not assign, of which there are two unrelated kinds.</p>
+                        <p>
+                          <strong>The member exists but cannot be written</strong> ([imGet] found, [imSet] not): a static, final or private declaration. Always an error, in both modes — the caller named a field this class has and asked for a value it will never hold.
+                        </p>
+                        <p>
+                          <strong>No such member</strong> (neither found): an unknown key. Silently traced, or rejected when [strictUnknownFields] is set; see that field for why the default is tolerance.
+                        </p>
+                        <p>
+                          A setter without a getter reaches the second case and is deliberately not reported as unknown — the member does exist, the walk simply has no return type to resolve the value against. Calling that "unknown field" would send the reader looking for a declaration that is right there.
+                        </p>
                       </div>
                     </div>
                     <div id="TomReflectionInfo._setComplexValue" class="api-member">
@@ -1683,18 +1920,40 @@ tomReflectionInfo.setValues(person, {
                       <div class="api-doc">
                         <p>Sets a complex (non-primitive) value on a field.</p>
                         <p>
-                          Handles String (for DateTime parsing), Map, and List values. Delegates to specialized handlers based on value type.
+                          Handles int-to-double widening, String (for DateTime parsing), Map, and List values. Delegates to specialized handlers based on value type.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomReflectionInfo._trySetWidenedNumericValue" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          bool _trySetWidenedNumericValue(InstanceMirror im, MethodMirror imGet, MapEntry&lt;String, dynamic&gt; entry)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Widens an <code>int</code> value onto a <code>double</code> field, returning true when it did.</p>
+                        <p>
+                          Why: the wire formats this reflector reads from — JSON and command-line <code>key=value</code> arguments — have no int/double distinction. 
+                          <code>{"rate": 2}</code> and <code>rate=2</code> both decode to an <code>int</code>, and there is no way for the source to say "double". Rejecting them would make a whole-number double unrepresentable, so an 
+                          <code>int</code> destined for a <code>double</code> field is widened.
+                        </p>
+                        <p>
+                          The converse is deliberately absent: narrowing a <code>double</code> to an <code>int</code> would need a rounding policy, and truncating 
+                          <code>2.5</code> silently loses data.
                         </p>
                       </div>
                     </div>
                     <div id="TomReflectionInfo._setStringValue" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">void _setStringValue(InstanceMirror im, MethodMirror imGet, MapEntry&lt;String, dynamic&gt; entry)</code>
+                        <code class="api-signature">
+                          void _setStringValue(InstanceMirror im, ClassMirror&lt;dynamic&gt; cm, MethodMirror imGet, MapEntry&lt;String, dynamic&gt; entry)
+                        </code>
                       </div>
                       <div class="api-doc">
                         <p>Sets a String value that represents a date/time type.</p>
                         <p>
-                          Parses the string and converts to the appropriate DateTime type based on the field's declared return type.
+                          Parses the string and converts to the appropriate DateTime type based on the field's declared return type. A string the target type cannot parse raises 
+                          <code>reflection.set.date_parse_failed</code> rather than letting a context-free [FormatException] out; see [_parseDateTimeString].
                         </p>
                       </div>
                     </div>
@@ -1722,23 +1981,15 @@ tomReflectionInfo.setValues(person, {
                     <div id="TomReflectionInfo._trySetDateTimeMapType" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          bool _trySetDateTimeMapType(InstanceMirror im, Type returnType, MapEntry&lt;String, dynamic&gt; entry)
+                          bool _trySetDateTimeMapType(InstanceMirror im, ClassMirror&lt;dynamic&gt; cm, Type returnType, MapEntry&lt;String, dynamic&gt; entry)
                         </code>
                       </div>
                       <div class="api-doc"><p>Attempts to set a DateTime Map type (<code>Map&lt;String, DateTime&gt;</code>, etc.).</p></div>
                     </div>
-                    <div id="TomReflectionInfo._parseStringMap" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">
-                          Map&lt;String, T&gt; _parseStringMap&lt;T&gt;(Map&lt;dynamic, dynamic&gt; sourceMap, T Function(String) parser, {bool nullable = false})
-                        </code>
-                      </div>
-                      <div class="api-doc"><p>Parses a map of strings into typed datetime values.</p></div>
-                    </div>
                     <div id="TomReflectionInfo._trySetAnnotatedObjectMapType" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          bool _trySetAnnotatedObjectMapType(InstanceMirror im, MethodMirror imGet, MapEntry&lt;String, dynamic&gt; entry)
+                          bool _trySetAnnotatedObjectMapType(InstanceMirror im, ClassMirror&lt;dynamic&gt; cm, MethodMirror imGet, MapEntry&lt;String, dynamic&gt; entry)
                         </code>
                       </div>
                       <div class="api-doc">
@@ -1750,7 +2001,9 @@ tomReflectionInfo.setValues(person, {
                     </div>
                     <div id="TomReflectionInfo._tryFillExistingMapOrObject" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">bool _tryFillExistingMapOrObject(InstanceMirror im, MapEntry&lt;String, dynamic&gt; entry)</code>
+                        <code class="api-signature">
+                          bool _tryFillExistingMapOrObject(InstanceMirror im, ClassMirror&lt;dynamic&gt; cm, MapEntry&lt;String, dynamic&gt; entry)
+                        </code>
                       </div>
                       <div class="api-doc">
                         <p>Attempts to fill an existing Map or object with values.</p>
@@ -1772,12 +2025,15 @@ tomReflectionInfo.setValues(person, {
                     </div>
                     <div id="TomReflectionInfo._setListValue" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">void _setListValue(InstanceMirror im, MethodMirror imGet, MapEntry&lt;String, dynamic&gt; entry)</code>
+                        <code class="api-signature">
+                          void _setListValue(InstanceMirror im, ClassMirror&lt;dynamic&gt; cm, MethodMirror imGet, MapEntry&lt;String, dynamic&gt; entry)
+                        </code>
                       </div>
                       <div class="api-doc">
                         <p>Sets a List value on a field.</p>
                         <p>
-                          Handles multiple scenarios in order: 1. Primitive list types (<code>List&lt;int&gt;</code>, <code>List&lt;String&gt;</code>, etc.) 2. DateTime list types (<code>List&lt;DateTime&gt;</code>, etc.) 3. Annotated object list types (<code>List&lt;MyClass&gt;</code>) 4. Fallback: direct value setting
+                          Handles multiple scenarios in order: 1. Primitive list and set types (<code>List&lt;int&gt;</code>, <code>Set&lt;String&gt;</code>, etc.) — a set field is filled from the JSON array a set serializes to 2. DateTime list types (<code>List&lt;DateTime&gt;</code>, etc.) 3. Annotated object list types (<code>List&lt;MyClass&gt;</code>) 4. Fallback: assign the list as it arrived, or refuse with 
+                          <code>reflection.set.list_field_not_settable</code> when the field cannot hold it
                         </p>
                       </div>
                     </div>
@@ -1792,23 +2048,15 @@ tomReflectionInfo.setValues(person, {
                     <div id="TomReflectionInfo._trySetDateTimeListType" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          bool _trySetDateTimeListType(InstanceMirror im, Type returnType, MapEntry&lt;String, dynamic&gt; entry)
+                          bool _trySetDateTimeListType(InstanceMirror im, ClassMirror&lt;dynamic&gt; cm, Type returnType, MapEntry&lt;String, dynamic&gt; entry)
                         </code>
                       </div>
                       <div class="api-doc"><p>Attempts to set a DateTime List type (<code>List&lt;DateTime&gt;</code>, etc.).</p></div>
                     </div>
-                    <div id="TomReflectionInfo._parseStringList" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">
-                          List&lt;T&gt; _parseStringList&lt;T&gt;(List&lt;dynamic&gt; sourceList, T Function(String) parser, {bool nullable = false})
-                        </code>
-                      </div>
-                      <div class="api-doc"><p>Parses a list of strings into typed datetime values.</p></div>
-                    </div>
                     <div id="TomReflectionInfo._trySetAnnotatedObjectListType" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          bool _trySetAnnotatedObjectListType(InstanceMirror im, MethodMirror imGet, MapEntry&lt;String, dynamic&gt; entry)
+                          bool _trySetAnnotatedObjectListType(InstanceMirror im, ClassMirror&lt;dynamic&gt; cm, MethodMirror imGet, MapEntry&lt;String, dynamic&gt; entry)
                         </code>
                       </div>
                       <div class="api-doc">
@@ -1825,25 +2073,79 @@ tomReflectionInfo.setValues(person, {
                       <div class="api-member-head"><code class="api-signature">String convertToJsonString(Object o)</code></div>
                       <div class="api-doc">
                         <p>Converts an object to a JSON string.</p>
-                        <p>This is a convenience method that calls [getValues] and encodes the result to JSON.</p>
+                        <p>
+                          This is the string-level outbound entry point, and the only one a transport needs: it is [getValues] plus encoding, extended to the two shapes JSON has natively.
+                        </p>
+                        <h2>What [o] may be</h2>
+                        <ul>
+                          <li>
+                            <strong>a <code>Map</code> or a <code>List</code></strong> — encoded as itself. Its elements are JSON
+                          </li>
+                        </ul>
+                        <p>
+                          values already, except the complex ones, and each of those is rendered by [getValues] with the full outbound precedence. Nesting is walked to any depth. - 
+                          <strong>anything else</strong> — rendered by [getValues], which is where the precedence and the <code>@tomReflector</code>
+                           guard live. A bare <code>String</code> or <code>int</code> is therefore still refused: it is not a container, and a caller handing a scalar to a DTO serializer is not describing an object.
+                        </p>
+                        <p>
+                          Containers are the reason this method is not simply <code>jsonEncode(getValues(o))</code>. A handler that answers with a list of DTOs, or a map whose values are DTOs, has no reflected type of its own, so [getValues] refuses it — which left every transport to encode collections itself and, in the endpoint pipeline, to grow a parallel hook chain to do it with. Naming the container case once here is what lets those callers be one line.
+                        </p>
                         <p>Example:</p>
                         <pre><code>final person = Person()
   ..name = 'John'
   ..age = 30;
 final json = tomReflectionInfo.convertToJsonString(person);
-// '{"name":"John","age":30}'</code></pre>
+// '{"name":"John","age":30}'
+
+tomReflectionInfo.convertToJsonString([person]);
+// '[{"name":"John","age":30}]'</code></pre>
+                      </div>
+                    </div>
+                    <div id="TomReflectionInfo._renderJsonValue" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Object? _renderJsonValue(Object? value)</code></div>
+                      <div class="api-doc">
+                        <p>Renders [value] into something <code>jsonEncode</code> accepts without a <code>toEncodable</code>.</p>
+                        <p>
+                          The containers are walked here rather than handed to <code>jsonEncode</code> with a <code>toEncodable</code>
+                           callback, because that callback's exceptions do not survive: <code>dart:convert</code> catches whatever it raises and rethrows a 
+                          <code>JsonUnsupportedObjectError</code>, so the annotation guard's message — which names the type and says it is not annotated — would reach the caller as "converting object to an encodable object failed". Walking the container ourselves lets [getValues] throw its own exception, unwrapped.
+                        </p>
+                        <p>
+                          Complex values get exactly the [getValues] a top-level object would: an element is not serialized on easier terms than the object containing it, and the same guard applies to it. Nothing here reproduces the field walk's own conversions (dates, zoned times) — those belong to [getValues] and having a second copy of that table is how the two would drift.
+                        </p>
                       </div>
                     </div>
                     <div id="TomReflectionInfo.getValues" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Map&lt;String, Object?&gt; getValues(Object o)</code></div>
                       <div class="api-doc">
                         <p>Gets all values from an object as a JSON-compatible map.</p>
-                        <p>This is the main entry point for serialization. The method handles:</p>
-                        <ul>
-                          <li><strong>TomClass objects</strong>: Delegates to <code>TomClass.toJson()</code></li>
-                          <li><strong>Objects with <code>jsonEncode</code> getter</strong>: Uses that getter's result</li>
-                          <li><strong>Other objects</strong>: Extracts non-static, non-final, non-private fields via reflection</li>
-                        </ul>
+                        <p>
+                          This is <strong>the</strong> outbound entry point: every way a Tom Core object reaches the wire passes through here, and every rendering hook the framework recognises is honoured here. A consumer therefore never needs a hook chain of its own — asking this method is the whole contract.
+                        </p>
+                        <h2>Precedence</h2>
+                        <p>The first match wins, and the order is deliberate rather than incidental:</p>
+                        <p>
+                          1. <strong>[TomClass]</strong> — delegates to <code>TomClass.toJson()</code>. An <code>is</code> test. 2. 
+                          <strong>[TomJsonSerializable]</strong> — delegates to its <code>toJson()</code>. Also an <code>is</code>
+                           test, and settled <em>before any mirror work</em>, so a self-rendering type need not be reflectable at all. 3. 
+                          <strong>a <code>toJson()</code> method</strong> — the same rendering declared structurally rather than nominally, found on the reflected type. 4. 
+                          <strong>a <code>jsonEncode</code> getter</strong> — the kernel's own hook name. 5. <strong>the reflected fields</strong>
+                           — non-static, non-final, non-private, less any the JSON protection tier withholds (see below).
+                        </p>
+                        <p>
+                          Why <code>toJson</code> outranks <code>jsonEncode</code>: steps 2 and 3 are the same method under two spellings, one nominal and one structural. Were 
+                          <code>jsonEncode</code> placed between them, adding <code>implements TomJsonSerializable</code> to a class that happens to have both hooks would silently change its wire format — a declaration of intent would become a behavioural change. Ranking all three 
+                          <code>toJson</code> forms together removes that trap.
+                        </p>
+                        <p>
+                          Steps 1 and 2 are <code>is</code> tests by design, not lookups: see [TomJsonSerializable] for why "this type serializes itself" is worth making a type-system fact rather than something to probe for.
+                        </p>
+                        <h2>Protected fields</h2>
+                        <p>
+                          While [TomResourceKeyProtection.globalSettingUseAutomaticJsonProtection] is on — its default — a field annotated [TomProtectedField] is graded through [TomResourceKeyProtection.automaticState] and 
+                          <strong>left out</strong> when the grade shows no content (<code>none</code> or <code>disabled</code>). Omitted rather than nulled: the reader may be a non-nullable field, and a missing member leaves it at its default where a 
+                          <code>null</code> would fail the read. Only step 5 walks fields, so a type that renders itself protects what it renders with [TomResourceKeyProtection.protect].
+                        </p>
                         <h2>Supported Field Types</h2>
                         <ul>
                           <li>Primitive types: returned as-is</li>
@@ -1861,21 +2163,50 @@ final values = tomReflectionInfo.getValues(person);
 // {'name': 'John', 'age': 30, 'address': {'city': 'NYC'}}</code></pre>
                       </div>
                     </div>
+                    <div id="TomReflectionInfo._tryInvokeToJson" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          Map&lt;String, Object?&gt;? _tryInvokeToJson(InstanceMirror im, ClassMirror&lt;dynamic&gt; cm, Object o)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Invokes the optional structural <code>toJson()</code> hook, if [cm] declares one.</p>
+                        <p>
+                          This is the same rendering [TomJsonSerializable] names nominally, reached for a type that has the method without declaring the interface. It is looked up rather than probed, and its failures are attributed, for the reasons given in [_hookFailed]; a hook returning the wrong shape is reported rather than skipped, as in [_tryGetJsonEncode].
+                        </p>
+                        <p>
+                          [TomClass] never arrives here — it declares <code>toJson()</code> too, and is answered by the <code>is</code>
+                           test at the top of [getValues] before any mirror is taken.
+                        </p>
+                      </div>
+                    </div>
                     <div id="TomReflectionInfo._tryGetJsonEncode" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">Map&lt;String, Object?&gt;? _tryGetJsonEncode(InstanceMirror im)</code></div>
-                      <div class="api-doc"><p>Attempts to get a <code>jsonEncode</code> getter value from the object.</p></div>
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          Map&lt;String, Object?&gt;? _tryGetJsonEncode(InstanceMirror im, ClassMirror&lt;dynamic&gt; cm, Object o)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Reads the optional <code>jsonEncode</code> hook, if [cm] declares one.</p>
+                        <p>
+                          Returns null only when there is no such hook. A hook that exists and raises propagates (see [_hookFailed]); one that returns something other than a JSON object is reported too, rather than ignored — the cast used to sit inside the same blanket catch, so a hook returning the wrong shape was read as no hook at all and the fields it exists to replace were serialized in its place.
+                        </p>
+                      </div>
                     </div>
                     <div id="TomReflectionInfo._addFieldToResult" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">void _addFieldToResult(InstanceMirror im, String fieldKey, Map&lt;String, dynamic&gt; result)</code>
                       </div>
-                      <div class="api-doc"><p>Adds a single field's value to the result map.</p></div>
                     </div>
                     <div id="TomReflectionInfo._convertValueForJson" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Object? _convertValueForJson(Object? value)</code></div>
                       <div class="api-doc">
                         <p>Converts a value to a JSON-compatible format.</p>
                         <p>Handles primitives, DateTime types, Maps, Lists, and nested objects.</p>
+                        <p>
+                          <strong>A temporal value crosses this wire naming its zone.</strong> The <code>TomZoned*</code> types carry theirs in their own encoding; a bare [DateTime] cannot carry one in its type, so it is normalised to UTC here and written with the 
+                          <code>Z</code> the reader needs. See the <code>DateTime</code> branch for why that is the whole convention rather than a preference.
+                        </p>
                       </div>
                     </div>
                     <div id="TomReflectionInfo._convertMapForJson" class="api-member">
@@ -1920,8 +2251,8 @@ final values = tomReflectionInfo.getValues(person);
                       <div class="api-doc">
                         <p>Handlers for setting primitive Map types via reflection.</p>
                         <p>
-                          Maps type signatures to functions that set the value correctly, handling necessary type casting for typed maps like 
-                          <code>Map&lt;String, int&gt;</code>.
+                          Maps type signatures to functions that set the value correctly, building a checked map for typed targets like 
+                          <code>Map&lt;String, int&gt;</code>. The two unconstrained targets pass the source map through unchanged — there is no element type for them to violate.
                         </p>
                       </div>
                     </div>
@@ -1932,10 +2263,313 @@ final values = tomReflectionInfo.getValues(person);
                         </code>
                       </div>
                       <div class="api-doc">
-                        <p>Handlers for setting primitive List types via reflection.</p>
+                        <p>Handlers for setting a primitive List or Set field from a JSON array.</p>
                         <p>
-                          Maps type signatures to functions that set the value correctly, handling necessary type casting for typed lists like 
-                          <code>List&lt;int&gt;</code>.
+                          Maps type signatures to functions that set the value correctly, building a checked list for typed targets like 
+                          <code>List&lt;int&gt;</code>. The two unconstrained list targets pass the source list through unchanged — there is no element type for them to violate.
+                        </p>
+                        <p>
+                          A <code>Set</code> field is filled from the same JSON array — a set serializes as one, since it is an 
+                          <code>Iterable</code> — through the same per-element check, so a wrong-typed element is refused with its position exactly as for a list. A duplicate on the wire collapses: that is what the field's type says.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomReflectionInfo._buildRefusalKeys" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Set&lt;String&gt; _buildRefusalKeys</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The refusals raised by <em>building</em> a value — [createInstanceFromJson] finding no constructor it may call, and [setValues] finding a type with no reflected fields. Both are raised where only the type is known.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomReflectionInfo._checkedSet" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static Set&lt;T&gt; _checkedSet&lt;T&gt;(MapEntry&lt;String, dynamic&gt; entry)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Builds a <code>Set&lt;T&gt;</code> from [entry]'s JSON array, checking every element up front exactly as [_checkedList] does; a repeated element collapses.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomReflectionInfo._checkedList" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static List&lt;T&gt; _checkedList&lt;T&gt;(MapEntry&lt;String, dynamic&gt; entry)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Builds a <code>List&lt;T&gt;</code> from [entry]'s value, checking every element up front.</p>
+                        <p>
+                          Why not <code>.cast&lt;T&gt;()</code>: a cast view is <em>lazy</em>. It accepts a list holding an element of the wrong type without complaint and throws a bare 
+                          <code>TypeError</code> only when that element is read — in another layer, another method, quite possibly another isolate, with a stack trace pointing at the consumer rather than at the payload that was wrong, and carrying neither the field name nor the source value. Worse, 
+                          <code>length</code> and every well-typed element keep working, so a shallow post-deserialization check reports success.
+                        </p>
+                        <p>
+                          One pass up front costs a copy and moves the failure to the only place that still knows the field, the position and the offending value. It also makes the assignment atomic for primitive collections, which is what the module already promises for collections of annotated objects.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomReflectionInfo._checkedMap" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static Map&lt;String, T&gt; _checkedMap&lt;T&gt;(MapEntry&lt;String, dynamic&gt; entry)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Builds a <code>Map&lt;String, T&gt;</code> from [entry]'s value, checking it up front.</p>
+                        <p>
+                          The map counterpart of [_checkedList], which explains why a lazy <code>cast</code> will not do. Keys are checked as well as values: 
+                          <code>cast&lt;String, T&gt;()</code> defers those too, and a non-<code>String</code> key reaches here from any caller that built its map in Dart rather than decoding it from JSON.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomReflectionInfo._checkedElement" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static T _checkedElement&lt;T&gt;(String field, String at, Object? value)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Returns [value] as a <code>T</code>, or reports why it is not one.</p>
+                        <p>
+                          [field] is the field being deserialized and [at] its position within the collection (<code>[2]</code>, 
+                          <code>['name']</code>), so the message identifies the one element that is wrong rather than the whole payload.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomReflectionInfo._siblingHint" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static String _siblingHint(int found, int siblingArity, String sibling)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>The "you reached for the wrong method" clause, when the arity says so.</p>
+                        <p>
+                          [found] arguments point at [sibling] only when they are exactly the arity that sibling takes ([siblingArity]). Any other count is a shape neither resolver handles, and naming one that would refuse it too sends the reader in a circle.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomReflectionInfo._topLevelTypeArguments" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static List&lt;String&gt;? _topLevelTypeArguments(Type type)</code></div>
+                      <div class="api-doc">
+                        <p>Splits the top-level type arguments out of [type]'s name.</p>
+                        <p>
+                          <code>Map&lt;String, List&lt;int&gt;&gt;</code> yields <code>['String', 'List&lt;int&gt;']</code>; a type with no arguments yields null.
+                        </p>
+                        <p>
+                          Why depth counting rather than a pattern: <code>&lt;([^&gt;]+)&gt;</code> stops at the <em>first</em>
+                           closing bracket, which is the inner one as soon as an argument is itself generic — <code>List&lt;List&lt;String&gt;&gt;</code>
+                           came back as <code>List&lt;String</code>, a name that matches nothing and reads, in the "could not be found" message that followed, like a typo in the framework rather than a limit of it. Splitting the arguments on 
+                          <code>,</code> had the same bug one level down: <code>Map&lt;String, Map&lt;String, int&gt;&gt;</code>
+                           parsed to three arguments and picked <code>Map&lt;String</code> as the value type. Only bracket depth distinguishes the separators that belong to this type from those that belong to its arguments.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomReflectionInfo._nestedGenericException" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static TomReflectorException _nestedGenericException(String context, Object realType, String elementType)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>The exception every path raises when an element type is itself generic.</p>
+                        <p>
+                          [context] is the operation that hit it, [realType] the collection or field type spelled as Dart spells it, and [elementType] the argument that is generic. Both halves matter: 
+                          <code>List&lt;List&lt;String&gt;&gt;</code> tells the reader which declaration to look at, <code>List&lt;String&gt;</code>
+                           which part of it is the problem.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomReflectionInfo._throwIfNestedGeneric" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static void _throwIfNestedGeneric(MethodMirror imGet, String field, int argumentIndex)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Raises [_nestedGenericException] if the field's type argument at [argumentIndex] is itself generic; returns quietly otherwise.
+                        </p>
+                        <p>
+                          Called from the <em>failure</em> branch of the two object-collection setters, not as a gate in front of them. Nothing that works today should start throwing: the check only replaces a diagnosis, and only once materializing the field has already failed.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomReflectionInfo._declaresConstructor" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static bool _declaresConstructor(ClassMirror&lt;dynamic&gt; cm, String name)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Whether [cm] declares a constructor called [name].</p>
+                        <p>
+                          Constructors are not keyed by their own name in [ClassMirror.declarations] — <code>PersonWithFromJson.fromJson</code>
+                           is filed under <code>"PersonWithFromJson.fromJson"</code> — so the lookup is by [MethodMirror.constructorName] rather than by key.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomReflectionInfo._hookFailed" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static TomReflectorException _hookFailed(String hook, Object owner, Object error, StackTrace stack)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Reports that an optional conversion hook ran and raised.</p>
+                        <p>
+                          The four hooks — the <code>fromJson</code> constructor, the <code>jsonDecode</code> method, the <code>toJson</code>
+                           method and the <code>jsonEncode</code> getter — are all <em>optional</em>. (The nominal form, [TomJsonSerializable], needs none of this: an 
+                          <code>is</code> test cannot mistake absence for failure.) Detecting one by <em>trying</em> it inside an unqualified 
+                          <code>catch</code> — whatever comes out, the hook is declared missing and the ordinary field-walking path takes over — would make a hook that does not exist and a hook that exists and is buggy the same event, and the second is the one worth hearing about: the caller's own code failed, and nothing would say so. The failure would then be attributed to the reflection layer, or to nothing at all.
+                        </p>
+                        <p>
+                          Each hook is therefore <em>looked up before it is called</em>, so absence is settled without running anything and the invocation itself is guarded only for the purpose of attribution. Nothing is inferred from the type of the failure, which matters because 
+                          <code>tom_reflection</code> does not report absence in one consistent way: a missing constructor raises [NoSuchCapabilityError], but a missing method or getter surfaces as a plain 
+                          <code>NoSuchMethodError</code> from a dynamic dispatch, because the generated getters map is shared across the whole reflector rather than per class. Catching by type would therefore keep the two cases fused for two hooks out of three, and would additionally re-fuse them for any hook whose own body happens to raise either error.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomReflectionInfo._hookReturnedWrongType" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static TomReflectorException _hookReturnedWrongType(String hook, Object owner, Object? value, String expected)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Reports that an optional conversion hook ran, returned, and returned something unusable.</p>
+                        <p>
+                          Falling back to the field walk would be the quiet answer, and the wrong one: the hook exists precisely to replace that walk, so producing the representation it was written to override is not a recovery.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomReflectionInfo._notAnnotatedException" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static TomReflectorException _notAnnotatedException(Object o, String operation, Object? rootException, StackTrace? stack)
+                        </code>
+                      </div>
+                      <div class="api-doc"><p>The exception raised when a target type is reflectable but not annotated.</p></div>
+                    </div>
+                    <div id="TomReflectionInfo._requiredFields" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static List&lt;String&gt; _requiredFields(ClassMirror&lt;dynamic&gt; cm)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>The names of the [TomRequiredField] fields [cm] and its superclasses declare, most derived first.</p>
+                        <p>
+                          The chain is walked because <code>declarations</code> holds a class's <em>own</em> members only, and a configuration class inherits most of its fields. It ends where the reflector's coverage does: 
+                          <code>superclass</code> raises rather than answering null for a class outside it, and a requirement declared where nothing can read it is not one this method can report. A name already seen is not repeated, so an override does not report its field twice.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomReflectionInfo._superclassOrNull" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static ClassMirror&lt;dynamic&gt;? _superclassOrNull(ClassMirror&lt;dynamic&gt; cm)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>[cm]'s superclass, or null where the chain leaves the reflector's reach.</p>
+                        <p>
+                          Null and "not covered" are one answer here on purpose: both mean there are no further declarations this reflector can read, and the alternative — a 
+                          <code>NoSuchCapabilityError</code> escaping — would make a required-field check fail on a class whose parent merely happens to be unreflected.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomReflectionInfo._fieldRefusalParameters" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static Map&lt;String, Object?&gt; _fieldRefusalParameters(String owner, String field, Object declaredType, Object? value, {String? at})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          The parameters every refusal of a field's value carries: the class, the field, the field's declared type and the value's runtime type.
+                        </p>
+                        <p>
+                          The four are what locate a refusal in a payload. The key says how far the reflector got; these say <em>where</em>, and a payload is usually a whole JSON document. The value's type is named in its own right because the only other place it might appear is a root error in the Dart runtime's wording, and a refusal decided by inspection has no root error at all.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomReflectionInfo._attributedBuildRefusal" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static TomReflectorException? _attributedBuildRefusal(TomReflectorException error, StackTrace stack, {required String owner, required String field, required Object declaredType, required Object? value, String? at})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          [error] re-raised with the field it was building a value for, or <code>null</code> when it should travel as it is.
+                        </p>
+                        <p>
+                          A build refusal names the type that would not build and nothing else, because that is all the builder knows: "Failed to create instance of type List" is true, and leaves the caller searching the payload for every field that might hold a list. When the value was being built for a field, the field is the part the caller needs, so the refusal is raised again with [_fieldRefusalParameters] — under the 
+                          <strong>same key</strong>, since the key already says the right thing about what went wrong — and the original kept as its 
+                          <code>rootException</code>. [at] names the element's position when the value was one element of a collection field.
+                        </p>
+                        <p>
+                          Only an unattributed build refusal is re-raised. Every other key is a verdict that already carries its own context, and a refusal that already names a field was claimed by a nested field closer to the fault: attribution is innermost, so an enclosing field must not overwrite it.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomReflectionInfo._parseDateTimeString" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static T _parseDateTimeString&lt;T&gt;(String text, T Function(String) parser, {required String owner, required String field, required Object targetType, String? at})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Parses [text] into a date/time value, naming the site on failure.</p>
+                        <p>
+                          Why: <code>DateTime.parse</code> and the <code>TomZoned*</code> parsers throw a bare [FormatException] that carries the offending text and nothing else. Let out unwrapped it told a caller deserializing a thirty-field payload only that 
+                          <em>something</em> in it was not a date — no field, no class, no position. It also escaped the module's auto-logging, so the one failure with no exception id was the one hardest to trace, and it slipped past a 
+                          <code>catch (e) on TomReflectorException</code> written against the documented error table.
+                        </p>
+                        <p>
+                          [owner] is the class being filled, [field] the field being set, and [at] the position within a collection — a map key or a list index — or null for a scalar field, where the field name is already the whole story.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomReflectionInfo._parseStringMap" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static Map&lt;String, T&gt; _parseStringMap&lt;T&gt;(MapEntry&lt;String, dynamic&gt; entry, T Function(String) parser, {required String owner, bool nullable = false})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Parses a map of strings into typed datetime values.</p>
+                        <p>
+                          The result is built in full before the caller assigns it, so a single unparseable element leaves the target field holding its previous map. A parse failure names the field and the offending map key rather than escaping as a bare [FormatException]; see [_parseDateTimeString].
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomReflectionInfo._parseStringList" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static List&lt;T&gt; _parseStringList&lt;T&gt;(MapEntry&lt;String, dynamic&gt; entry, T Function(String) parser, {required String owner, bool nullable = false})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Parses a list of strings into typed datetime values.</p>
+                        <p>
+                          The result is built in full before the caller assigns it, so a single unparseable element leaves the target field holding its previous list. A parse failure names the field and the offending index rather than escaping as a bare [FormatException]; see [_parseDateTimeString].
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomReflectionInfo._allFinalException" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static TomReflectorException _allFinalException(Object o, List&lt;String&gt; skipped)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>The exception raised when every wire member of a class was skipped for being <code>final</code>.</p>
+                        <p>
+                          <code>final</code> members are skipped because they cannot be restored: no reflective deserializer can assign one after construction, so emitting them would buy a payload that never round-trips — asymmetric in the direction that loses data quietly. That skip is not in question here.
+                        </p>
+                        <p>
+                          What is in question is the answer it produced. A class made entirely of <code>final</code> members walked every declaration, dropped every one, and returned 
+                          <code>{}</code> reported as success: the same valid-looking payload with everything gone that [_notAnnotatedException] exists to prevent, reached by a different route. The silence is the defect, not the skip — an empty body with no diagnostic is what sends developers back to hand-written serializers, which is the outcome the reflective path exists to avoid.
+                        </p>
+                        <p>
+                          The condition is deliberately narrow: <em>nothing</em> was contributed <strong>and</strong> something was dropped. A class declaring no wire members at all still renders 
+                          <code>{}</code>, because there <code>{}</code> is the truth; a class contributing even one field is left alone, because a caller can see which field survived and infer the rest. Only total, invisible loss is refused.
+                        </p>
+                        <p>
+                          This is not a ban on immutability. All four rendering hooks — [TomClass], [TomJsonSerializable], a structural 
+                          <code>toJson()</code>, a <code>jsonEncode</code> getter — are consulted before the walk, so an immutable DTO that says how it renders never arrives here. The refusal asks for that decision to be made, not for the fields to be made mutable.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomReflectionInfo._withheldByProtection" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static bool _withheldByProtection(VariableMirror field)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Adds a single field's value to the result map. Whether the JSON protection tier withholds [field]: the tier is on, the field carries a [TomProtectedField], and its grade shows no content.
                         </p>
                       </div>
                     </div>
@@ -1993,7 +2627,7 @@ class MyClass {
                     <div id="TomReflectorException.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          TomReflectorException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, Object? stack, Object? rootException, bool autoLog = false})
+                          TomReflectorException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, StackTrace? stack, Object? rootException, bool autoLog = false})
                         </code>
                       </div>
                       <div class="api-doc">
@@ -2007,6 +2641,35 @@ class MyClass {
                           <li>[autoLog]: Whether to automatically log this exception (default: false).</li>
                         </ul>
                       </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="TomRequiredField" class="api-declaration">
+                  <h3 class="api-decl-title">class TomRequiredField</h3>
+                  <code class="api-signature">class TomRequiredField</code>
+                  <div class="api-doc">
+                    <p>Marks a reflected field as one that a bound map must supply a value for.</p>
+                    <p>
+                      The annotation states the requirement next to the field it constrains; it does not enforce it. [TomReflectionInfo.missingRequiredFields] reads it and reports, and the caller decides what an unsupplied setting means — which is the same division [TomReflectionInfo.unknownFields] makes, and for the same reason: the converter knows the class, not where the map came from or how bad it is for that particular setting to be absent.
+                    </p>
+                    <pre><code>@tomReflector
+class BillingConfiguration extends TomBaseServerConfiguration {
+  @TomRequiredField()
+  String dbUrl = '';
+}</code></pre>
+                    <p>
+                      Binding cannot report this by itself. A setting no source supplied leaves the field at its initialiser, which is indistinguishable from a setting that was never required — so the failure surfaces much later, as a connection to 
+                      <code>localhost:0</code> or an empty application id.
+                    </p>
+                    <p>
+                      <strong>A field with a fallback is not required.</strong> The requirement is that a <em>source</em> named the setting, so a field whose constructor applies a default when nothing was configured must not carry this: it would refuse the very launch the default exists to serve.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomRequiredField.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">const TomRequiredField.new()</code></div>
+                      <div class="api-doc"><p>Marks the annotated field as required.</p></div>
                     </div>
                   </div>
                 </section>

@@ -1,0 +1,2407 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base href="/"/>
+    <meta charset="utf-8"/>
+    <style>
+      html {
+        margin: 0;
+        padding: 0;
+        -webkit-text-size-adjust: 100%;
+      }
+      :root {
+        --ink-900: #0A1E33;
+        --ink-800: #0E2841;
+        --ink-700: #143A5A;
+        --teal-700: #156082;
+        --brand-600: #0F7FB0;
+        --brand-500: #0F9ED5;
+        --brand-400: #56BEE6;
+        --accent-600: #D85F23;
+        --accent-500: #E97132;
+        --accent-400: #F08A4F;
+        --green-700: #196B24;
+        --green-600: #3E8F25;
+        --green-500: #4EA72E;
+        --green-300: #86E0A2;
+        --purple-500: #A02B93;
+        --paper: #FFF;
+        --surface: #F4F8FB;
+        --surface-2: #E9F0F6;
+        --line: #D7E1EA;
+        --text: #0E2841;
+        --text-soft: #41576C;
+        --text-faint: #7B8D9C;
+        --font-sans: "Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+        --font-mono: "JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+        --r-sm: 6px;
+        --r-md: 10px;
+        --r-lg: 16px;
+        --r-pill: 999px;
+        --sh-1: 0 1px 3px rgba(14,40,65,.10);
+        --sh-2: 0 6px 16px rgba(14,40,65,.12);
+        --sh-3: 0 20px 44px rgba(14,40,65,.20);
+        --st-ns-bg: #EEF2F5;
+        --st-ns-fg: #5A6B7A;
+        --st-ns-dot: #8497A8;
+        --st-works-bg: #FEF1E7;
+        --st-works-fg: #B6541C;
+        --st-works-dot: #E97132;
+        --st-pub-bg: #E6F4FB;
+        --st-pub-fg: #0B6E97;
+        --st-pub-dot: #0F9ED5;
+        --st-rel-bg: #E7F6EC;
+        --st-rel-fg: #1F7A2E;
+        --st-rel-dot: #4EA72E;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: var(--font-sans);
+        color: var(--text);
+        background: var(--surface);
+        line-height: 1.6;
+      }
+      .wrap {
+        max-width: 1600px;
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+      .wrap-wide {
+        max-width: 1760px;
+      }
+      h1,h2,h3,h4 {
+        margin: 0 0 12px;
+        letter-spacing: -.02em;
+        line-height: 1.18;
+      }
+      p {
+        margin: 0 0 14px;
+        color: var(--text-soft);
+      }
+      a {
+        color: var(--brand-600);
+        text-decoration: none;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      .btn:hover {
+        text-decoration: underline;
+      }
+      .toggle a:hover {
+        text-decoration: underline;
+      }
+      .morelink:hover {
+        text-decoration: underline !important;
+      }
+      .mono {
+        font-family: var(--font-mono);
+        font-size: .78rem;
+        color: var(--text-faint);
+      }
+      .metricline {
+        font-family: var(--font-mono);
+        font-size: .72rem;
+        color: var(--text-soft);
+        margin-top: 6px;
+      }
+      .muted {
+        color: var(--text-faint);
+        font-size: .82rem;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        font-size: .74rem;
+        font-weight: 700;
+        padding: 5px 11px;
+        border-radius: var(--r-pill);
+      }
+      .badge .d {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+      }
+      .b-ns {
+        background: var(--st-ns-bg);
+        color: var(--st-ns-fg);
+      }
+      .b-ns .d {
+        background: var(--st-ns-dot);
+      }
+      .b-works {
+        background: var(--st-works-bg);
+        color: var(--st-works-fg);
+      }
+      .b-works .d {
+        background: var(--st-works-dot);
+      }
+      .b-pub {
+        background: var(--st-pub-bg);
+        color: var(--st-pub-fg);
+      }
+      .b-pub .d {
+        background: var(--st-pub-dot);
+      }
+      .b-rel {
+        background: var(--st-rel-bg);
+        color: var(--st-rel-fg);
+      }
+      .b-rel .d {
+        background: var(--st-rel-dot);
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 700;
+        font-size: .85rem;
+        padding: 10px 18px;
+        border-radius: var(--r-pill);
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: .16s;
+      }
+      .btn-primary {
+        background: linear-gradient(135deg,var(--brand-500),var(--teal-700));
+        color: #fff;
+        box-shadow: var(--sh-2);
+      }
+      .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--sh-3);
+      }
+      .btn-soft {
+        background: var(--surface-2);
+        color: var(--ink-700);
+      }
+      .btn-ghost {
+        background: rgba(255,255,255,.08);
+        color: #fff;
+        border-color: rgba(255,255,255,.3);
+      }
+      .nav {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        background: rgba(255,255,255,.9);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--line);
+      }
+      .nav .wrap {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        height: 60px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 800;
+        font-size: 1.1rem;
+        cursor: pointer;
+      }
+      .brand svg {
+        width: 30px;
+        height: 30px;
+      }
+      .nav .links {
+        display: flex;
+        gap: 20px;
+        margin-left: auto;
+        font-size: .86rem;
+        font-weight: 600;
+      }
+      .nav .links a {
+        color: var(--text-soft);
+      }
+      .nav .links a.active {
+        color: var(--ink-800);
+      }
+      .grid {
+        display: grid;
+        gap: 16px;
+      }
+      .cols-2 {
+        grid-template-columns: repeat(2,1fr);
+      }
+      .cols-3 {
+        grid-template-columns: repeat(3,1fr);
+      }
+      @media (max-width:820px) {
+        .cols-2,.cols-3 {
+          grid-template-columns: 1fr;
+        }
+      }
+      .hero {
+        position: relative;
+        overflow: hidden;
+        background: radial-gradient(800px 440px at 80% -10%,rgba(15,158,213,.30),transparent 60%),radial-gradient(600px 420px at 10% 130%,rgba(78,167,46,.22),transparent 60%),linear-gradient(160deg,#0A1E33,#0E2841 55%,#143A5A);
+        border-radius: var(--r-lg);
+        padding: 42px 36px;
+        margin-top: 24px;
+        color: #fff;
+      }
+      .hero h1 {
+        color: #fff;
+        font-size: 2.2rem;
+        max-width: 18ch;
+      }
+      .hero p {
+        color: #B9CCDC;
+        max-width: 54ch;
+        margin: 0;
+      }
+      .dotgrid {
+        position: absolute;
+        inset: 0;
+        opacity: .5;
+        background-image: radial-gradient(rgba(86,190,230,.35) 1.3px,transparent 1.4px);
+        background-size: 22px 22px;
+        -webkit-mask-image: linear-gradient(120deg,transparent 35%,black 80%);
+        mask-image: linear-gradient(120deg,transparent 35%,black 80%);
+      }
+      .snapshot {
+        display: flex;
+        gap: 22px;
+        margin-top: 22px;
+        font-size: .82rem;
+        color: #B9CCDC;
+        position: relative;
+      }
+      .snapshot b {
+        font-size: 1.3rem;
+        letter-spacing: -.02em;
+      }
+      .mcard {
+        position: relative;
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: var(--r-lg);
+        padding: 20px;
+        box-shadow: var(--sh-1);
+        cursor: pointer;
+        transition: .16s;
+        overflow: hidden;
+      }
+      .mcard:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--sh-3);
+        border-color: #BBD2E3;
+      }
+      .mcard h3 {
+        font-size: 1.15rem;
+        margin: 0 0 4px;
+      }
+      .mcard .cat {
+        font-family: var(--font-mono);
+        font-size: .72rem;
+        color: var(--text-faint);
+      }
+      .mcard .sum {
+        font-size: .86rem;
+        margin: 10px 0 0;
+      }
+      .mcard .extra {
+        max-height: 0;
+        overflow: hidden;
+        opacity: 0;
+        transition: max-height .24s ease,opacity .18s ease,margin .24s;
+      }
+      .mcard:hover .extra {
+        max-height: 140px;
+        opacity: 1;
+        margin-top: 12px;
+      }
+      .dist {
+        display: flex;
+        height: 9px;
+        border-radius: var(--r-pill);
+        overflow: hidden;
+        border: 1px solid var(--line);
+      }
+      .dist span {
+        display: block;
+      }
+      .distlbl {
+        display: flex;
+        gap: 13px;
+        margin-top: 7px;
+        font-size: .72rem;
+        color: var(--text-soft);
+      }
+      .cardarrow {
+        position: absolute;
+        right: 16px;
+        top: 18px;
+        color: var(--brand-500);
+        opacity: 0;
+        transform: translateX(-4px);
+        transition: .16s;
+      }
+      .mcard:hover .cardarrow {
+        opacity: 1;
+        transform: none;
+      }
+      .famhead {
+        background: linear-gradient(160deg,#0A1E33,#143A5A);
+        color: #fff;
+        border-radius: var(--r-lg) var(--r-lg) 0 0;
+        padding: 32px;
+      }
+      .famhead h2 {
+        color: #fff;
+        font-size: 1.85rem;
+      }
+      .famhead p {
+        color: #B9CCDC;
+        max-width: 62ch;
+        margin: 0;
+      }
+      .fambody {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-top: 0;
+        border-radius: 0 0 var(--r-lg) var(--r-lg);
+        padding: 28px 32px;
+      }
+      .grouplbl {
+        font-size: .78rem;
+        font-weight: 700;
+        letter-spacing: .07em;
+        text-transform: uppercase;
+        color: var(--text-soft);
+        margin: 20px 0 12px;
+      }
+      .back {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: #B9CCDC;
+        font-weight: 600;
+        font-size: .85rem;
+        cursor: pointer;
+        background: none;
+        border: 0;
+        padding: 0;
+      }
+      .tile {
+        position: relative;
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: var(--r-lg);
+        padding: 18px 18px 16px;
+        box-shadow: var(--sh-1);
+        cursor: pointer;
+        transition: transform .16s,box-shadow .16s,border-color .16s;
+      }
+      .tile .top {
+        height: 3px;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        border-radius: var(--r-lg) var(--r-lg) 0 0;
+      }
+      .tile.ns .top {
+        background: var(--st-ns-dot);
+      }
+      .tile.works .top {
+        background: var(--st-works-dot);
+      }
+      .tile.pub .top {
+        background: var(--st-pub-dot);
+      }
+      .tile.rel .top {
+        background: linear-gradient(90deg,var(--green-500),var(--brand-500));
+      }
+      .tile:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--sh-3);
+        border-color: #BBD2E3;
+      }
+      .tile h4 {
+        font-size: 1rem;
+        margin: 2px 0 4px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .tile .desc {
+        font-size: .85rem;
+        margin: 0;
+        max-height: 0;
+        overflow: hidden;
+        opacity: 0;
+        transition: max-height .22s ease,opacity .18s ease,margin .22s;
+      }
+      .tile:hover .desc {
+        max-height: 90px;
+        opacity: 1;
+        margin-top: 10px;
+      }
+      .tile .rel-line {
+        font-size: .78rem;
+        font-weight: 600;
+        margin-top: 8px;
+      }
+      .chev {
+        position: absolute;
+        right: 12px;
+        bottom: 11px;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        border: 1px solid var(--line);
+        background: var(--surface);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transform: translateY(4px);
+        transition: .16s;
+        color: var(--brand-600);
+        padding: 0;
+        cursor: pointer;
+      }
+      .chev svg {
+        width: 18px;
+        height: 18px;
+        display: block;
+      }
+      .tile:hover .chev {
+        opacity: 1;
+        transform: none;
+      }
+      .chev:hover {
+        background: var(--brand-500);
+        color: #fff;
+        border-color: var(--brand-500);
+      }
+      dialog.pop {
+        position: fixed;
+        inset: 0;
+        margin: auto;
+        width: 60vw;
+        max-width: 60vw;
+        height: 60vh;
+        max-height: 60vh;
+        overflow: auto;
+        padding: 24px;
+        border: 1px solid var(--line);
+        border-radius: var(--r-lg);
+        box-shadow: var(--sh-3);
+        background: #fff;
+      }
+      dialog.pop:not([open]) {
+        display: none;
+      }
+      dialog.pop[open] {
+        display: block;
+      }
+      dialog.pop::backdrop {
+        background: rgba(10,30,51,.28);
+        backdrop-filter: blur(2px);
+      }
+      .popclose {
+        position: absolute;
+        top: 10px;
+        right: 12px;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        border: 1px solid var(--line);
+        border-radius: 50%;
+        background: var(--surface,#fff);
+        color: var(--text-soft);
+        font-size: .9rem;
+        line-height: 1;
+        cursor: pointer;
+      }
+      .popclose:hover {
+        background: var(--surface-2);
+        color: var(--ink-800);
+      }
+      .pop h4 {
+        font-size: 1.05rem;
+        margin: 0 0 2px;
+      }
+      .quickstats {
+        display: grid;
+        grid-template-columns: repeat(3,1fr);
+        gap: 8px;
+        margin: 12px 0;
+      }
+      .qs {
+        background: var(--surface);
+        border-radius: var(--r-md);
+        padding: 8px 10px;
+      }
+      .qs .k {
+        font-size: .68rem;
+        color: var(--text-faint);
+        text-transform: uppercase;
+        letter-spacing: .04em;
+      }
+      .qs .v {
+        font-size: .95rem;
+        font-weight: 700;
+        font-family: var(--font-mono);
+        color: var(--ink-800);
+      }
+      .pop .more {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 6px;
+        border-top: 1px solid var(--line);
+        padding-top: 12px;
+      }
+      .tagrole {
+        font-size: .7rem;
+        font-family: var(--font-mono);
+        padding: 2px 8px;
+        border-radius: var(--r-pill);
+        background: var(--surface-2);
+        color: var(--teal-700);
+      }
+      .dhead {
+        background: linear-gradient(160deg,#0E2841,#143A5A);
+        color: #fff;
+        border-radius: var(--r-lg);
+        padding: 30px 32px;
+      }
+      .dhead h2 {
+        color: #fff;
+        font-size: 1.75rem;
+        margin: 10px 0 6px;
+      }
+      .dhead p {
+        color: #B9CCDC;
+        max-width: 64ch;
+        margin: 0;
+      }
+      .statgrid {
+        display: grid;
+        grid-template-columns: repeat(4,1fr);
+        gap: 12px;
+        margin: 18px 0;
+      }
+      @media (max-width:760px) {
+        .statgrid {
+          grid-template-columns: repeat(2,1fr);
+        }
+      }
+      .stat {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: var(--r-md);
+        padding: 14px;
+      }
+      .stat .k {
+        font-size: .7rem;
+        color: var(--text-faint);
+        text-transform: uppercase;
+        letter-spacing: .04em;
+      }
+      .stat .v {
+        font-size: 1.35rem;
+        font-weight: 700;
+        letter-spacing: -.02em;
+        margin-top: 2px;
+      }
+      .dcols {
+        display: grid;
+        grid-template-columns: 1fr 300px;
+        gap: 24px;
+        margin-top: 22px;
+      }
+      @media (max-width:820px) {
+        .dcols {
+          grid-template-columns: 1fr;
+        }
+      }
+      .panel {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: var(--r-lg);
+        padding: 22px 24px;
+        margin-bottom: 18px;
+      }
+      .linkrow {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--line);
+        font-size: .9rem;
+      }
+      .linkrow:last-child {
+        border-bottom: 0;
+      }
+      .linkrow .ic {
+        width: 26px;
+        height: 26px;
+        border-radius: var(--r-sm);
+        background: var(--surface-2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        color: var(--teal-700);
+      }
+      .linkrow .muted {
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+      .linkmeta {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        gap: 2px;
+      }
+      .linkmeta .linkname {
+        overflow-wrap: anywhere;
+      }
+      .linkmeta .linkpath {
+        overflow-wrap: anywhere;
+        font-size: .82rem;
+        text-align: left;
+      }
+      .licdocrow {
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid var(--line);
+      }
+      .prog {
+        height: 6px;
+        background: var(--surface-2);
+        border-radius: var(--r-pill);
+        overflow: hidden;
+        margin-top: 8px;
+      }
+      .prog i {
+        display: block;
+        height: 100%;
+        background: linear-gradient(90deg,var(--brand-500),var(--green-500));
+      }
+      .repodoc {
+        border-top: 1px solid var(--line);
+        padding-top: 24px;
+        margin-top: 24px;
+      }
+      .licbox {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        margin-top: 24px;
+        background: var(--surface, #fff);
+      }
+      .licbox > summary {
+        cursor: pointer;
+        list-style: none;
+        padding: 12px 16px;
+        font-weight: 600;
+        color: var(--ink-800);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .licbox > summary::-webkit-details-marker {
+        display: none;
+      }
+      .licbox > summary::before {
+        content: "▾";
+        display: inline-block;
+        transition: transform .15s ease;
+        color: var(--text-soft);
+      }
+      .licbox[open] > summary::before {
+        transform: rotate(-180deg);
+      }
+      .lictext {
+        margin: 0;
+        padding: 0 16px 16px;
+        white-space: pre-wrap;
+        font-family: var(--mono, monospace);
+        font-size: .82rem;
+        line-height: 1.6;
+        color: var(--text-soft);
+        overflow-x: auto;
+      }
+      .treewrap {
+        display: flex;
+        gap: 22px;
+        flex: 1;
+        min-height: 0;
+        min-width: 0;
+        margin-top: 16px;
+      }
+      .treepane {
+        flex: 0 0 330px;
+        min-height: 0;
+        overflow: auto;
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: var(--r-lg);
+        padding: 14px;
+        box-shadow: var(--sh-1);
+      }
+      .toggle {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 12px;
+        background: var(--surface);
+        border-radius: var(--r-pill);
+        padding: 4px;
+        max-width: 1452px;
+      }
+      .toggle button {
+        flex: 1;
+        border: 0;
+        background: none;
+        padding: 7px 10px;
+        border-radius: var(--r-pill);
+        font-weight: 700;
+        font-size: .8rem;
+        color: var(--text-soft);
+        cursor: pointer;
+      }
+      .toggle button.on {
+        background: #fff;
+        color: var(--ink-800);
+        box-shadow: var(--sh-1);
+      }
+      .tnode>.row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 8px;
+        border-radius: var(--r-sm);
+        cursor: pointer;
+        font-size: .9rem;
+      }
+      .tnode>.row:hover {
+        background: var(--surface);
+      }
+      .tnode>.row .tw {
+        width: 16px;
+        color: var(--text-faint);
+        transition: transform .18s;
+        flex: none;
+        display: flex;
+      }
+      .tchild {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height .26s ease;
+        margin-left: 10px;
+        border-left: 1px solid var(--line);
+        padding-left: 6px;
+      }
+      .tnode:hover>.tchild {
+        max-height: 900px;
+      }
+      .tnode:hover>.row .tw {
+        transform: rotate(180deg);
+      }
+      .tnode.lvl2>.row {
+        font-family: var(--font-mono);
+        font-size: .82rem;
+        color: var(--text-soft);
+      }
+      .leaf {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 8px;
+        border-radius: var(--r-sm);
+        cursor: pointer;
+        font-size: .85rem;
+        color: var(--text-soft);
+      }
+      .leaf:hover {
+        background: var(--surface-2);
+        color: var(--ink-800);
+        text-decoration: underline;
+      }
+      .leaf.sel {
+        background: var(--st-pub-bg);
+        color: var(--st-pub-fg);
+        font-weight: 600;
+      }
+      .reader {
+        flex: 1;
+        min-height: 0;
+        min-width: 0;
+        overflow: auto;
+        scrollbar-gutter: stable;
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: var(--r-lg);
+        padding: 26px 30px;
+        box-shadow: var(--sh-1);
+      }
+      .reader .crumb {
+        font-family: var(--font-mono);
+        font-size: .76rem;
+        color: var(--text-faint);
+        margin-bottom: 14px;
+      }
+      .reader pre {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--r-md);
+        padding: 14px;
+        overflow: auto;
+        font-family: var(--font-mono);
+        font-size: .8rem;
+        color: var(--ink-700);
+      }
+      .empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 300px;
+        color: var(--text-faint);
+        text-align: center;
+      }
+      @media (min-width:821px) {
+        .app:has(.treewrap) {
+          height: 100vh;
+          overflow: hidden;
+        }
+        .site-main:has(.treewrap) {
+          display: flex;
+          flex-direction: column;
+          flex: 1 1 0%;
+          min-height: 0;
+          min-width: 0;
+        }
+        .wrap-wide:has(.treewrap) {
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+          min-height: 0;
+          min-width: 0;
+          width: 100%;
+        }
+        .section:has(.treewrap) {
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+          min-height: 0;
+          min-width: 0;
+          padding: 18px 0;
+        }
+        .app:has(.treewrap) .site-footer {
+          margin-top: 0;
+        }
+        .reader {
+          flex: none;
+          width: calc(100% - 352px);
+          max-width: 1100px;
+        }
+      }
+      @media (max-width:820px) {
+        .treewrap {
+          flex-direction: column;
+          position: static;
+          height: auto;
+        }
+        .treepane {
+          flex: 0 0 auto;
+          max-height: 50vh;
+        }
+        .reader {
+          flex: 0 0 auto;
+          overflow: visible;
+        }
+      }
+      .treefilter {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        box-sizing: border-box;
+        width: 100%;
+        margin-bottom: 10px;
+        padding: 8px 11px;
+        border: 1px solid var(--line);
+        border-radius: var(--r-md);
+        background: #fff;
+        font: inherit;
+        font-size: .85rem;
+        color: var(--ink-800);
+      }
+      .treefilter:focus {
+        outline: none;
+        border-color: var(--brand-400);
+        box-shadow: var(--sh-1);
+      }
+      .treesection-title {
+        margin: 20px 0 8px;
+        padding-top: 14px;
+        border-top: 1px solid var(--line);
+        font-size: .72rem;
+        font-weight: 700;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+        color: var(--text-faint);
+      }
+      .reader-panel {
+        display: none;
+      }
+      .reader-panel:target {
+        display: block;
+      }
+      .reader-empty {
+        display: block;
+      }
+      .reader-panel:target ~ .reader-empty {
+        display: none;
+      }
+      .reader-panel .mono {
+        font-family: var(--font-mono);
+        font-size: .76rem;
+        color: var(--text-faint);
+        margin-bottom: 14px;
+      }
+      .reader-panel .crosslink {
+        display: inline-block;
+        margin-top: 20px;
+        color: var(--brand-600);
+        font-weight: 600;
+        text-decoration: none;
+      }
+      .view {
+        display: none;
+      }
+      .view.on {
+        display: block;
+      }
+      .section {
+        padding: 30px 0;
+      }
+      .hint {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-left: 3px solid var(--brand-500);
+        border-radius: var(--r-md);
+        padding: 12px 16px;
+        font-size: .85rem;
+        color: var(--text-soft);
+        margin: 18px 0;
+      }
+      .app {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+      .site-main {
+        flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        position: relative;
+        z-index: 1;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
+      }
+      .hero-grid {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        gap: 40px;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        justify-content: space-between;
+      }
+      .hero-main {
+        flex: 1 1 420px;
+        min-width: 300px;
+      }
+      .hero-aside {
+        flex: 1 1 360px;
+        min-width: 260px;
+        max-width: 480px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .chip-section-title {
+        color: #fff;
+        font-size: 1rem;
+        font-weight: 700;
+        margin: 0 0 10px;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        height: 28px;
+        padding: 0 12px;
+        background: rgba(255,255,255,.10);
+        border: 1px solid rgba(255,255,255,.22);
+        border-radius: var(--r-pill);
+        color: #EAF2F9;
+        font-size: .78rem;
+        font-weight: 600;
+        line-height: 1;
+        white-space: nowrap;
+        text-decoration: none;
+        transition: background .12s ease, border-color .12s ease, transform .12s ease;
+      }
+      .chip:hover {
+        background: rgba(255,255,255,.20);
+        border-color: rgba(255,255,255,.45);
+        transform: translateY(-1px);
+      }
+      .hero-aside .chip-more {
+        margin: 4px 0 0;
+        color: #9FB6C9;
+        font-size: .72rem;
+        font-style: italic;
+      }
+      .site-footer {
+        border-top: 1px solid var(--line);
+        background: var(--paper);
+        margin-top: 48px;
+        padding: 28px 0;
+        color: var(--text-soft);
+        font-size: .85rem;
+      }
+      .site-footer .wrap {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+      .site-footer .copyright {
+        margin-left: auto;
+      }
+      .site-footer a {
+        color: var(--text-soft);
+        text-decoration: none;
+      }
+      .site-footer a:hover {
+        color: var(--ink-800);
+      }
+      .toggle a {
+        flex: 1;
+        text-align: center;
+        text-decoration: none;
+        padding: 7px 10px;
+        border-radius: var(--r-pill);
+        font-weight: 700;
+        font-size: .8rem;
+        color: var(--text-soft);
+        cursor: pointer;
+      }
+      .toggle a.on {
+        background: #fff;
+        color: var(--ink-800);
+        box-shadow: var(--sh-1);
+      }
+      a.leaf {
+        text-decoration: none;
+      }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
+      .tnode>summary.row {
+        list-style: none;
+      }
+      .tnode>summary.row::-webkit-details-marker {
+        display: none;
+      }
+      .tchild {
+        max-height: none;
+        overflow: visible;
+        transition: none;
+      }
+      .tnode:hover>.tchild {
+        max-height: none;
+      }
+      .tnode:hover>.row .tw {
+        transform: none;
+      }
+      .tnode[open]>.row .tw {
+        transform: rotate(180deg);
+      }
+      .crumb {
+        font-family: var(--font-mono);
+        font-size: .76rem;
+        color: var(--text-faint);
+        margin-bottom: 14px;
+      }
+      .crosslink {
+        display: inline-block;
+        margin-top: 16px;
+        color: var(--brand-600);
+        font-weight: 600;
+        text-decoration: none;
+      }
+      .api-library-title {
+        margin: 0 0 6px;
+        font-size: 1.4rem;
+        color: var(--ink-800);
+      }
+      .api-import {
+        display: block;
+        margin: 0 0 20px;
+        padding: 8px 12px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--r-sm);
+        font-family: var(--font-mono);
+        font-size: .78rem;
+        color: var(--text-soft);
+        overflow: auto;
+      }
+      .api-declaration {
+        margin-top: 28px;
+        padding-top: 24px;
+        border-top: 1px solid var(--line);
+      }
+      .api-declaration:first-of-type {
+        margin-top: 0;
+        padding-top: 0;
+        border-top: none;
+      }
+      .api-decl-title {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 0 0 10px;
+        font-family: var(--font-mono);
+        font-size: 1.05rem;
+        color: var(--ink-800);
+      }
+      .api-signature {
+        display: block;
+        margin: 0 0 12px;
+        padding: 10px 14px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--r-md);
+        font-family: var(--font-mono);
+        font-size: .8rem;
+        line-height: 1.5;
+        color: var(--ink-700);
+        white-space: pre-wrap;
+        overflow: auto;
+      }
+      .api-group-title {
+        margin: 22px 0 10px;
+        font-size: .72rem;
+        font-weight: 700;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+        color: var(--text-faint);
+      }
+      .api-members {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .api-member {
+        padding-left: 14px;
+        border-left: 2px solid var(--line);
+      }
+      .api-member-head {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .api-doc {
+        color: var(--text-soft);
+        font-size: .9rem;
+        line-height: 1.65;
+      }
+      .api-badge {
+        display: inline-block;
+        padding: 1px 8px;
+        border-radius: var(--r-pill);
+        font-family: var(--font-sans);
+        font-size: .66rem;
+        font-weight: 700;
+        letter-spacing: .03em;
+        text-transform: uppercase;
+      }
+      .api-badge--deprecated {
+        background: #fde8e8;
+        color: #9b2c2c;
+      }
+      .api-badge--override {
+        background: var(--surface-2);
+        color: var(--brand-600);
+      }
+      .api-badge--inherited {
+        background: var(--surface);
+        color: var(--text-faint);
+      }
+      .api-index-library {
+        margin: 22px 0;
+        padding: 18px 22px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: var(--r-md);
+        box-shadow: var(--sh-1);
+      }
+      .api-index-library h3 {
+        margin: 0 0 4px;
+        font-size: 1.05rem;
+      }
+      .api-index-decls {
+        list-style: none;
+        margin: 8px 0 0;
+        padding: 0;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 2px 20px;
+      }
+      .api-index-decls a {
+        font-family: var(--font-mono);
+        font-size: .82rem;
+        color: var(--brand-600);
+        text-decoration: none;
+      }
+      .pageprose {
+        color: var(--text-soft);
+        line-height: 1.7;
+      }
+      .pageprose h2 {
+        margin: 32px 0 12px;
+        color: var(--ink-800);
+      }
+      .pageprose h3 {
+        margin: 24px 0 10px;
+        color: var(--ink-800);
+      }
+      .pageprose p {
+        margin: 0 0 16px;
+      }
+      .pageprose ul {
+        margin: 0 0 16px;
+        padding-left: 22px;
+      }
+      .pageprose li {
+        margin: 4px 0;
+      }
+      .mdtable {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0 0 20px;
+        font-size: .9rem;
+      }
+      .mdtable th {
+        text-align: left;
+        padding: 8px 12px;
+        border-bottom: 2px solid var(--line);
+        color: var(--ink-800);
+        font-weight: 700;
+      }
+      .mdtable td {
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--line);
+        color: var(--text-soft);
+      }
+    </style>
+    <script src="js/mermaid.min.js" defer></script>
+    <!--$-->
+    <title></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <!--/-->
+    <script src="main.client.dart.js" defer></script>
+  </head>
+  <body>
+    <div class="app">
+      <nav class="nav">
+        <div class="wrap">
+          <a class="brand" style="text-decoration: none; color: inherit" href="/">
+            <span><svg viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg" aria-label="Tom Framework logo" role="img">
+  <defs>
+    <linearGradient id="tom-f" x1="32" y1="28" x2="128" y2="140" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#0F9ED5"/><stop offset=".55" stop-color="#156082"/><stop offset="1" stop-color="#0E2841"/></linearGradient>
+    <linearGradient id="tom-e" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0F9ED5"/><stop offset="1" stop-color="#156082"/></linearGradient>
+    <radialGradient id="tom-s" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#7FE3A0"/><stop offset="1" stop-color="#4EA72E"/></radialGradient>
+  </defs>
+  <circle cx="44" cy="42" r="22" fill="url(#tom-e)"/><circle cx="116" cy="42" r="22" fill="url(#tom-e)"/>
+  <circle cx="44" cy="42" r="9" fill="#0E2841" opacity=".35"/><circle cx="116" cy="42" r="9" fill="#0E2841" opacity=".35"/>
+  <rect x="26" y="40" width="108" height="104" rx="46" fill="url(#tom-f)"/>
+  <circle cx="62" cy="86" r="7.5" fill="#EAF6FB"/><circle cx="98" cy="86" r="7.5" fill="#EAF6FB"/>
+  <circle cx="63.5" cy="87" r="3.2" fill="#0E2841"/><circle cx="99.5" cy="87" r="3.2" fill="#0E2841"/>
+  <rect x="60" y="104" width="40" height="30" rx="15" fill="#EAF6FB" opacity=".92"/>
+  <path d="M80 112 v8 M80 120 q-6 5 -12 4 M80 120 q6 5 12 4" stroke="#0E2841" stroke-width="3.4" stroke-linecap="round" fill="none"/>
+  <ellipse cx="80" cy="112" rx="6.5" ry="4.5" fill="#0E2841"/>
+  <circle cx="128" cy="118" r="5" fill="url(#tom-s)"/><circle cx="140" cy="110" r="3" fill="#4EA72E" opacity=".8"/><circle cx="139" cy="124" r="2.4" fill="#0F9ED5" opacity=".7"/>
+</svg></span>
+             Tom: Enterprise Flutter/Dart Platform
+          </a>
+          <div class="links">
+            <a href="/">Home</a>
+            <a href="/overview">Tom Overview</a>
+            <a href="/areas">Areas</a>
+            <a href="/components">Components</a>
+            <a href="/docs">Docs</a>
+            <a href="/api">API</a>
+            <a href="/about">About</a>
+            <a href="/process">Process</a>
+            <a href="/status">Status</a>
+          </div>
+        </div>
+      </nav>
+      <main class="site-main">
+        <div class="wrap">
+          <section class="section">
+            <div class="crumb">API / tom_core_server / </div>
+            <h2></h2>
+            <a class="crosslink" href="/api/tom_core_server">← tom_core_server API</a>
+            <div class="treewrap">
+              <div class="treepane">
+                <div class="treenodes">
+                  <a class="leaf" href="#TomBlobDigest">TomBlobDigest</a>
+                  <a class="leaf" href="#TomBlobRange">TomBlobRange</a>
+                  <a class="leaf" href="#TomBlobStore">TomBlobStore</a>
+                  <a class="leaf" href="#TomMemoryBlobStore">TomMemoryBlobStore</a>
+                  <a class="leaf" href="#TomStorageException">TomStorageException</a>
+                  <a class="leaf" href="#TomStoredBlob">TomStoredBlob</a>
+                  <a class="leaf" href="#_DigestSink">_DigestSink</a>
+                  <a class="leaf" href="#TomBlobStoreOperation">TomBlobStoreOperation</a>
+                </div>
+              </div>
+              <div class="reader">
+                <h2 class="api-library-title">package:tom_core_server/src/tomserver/file_storage/blob_store.dart</h2>
+                <code class="api-import">import 'package:tom_core_server/src/tomserver/file_storage/blob_store.dart';</code>
+                <div class="api-doc">
+                  <p>The blob-storage contract: bytes under a key, put and got as streams.</p>
+                  <p>
+                    This is the framework's general file/blob storage — the capability the export module's deliberately narrow 
+                    <code>TomExportStore</code> was written to be adapted onto, and the server half of a persisted entity's 
+                    <em>file-reference column</em> (a column that holds a storage key rather than the bytes).
+                  </p>
+                  <h2>Why streams on both sides, and not <code>Uint8List</code></h2>
+                  <p>
+                    A blob worth storing separately from its row is a blob large enough that holding it — and the copy the next layer makes of it — is the failure. Every method here therefore speaks in 
+                    <code>Stream&lt;List&lt;int&gt;&gt;</code>: a 400 MB upload flows from the socket into the backend without ever being whole in memory, and a download flows back out the same way. A convenience that buffers is easy to write at a call site that knows its blobs are small ([TomBlobStore.getBytes] is that convenience); a streaming API cannot be recovered from a buffering one.
+                  </p>
+                  <h2>Why four operations and no directory</h2>
+                  <p>
+                    Put, get, describe, delete. There is no <code>list</code>, no rename, no partial read, no metadata update — not because they are hard, but because nothing in the framework needs them and every one of them constrains the backends. 
+                    <code>list</code> in particular is the expensive lie: it is a cheap <code>readdir</code> on a filesystem and a paginated, eventually-consistent API call on an object store, and an interface that promises it invites callers to build on the filesystem's version of it.
+                  </p>
+                  <p>
+                    Keys are hierarchical by spelling (<code>2026/07/invoice.pdf</code>), so partitioning is available without the store having to model directories.
+                  </p>
+                  <h2>Why a failed write must leave nothing</h2>
+                  <p>
+                    A truncated blob is indistinguishable from a complete one to whoever downloads it next. Every backend here therefore commits atomically — filesystem by writing a sibling 
+                    <code>.part</code> and renaming, database by writing chunks and only then the manifest row, S3 by aborting an incomplete multipart upload. A [TomBlobStore.put] that throws has left the key holding either its previous content or nothing at all.
+                  </p>
+                  <h2>Why every failure arrives as a storage error</h2>
+                  <p>
+                    The faults that stop a store come from the layer underneath it and speak that layer's language: a <code>FileSystemException</code>, a driver error, an HTTP status. A backend that lets those through makes the caller's error handling depend on which backend it was configured with, and slips past every 
+                    <code>on TomServerException</code> between it and the request boundary.
+                  </p>
+                  <p>
+                    So a failure is translated into one of [TomBlobStoreOperation]'s keys, keeping the original as <code>rootException</code>. The module's own answers — 
+                    <code>not_found</code>, <code>invalid_key</code>, <code>missing_chunk</code>, <code>same_key</code> — pass through untranslated, because callers branch on them.
+                  </p>
+                  <p>
+                    The translation is [TomBlobStore]'s own, not each backend's: a backend implements <code>doPut</code>, 
+                    <code>doGet</code>, <code>doDescribe</code>, <code>doDelete</code> and the public methods wrap them. The same wrapper is what validates the key, so both obligations hold for every backend including ones written later — see [TomBlobStore]'s "Why the public methods are final".
+                  </p>
+                </div>
+                <section id="TomBlobDigest" class="api-declaration">
+                  <h3 class="api-decl-title">class TomBlobDigest</h3>
+                  <code class="api-signature">class TomBlobDigest</code>
+                  <div class="api-doc">
+                    <p>The running SHA-256 of a blob, fed chunk by chunk as it is stored.</p>
+                    <p>
+                      A backend hashes on the pass it is already making — a file write, a chunk insert, a part upload — so the digest costs no extra read. Public because [TomStoredBlob.digest] is a promise every backend has to keep, including one an application writes, and a promise the framework does not make easy to keep is one that gets broken.
+                    </p>
+                    <pre><code>final digest = TomBlobDigest();
+await for (final chunk in bytes) {
+  digest.add(chunk);
+  await sink.add(chunk);
+}
+final hex = digest.close();</code></pre>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomBlobDigest.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomBlobDigest.new()</code></div>
+                      <div class="api-doc"><p>Starts an empty hash.</p></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="TomBlobDigest._output" class="api-member"><div class="api-member-head"><code class="api-signature">final _DigestSink _output</code></div></div>
+                    <div id="TomBlobDigest._input" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final ByteConversionSink _input</code></div>
+                    </div>
+                    <div id="TomBlobDigest._hex" class="api-member"><div class="api-member-head"><code class="api-signature">String? _hex</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="TomBlobDigest.add" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void add(List&lt;int&gt; chunk)</code></div>
+                      <div class="api-doc">
+                        <p>Feeds [chunk] to the running hash.</p>
+                        <p>
+                          The chunk is read, never retained — which is what lets a backend pass the same borrowed buffer here that it is about to write.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBlobDigest.close" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String close()</code></div>
+                      <div class="api-doc">
+                        <p>The lowercase hex digest of everything added.</p>
+                        <p>
+                          Idempotent: calling it again returns the same string rather than closing a closed hash, so a backend with more than one exit path does not have to track which one ran.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="TomBlobDigest.of" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String of(List&lt;int&gt; bytes)</code></div>
+                      <div class="api-doc"><p>The hex SHA-256 of [bytes], for a caller holding them whole.</p></div>
+                    </div>
+                  </div>
+                </section>
+                <section id="TomBlobRange" class="api-declaration">
+                  <h3 class="api-decl-title">class TomBlobRange</h3>
+                  <code class="api-signature">class TomBlobRange</code>
+                  <div class="api-doc">
+                    <p>A half-open byte range of a stored blob: [start] inclusive, [endExclusive] exclusive.</p>
+                    <p>
+                      Half-open because that is what <code>File.openRead</code> and <code>List.sublist</code> take, and the backends are where this ends up. HTTP's 
+                      <code>Range</code> is inclusive-at-both-ends and a <em>suffix</em> form (<code>bytes=-500</code>) has no start at all; both are resolved against the blob's known size before they reach here, by whoever read the header. This type is the resolved one, so a backend never has to reason about a range it cannot check.
+                    </p>
+                    <p>
+                      Both ends are checked at construction rather than at the backend, so every store refuses the same nonsense the same way — the same reason key validation sits on [TomBlobStore] and not in each 
+                      <code>do*</code>.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomBlobRange.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomBlobRange.new(int start, [int? endExclusive])</code></div>
+                      <div class="api-doc">
+                        <p>A range from [start] up to but not including [endExclusive].</p>
+                        <p>
+                          [endExclusive] <code>null</code> means <em>to the end of the blob</em>, which is the form a <code>bytes=500-</code>
+                           header takes and the only one that needs no size to resolve.
+                        </p>
+                        <p>
+                          Throws [TomStorageException] (<code>storage.blob.invalid_range</code>) for a negative start or an end at or before it. An empty range is refused rather than answered with an empty stream: a zero-length read is a caller's arithmetic going wrong, and an empty body is how that mistake reaches a user as a corrupt download.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="TomBlobRange.start" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final int start</code></div>
+                      <div class="api-doc"><p>The first byte to read, counted from zero.</p></div>
+                    </div>
+                    <div id="TomBlobRange.endExclusive" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final int? endExclusive</code></div>
+                      <div class="api-doc"><p>One past the last byte to read, or <code>null</code> to read to the end.</p></div>
+                    </div>
+                    <div id="TomBlobRange.length" class="api-member"><div class="api-member-head"><code class="api-signature">int? length</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="TomBlobRange.clampedTo" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomBlobRange? clampedTo(int byteCount)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          This range clamped to a blob of [byteCount] bytes, or <code>null</code> when it lies wholly beyond it.
+                        </p>
+                        <p>
+                          <code>null</code> is the answer HTTP calls <em>unsatisfiable</em>: a start at or past the end names no byte, and the correct response is a refusal rather than an empty body. A range that merely 
+                          <em>overshoots</em> is not unsatisfiable — it is clamped, because asking for more than there is and getting what there is is how a resumed download ends.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBlobRange.toString" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">String toString()</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="TomBlobStore" class="api-declaration">
+                  <h3 class="api-decl-title">class TomBlobStore</h3>
+                  <code class="api-signature">abstract class TomBlobStore</code>
+                  <div class="api-doc">
+                    <p>Stores and retrieves blobs by key.</p>
+                    <p>
+                      Implemented by [TomMemoryBlobStore], <code>TomDirectoryBlobStore</code>, <code>TomDatabaseBlobStore</code>
+                       and <code>TomS3BlobStore</code>; an application registers its own with <code>TomBlobStoreInfo.registerBackend</code>.
+                    </p>
+                    <h2>Why the public methods are final</h2>
+                    <p>
+                      A backend implements [doPut], [doGet], [doDescribe] and [doDelete], and optionally sharpens [doExists], [doGetRange], [doCopy] and [doMove], each of which is concrete and built from the four; the public methods are this class's own and wrap them. That indirection buys two guarantees no backend can forget:
+                    </p>
+                    <ul><li><strong>Every key is validated</strong>, on reads as well as writes, so a key that is</li></ul>
+                    <p>
+                      refused is refused the same way whichever backend is configured — and a backend written later, or by an application, cannot be handed a directory traversal. - 
+                      <strong>Every failure arrives as a [TomStorageException]</strong> carrying the error key [TomBlobStoreOperation] names for the operation that failed, so a caller catches one type rather than a socket exception here and a database exception there.
+                    </p>
+                    <p>
+                      Both properties were previously left to each backend to honour, and each backend honoured a different subset of them: three of the four validated on 
+                      <code>put</code> alone, so <code>get('../escape')</code> answered <code>invalid_key</code> on a directory store and 
+                      <code>not_found</code> on a memory one — the wrong error, and for a caller branching on the two, the wrong branch.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomBlobStore.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">const TomBlobStore.new()</code></div>
+                      <div class="api-doc"><p>Creates a store.</p></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="TomBlobStore.supportsPrefixDelete" class="api-member"><div class="api-member-head"><code class="api-signature">bool supportsPrefixDelete</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="TomBlobStore.put" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          Future&lt;TomStoredBlob&gt; put({required String key, required Stream&lt;List&lt;int&gt;&gt; bytes, String mediaType = TomStoredBlob.defaultMediaType, String? fileName})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Writes [bytes] under [key], replacing anything already there.</p>
+                        <p>
+                          Returns the descriptor of what was written — notably [TomStoredBlob .byteCount], which is not known until the stream drains.
+                        </p>
+                        <p>
+                          A failure must leave <strong>nothing</strong> readable under [key] beyond what was there before: implementations commit atomically or not at all.
+                        </p>
+                        <p>
+                          A chunk arriving from [bytes] is <strong>borrowed for the duration of the <code>await</code></strong>: an implementation must consume or copy it before asking for the next one, and must not retain it. A producer refilling one scratch buffer per chunk is the ordinary shape of an encoder, and a store that kept the list would record that buffer's last state once per chunk.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBlobStore.get" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Stream&lt;List&lt;int&gt;&gt; get(String key, {TomBlobRange? range})</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Reads the blob stored under [key].</p>
+                        <p>
+                          Throws a [TomStorageException] (<code>storage.blob.not_found</code>) when the key holds nothing: a caller reading a blob it holds a reference to and finding it gone has hit a real fault — an expiry it did not expect, a store it is not pointed at — and an empty stream would disguise that as an empty file.
+                        </p>
+                        <p>
+                          Each chunk <strong>belongs to the caller</strong>: writable, and not aliased with anything the store keeps. The backends that read from a file, a row or a socket get this for free — the memory backend is the only one that has to choose, and it copies. Both halves are load-bearing. Handing back an internal buffer lets a consumer decoding in place edit the stored blob; handing back an unmodifiable view would instead make that same consumer throw on the backend the tests run on and succeed on every other, which is the worse trade.
+                        </p>
+                        <p>
+                          A transfer that breaks partway <strong>still delivers the chunks that arrived</strong>, and then fails. Both halves are the contract. A consumer that has already written the first megabytes to a file can truncate what it has; one handed nothing at all cannot tell a broken download from an empty object. That is why the failure is translated 
+                          <em>around</em> the forwarding rather than by draining the backend's stream first: buffering here would be invisible to anyone reading a small blob, and would quietly turn every interrupted download into an empty one.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBlobStore.describe" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;TomStoredBlob?&gt; describe(String key)</code></div>
+                      <div class="api-doc">
+                        <p>The descriptor for [key], or <code>null</code> when it holds nothing.</p>
+                        <p>
+                          The one read that is <em>allowed</em> to answer "nothing" without throwing, because asking what is there is a different question from asking for it.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBlobStore.deletePrefix" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;int&gt; deletePrefix(String prefix)</code></div>
+                      <div class="api-doc">
+                        <p>Deletes every blob whose key lies under [prefix], returning how many went.</p>
+                        <p>
+                          The reclaim primitive, and the only part of retention this module owns. <em>What</em> to keep and <em>how long</em>
+                           are a deployment's decisions, taken against its own record of what it stored; this is the one operation that record cannot assemble from the outside, because deleting a partition key by key is a call per blob and a prefix delete is a call per partition.
+                        </p>
+                        <p>
+                          <strong>The prefix is matched by key segment, never by characters.</strong> <code>2026/07</code> removes 
+                          <code>2026/07</code> and everything beneath it, and never <code>2026/070</code> — a string prefix that can reach a sibling is an ordinary convenience everywhere except in a delete, where it is how a month's retention takes the next month with it.
+                        </p>
+                        <p>
+                          Throws [TomStorageException] (<code>storage.blob.prefix_delete_unsupported</code>) on a backend that cannot, naming it. A backend that answered 
+                          <code>0</code> instead would make "the purge found nothing" and "this backend cannot purge" the same answer, and the deployment would learn the difference from a disk filling up.
+                        </p>
+                        <p>
+                          An empty prefix is refused (<code>storage.blob.invalid_key</code>): it names every blob there is, and a delete whose argument came from a configuration value that turned out empty should not empty the store.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBlobStore.copy" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;TomStoredBlob&gt; copy(String fromKey, String toKey)</code></div>
+                      <div class="api-doc">
+                        <p>Copies the blob at [fromKey] to [toKey], returning the new descriptor.</p>
+                        <p>
+                          A relocation is an ordinary thing to want: the documented pattern for expiry is a date-prefixed key, so re-partitioning happens, and without this it means pulling every byte through the server and pushing it back.
+                        </p>
+                        <p>
+                          Anything already at [toKey] is <strong>replaced</strong>, as it is by [put] — the same rule, because a copy is a write and a second one about overwriting would be a rule to remember. The media type and file name travel with the bytes: a copy that lost its 
+                          <code>Content-Type</code> would be served as <code>application/octet-stream</code> and download as a file nothing opens.
+                        </p>
+                        <p>
+                          Throws [TomStorageException] (<code>storage.blob.not_found</code>) when [fromKey] holds nothing, (<code>storage.blob.invalid_key</code>) for a key outside the grammar, (<code>storage.blob.same_key</code>) when the two are equal, and (<code>storage.blob.copy_failed</code>) when the backend fails.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBlobStore.move" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;TomStoredBlob&gt; move(String fromKey, String toKey)</code></div>
+                      <div class="api-doc">
+                        <p>Moves the blob at [fromKey] to [toKey], returning the new descriptor.</p>
+                        <p>
+                          The source is gone when this returns. Ordering is the whole contract: the destination is committed <em>before</em>
+                           the source is removed, so an interrupted move leaves the blob readable under both keys rather than under neither. The residue of a failed move is a duplicate, which a retry converges on; the residue of the other order is a deletion.
+                        </p>
+                        <p>Same replacement rule, same errors as [copy], under <code>storage.blob.move_failed</code>.</p>
+                      </div>
+                    </div>
+                    <div id="TomBlobStore.delete" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;bool&gt; delete(String key)</code></div>
+                      <div class="api-doc">
+                        <p>Deletes [key], returning whether anything was there to delete.</p>
+                        <p>
+                          <strong>Exact on a backend that can delete conditionally, best-effort on an object store.</strong> A filesystem, a map and a manifest row all answer the two questions — did it exist, and is it gone — in one operation, so their boolean is a fact. S3's 
+                          <code>DELETE</code> answers <code>204</code> whether or not the object was there, so [TomS3BlobStore] asks separately with a 
+                          <code>HEAD</code> and another caller can create or remove the key between the two. Two concurrent deletes of one key can therefore both answer 
+                          <code>true</code> there, and a delete racing a <code>put</code> can answer <code>false</code> having removed nothing that the 
+                          <code>put</code> then writes.
+                        </p>
+                        <p>
+                          The window only misleads a caller that is already racing itself, which is why the exact answer is kept rather than dropped for a 
+                          <code>void</code> that no backend could get wrong: a boolean that is a fact on three backends and a recent observation on the fourth is more useful than no answer anywhere. A caller that must not race holds a lock of its own; nothing in a storage API can supply one.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBlobStore.exists" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;bool&gt; exists(String key)</code></div>
+                      <div class="api-doc"><p>Whether [key] currently holds a blob.</p></div>
+                    </div>
+                    <div id="TomBlobStore.doPut" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          Future&lt;TomStoredBlob&gt; doPut({required String key, required Stream&lt;List&lt;int&gt;&gt; bytes, String mediaType = TomStoredBlob.defaultMediaType, String? fileName})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Writes a validated [key]. Implemented by backends; called by [put].</p>
+                        <p>
+                          A backend that fails part-way through cleans up and lets the failure out: [put] names the operation. Throwing a [TomStorageException] by hand is for the cases where the backend knows something the wrapper cannot.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBlobStore.doGet" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Stream&lt;List&lt;int&gt;&gt; doGet(String key)</code></div>
+                      <div class="api-doc"><p>Reads a validated [key]. Implemented by backends; called by [get].</p></div>
+                    </div>
+                    <div id="TomBlobStore.doGetRange" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Stream&lt;List&lt;int&gt;&gt; doGetRange(String key, TomBlobRange range)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Reads [range] of a validated [key]. Called by [get] when one is given.</p>
+                        <p>
+                          Defined in terms of [doGet] so a backend implements one read path, not two — the same arrangement as [doExists] over [doDescribe]. 
+                          <strong>Override it when the backend can seek</strong>, which is every backend shipped here: a file opens at an offset, a chunked row set skips whole rows, and S3 takes a 
+                          <code>Range</code> header. The default reads from zero and discards everything before the range, stopping once the range is served — correct, and costing the prefix, which for a seek near the end of a large blob is the whole thing.
+                        </p>
+                        <p>
+                          Putting the discarding here rather than in the caller is the point. A download endpoint honouring HTTP 
+                          <code>Range</code> needs <em>a</em> range read from every backend, and writing the fallback at the endpoint would mean the S3 backend's native capability were unreachable through the interface.
+                        </p>
+                        <p>
+                          A range that runs past the end of the blob yields what there is rather than failing: [get] cannot know the size without a second lookup, and the caller that does know — the endpoint — has already refused an unsatisfiable one with [TomBlobRange.clampedTo].
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBlobStore.doDescribe" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;TomStoredBlob?&gt; doDescribe(String key)</code></div>
+                      <div class="api-doc"><p>Describes a validated [key]. Implemented by backends; called by [describe].</p></div>
+                    </div>
+                    <div id="TomBlobStore.doDelete" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;bool&gt; doDelete(String key)</code></div>
+                      <div class="api-doc"><p>Deletes a validated [key]. Implemented by backends; called by [delete].</p></div>
+                    </div>
+                    <div id="TomBlobStore.doCopy" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;TomStoredBlob&gt; doCopy(String fromKey, String toKey)</code></div>
+                      <div class="api-doc">
+                        <p>Copies a validated [fromKey] to a validated [toKey]. Called by [copy].</p>
+                        <p>
+                          Concrete, and a stream round trip: read the source, write it to the destination. <strong>Override it wherever the backend can do it without the bytes leaving</strong>
+                           — which is every backend shipped here, because each has a native answer: a filesystem copy, a map entry, an 
+                          <code>INSERT</code> that shares the chunks, an <code>x-amz-copy-source</code> header.
+                        </p>
+                        <p>
+                          A concrete default is right here in a way it would not be for a listing. The cost of this one is not misleading — a stream round trip is exactly as expensive as it looks — whereas a default 
+                          <code>list</code> would hide a paginated scan behind a method that reads like a map lookup.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBlobStore.doMove" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;TomStoredBlob&gt; doMove(String fromKey, String toKey)</code></div>
+                      <div class="api-doc">
+                        <p>Moves a validated [fromKey] to a validated [toKey]. Called by [move].</p>
+                        <p>
+                          Concrete, and defined as a copy followed by a delete — in that order, so an interruption leaves a duplicate rather than a hole. Override it where the backend can rename: a filesystem does, and a manifest row's key is a column to update.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBlobStore.doDeletePrefix" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;int&gt; doDeletePrefix(String prefix)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Deletes everything under [prefix]. Implemented by backends that declare [supportsPrefixDelete]; called by [deletePrefix].
+                        </p>
+                        <p>
+                          [prefix] is already validated and non-empty. The default throws, so a backend that claims the capability and forgets the method fails loudly rather than reporting an empty purge.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBlobStore.doExists" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;bool&gt; doExists(String key)</code></div>
+                      <div class="api-doc">
+                        <p>Whether a validated [key] holds a blob. Called by [exists].</p>
+                        <p>
+                          Defined in terms of [doDescribe] so a backend implements one lookup, not two; override when a cheaper existence probe exists.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBlobStore.getBytes" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Future&lt;Uint8List&gt; getBytes(String key, {TomBlobRange? range})</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Reads [key] fully into memory.</p>
+                        <p>
+                          The convenience for the call sites that genuinely know their blobs are small — an avatar, a signature image, a CSV of a hundred rows. It is a helper on the streaming API rather than a second method on the contract precisely so that a backend author cannot implement it 
+                          <em>instead of</em> streaming.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBlobStore.putBytes" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          Future&lt;TomStoredBlob&gt; putBytes({required String key, required List&lt;int&gt; bytes, String mediaType = TomStoredBlob.defaultMediaType, String? fileName})
+                        </code>
+                      </div>
+                      <div class="api-doc"><p>Writes [bytes] under [key] — the buffered counterpart to [getBytes].</p></div>
+                    </div>
+                    <div id="TomBlobStore.close" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Future&lt;void&gt; close()</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Releases whatever the backend holds open. Idempotent; the default does nothing, because most backends hold nothing.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="TomBlobStore.maxKeyLength" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static int maxKeyLength</code></div>
+                      <div class="api-doc">
+                        <p>The longest key any backend accepts.</p>
+                        <p>
+                          512 is comfortably under the shortest limit in play (S3 allows 1024 bytes; a filesystem path component 255) while being longer than any key a sane prefix scheme produces. Bounding it here means the database backend can declare a fixed-width indexed column and the filesystem backend cannot be handed a name the OS will reject.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBlobStore.auxiliaryMarker" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String auxiliaryMarker</code></div>
+                      <div class="api-doc">
+                        <p>
+                          A character no valid key can contain, for backends that keep bookkeeping files alongside the blobs themselves.
+                        </p>
+                        <p>
+                          A backend storing blobs as files needs somewhere to put what a filesystem will not hold — a metadata sidecar, the partial a write is staged in — and the obvious naming, 
+                          <code>&lt;key&gt;.meta</code>, is a trap: <code>.</code> is an ordinary key character and only the segments 
+                          <code>.</code> and <code>..</code> are reserved, so <code>a.meta</code> is a key a caller may legitimately choose. Two callers picking ordinary keys then destroy each other's data, neither having done anything wrong.
+                        </p>
+                        <p>
+                          Suffixing with this marker instead makes the bookkeeping <em>unaddressable</em>: [isValidKey] admits 
+                          <code>[A-Za-z0-9._/-]</code> and nothing else, so no key that reaches a backend can name a file suffixed with it. 
+                          <code>~</code> is legal in a filename everywhere this runs — POSIX reserves only <code>/</code>, Windows only 
+                          <code>&lt;&gt;:"/\|?*</code> — and is the conventional mark of an auxiliary file.
+                        </p>
+                        <p>
+                          It lives on the contract rather than in a backend because it is a fact about [isValidKey], which is defined here and shared by every store including 
+                          <code>TomExportStore</code>. The <em>suffixes</em> are each backend's own storage layout and stay with the backend; only the guarantee that they cannot be spelled is common.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBlobStore._keyPattern" class="api-member"><div class="api-member-head"><code class="api-signature">static RegExp _keyPattern</code></div></div>
+                    <div id="TomBlobStore._unsafeSegmentCharacters" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static RegExp _unsafeSegmentCharacters</code></div>
+                      <div class="api-doc">
+                        <p>
+                          What [sanitiseKeySegment] replaces: [_keyPattern]'s character class negated, minus the separator — a 
+                          <em>segment</em> may not contain one even though a key may. Kept adjacent so the one deliberate difference between the two is visible rather than inferred.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBlobStore.passThroughErrorKeys" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static Set&lt;String&gt; passThroughErrorKeys</code></div>
+                      <div class="api-doc">
+                        <p>The error keys that reach a caller as the backend raised them.</p>
+                        <p>
+                          Everything a store can go wrong at is reported under one of the four [TomBlobStoreOperation] keys, whichever backend is configured. These four are the exceptions, and they are exceptions because they are 
+                          <em>answers</em> rather than failures: the key held nothing, the key was not a key, the deployment's prefix leaves no room for one, the blob's chunks do not add up. A caller branches on them — 
+                          <code>TomBlobExportStore</code> on <code>not_found</code>, the file endpoint on its 404 — so translating them would turn a decision the caller can make into a failure it can only report.
+                        </p>
+                        <p>
+                          Every one is raised by code every backend shares, or by a rule every backend is held to, so none of them tells a caller which backend it got. That is the test for membership, not "the module happens to raise it": 
+                          <code>invalid_key_prefix</code> is raised inside the S3 backend as well as by [validateKeyPrefix], and belongs here because the limit it enforces is [maxKeyLength] — the rule every backend obeys — rather than S3's own.
+                        </p>
+                        <p>
+                          The list is closed on purpose, and that is the whole of the module's backend-independence claim. A <code>TomStorageException</code>
+                           a backend raises under any other key is wrapped like any other fault, so a caller switching on <code>error.key</code>
+                           sees the same key whether the deployment is configured with the S3 backend, the directory backend or one the application wrote. The backend's own exception survives as 
+                          <code>rootException</code>: still in the log, still carrying its <code>status</code> and <code>code</code>, no longer part of the contract a caller is written against.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBlobStore._differentKey" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static String _differentKey(TomBlobStoreOperation operation, String fromKey, String toKey)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>[toKey] validated, and refused when it is [fromKey].</p>
+                        <p>
+                          Copying a key onto itself has no meaning worth guessing at, and the obvious implementation — read it, write it back — is a truncation on any backend whose write is not atomic. S3 refuses it outright without a metadata directive. So it is one error rather than four behaviours.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBlobStore.isValidKey" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static bool isValidKey(String key)</code></div>
+                      <div class="api-doc">
+                        <p>Whether [key] is a well-formed storage key.</p>
+                        <p>
+                          The single definition of the key grammar, exposed as a predicate so that every surface with its own error vocabulary — [validateKey] here, 
+                          <code>TomExportStore.validateKey</code> in the export module — can enforce the same rule while throwing its own exception type.
+                        </p>
+                        <p>
+                          Keys are relative, slash-separated, and made of unreserved characters. The rule exists because the obvious backend maps keys onto paths, and a key of 
+                          <code>../../etc/passwd</code> would then be a directory traversal handed to whatever built the key from a user-supplied file name.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBlobStore.sanitiseKeySegment" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">static String sanitiseKeySegment(String name, {String fallback = 'file'})</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          [name] rewritten into one key segment, so that a human-chosen name can <em>become</em> a key rather than merely be tested against the grammar.
+                        </p>
+                        <p>
+                          It lives beside [isValidKey] because the two are one grammar spelled twice, and a sanitiser that drifts from its own validator produces the worst outcome available: output that is refused by the check it was written to satisfy. 
+                          <code>sanitiseKeySegment(x)</code> is a valid key for every [name] short enough to be one — asserted over the code-unit range in 
+                          <code>export_test.dart</code>, not merely intended.
+                        </p>
+                        <p>
+                          <strong>One segment, never two.</strong> <code>/</code> and <code>\</code> are replaced like any other disallowed character, so a name cannot contribute path structure. Whatever builds a key decides its shape; a name is only ever a part of it. That is also what defuses 
+                          <code>../../etc/passwd</code> — not by refusing it, but by leaving it nothing to traverse with.
+                        </p>
+                        <p>
+                          <strong>Length is the one fault it does not repair.</strong> A name over [maxKeyLength] comes back over [maxKeyLength] and [validateKey] refuses it. Truncating would silently give two different names the same key, and the second write would replace the first with nothing reported anywhere — a refusal the caller can see is strictly better than a collision it cannot.
+                        </p>
+                        <p>
+                          [fallback] is returned when nothing usable survives — an empty name, whitespace, or one of the two segments the grammar reserves. It must itself be a valid key.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBlobStore.isValidKeyPrefix" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static bool isValidKeyPrefix(String? keyPrefix)</code></div>
+                      <div class="api-doc">
+                        <p>Whether [keyPrefix] is usable as a key namespace.</p>
+                        <p>
+                          A prefix is not a separate notion from a key: it is joined to one as <code>"$keyPrefix/$key"</code>, so it must satisfy [isValidKey] itself or the join produces something no backend accepts. 
+                          <code>null</code> and <code>''</code> both mean <em>no namespace</em> — a configured store leaves the setting unset, an unconfigured one defaults it to empty, and neither should have to say so twice.
+                        </p>
+                        <p>
+                          A trailing slash is deliberately <strong>not</strong> a second accepted spelling: the join supplies the separator, so 
+                          <code>exports/</code> would yield <code>exports//sales.csv</code>, which the grammar rejects for the doubled slash.
+                        </p>
+                        <p>
+                          Length is the one clause this cannot settle — a prefix and a key may each be within [maxKeyLength] and still exceed it once joined, which depends on a key that has not arrived yet. So the obligation belongs to whoever performs the join, and every site that performs one discharges it: those that join 
+                          <em>above</em> a store hand the result to [validateKey] and get it for free, and <code>TomS3BlobStore</code>, which joins below that boundary — the prefix goes straight into a signed URI — checks the length itself.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBlobStore.validateKey" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String validateKey(String key)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Validates [key] and returns it, throwing <code>storage.blob.invalid_key</code> when it does not satisfy [isValidKey].
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBlobStore.validateKeyPrefix" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String? validateKeyPrefix(String? keyPrefix)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Validates [keyPrefix] and returns it, throwing <code>storage.blob.invalid_key_prefix</code> when it does not satisfy [isValidKeyPrefix].
+                        </p>
+                        <p>
+                          A distinct error key from [validateKey], because the two faults call for different actions: a bad key is a caller's mistake, a bad prefix is a deployment's. The parameter is named 
+                          <code>keyPrefix</code> and carries the prefix itself rather than a key derived from it — the derived key is one the caller never wrote, and naming it sends the reader to the wrong place.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBlobStore.notFound" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static TomStorageException notFound(String key)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The error raised when [key] holds nothing — one spelling, so a caller can match on the key string and every backend agrees on it.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBlobStore._asStorageException" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static TomStorageException _asStorageException(TomBlobStoreOperation operation, String key, Object error, StackTrace stack)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>[error] restated as the storage failure of [operation] on [key].</p>
+                        <p>
+                          The original is kept as <code>rootException</code> rather than summarised into the message: the caller needs a key it can branch on, and whoever reads the log needs the 
+                          <code>errno</code> that actually explains it.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomBlobStore._translating" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          static Future&lt;T&gt; _translating&lt;T&gt;(TomBlobStoreOperation operation, String key, Future&lt;T&gt; Function() body)
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Runs [body], reporting any infrastructure failure as [operation] on [key].</p>
+                        <p>
+                          A [TomStorageException] passes through only when its key is one of [passThroughErrorKeys], which is the clause that makes this safe to wrap a whole method in without also making the caller's error handling depend on which backend the deployment configured.
+                        </p>
+                        <p>
+                          Matched on the key rather than on the type. The type is what every backend's own failures are raised as too, so catching it let 
+                          <code>storage.s3.request_failed</code> and its siblings past the translation the module exists to perform — for the same fault, a caller heard one key on S3 and another on the directory backend.
+                        </p>
+                        <p>
+                          Private, because the wrapping is now the contract's own job rather than something a backend opts into: a helper a backend 
+                          <em>may</em> call is a helper a backend may forget, which is the state this replaced.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="TomMemoryBlobStore" class="api-declaration">
+                  <h3 class="api-decl-title">class TomMemoryBlobStore</h3>
+                  <code class="api-signature">class TomMemoryBlobStore extends TomBlobStore</code>
+                  <div class="api-doc">
+                    <p>A store that keeps its contents in memory.</p>
+                    <p>
+                      For tests, and for a development server that should not leave files behind. It buffers whole blobs by definition, so it is the one place in this module where that is acceptable — and the reason it is not the default.
+                    </p>
+                    <p>
+                      Because it holds the bytes instead of reading them back off a disk or a bucket, it is the only backend that can accidentally share a buffer with a caller, in either direction. So it is the only one that copies on purpose: what [get] yields is the reader's own, and what [put] is streamed is copied before the next chunk is asked for. [TomBlobStore] requires both of every backend; they are noted here because here they are a choice.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomMemoryBlobStore.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomMemoryBlobStore.new()</code></div>
+                      <div class="api-doc"><p>Creates an empty in-memory store.</p></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="TomMemoryBlobStore._content" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Map&lt;String, Uint8List&gt; _content</code></div>
+                    </div>
+                    <div id="TomMemoryBlobStore._descriptors" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Map&lt;String, TomStoredBlob&gt; _descriptors</code></div>
+                    </div>
+                    <div id="TomMemoryBlobStore.keys" class="api-member"><div class="api-member-head"><code class="api-signature">Iterable&lt;String&gt; keys</code></div></div>
+                    <div id="TomMemoryBlobStore.length" class="api-member"><div class="api-member-head"><code class="api-signature">int length</code></div></div>
+                    <div id="TomMemoryBlobStore.supportsPrefixDelete" class="api-member"><div class="api-member-head"><code class="api-signature">bool supportsPrefixDelete</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="TomMemoryBlobStore.textOf" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String textOf(String key)</code></div>
+                      <div class="api-doc">
+                        <p>The stored bytes for [key] as text, for tests that assert on content.</p>
+                        <p>
+                          Validates like the contract's own methods do, so a test that mistypes a key is told it mistyped one rather than that the blob is missing.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomMemoryBlobStore.clear" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void clear()</code></div>
+                      <div class="api-doc"><p>Forgets everything, for a test that reuses one store across cases.</p></div>
+                    </div>
+                    <div id="TomMemoryBlobStore.doPut" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          Future&lt;TomStoredBlob&gt; doPut({required String key, required Stream&lt;List&lt;int&gt;&gt; bytes, String mediaType = TomStoredBlob.defaultMediaType, String? fileName})
+                        </code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="TomMemoryBlobStore.doGet" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Stream&lt;List&lt;int&gt;&gt; doGet(String key)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="TomMemoryBlobStore.doGetRange" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Stream&lt;List&lt;int&gt;&gt; doGetRange(String key, TomBlobRange range)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="TomMemoryBlobStore.doCopy" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Future&lt;TomStoredBlob&gt; doCopy(String fromKey, String toKey)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="TomMemoryBlobStore.doMove" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Future&lt;TomStoredBlob&gt; doMove(String fromKey, String toKey)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="TomMemoryBlobStore.doDeletePrefix" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Future&lt;int&gt; doDeletePrefix(String prefix)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="TomMemoryBlobStore.doDescribe" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Future&lt;TomStoredBlob?&gt; doDescribe(String key)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="TomMemoryBlobStore.doExists" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Future&lt;bool&gt; doExists(String key)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="TomMemoryBlobStore.doDelete" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Future&lt;bool&gt; doDelete(String key)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="TomMemoryBlobStore.toString" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">String toString()</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="TomStorageException" class="api-declaration">
+                  <h3 class="api-decl-title">class TomStorageException</h3>
+                  <code class="api-signature">class TomStorageException extends TomServerException</code>
+                  <div class="api-doc">
+                    <p>The base error for every file-storage failure.</p>
+                    <p>
+                      Subtypes [TomServerException], so the isolate attribution and request correlation every other server error carries apply here too, and a 
+                      <code>catch (e) on TomServerException</code> in a pipeline reaches storage faults without knowing about them.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomStorageException.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          TomStorageException.new(String key, String defaultUserMessage, {Map&lt;String, Object?&gt;? parameters, StackTrace? stack, Object? rootException, bool autoLog = false, bool clientThrow = true})
+                        </code>
+                      </div>
+                      <div class="api-doc"><p>Creates a storage exception with a stable [key] and a user-facing [defaultUserMessage].</p></div>
+                    </div>
+                  </div>
+                </section>
+                <section id="TomStoredBlob" class="api-declaration">
+                  <h3 class="api-decl-title">class TomStoredBlob</h3>
+                  <code class="api-signature">class TomStoredBlob</code>
+                  <div class="api-doc">
+                    <p>What a stored blob is: its key, what it contains, how big it turned out.</p>
+                    <p>
+                      Returned by [TomBlobStore.put] rather than assembled by the caller — [byteCount] is only known once the stream has drained, and it is the field a caller most often needs next (a 
+                      <code>Content-Length</code>, a quota check, a log line).
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomStoredBlob.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          TomStoredBlob.new({required String key, required String mediaType, required int byteCount, required DateTime storedAt, String digest = unknownDigest, String? fileName, Uri? location})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Creates a stored-blob descriptor.</p>
+                        <p>
+                          [storedAt] is normalised to UTC here rather than at each construction site, which is what makes the zone a property of the 
+                          <em>type</em>: a backend added later cannot forget it, and there is one place to read the rule. Every backend sources the value locally — 
+                          <code>DateTime.now()</code> on three of them, the filesystem's <code>stat.modified</code> on the fourth — so without this a descriptor written in Berlin and read in Denver disagreed with itself by the offset. 
+                          <code>TomAuditAnchor</code> and <code>TomOAuthTokens</code> normalise the same way.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="TomStoredBlob.key" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String key</code></div>
+                      <div class="api-doc"><p>The key the blob is stored under.</p></div>
+                    </div>
+                    <div id="TomStoredBlob.mediaType" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String mediaType</code></div>
+                      <div class="api-doc"><p>The IANA media type the bytes should be served as.</p></div>
+                    </div>
+                    <div id="TomStoredBlob.byteCount" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final int byteCount</code></div>
+                      <div class="api-doc"><p>The number of bytes stored.</p></div>
+                    </div>
+                    <div id="TomStoredBlob.storedAt" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final DateTime storedAt</code></div>
+                      <div class="api-doc"><p>When the write completed, always in UTC.</p></div>
+                    </div>
+                    <div id="TomStoredBlob.fileName" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? fileName</code></div>
+                      <div class="api-doc">
+                        <p>The original file name, when one was supplied.</p>
+                        <p>
+                          Kept because a storage key is chosen by the framework (opaque, collision free, safe to put in a path) while the name a person expects to see in their downloads folder is the one they uploaded. Losing it means the application has to store it in a second column beside the key.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomStoredBlob.location" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Uri? location</code></div>
+                      <div class="api-doc">
+                        <p>A backend-specific address — a <code>file:</code> URI, an object-store URL.</p>
+                        <p>
+                          Useful to a human chasing a blob down; never the thing to read it back with. [TomBlobStore.get] takes the [key], because only the store knows how its keys map to addresses.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomStoredBlob.digest" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String digest</code></div>
+                      <div class="api-doc">
+                        <p>The lowercase hex SHA-256 of the stored bytes, or [unknownDigest].</p>
+                        <p>
+                          <strong>Every blob written through [TomBlobStore.put] has one</strong>, whichever backend is configured: the hash is computed while the bytes stream past, on a pass the backend is making anyway, and recorded beside the media type and the file name. That is what makes it something a caller can build on — an integrity check after a transfer, a deduplication key before one, an 
+                          <code>ETag</code> a download endpoint can serve.
+                        </p>
+                        <p>
+                          It is [unknownDigest] for a blob <strong>this framework did not write</strong>: a file dropped into a directory store's tree by hand, an object already in a bucket the store was pointed at. Those have no recorded media type either and fall back to [defaultMediaType]; the digest's counterpart is a named empty string rather than 
+                          <code>null</code>, so that "not recorded" cannot be confused with the digest of zero bytes — which is a real, well-known value. [hasDigest] is the question to ask.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomStoredBlob.hasDigest" class="api-member"><div class="api-member-head"><code class="api-signature">bool hasDigest</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="TomStoredBlob.toString" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">String toString()</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="TomStoredBlob.defaultMediaType" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String defaultMediaType</code></div>
+                      <div class="api-doc"><p>The media type used when a caller states none.</p></div>
+                    </div>
+                    <div id="TomStoredBlob.unknownDigest" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String unknownDigest</code></div>
+                      <div class="api-doc"><p>The [digest] of a blob whose hash was never recorded.</p></div>
+                    </div>
+                  </div>
+                </section>
+                <section id="_DigestSink" class="api-declaration">
+                  <h3 class="api-decl-title">class _DigestSink</h3>
+                  <code class="api-signature">class _DigestSink implements Sink&lt;Digest&gt;</code>
+                  <div class="api-doc"><p>Catches the one digest <code>startChunkedConversion</code> emits on close.</p></div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="_DigestSink.new" class="api-member"><div class="api-member-head"><code class="api-signature">_DigestSink.new()</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="_DigestSink.value" class="api-member"><div class="api-member-head"><code class="api-signature">final List&lt;int&gt; value</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="_DigestSink.add" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">void add(Digest data)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="_DigestSink.close" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">void close()</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="TomBlobStoreOperation" class="api-declaration">
+                  <h3 class="api-decl-title">enum TomBlobStoreOperation</h3>
+                  <code class="api-signature">enum TomBlobStoreOperation</code>
+                  <div class="api-doc">
+                    <p>What a store was doing when its infrastructure refused.</p>
+                    <p>
+                      Storage faults come from somewhere else — a full disk, a denied permission, a bucket that answered 500 — and arrive as that layer's own exception type: a 
+                      <code>FileSystemException</code>, a <code>MySqlException</code>, a socket error. Letting those reach the caller means a pipeline that catches [TomServerException] does not catch storage at all, and a caller that wants to distinguish 
+                      <em>what failed</em> has to know which backend it was configured with.
+                    </p>
+                    <p>
+                      So each backend translates, and this enum is the vocabulary it translates into: four operations, one error key and one user-facing message each, spelled once so every backend agrees. It mirrors 
+                      <code>TomExportStoreOperation</code> in the export module deliberately — the same four questions are being asked of the same kinds of infrastructure, and two different answers for one fault would be an accident of which module the caller came through.
+                    </p>
+                    <p>
+                      The division is by <em>what the caller asked for</em>, not by which call threw: [read] is "give me the bytes", [probe] is "tell me about the blob" ([TomBlobStore.describe] and [TomBlobStore.exists]), and a sidecar that cannot be read during a 
+                      <code>describe</code> is therefore a [probe] failure even though a file read is what failed.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Values</h4>
+                  <div class="api-members">
+                    <div id="TomBlobStoreOperation.write" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">write</code></div>
+                      <div class="api-doc"><p>Storing bytes under a key.</p></div>
+                    </div>
+                    <div id="TomBlobStoreOperation.read" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">read</code></div>
+                      <div class="api-doc"><p>Reading a blob's bytes back.</p></div>
+                    </div>
+                    <div id="TomBlobStoreOperation.probe" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">probe</code></div>
+                      <div class="api-doc"><p>Asking what is stored under a key, or whether anything is.</p></div>
+                    </div>
+                    <div id="TomBlobStoreOperation.delete" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">delete</code></div>
+                      <div class="api-doc"><p>Removing what a key holds.</p></div>
+                    </div>
+                    <div id="TomBlobStoreOperation.copy" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">copy</code></div>
+                      <div class="api-doc"><p>Putting what one key holds under a second one as well.</p></div>
+                    </div>
+                    <div id="TomBlobStoreOperation.move" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">move</code></div>
+                      <div class="api-doc"><p>Moving what one key holds to another.</p></div>
+                    </div>
+                    <div id="TomBlobStoreOperation.deletePrefix" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">deletePrefix</code></div>
+                      <div class="api-doc"><p>Removing everything under a key prefix.</p></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="TomBlobStoreOperation.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">const TomBlobStoreOperation.new(String errorKey, String message)</code></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="TomBlobStoreOperation.errorKey" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String errorKey</code></div>
+                      <div class="api-doc"><p>The stable error key a caller matches on.</p></div>
+                    </div>
+                    <div id="TomBlobStoreOperation.message" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String message</code></div>
+                      <div class="api-doc"><p>The user-facing message carried by the raised exception.</p></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="TomBlobStoreOperation.values" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static List&lt;TomBlobStoreOperation&gt; values</code></div>
+                    </div>
+                  </div>
+                </section>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+      <footer class="site-footer">
+        <div class="wrap">
+          <span><svg viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg" aria-label="Tom Framework logo" role="img">
+  <defs>
+    <linearGradient id="tom-f" x1="32" y1="28" x2="128" y2="140" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#0F9ED5"/><stop offset=".55" stop-color="#156082"/><stop offset="1" stop-color="#0E2841"/></linearGradient>
+    <linearGradient id="tom-e" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0F9ED5"/><stop offset="1" stop-color="#156082"/></linearGradient>
+    <radialGradient id="tom-s" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#7FE3A0"/><stop offset="1" stop-color="#4EA72E"/></radialGradient>
+  </defs>
+  <circle cx="44" cy="42" r="22" fill="url(#tom-e)"/><circle cx="116" cy="42" r="22" fill="url(#tom-e)"/>
+  <circle cx="44" cy="42" r="9" fill="#0E2841" opacity=".35"/><circle cx="116" cy="42" r="9" fill="#0E2841" opacity=".35"/>
+  <rect x="26" y="40" width="108" height="104" rx="46" fill="url(#tom-f)"/>
+  <circle cx="62" cy="86" r="7.5" fill="#EAF6FB"/><circle cx="98" cy="86" r="7.5" fill="#EAF6FB"/>
+  <circle cx="63.5" cy="87" r="3.2" fill="#0E2841"/><circle cx="99.5" cy="87" r="3.2" fill="#0E2841"/>
+  <rect x="60" y="104" width="40" height="30" rx="15" fill="#EAF6FB" opacity=".92"/>
+  <path d="M80 112 v8 M80 120 q-6 5 -12 4 M80 120 q6 5 12 4" stroke="#0E2841" stroke-width="3.4" stroke-linecap="round" fill="none"/>
+  <ellipse cx="80" cy="112" rx="6.5" ry="4.5" fill="#0E2841"/>
+  <circle cx="128" cy="118" r="5" fill="url(#tom-s)"/><circle cx="140" cy="110" r="3" fill="#4EA72E" opacity=".8"/><circle cx="139" cy="124" r="2.4" fill="#0F9ED5" opacity=".7"/>
+</svg></span>
+          <span>Tom Framework</span>
+          <a class="copyright" href="/impressum">© 2026 Enterprise Flutter</a>
+        </div>
+      </footer>
+      <!--@mermaid_init-->
+      <span style="display: none"></span>
+      <!--/@mermaid_init-->
+    </div>
+  </body>
+</html>

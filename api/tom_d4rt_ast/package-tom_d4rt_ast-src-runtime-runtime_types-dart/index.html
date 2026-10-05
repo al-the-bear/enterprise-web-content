@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1388,6 +1394,7 @@
               <div class="treepane">
                 <div class="treenodes">
                   <a class="leaf" href="#BoundBridgedSuper">BoundBridgedSuper</a>
+                  <a class="leaf" href="#BoundObjectSuper">BoundObjectSuper</a>
                   <a class="leaf" href="#BoundSuper">BoundSuper</a>
                   <a class="leaf" href="#BridgedEnumMixinMethodCallable">BridgedEnumMixinMethodCallable</a>
                   <a class="leaf" href="#BridgedMixinMethodCallable">BridgedMixinMethodCallable</a>
@@ -1401,6 +1408,8 @@
                   <a class="leaf" href="#InterpretedInstance">InterpretedInstance</a>
                   <a class="leaf" href="#InterpretedRecord">InterpretedRecord</a>
                   <a class="leaf" href="#_freezeTable">_freezeTable</a>
+                  <a class="leaf" href="#callInterpretedToString">callInterpretedToString</a>
+                  <a class="leaf" href="#renderInterpretedToString">renderInterpretedToString</a>
                 </div>
               </div>
               <div class="reader">
@@ -1425,6 +1434,28 @@
                     </div>
                     <div id="BoundBridgedSuper.startLookupClass" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final BridgedClass startLookupClass</code></div>
+                    </div>
+                  </div>
+                </section>
+                <section id="BoundObjectSuper" class="api-declaration">
+                  <h3 class="api-decl-title">class BoundObjectSuper</h3>
+                  <code class="api-signature">class BoundObjectSuper</code>
+                  <div class="api-doc">
+                    <p>
+                      Represents 'super' bound to an instance whose class's superclass is <code>Object</code>: no interpreted superclass, no bridged superclass and no bridged mixin. Its members are 
+                      <code>Object</code>'s ([InterpretedInstance.objectMember]).
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="BoundObjectSuper.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">BoundObjectSuper.new(InterpretedInstance instance)</code></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="BoundObjectSuper.instance" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final InterpretedInstance instance</code></div>
                     </div>
                   </div>
                 </section>
@@ -1719,10 +1750,45 @@
                         <code class="api-signature">final Map&lt;String, InterpretedFunction&gt; _operatorResolutionCache</code>
                       </div>
                     </div>
+                    <div id="InterpretedClass.declaringVisitor" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">InterpreterVisitor? declaringVisitor</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The visitor that declared this class, kept so a script's own <code>toString()</code> override can still be dispatched after the interpreter has unwound.
+                        </p>
+                        <p>
+                          SCD72. <code>InterpretedInstance.toString()</code> is a plain <code>Object</code> override with nowhere to receive a visitor, and dispatching to interpreted code needs one — which is why the diagnostic form was all a host ever saw. Measured: inside a 
+                          <code>D4rt.onUncaughtError</code> hook, <code>D4.activeVisitor</code> is NULL, because the interpreter has already unwound by the time the embedder is called. So the ambient visitor cannot carry this and something has to be stored.
+                        </p>
+                        <p>
+                          ONE REFERENCE PER CLASS, NOT PER INSTANCE, which is the whole reason this field is here rather than on 
+                          <code>InterpretedInstance</code>: classes are few and instances are many, the class is what owns the method being dispatched, and a per-instance reference would add an allocation to every script object for a string almost none of them are ever asked for.
+                        </p>
+                        <p>
+                          Assigned once, from <code>InterpreterVisitor.visitClassDeclaration</code> / <code>visitMixinDeclaration</code>. Measured usable after 
+                          <code>execute</code> returns: a visitor captured during execution still dispatches an instance method afterwards, because it holds the global environment the D4rt instance keeps alive.
+                        </p>
+                      </div>
+                    </div>
                     <div id="InterpretedClass.arity" class="api-member"><div class="api-member-head"><code class="api-signature">int arity</code></div></div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
+                    <div id="InterpretedClass.resolveDeferredTypeParameterBounds" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">void resolveDeferredTypeParameterBounds(STypeParameterList? typeParameters, Environment enclosing)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>SCE130: resolve any bound pass 1 had to leave unresolved.</p>
+                        <p>
+                          A class's type-parameter bounds are resolved once, when pass 1 creates the placeholder, and nothing ever re-extracts them — so 
+                          <code>typedef N = num; class Box&lt;T extends N&gt;</code> had to resolve <code>N</code> before any alias existed, and threw. A function does not need this because pass 2 REBUILDS it from its declaration; a class is populated in place, so the repair has to be explicit and this is it.
+                        </p>
+                        <p>
+                          Called from pass 2's <code>visitClassDeclaration</code>, after imports and the type alias fixpoint. A bound that still does not resolve throws HERE, which is what keeps a genuinely undefined bound reportable.
+                        </p>
+                      </div>
+                    </div>
                     <div id="InterpretedClass.toString" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">String toString()</code>
@@ -1859,8 +1925,13 @@
                     <div id="InterpretedClass.extractTypeParameterBounds" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          static Map&lt;String, RuntimeType?&gt; extractTypeParameterBounds(STypeParameterList? typeParameters, Environment? resolveEnvironment)
+                          static Map&lt;String, RuntimeType?&gt; extractTypeParameterBounds(STypeParameterList? typeParameters, Environment? resolveEnvironment, {bool lenient = false})
                         </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          SCE130: [lenient] records an unresolvable bound as <code>null</code> rather than rethrowing. Pass 1 passes it, and [resolveDeferredTypeParameterBounds] repairs the miss in pass 2 once imports and type aliases exist.
+                        </p>
                       </div>
                     </div>
                     <div id="InterpretedClass.resolveTypeAnnotationDynamic" class="api-member">
@@ -1948,12 +2019,31 @@
                     <div id="InterpretedEnum.bridgedMixins" class="api-member">
                       <div class="api-member-head"><code class="api-signature">List&lt;BridgedClass&gt; bridgedMixins</code></div>
                     </div>
+                    <div id="InterpretedEnum.declaringVisitor" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">InterpreterVisitor? declaringVisitor</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The visitor that declared this enum, so [InterpretedEnumValue.toString] can reach a script's <code>toString</code>
+                           override after the interpreter has unwound. See [InterpretedClass.declaringVisitor] — same wiring, same reason, assigned once per enum in 
+                          <code>visitEnumDeclaration</code>.
+                        </p>
+                      </div>
+                    </div>
                     <div id="InterpretedEnum.valuesList" class="api-member">
                       <div class="api-member-head"><code class="api-signature">List&lt;InterpretedEnumValue&gt; valuesList</code></div>
                     </div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
+                    <div id="InterpretedEnum.findInstanceMethod" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">InterpretedFunction? findInstanceMethod(String name)</code></div>
+                      <div class="api-doc">
+                        <p>The instance method [name], searching this enum then its mixins.</p>
+                        <p>
+                          Same order as [InterpretedEnumValue.get] resolves one — own members first, then mixins in reverse declaration order so the last applied wins.
+                        </p>
+                      </div>
+                    </div>
                     <div id="InterpretedEnum.toString" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">String toString()</code>
@@ -2008,6 +2098,16 @@
                       <div class="api-member-head">
                         <code class="api-signature">String toString()</code>
                         <span class="api-badge api-badge--override">override</span>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          The enum's own <code>toString</code> override when the script declares one, and <code>EnumName.valueName</code>
+                           otherwise.
+                        </p>
+                        <p>
+                          SCE116. The DEFAULT was already right — which is why this was easy to miss: <code>P.a</code> is what a host wants and what Dart prints, so nothing looked broken until a script overrode 
+                          <code>toString</code> and the override was ignored.
+                        </p>
                       </div>
                     </div>
                     <div id="InterpretedEnumValue.get" class="api-member">
@@ -2105,7 +2205,7 @@
                     <div id="InterpretedExtensionType.new" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">
-                          InterpretedExtensionType.new(String name, String representationFieldName, RuntimeType? representationType, Environment definitionEnvironment, Map&lt;String, InterpretedFunction&gt; getters, Map&lt;String, InterpretedFunction&gt; methods)
+                          InterpretedExtensionType.new(String name, String representationFieldName, RuntimeType? representationType, Environment definitionEnvironment, Map&lt;String, InterpretedFunction&gt; getters, Map&lt;String, InterpretedFunction&gt; methods, Map&lt;String, InterpretedFunction&gt; setters)
                         </code>
                       </div>
                     </div>
@@ -2132,6 +2232,18 @@
                     </div>
                     <div id="InterpretedExtensionType.methods" class="api-member">
                       <div class="api-member-head"><code class="api-signature">final Map&lt;String, InterpretedFunction&gt; methods</code></div>
+                    </div>
+                    <div id="InterpretedExtensionType.setters" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Map&lt;String, InterpretedFunction&gt; setters</code></div>
+                    </div>
+                    <div id="InterpretedExtensionType.declaringVisitor" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">InterpreterVisitor? declaringVisitor</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The visitor that declared this extension type, so [InterpretedExtensionTypeInstance.toString] can reach a script's 
+                          <code>toString</code> override after the interpreter has unwound. Assigned once in <code>visitExtensionTypeDeclaration</code>.
+                        </p>
+                      </div>
                     </div>
                     <div id="InterpretedExtensionType.arity" class="api-member"><div class="api-member-head"><code class="api-signature">int arity</code></div></div>
                   </div>
@@ -2183,6 +2295,7 @@
                       <div class="api-member-head"><code class="api-signature">final Object? representationValue</code></div>
                     </div>
                     <div id="InterpretedExtensionTypeInstance.valueType" class="api-member"><div class="api-member-head"><code class="api-signature">RuntimeType valueType</code></div></div>
+                    <div id="InterpretedExtensionTypeInstance._representationString" class="api-member"><div class="api-member-head"><code class="api-signature">String _representationString</code></div></div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
@@ -2198,10 +2311,15 @@
                         <code class="api-signature">String toString()</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
+                      <div class="api-doc">
+                        <p>
+                          The extension type's own <code>toString</code> override when the script declares one, and [_representationString] otherwise.
+                        </p>
+                      </div>
                     </div>
                     <div id="InterpretedExtensionTypeInstance.set" class="api-member">
                       <div class="api-member-head">
-                        <code class="api-signature">void set(String name, Object? value)</code>
+                        <code class="api-signature">void set(String name, Object? value, [InterpreterVisitor? visitor])</code>
                         <span class="api-badge api-badge--override">override</span>
                       </div>
                     </div>
@@ -2226,6 +2344,20 @@
                       <div class="api-member-head"><code class="api-signature">final Map&lt;String, Object?&gt; _fields</code></div>
                     </div>
                     <div id="InterpretedInstance.bridgedSuperObject" class="api-member"><div class="api-member-head"><code class="api-signature">Object? bridgedSuperObject</code></div></div>
+                    <div id="InterpretedInstance._bridgedSuperObject" class="api-member"><div class="api-member-head"><code class="api-signature">Object? _bridgedSuperObject</code></div></div>
+                    <div id="InterpretedInstance.thrownStackTrace" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">StackTrace? thrownStackTrace</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The stack trace recorded when this instance was first thrown, for an instance whose bridged super-object is an [Error] (SCF39).
+                        </p>
+                        <p>
+                          Dart sets <code>Error.stackTrace</code> on the first throw. The native super-object is never thrown — the interpreter throws this instance — and its 
+                          <code>stackTrace</code> cannot be assigned, so the record lives here and the <code>stackTrace</code> read answers it when the native one is null.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpretedInstance._defaultString" class="api-member"><div class="api-member-head"><code class="api-signature">String _defaultString</code></div></div>
                     <div id="InterpretedInstance.nativeProxy" class="api-member"><div class="api-member-head"><code class="api-signature">Object? nativeProxy</code></div></div>
                     <div id="InterpretedInstance.interpretedStatefulWidget" class="api-member">
                       <div class="api-member-head"><code class="api-signature">InterpretedInstance? interpretedStatefulWidget</code></div>
@@ -2243,11 +2375,32 @@
                     <div id="InterpretedInstance._boundMethodCache" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Map&lt;InterpretedFunction, Callable&gt;? _boundMethodCache</code></div>
                     </div>
+                    <div id="InterpretedInstance._diagnosticString" class="api-member"><div class="api-member-head"><code class="api-signature">String _diagnosticString</code></div></div>
                     <div id="InterpretedInstance.valueType" class="api-member"><div class="api-member-head"><code class="api-signature">RuntimeType valueType</code></div></div>
                     <div id="InterpretedInstance.hashCode" class="api-member"><div class="api-member-head"><code class="api-signature">int hashCode</code></div></div>
                   </div>
                   <h4 class="api-group-title">Methods</h4>
                   <div class="api-members">
+                    <div id="InterpretedInstance.recordThrowIfError" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void recordThrowIfError(StackTrace stackTrace)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Records [thrownStackTrace] if this is the first throw of an instance extending [Error]; a later throw keeps the first, as Dart does.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpretedInstance.defaultToStringOver" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">String? defaultToStringOver(Object native)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          This instance's own default rendering when [native] — its bridged super-object or proxy — answers <code>Object</code>'s default 
+                          <code>toString</code>, and null when [native] overrides it (<code>ArgumentError</code>'s message is a real answer).
+                        </p>
+                        <p>
+                          The one place the rule lives: a member read, <code>super.toString()</code> and interpolation all ask it (SCF39).
+                        </p>
+                      </div>
+                    </div>
                     <div id="InterpretedInstance.bindMethodCached" class="api-member">
                       <div class="api-member-head"><code class="api-signature">Callable bindMethodCached(InterpretedFunction method)</code></div>
                       <div class="api-doc">
@@ -2314,10 +2467,34 @@
                       </div>
                       <div class="api-doc"><p>Validate Set&amp;lt;T&amp;gt; element type</p></div>
                     </div>
+                    <div id="InterpretedInstance.objectMember" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Object? objectMember(String name)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          What <code>Object</code> itself answers for [name] on this instance, or null when [name] is not one of 
+                          <code>Object</code>'s members that can be asked of an instance by name.
+                        </p>
+                        <p>
+                          The answers every class inherits and a script class need not declare: <code>toString</code> renders as 
+                          <code>'$this'</code> does for a class with no override ([_diagnosticString], never re-dispatching to a script 
+                          <code>toString</code>, so <code>super.toString()</code> inside an override cannot recurse into it); <code>noSuchMethod</code>
+                           raises a catchable <code>NoSuchMethodError</code>, which is what <code>super.noSuchMethod(invocation)</code>
+                           inside an override means; <code>hashCode</code> and <code>runtimeType</code> are the values [get] answers.
+                        </p>
+                      </div>
+                    </div>
                     <div id="InterpretedInstance.toString" class="api-member">
                       <div class="api-member-head">
                         <code class="api-signature">String toString()</code>
                         <span class="api-badge api-badge--override">override</span>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Dispatches to the script's <code>toString()</code> when there is one, and falls back to [_diagnosticString] otherwise.
+                        </p>
+                        <p>
+                          SCD72 wrote the mechanism here; SCE116 moved it to [renderInterpretedToString] so the enum and extension-type siblings in this file could use it rather than carry a third and fourth copy. The reasoning — why it never throws for anything a script can do, and why two VM errors are the exception — lives on that function.
+                        </p>
                       </div>
                     </div>
                     <div id="InterpretedInstance.hasInstanceMember" class="api-member">
@@ -2336,6 +2513,24 @@
                       <div class="api-member-head">
                         <code class="api-signature">Object? get(String name, {InterpreterVisitor? visitor})</code>
                         <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="InterpretedInstance.getForInvocation" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Object? getForInvocation(String name, {required InterpreterVisitor visitor})</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>[get] for the callee of a method invocation <code>x.name(...)</code>.</p>
+                        <p>
+                          Resolves exactly what [get] resolves, with [visitor] supplied so the bridged-superclass lookup can walk the bridge's registered supertypes (SCF19). The one difference is a miss: [get] answers a missing name by calling 
+                          <code>noSuchMethod</code> with a GETTER <code>Invocation</code>, which is right for a property read and wrong here — a call 
+                          <code>x.name(a)</code> must reach <code>noSuchMethod</code> as <code>Invocation.method</code> with its arguments, and the invocation site builds that itself. So a miss throws, as [get] does without a visitor.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpretedInstance._get" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">Object? _get(String name, InterpreterVisitor? visitor, {required bool answerMissWithNoSuchMethod})</code>
                       </div>
                     </div>
                     <div id="InterpretedInstance.findOperator" class="api-member">
@@ -2390,6 +2585,22 @@
                     <div id="InterpretedInstance._equalsInProgress" class="api-member">
                       <div class="api-member-head"><code class="api-signature">static Set&lt;int&gt; _equalsInProgress</code></div>
                     </div>
+                    <div id="InterpretedInstance._isObjectDefaultToString" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static bool _isObjectDefaultToString(Object native)</code></div>
+                      <div class="api-doc">
+                        <p>Whether [native]'s <code>toString</code> is <code>Object</code>'s own, unoverridden answer.</p>
+                        <p>
+                          A bridged super-object that does not override <code>toString</code> — a plain <code>Error</code> — renders as 
+                          <code>Instance of 'Error'</code>, describing the NATIVE class. Dart's default names the runtime class, which is the interpreted one, so that answer must not reach the script (SCF39).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="InterpretedInstance._symbolText" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static String _symbolText(Symbol symbol)</code></div>
+                      <div class="api-doc">
+                        <p>The text of [symbol] — <code>#foo</code> gives <code>foo</code> — without <code>dart:mirrors</code>.</p>
+                      </div>
+                    </div>
                   </div>
                 </section>
                 <section id="InterpretedRecord" class="api-declaration">
@@ -2442,6 +2653,51 @@
                     <p>
                       Compacts [table] into its read-only form when it is a [FrozenNameMap]. Member/declaration tables are populated once during declaration wiring and never mutated afterwards (perf T6, plan_2 §6), so freezing them at the end of the wiring loop swaps the 
                       <code>LinkedHashMap</code> for a sorted parallel layout.
+                    </p>
+                  </div>
+                </section>
+                <section id="callInterpretedToString" class="api-declaration">
+                  <h3 class="api-decl-title">function callInterpretedToString</h3>
+                  <code class="api-signature">
+                    Object? callInterpretedToString(InterpretedFunction method, RuntimeValue target, InterpreterVisitor visitor)
+                  </code>
+                  <div class="api-doc">
+                    <p>
+                      Calls an interpreted <code>toString</code> and returns what it produced, unwrapping the <code>ReturnException</code>
+                       a block-bodied one throws.
+                    </p>
+                    <p>
+                      The STRICT half: nothing is caught, so a throwing <code>toString</code> propagates and <code>toString() =&gt; '$this'</code>
+                       overflows the stack. That is Dart's behaviour and it is what [InterpreterVisitor.stringify] needs, because stringify renders interpolation INSIDE a script. [renderInterpretedToString] wraps this for the host-facing path, which needs the opposite.
+                    </p>
+                  </div>
+                </section>
+                <section id="renderInterpretedToString" class="api-declaration">
+                  <h3 class="api-decl-title">function renderInterpretedToString</h3>
+                  <code class="api-signature">
+                    String renderInterpretedToString({required RuntimeValue target, required InterpretedFunction? method, required InterpreterVisitor? visitor, required String Function() fallback})
+                  </code>
+                  <div class="api-doc">
+                    <p>
+                      Dispatches to a script's <code>toString()</code> when there is one, and falls back to [fallback] otherwise.
+                    </p>
+                    <p>
+                      SCD72 wrote this for <code>InterpretedInstance</code> and SCE116 shared it with <code>InterpretedEnumValue</code>
+                       and <code>InterpretedExtensionTypeInstance</code>, which had the same defect in the same file. Every line is here for a measured reason and the reasons apply unchanged to all three; a third and fourth copy would have been three and four places for the next correction to land in.
+                    </p>
+                    <p>
+                      THIS FUNCTION DOES NOT THROW FOR ANYTHING RECOVERABLE, and that is a deliberate divergence from [callInterpretedToString], which is what 
+                      <code>stringify</code> uses and must keep Dart's semantics. This is the one HOST code reaches, including an 
+                      <code>onUncaughtError</code> hook whose first act is to log the error. A second exception raised while reporting the first is worse than an imperfect string, which is the same reasoning behind the SDK's own 
+                      <code>Error.safeToString</code>.
+                    </p>
+                    <p>
+                      <code>StackOverflowError</code> AND <code>OutOfMemoryError</code> ARE RETHROWN, and the reason is measured rather than principled. SCD72's first draft caught everything, and a pair of mutually-interpolating objects (<code>A.toString() =&gt; 'A:$b'</code>, 
+                      <code>B.toString() =&gt; 'B:$a'</code>) stopped raising <code>StackOverflowError</code> and started HANGING: the overflow unwound into this catch, the fallback was returned, the caller resumed on a stack that was still full, and it overflowed again — forever. Swallowing an unrecoverable VM error turns a fast crash into a livelock, which is the one outcome worse than the exception. Those two propagate; everything a script can actually do is caught.
+                    </p>
+                    <p>
+                      [fallback] is a callback rather than a string because computing it can itself be work — an extension type's is its representation's own 
+                      <code>toString()</code> — and the override path must not pay for it.
                     </p>
                   </div>
                 </section>

@@ -1134,6 +1134,12 @@
       a.leaf {
         text-decoration: none;
       }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
       .tnode>summary.row {
         list-style: none;
       }
@@ -1390,6 +1396,8 @@
                   <a class="leaf" href="#TomFunctionObserver">TomFunctionObserver</a>
                   <a class="leaf" href="#TomObservable">TomObservable</a>
                   <a class="leaf" href="#TomObserver">TomObserver</a>
+                  <a class="leaf" href="#_ObserverRef">_ObserverRef</a>
+                  <a class="leaf" href="#TomObservableObservation">TomObservableObservation</a>
                 </div>
               </div>
               <div class="reader">
@@ -1400,9 +1408,13 @@
                   <code class="api-signature">class TomFunctionObserver&lt;T extends TomObservable&gt; implements TomObserver&lt;T&gt;</code>
                   <div class="api-doc">
                     <p>A wrapper that allows using a callback function as a [TomObserver].</p>
-                    <p>This enables the <code>&gt;&gt;</code> operator syntax for observing changes:</p>
-                    <pre><code>myObservable &gt;&gt; (observable) =&gt; print('Changed!');</code></pre>
-                    <p>The observer can be stored and later removed using [TomObservable.removeObserver].</p>
+                    <p>
+                      This is what the <code>&gt;&gt;</code> operator ([TomObservableObservation.operator &gt;&gt;]) creates, so [T] is normally inferred from the observable the operator was applied to.
+                    </p>
+                    <p>
+                      <strong>The wrapper must be retained for as long as notifications are wanted.</strong> [TomObservable] holds its observers by [WeakReference], so this wrapper is the only strong reference keeping the callback alive; if it is not captured, it can be garbage-collected and the callback silently stops firing. Store it (e.g. in a field) and remove it explicitly via [TomObservable.removeObserver] when done — do not use the fire-and-forget form 
+                      <code>myObservable &gt;&gt; (obs) =&gt; ...;</code>.
+                    </p>
                     <p>Example:</p>
                     <pre><code>final observer = myObservable &gt;&gt; (obs) =&gt; print('Changed!');
 // Later, to stop observing:
@@ -1440,7 +1452,7 @@ myObservable.removeObserver(observer);</code></pre>
                       [TomObservable] maintains a list of [TomObserver] instances that are notified when changes occur. Observers are held via [WeakReference] to prevent memory leaks - if an observer is garbage collected, it will be automatically removed from the observer list.
                     </p>
                     <p>
-                      The class supports muting notifications temporarily, which is useful during batch updates where you want to defer notifications until all changes are complete.
+                      Notifications can be muted temporarily so that a run of changes surfaces as a single notification instead of one per change. Use [batch] for that — it releases the mute even when the body throws. [mute] and [unmute] are the unscoped form; they nest, so a batching method may be called from inside a caller's batch without cutting it short.
                     </p>
                     <p>Example usage:</p>
                     <pre><code>class MyModel extends TomObservable {
@@ -1465,12 +1477,38 @@ class MyView extends TomObserver&lt;MyModel&gt; {
                   </div>
                   <h4 class="api-group-title">Properties</h4>
                   <div class="api-members">
-                    <div id="TomObservable._silent" class="api-member"><div class="api-member-head"><code class="api-signature">bool _silent</code></div></div>
-                    <div id="TomObservable._dirty" class="api-member"><div class="api-member-head"><code class="api-signature">bool _dirty</code></div></div>
-                    <div id="TomObservable._observers" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">final List&lt;WeakReference&lt;TomObserver&lt;TomObservable&gt;&gt;&gt; _observers</code>
+                    <div id="TomObservable._muteDepth" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">int _muteDepth</code></div>
+                      <div class="api-doc">
+                        <p>How many mutes are currently held. Zero means notifications flow.</p>
+                        <p>
+                          A counter rather than a flag so that batches nest: a batching method called from inside an enclosing batch must suppress its own notifications without releasing the caller's.
+                        </p>
                       </div>
+                    </div>
+                    <div id="TomObservable._dirty" class="api-member"><div class="api-member-head"><code class="api-signature">bool _dirty</code></div></div>
+                    <div id="TomObservable._cascades" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final List&lt;List&lt;TomObservable&gt;&gt; _cascades</code></div>
+                      <div class="api-doc">
+                        <p>The cascade targets of each still-open mute, innermost last.</p>
+                        <p>
+                          Invariant: <code>_cascades.length == _muteDepth</code>. Each [mute] snapshots the targets it silenced and each [unmute] releases exactly that snapshot, so membership changes made 
+                          <em>during</em> a batch cannot unbalance it — an element added mid-batch was never muted here and is not released here, and one removed mid-batch was muted here and still is released here.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomObservable._observers" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Set&lt;_ObserverRef&gt; _observers</code></div>
+                      <div class="api-doc">
+                        <p>The registered observers, in registration order.</p>
+                        <p>
+                          A set rather than a list because [addObserver] must reject a duplicate, and looking one up by walking the collection made attaching 
+                          <em>n</em> observers cost O(n^2) comparisons — a bill a [TomList] pays in full, since it registers itself with every element it holds. [_ObserverRef] carries the identity hash of its target, so membership is an O(1) lookup. The default [Set] is insertion-ordered, so observers are still notified in the order they registered.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomObservable.muteCascadeTargets" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Iterable&lt;TomObservable&gt; muteCascadeTargets</code></div>
                     </div>
                     <div id="TomObservable.isMuted" class="api-member"><div class="api-member-head"><code class="api-signature">bool isMuted</code></div></div>
                   </div>
@@ -1479,33 +1517,64 @@ class MyView extends TomObserver&lt;MyModel&gt; {
                     <div id="TomObservable.mute" class="api-member">
                       <div class="api-member-head"><code class="api-signature">void mute()</code></div>
                       <div class="api-doc">
-                        <p>Mutes all observer notifications.</p>
+                        <p>Mutes all observer notifications, and those of [muteCascadeTargets].</p>
                         <p>
-                          While muted, calls to [notifyObservers] will mark the observable as dirty but will not actually notify observers. When [unmute] is called, if the observable was marked dirty, observers will be notified at that time.
+                          While muted, calls to [notifyObservers] mark the observable as dirty instead of notifying. The matching [unmute] delivers a single consolidated notification if anything was marked dirty.
                         </p>
                         <p>
-                          This is useful for batch updates where you want to make multiple changes without triggering notifications for each individual change.
+                          <strong>Mutes nest.</strong> Each call must be matched by exactly one [unmute]; notifications resume only when the outermost one is released. This is what lets a batching mutator be called from inside a caller's batch without cutting it short.
                         </p>
+                        <p>Prefer [batch], which cannot leak a mute on the throwing path.</p>
                       </div>
                     </div>
                     <div id="TomObservable.unmute" class="api-member">
                       <div class="api-member-head"><code class="api-signature">void unmute()</code></div>
                       <div class="api-doc">
-                        <p>Unmutes observer notifications and notifies observers if changes occurred while muted.</p>
+                        <p>Releases one [mute].</p>
                         <p>
-                          If [notifyObservers] was called while the observable was muted, observers will be notified immediately upon calling this method.
+                          The cascade targets this mute silenced are released first, while this object is still muted, so any notification they emit collapses into this object's single notification rather than escaping as one of its own.
+                        </p>
+                        <p>
+                          When the last mute is released and [notifyObservers] was called while muted, observers are notified once.
+                        </p>
+                        <p>
+                          Releasing more often than muting is a no-op rather than an error: the depth floors at zero, so a stray call cannot poison later batches.
                         </p>
                       </div>
                     </div>
-                    <div id="TomObservable._getObserverReference" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">
-                          WeakReference&lt;TomObserver&lt;TomObservable&gt;&gt;? _getObserverReference(TomObserver&lt;TomObservable&gt; observer)
-                        </code>
-                      </div>
+                    <div id="TomObservable._muteSelf" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">void _muteSelf()</code></div>
                       <div class="api-doc">
-                        <p>Finds the weak reference wrapper for the given observer.</p>
-                        <p>Returns <code>null</code> if the observer is not registered.</p>
+                        <p>Mutes this observable <em>without</em> cascading to [muteCascadeTargets].</p>
+                        <p>
+                          Used by the batching mutators on the composites, which consolidate their own notifications but must leave the elements' own observers alone.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="TomObservable.batch" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">T batch&lt;T&gt;(T Function() body)</code></div>
+                      <div class="api-doc">
+                        <p>Runs [body] with notifications muted, releasing the mute afterwards.</p>
+                        <p>
+                          The scoped form of [mute] / [unmute], and the one to reach for: the release happens in a <code>finally</code>, so a throwing [body] cannot leave the object silent for the rest of its life. Nests like [mute] does.
+                        </p>
+                        <pre><code>list.batch(() {
+  list.add(a);
+  list.add(b);
+}); // one notification</code></pre>
+                        <p>Returns whatever [body] returns.</p>
+                      </div>
+                    </div>
+                    <div id="TomObservable.batchSelf" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">T batchSelf&lt;T&gt;(T Function() body)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Runs [body] with <em>this</em> observable's notifications muted, without cascading to [muteCascadeTargets].
+                        </p>
+                        <p>
+                          A composite mutator that makes several internal edits uses this to surface them as one notification, while leaving observers of the individual elements to hear about their own changes as they happen.
+                        </p>
+                        <p>Returns whatever [body] returns.</p>
                       </div>
                     </div>
                     <div id="TomObservable.addObserver" class="api-member">
@@ -1515,7 +1584,10 @@ class MyView extends TomObserver&lt;MyModel&gt; {
                         <p>
                           The observer is stored as a [WeakReference], so it will be automatically removed if it is garbage collected. This prevents memory leaks from observers that are no longer in use.
                         </p>
-                        <p>If the observer is already registered, this method does nothing.</p>
+                        <p>
+                          If the observer is already registered, this method does nothing. "Already registered" means <em>the same object</em>, not an equal one: an observer that overrides 
+                          <code>==</code> is still distinct from its equals.
+                        </p>
                       </div>
                     </div>
                     <div id="TomObservable.removeObserver" class="api-member">
@@ -1526,7 +1598,7 @@ class MyView extends TomObserver&lt;MyModel&gt; {
                       </div>
                     </div>
                     <div id="TomObservable.notifyObservers" class="api-member">
-                      <div class="api-member-head"><code class="api-signature">void notifyObservers([dynamic message])</code></div>
+                      <div class="api-member-head"><code class="api-signature">void notifyObservers()</code></div>
                       <div class="api-doc">
                         <p>Notifies all registered observers of a change.</p>
                         <p>
@@ -1534,28 +1606,8 @@ class MyView extends TomObserver&lt;MyModel&gt; {
                         </p>
                         <p>This method also cleans up any weak references to observers that have been garbage collected.</p>
                         <p>
-                          The optional [message] parameter is currently unused but reserved for future use to pass additional context about the change.
+                          Observers are told <em>that</em> this observable changed, not <em>what</em> changed: each receives the observable itself and reads its current state. There is deliberately no payload, and the reason is the mute contract rather than taste. While muted, calls here only mark the observable dirty, and the matching [unmute] sends a single notification for all of them — cascade targets' notifications included. A per-call message could not survive that: the one notification sent would have to carry one of the collapsed messages and drop the rest, and a caller batching through [batch] would see its payloads disappear depending on whether anyone else held a mute. Reading state from the observable gives the same answer however many changes were collapsed.
                         </p>
-                      </div>
-                    </div>
-                  </div>
-                  <h4 class="api-group-title">Operators</h4>
-                  <div class="api-members">
-                    <div id="TomObservable.&gt;&gt;" class="api-member">
-                      <div class="api-member-head">
-                        <code class="api-signature">TomFunctionObserver&lt;TomObservable&gt; operator &gt;&gt;(void Function(TomObservable) callback)</code>
-                      </div>
-                      <div class="api-doc">
-                        <p>
-                          Stream operator to add an observer callback: <code>observable &gt;&gt; (obs) =&gt; print('changed')</code>
-                        </p>
-                        <p>
-                          The callback will be invoked whenever this observable notifies its observers. Returns the observer wrapper so it can be stored and later removed using [removeObserver].
-                        </p>
-                        <p>Example:</p>
-                        <pre><code>final observer = myObservable &gt;&gt; (obs) =&gt; print('Changed!');
-// Later, to stop observing:
-myObservable.removeObserver(observer);</code></pre>
                       </div>
                     </div>
                   </div>
@@ -1589,6 +1641,93 @@ myObservable.removeObserver(observer);</code></pre>
                         <p>Called when the observed [TomObservable] notifies its observers of a change.</p>
                         <p>
                           The [observable] parameter is the object that triggered the notification, typed as [T] for convenient access to its properties.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="_ObserverRef" class="api-declaration">
+                  <h3 class="api-decl-title">class _ObserverRef</h3>
+                  <code class="api-signature">class _ObserverRef</code>
+                  <div class="api-doc">
+                    <p>A weakly-held, identity-keyed handle on one registered [TomObserver].</p>
+                    <p>
+                      Holding the observer through a [WeakReference] is the whole point of the registry — the observable must not keep its observers alive. The identity hash is captured at construction rather than computed on demand, so the handle keeps the same hash after its target has been collected and stays findable in the set; a dead entry that could not be found again could not be pruned either.
+                    </p>
+                    <p>
+                      Equality is <em>identity of the target</em>, deliberately. It is what the linear scan this replaced compared on, and it is the behaviour that matters: two observers that declare themselves 
+                      <code>==</code> are still two observers, and both get notified.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="_ObserverRef.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">_ObserverRef.new(TomObserver&lt;TomObservable&gt; observer)</code></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="_ObserverRef._reference" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">final WeakReference&lt;TomObserver&lt;TomObservable&gt;&gt; _reference</code>
+                      </div>
+                    </div>
+                    <div id="_ObserverRef._identityHash" class="api-member"><div class="api-member-head"><code class="api-signature">final int _identityHash</code></div></div>
+                    <div id="_ObserverRef.target" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">TomObserver&lt;TomObservable&gt;? target</code></div>
+                    </div>
+                    <div id="_ObserverRef.hashCode" class="api-member"><div class="api-member-head"><code class="api-signature">int hashCode</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Operators</h4>
+                  <div class="api-members">
+                    <div id="_ObserverRef.==" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">bool operator ==(Object other)</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="TomObservableObservation" class="api-declaration">
+                  <h3 class="api-decl-title">extension TomObservableObservation</h3>
+                  <code class="api-signature">extension TomObservableObservation&lt;T extends TomObservable&gt; on T</code>
+                  <div class="api-doc">
+                    <p>Adds the observation operator <code>&gt;&gt;</code> to every [TomObservable].</p>
+                    <p>
+                      An extension rather than a method on [TomObservable] because the whole point is the <em>receiver's</em>
+                       type: an extension type parameter is inferred from the expression it is applied to, so <code>count &gt;&gt; …</code>
+                       on a <code>TomInt</code> yields a <code>TomFunctionObserver&lt;TomInt&gt;</code> and hands the callback a 
+                      <code>TomInt</code>, while a method on the base class could only ever promise <code>TomObservable</code>. This works for classes the framework has never heard of — a user's 
+                      <code>Person extends TomClass</code> gets <code>TomFunctionObserver&lt;Person&gt;</code>.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Operators</h4>
+                  <div class="api-members">
+                    <div id="TomObservableObservation.&gt;&gt;" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">TomFunctionObserver&lt;T&gt; operator &gt;&gt;(void Function(T) callback)</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Registers [callback] as an observer: <code>count &gt;&gt; (obs) =&gt; print(obs.get())</code>.</p>
+                        <p>
+                          The callback runs whenever this observable notifies its observers, and receives the observable itself — typed as the receiver was, so a 
+                          <code>TomInt</code>'s callback can read <code>obs.get()</code> as an <code>int</code> with no cast.
+                        </p>
+                        <p>
+                          Returns the [TomFunctionObserver] wrapper, which can later be passed to [TomObservable.removeObserver].
+                        </p>
+                        <p>
+                          <strong>You must retain the returned observer for as long as you want notifications.</strong> Observers are held by [WeakReference] (see [TomObservable.addObserver]), so the returned wrapper is the 
+                          <em>only</em> strong reference keeping the callback alive. If you discard it — the fire-and-forget form 
+                          <code>myObservable &gt;&gt; (obs) =&gt; print('Changed!');</code> — the wrapper becomes eligible for garbage collection and the callback 
+                          <strong>silently stops firing</strong> at a nondeterministic later time. Always capture the result:
+                        </p>
+                        <pre><code>// Keep `observer` alive (e.g. in a field) for as long as you observe:
+final observer = myObservable &gt;&gt; (obs) =&gt; print('Changed!');
+// Later, to stop observing:
+myObservable.removeObserver(observer);</code></pre>
+                        <p>
+                          The wrapper is bound to the observable that produced it. Registering it on a <em>different</em> observable that is not a [T] fails at notification time — which is the point: the callback was written against a [T].
                         </p>
                       </div>
                     </div>
