@@ -1,0 +1,2821 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base href="/"/>
+    <meta charset="utf-8"/>
+    <style>
+      html {
+        margin: 0;
+        padding: 0;
+        -webkit-text-size-adjust: 100%;
+      }
+      :root {
+        --ink-900: #0A1E33;
+        --ink-800: #0E2841;
+        --ink-700: #143A5A;
+        --teal-700: #156082;
+        --brand-600: #0F7FB0;
+        --brand-500: #0F9ED5;
+        --brand-400: #56BEE6;
+        --accent-600: #D85F23;
+        --accent-500: #E97132;
+        --accent-400: #F08A4F;
+        --green-700: #196B24;
+        --green-600: #3E8F25;
+        --green-500: #4EA72E;
+        --green-300: #86E0A2;
+        --purple-500: #A02B93;
+        --paper: #FFF;
+        --surface: #F4F8FB;
+        --surface-2: #E9F0F6;
+        --line: #D7E1EA;
+        --text: #0E2841;
+        --text-soft: #41576C;
+        --text-faint: #7B8D9C;
+        --font-sans: "Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+        --font-mono: "JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+        --r-sm: 6px;
+        --r-md: 10px;
+        --r-lg: 16px;
+        --r-pill: 999px;
+        --sh-1: 0 1px 3px rgba(14,40,65,.10);
+        --sh-2: 0 6px 16px rgba(14,40,65,.12);
+        --sh-3: 0 20px 44px rgba(14,40,65,.20);
+        --st-ns-bg: #EEF2F5;
+        --st-ns-fg: #5A6B7A;
+        --st-ns-dot: #8497A8;
+        --st-works-bg: #FEF1E7;
+        --st-works-fg: #B6541C;
+        --st-works-dot: #E97132;
+        --st-pub-bg: #E6F4FB;
+        --st-pub-fg: #0B6E97;
+        --st-pub-dot: #0F9ED5;
+        --st-rel-bg: #E7F6EC;
+        --st-rel-fg: #1F7A2E;
+        --st-rel-dot: #4EA72E;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: var(--font-sans);
+        color: var(--text);
+        background: var(--surface);
+        line-height: 1.6;
+      }
+      .wrap {
+        max-width: 1600px;
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+      .wrap-wide {
+        max-width: 1760px;
+      }
+      h1,h2,h3,h4 {
+        margin: 0 0 12px;
+        letter-spacing: -.02em;
+        line-height: 1.18;
+      }
+      p {
+        margin: 0 0 14px;
+        color: var(--text-soft);
+      }
+      a {
+        color: var(--brand-600);
+        text-decoration: none;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      .btn:hover {
+        text-decoration: underline;
+      }
+      .toggle a:hover {
+        text-decoration: underline;
+      }
+      .morelink:hover {
+        text-decoration: underline !important;
+      }
+      .mono {
+        font-family: var(--font-mono);
+        font-size: .78rem;
+        color: var(--text-faint);
+      }
+      .metricline {
+        font-family: var(--font-mono);
+        font-size: .72rem;
+        color: var(--text-soft);
+        margin-top: 6px;
+      }
+      .muted {
+        color: var(--text-faint);
+        font-size: .82rem;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        font-size: .74rem;
+        font-weight: 700;
+        padding: 5px 11px;
+        border-radius: var(--r-pill);
+      }
+      .badge .d {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+      }
+      .b-ns {
+        background: var(--st-ns-bg);
+        color: var(--st-ns-fg);
+      }
+      .b-ns .d {
+        background: var(--st-ns-dot);
+      }
+      .b-works {
+        background: var(--st-works-bg);
+        color: var(--st-works-fg);
+      }
+      .b-works .d {
+        background: var(--st-works-dot);
+      }
+      .b-pub {
+        background: var(--st-pub-bg);
+        color: var(--st-pub-fg);
+      }
+      .b-pub .d {
+        background: var(--st-pub-dot);
+      }
+      .b-rel {
+        background: var(--st-rel-bg);
+        color: var(--st-rel-fg);
+      }
+      .b-rel .d {
+        background: var(--st-rel-dot);
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 700;
+        font-size: .85rem;
+        padding: 10px 18px;
+        border-radius: var(--r-pill);
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: .16s;
+      }
+      .btn-primary {
+        background: linear-gradient(135deg,var(--brand-500),var(--teal-700));
+        color: #fff;
+        box-shadow: var(--sh-2);
+      }
+      .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--sh-3);
+      }
+      .btn-soft {
+        background: var(--surface-2);
+        color: var(--ink-700);
+      }
+      .btn-ghost {
+        background: rgba(255,255,255,.08);
+        color: #fff;
+        border-color: rgba(255,255,255,.3);
+      }
+      .nav {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        background: rgba(255,255,255,.9);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--line);
+      }
+      .nav .wrap {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        height: 60px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 800;
+        font-size: 1.1rem;
+        cursor: pointer;
+      }
+      .brand svg {
+        width: 30px;
+        height: 30px;
+      }
+      .nav .links {
+        display: flex;
+        gap: 20px;
+        margin-left: auto;
+        font-size: .86rem;
+        font-weight: 600;
+      }
+      .nav .links a {
+        color: var(--text-soft);
+      }
+      .nav .links a.active {
+        color: var(--ink-800);
+      }
+      .grid {
+        display: grid;
+        gap: 16px;
+      }
+      .cols-2 {
+        grid-template-columns: repeat(2,1fr);
+      }
+      .cols-3 {
+        grid-template-columns: repeat(3,1fr);
+      }
+      @media (max-width:820px) {
+        .cols-2,.cols-3 {
+          grid-template-columns: 1fr;
+        }
+      }
+      .hero {
+        position: relative;
+        overflow: hidden;
+        background: radial-gradient(800px 440px at 80% -10%,rgba(15,158,213,.30),transparent 60%),radial-gradient(600px 420px at 10% 130%,rgba(78,167,46,.22),transparent 60%),linear-gradient(160deg,#0A1E33,#0E2841 55%,#143A5A);
+        border-radius: var(--r-lg);
+        padding: 42px 36px;
+        margin-top: 24px;
+        color: #fff;
+      }
+      .hero h1 {
+        color: #fff;
+        font-size: 2.2rem;
+        max-width: 18ch;
+      }
+      .hero p {
+        color: #B9CCDC;
+        max-width: 54ch;
+        margin: 0;
+      }
+      .dotgrid {
+        position: absolute;
+        inset: 0;
+        opacity: .5;
+        background-image: radial-gradient(rgba(86,190,230,.35) 1.3px,transparent 1.4px);
+        background-size: 22px 22px;
+        -webkit-mask-image: linear-gradient(120deg,transparent 35%,black 80%);
+        mask-image: linear-gradient(120deg,transparent 35%,black 80%);
+      }
+      .snapshot {
+        display: flex;
+        gap: 22px;
+        margin-top: 22px;
+        font-size: .82rem;
+        color: #B9CCDC;
+        position: relative;
+      }
+      .snapshot b {
+        font-size: 1.3rem;
+        letter-spacing: -.02em;
+      }
+      .mcard {
+        position: relative;
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: var(--r-lg);
+        padding: 20px;
+        box-shadow: var(--sh-1);
+        cursor: pointer;
+        transition: .16s;
+        overflow: hidden;
+      }
+      .mcard:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--sh-3);
+        border-color: #BBD2E3;
+      }
+      .mcard h3 {
+        font-size: 1.15rem;
+        margin: 0 0 4px;
+      }
+      .mcard .cat {
+        font-family: var(--font-mono);
+        font-size: .72rem;
+        color: var(--text-faint);
+      }
+      .mcard .sum {
+        font-size: .86rem;
+        margin: 10px 0 0;
+      }
+      .mcard .extra {
+        max-height: 0;
+        overflow: hidden;
+        opacity: 0;
+        transition: max-height .24s ease,opacity .18s ease,margin .24s;
+      }
+      .mcard:hover .extra {
+        max-height: 140px;
+        opacity: 1;
+        margin-top: 12px;
+      }
+      .dist {
+        display: flex;
+        height: 9px;
+        border-radius: var(--r-pill);
+        overflow: hidden;
+        border: 1px solid var(--line);
+      }
+      .dist span {
+        display: block;
+      }
+      .distlbl {
+        display: flex;
+        gap: 13px;
+        margin-top: 7px;
+        font-size: .72rem;
+        color: var(--text-soft);
+      }
+      .cardarrow {
+        position: absolute;
+        right: 16px;
+        top: 18px;
+        color: var(--brand-500);
+        opacity: 0;
+        transform: translateX(-4px);
+        transition: .16s;
+      }
+      .mcard:hover .cardarrow {
+        opacity: 1;
+        transform: none;
+      }
+      .famhead {
+        background: linear-gradient(160deg,#0A1E33,#143A5A);
+        color: #fff;
+        border-radius: var(--r-lg) var(--r-lg) 0 0;
+        padding: 32px;
+      }
+      .famhead h2 {
+        color: #fff;
+        font-size: 1.85rem;
+      }
+      .famhead p {
+        color: #B9CCDC;
+        max-width: 62ch;
+        margin: 0;
+      }
+      .fambody {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-top: 0;
+        border-radius: 0 0 var(--r-lg) var(--r-lg);
+        padding: 28px 32px;
+      }
+      .grouplbl {
+        font-size: .78rem;
+        font-weight: 700;
+        letter-spacing: .07em;
+        text-transform: uppercase;
+        color: var(--text-soft);
+        margin: 20px 0 12px;
+      }
+      .back {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: #B9CCDC;
+        font-weight: 600;
+        font-size: .85rem;
+        cursor: pointer;
+        background: none;
+        border: 0;
+        padding: 0;
+      }
+      .tile {
+        position: relative;
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: var(--r-lg);
+        padding: 18px 18px 16px;
+        box-shadow: var(--sh-1);
+        cursor: pointer;
+        transition: transform .16s,box-shadow .16s,border-color .16s;
+      }
+      .tile .top {
+        height: 3px;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        border-radius: var(--r-lg) var(--r-lg) 0 0;
+      }
+      .tile.ns .top {
+        background: var(--st-ns-dot);
+      }
+      .tile.works .top {
+        background: var(--st-works-dot);
+      }
+      .tile.pub .top {
+        background: var(--st-pub-dot);
+      }
+      .tile.rel .top {
+        background: linear-gradient(90deg,var(--green-500),var(--brand-500));
+      }
+      .tile:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--sh-3);
+        border-color: #BBD2E3;
+      }
+      .tile h4 {
+        font-size: 1rem;
+        margin: 2px 0 4px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .tile .desc {
+        font-size: .85rem;
+        margin: 0;
+        max-height: 0;
+        overflow: hidden;
+        opacity: 0;
+        transition: max-height .22s ease,opacity .18s ease,margin .22s;
+      }
+      .tile:hover .desc {
+        max-height: 90px;
+        opacity: 1;
+        margin-top: 10px;
+      }
+      .tile .rel-line {
+        font-size: .78rem;
+        font-weight: 600;
+        margin-top: 8px;
+      }
+      .chev {
+        position: absolute;
+        right: 12px;
+        bottom: 11px;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        border: 1px solid var(--line);
+        background: var(--surface);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transform: translateY(4px);
+        transition: .16s;
+        color: var(--brand-600);
+        padding: 0;
+        cursor: pointer;
+      }
+      .chev svg {
+        width: 18px;
+        height: 18px;
+        display: block;
+      }
+      .tile:hover .chev {
+        opacity: 1;
+        transform: none;
+      }
+      .chev:hover {
+        background: var(--brand-500);
+        color: #fff;
+        border-color: var(--brand-500);
+      }
+      dialog.pop {
+        position: fixed;
+        inset: 0;
+        margin: auto;
+        width: 60vw;
+        max-width: 60vw;
+        height: 60vh;
+        max-height: 60vh;
+        overflow: auto;
+        padding: 24px;
+        border: 1px solid var(--line);
+        border-radius: var(--r-lg);
+        box-shadow: var(--sh-3);
+        background: #fff;
+      }
+      dialog.pop:not([open]) {
+        display: none;
+      }
+      dialog.pop[open] {
+        display: block;
+      }
+      dialog.pop::backdrop {
+        background: rgba(10,30,51,.28);
+        backdrop-filter: blur(2px);
+      }
+      .popclose {
+        position: absolute;
+        top: 10px;
+        right: 12px;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        border: 1px solid var(--line);
+        border-radius: 50%;
+        background: var(--surface,#fff);
+        color: var(--text-soft);
+        font-size: .9rem;
+        line-height: 1;
+        cursor: pointer;
+      }
+      .popclose:hover {
+        background: var(--surface-2);
+        color: var(--ink-800);
+      }
+      .pop h4 {
+        font-size: 1.05rem;
+        margin: 0 0 2px;
+      }
+      .quickstats {
+        display: grid;
+        grid-template-columns: repeat(3,1fr);
+        gap: 8px;
+        margin: 12px 0;
+      }
+      .qs {
+        background: var(--surface);
+        border-radius: var(--r-md);
+        padding: 8px 10px;
+      }
+      .qs .k {
+        font-size: .68rem;
+        color: var(--text-faint);
+        text-transform: uppercase;
+        letter-spacing: .04em;
+      }
+      .qs .v {
+        font-size: .95rem;
+        font-weight: 700;
+        font-family: var(--font-mono);
+        color: var(--ink-800);
+      }
+      .pop .more {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 6px;
+        border-top: 1px solid var(--line);
+        padding-top: 12px;
+      }
+      .tagrole {
+        font-size: .7rem;
+        font-family: var(--font-mono);
+        padding: 2px 8px;
+        border-radius: var(--r-pill);
+        background: var(--surface-2);
+        color: var(--teal-700);
+      }
+      .dhead {
+        background: linear-gradient(160deg,#0E2841,#143A5A);
+        color: #fff;
+        border-radius: var(--r-lg);
+        padding: 30px 32px;
+      }
+      .dhead h2 {
+        color: #fff;
+        font-size: 1.75rem;
+        margin: 10px 0 6px;
+      }
+      .dhead p {
+        color: #B9CCDC;
+        max-width: 64ch;
+        margin: 0;
+      }
+      .statgrid {
+        display: grid;
+        grid-template-columns: repeat(4,1fr);
+        gap: 12px;
+        margin: 18px 0;
+      }
+      @media (max-width:760px) {
+        .statgrid {
+          grid-template-columns: repeat(2,1fr);
+        }
+      }
+      .stat {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: var(--r-md);
+        padding: 14px;
+      }
+      .stat .k {
+        font-size: .7rem;
+        color: var(--text-faint);
+        text-transform: uppercase;
+        letter-spacing: .04em;
+      }
+      .stat .v {
+        font-size: 1.35rem;
+        font-weight: 700;
+        letter-spacing: -.02em;
+        margin-top: 2px;
+      }
+      .dcols {
+        display: grid;
+        grid-template-columns: 1fr 300px;
+        gap: 24px;
+        margin-top: 22px;
+      }
+      @media (max-width:820px) {
+        .dcols {
+          grid-template-columns: 1fr;
+        }
+      }
+      .panel {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: var(--r-lg);
+        padding: 22px 24px;
+        margin-bottom: 18px;
+      }
+      .linkrow {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--line);
+        font-size: .9rem;
+      }
+      .linkrow:last-child {
+        border-bottom: 0;
+      }
+      .linkrow .ic {
+        width: 26px;
+        height: 26px;
+        border-radius: var(--r-sm);
+        background: var(--surface-2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        color: var(--teal-700);
+      }
+      .linkrow .muted {
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+      .linkmeta {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        gap: 2px;
+      }
+      .linkmeta .linkname {
+        overflow-wrap: anywhere;
+      }
+      .linkmeta .linkpath {
+        overflow-wrap: anywhere;
+        font-size: .82rem;
+        text-align: left;
+      }
+      .licdocrow {
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid var(--line);
+      }
+      .prog {
+        height: 6px;
+        background: var(--surface-2);
+        border-radius: var(--r-pill);
+        overflow: hidden;
+        margin-top: 8px;
+      }
+      .prog i {
+        display: block;
+        height: 100%;
+        background: linear-gradient(90deg,var(--brand-500),var(--green-500));
+      }
+      .repodoc {
+        border-top: 1px solid var(--line);
+        padding-top: 24px;
+        margin-top: 24px;
+      }
+      .licbox {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        margin-top: 24px;
+        background: var(--surface, #fff);
+      }
+      .licbox > summary {
+        cursor: pointer;
+        list-style: none;
+        padding: 12px 16px;
+        font-weight: 600;
+        color: var(--ink-800);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .licbox > summary::-webkit-details-marker {
+        display: none;
+      }
+      .licbox > summary::before {
+        content: "▾";
+        display: inline-block;
+        transition: transform .15s ease;
+        color: var(--text-soft);
+      }
+      .licbox[open] > summary::before {
+        transform: rotate(-180deg);
+      }
+      .lictext {
+        margin: 0;
+        padding: 0 16px 16px;
+        white-space: pre-wrap;
+        font-family: var(--mono, monospace);
+        font-size: .82rem;
+        line-height: 1.6;
+        color: var(--text-soft);
+        overflow-x: auto;
+      }
+      .treewrap {
+        display: flex;
+        gap: 22px;
+        flex: 1;
+        min-height: 0;
+        min-width: 0;
+        margin-top: 16px;
+      }
+      .treepane {
+        flex: 0 0 330px;
+        min-height: 0;
+        overflow: auto;
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: var(--r-lg);
+        padding: 14px;
+        box-shadow: var(--sh-1);
+      }
+      .toggle {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 12px;
+        background: var(--surface);
+        border-radius: var(--r-pill);
+        padding: 4px;
+        max-width: 1452px;
+      }
+      .toggle button {
+        flex: 1;
+        border: 0;
+        background: none;
+        padding: 7px 10px;
+        border-radius: var(--r-pill);
+        font-weight: 700;
+        font-size: .8rem;
+        color: var(--text-soft);
+        cursor: pointer;
+      }
+      .toggle button.on {
+        background: #fff;
+        color: var(--ink-800);
+        box-shadow: var(--sh-1);
+      }
+      .tnode>.row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 8px;
+        border-radius: var(--r-sm);
+        cursor: pointer;
+        font-size: .9rem;
+      }
+      .tnode>.row:hover {
+        background: var(--surface);
+      }
+      .tnode>.row .tw {
+        width: 16px;
+        color: var(--text-faint);
+        transition: transform .18s;
+        flex: none;
+        display: flex;
+      }
+      .tchild {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height .26s ease;
+        margin-left: 10px;
+        border-left: 1px solid var(--line);
+        padding-left: 6px;
+      }
+      .tnode:hover>.tchild {
+        max-height: 900px;
+      }
+      .tnode:hover>.row .tw {
+        transform: rotate(180deg);
+      }
+      .tnode.lvl2>.row {
+        font-family: var(--font-mono);
+        font-size: .82rem;
+        color: var(--text-soft);
+      }
+      .leaf {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 8px;
+        border-radius: var(--r-sm);
+        cursor: pointer;
+        font-size: .85rem;
+        color: var(--text-soft);
+      }
+      .leaf:hover {
+        background: var(--surface-2);
+        color: var(--ink-800);
+        text-decoration: underline;
+      }
+      .leaf.sel {
+        background: var(--st-pub-bg);
+        color: var(--st-pub-fg);
+        font-weight: 600;
+      }
+      .reader {
+        flex: 1;
+        min-height: 0;
+        min-width: 0;
+        overflow: auto;
+        scrollbar-gutter: stable;
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: var(--r-lg);
+        padding: 26px 30px;
+        box-shadow: var(--sh-1);
+      }
+      .reader .crumb {
+        font-family: var(--font-mono);
+        font-size: .76rem;
+        color: var(--text-faint);
+        margin-bottom: 14px;
+      }
+      .reader pre {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--r-md);
+        padding: 14px;
+        overflow: auto;
+        font-family: var(--font-mono);
+        font-size: .8rem;
+        color: var(--ink-700);
+      }
+      .empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 300px;
+        color: var(--text-faint);
+        text-align: center;
+      }
+      @media (min-width:821px) {
+        .app:has(.treewrap) {
+          height: 100vh;
+          overflow: hidden;
+        }
+        .site-main:has(.treewrap) {
+          display: flex;
+          flex-direction: column;
+          flex: 1 1 0%;
+          min-height: 0;
+          min-width: 0;
+        }
+        .wrap-wide:has(.treewrap) {
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+          min-height: 0;
+          min-width: 0;
+          width: 100%;
+        }
+        .section:has(.treewrap) {
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+          min-height: 0;
+          min-width: 0;
+          padding: 18px 0;
+        }
+        .app:has(.treewrap) .site-footer {
+          margin-top: 0;
+        }
+        .reader {
+          flex: none;
+          width: calc(100% - 352px);
+          max-width: 1100px;
+        }
+      }
+      @media (max-width:820px) {
+        .treewrap {
+          flex-direction: column;
+          position: static;
+          height: auto;
+        }
+        .treepane {
+          flex: 0 0 auto;
+          max-height: 50vh;
+        }
+        .reader {
+          flex: 0 0 auto;
+          overflow: visible;
+        }
+      }
+      .treefilter {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        box-sizing: border-box;
+        width: 100%;
+        margin-bottom: 10px;
+        padding: 8px 11px;
+        border: 1px solid var(--line);
+        border-radius: var(--r-md);
+        background: #fff;
+        font: inherit;
+        font-size: .85rem;
+        color: var(--ink-800);
+      }
+      .treefilter:focus {
+        outline: none;
+        border-color: var(--brand-400);
+        box-shadow: var(--sh-1);
+      }
+      .treesection-title {
+        margin: 20px 0 8px;
+        padding-top: 14px;
+        border-top: 1px solid var(--line);
+        font-size: .72rem;
+        font-weight: 700;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+        color: var(--text-faint);
+      }
+      .reader-panel {
+        display: none;
+      }
+      .reader-panel:target {
+        display: block;
+      }
+      .reader-empty {
+        display: block;
+      }
+      .reader-panel:target ~ .reader-empty {
+        display: none;
+      }
+      .reader-panel .mono {
+        font-family: var(--font-mono);
+        font-size: .76rem;
+        color: var(--text-faint);
+        margin-bottom: 14px;
+      }
+      .reader-panel .crosslink {
+        display: inline-block;
+        margin-top: 20px;
+        color: var(--brand-600);
+        font-weight: 600;
+        text-decoration: none;
+      }
+      .view {
+        display: none;
+      }
+      .view.on {
+        display: block;
+      }
+      .section {
+        padding: 30px 0;
+      }
+      .hint {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-left: 3px solid var(--brand-500);
+        border-radius: var(--r-md);
+        padding: 12px 16px;
+        font-size: .85rem;
+        color: var(--text-soft);
+        margin: 18px 0;
+      }
+      .app {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+      .site-main {
+        flex: 1 0 auto;
+      }
+      .hero-cta {
+        display: inline-block;
+        position: relative;
+        z-index: 1;
+        margin: 26px 0 6px;
+        padding: 20px 46px;
+        background: var(--accent-500);
+        color: #fff;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: .01em;
+        border-radius: var(--r-pill);
+        text-decoration: none;
+        box-shadow: 0 10px 30px rgba(233, 113, 50, .45);
+        transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      }
+      .hero-cta:hover {
+        background: var(--accent-600);
+        box-shadow: 0 16px 40px rgba(216, 95, 35, .55);
+        transform: translateY(-2px);
+      }
+      .hero-grid {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        gap: 40px;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        justify-content: space-between;
+      }
+      .hero-main {
+        flex: 1 1 420px;
+        min-width: 300px;
+      }
+      .hero-aside {
+        flex: 1 1 360px;
+        min-width: 260px;
+        max-width: 480px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .chip-section-title {
+        color: #fff;
+        font-size: 1rem;
+        font-weight: 700;
+        margin: 0 0 10px;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        height: 28px;
+        padding: 0 12px;
+        background: rgba(255,255,255,.10);
+        border: 1px solid rgba(255,255,255,.22);
+        border-radius: var(--r-pill);
+        color: #EAF2F9;
+        font-size: .78rem;
+        font-weight: 600;
+        line-height: 1;
+        white-space: nowrap;
+        text-decoration: none;
+        transition: background .12s ease, border-color .12s ease, transform .12s ease;
+      }
+      .chip:hover {
+        background: rgba(255,255,255,.20);
+        border-color: rgba(255,255,255,.45);
+        transform: translateY(-1px);
+      }
+      .hero-aside .chip-more {
+        margin: 4px 0 0;
+        color: #9FB6C9;
+        font-size: .72rem;
+        font-style: italic;
+      }
+      .site-footer {
+        border-top: 1px solid var(--line);
+        background: var(--paper);
+        margin-top: 48px;
+        padding: 28px 0;
+        color: var(--text-soft);
+        font-size: .85rem;
+      }
+      .site-footer .wrap {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+      .site-footer .copyright {
+        margin-left: auto;
+      }
+      .site-footer a {
+        color: var(--text-soft);
+        text-decoration: none;
+      }
+      .site-footer a:hover {
+        color: var(--ink-800);
+      }
+      .toggle a {
+        flex: 1;
+        text-align: center;
+        text-decoration: none;
+        padding: 7px 10px;
+        border-radius: var(--r-pill);
+        font-weight: 700;
+        font-size: .8rem;
+        color: var(--text-soft);
+        cursor: pointer;
+      }
+      .toggle a.on {
+        background: #fff;
+        color: var(--ink-800);
+        box-shadow: var(--sh-1);
+      }
+      a.leaf {
+        text-decoration: none;
+      }
+      a.leaf.active {
+        background: var(--brand-50, #eef2ff);
+        color: var(--ink-800);
+        border-radius: 6px;
+        font-weight: 600;
+      }
+      .tnode>summary.row {
+        list-style: none;
+      }
+      .tnode>summary.row::-webkit-details-marker {
+        display: none;
+      }
+      .tchild {
+        max-height: none;
+        overflow: visible;
+        transition: none;
+      }
+      .tnode:hover>.tchild {
+        max-height: none;
+      }
+      .tnode:hover>.row .tw {
+        transform: none;
+      }
+      .tnode[open]>.row .tw {
+        transform: rotate(180deg);
+      }
+      .crumb {
+        font-family: var(--font-mono);
+        font-size: .76rem;
+        color: var(--text-faint);
+        margin-bottom: 14px;
+      }
+      .crosslink {
+        display: inline-block;
+        margin-top: 16px;
+        color: var(--brand-600);
+        font-weight: 600;
+        text-decoration: none;
+      }
+      .api-library-title {
+        margin: 0 0 6px;
+        font-size: 1.4rem;
+        color: var(--ink-800);
+      }
+      .api-import {
+        display: block;
+        margin: 0 0 20px;
+        padding: 8px 12px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--r-sm);
+        font-family: var(--font-mono);
+        font-size: .78rem;
+        color: var(--text-soft);
+        overflow: auto;
+      }
+      .api-declaration {
+        margin-top: 28px;
+        padding-top: 24px;
+        border-top: 1px solid var(--line);
+      }
+      .api-declaration:first-of-type {
+        margin-top: 0;
+        padding-top: 0;
+        border-top: none;
+      }
+      .api-decl-title {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 0 0 10px;
+        font-family: var(--font-mono);
+        font-size: 1.05rem;
+        color: var(--ink-800);
+      }
+      .api-signature {
+        display: block;
+        margin: 0 0 12px;
+        padding: 10px 14px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--r-md);
+        font-family: var(--font-mono);
+        font-size: .8rem;
+        line-height: 1.5;
+        color: var(--ink-700);
+        white-space: pre-wrap;
+        overflow: auto;
+      }
+      .api-group-title {
+        margin: 22px 0 10px;
+        font-size: .72rem;
+        font-weight: 700;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+        color: var(--text-faint);
+      }
+      .api-members {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .api-member {
+        padding-left: 14px;
+        border-left: 2px solid var(--line);
+      }
+      .api-member-head {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .api-doc {
+        color: var(--text-soft);
+        font-size: .9rem;
+        line-height: 1.65;
+      }
+      .api-badge {
+        display: inline-block;
+        padding: 1px 8px;
+        border-radius: var(--r-pill);
+        font-family: var(--font-sans);
+        font-size: .66rem;
+        font-weight: 700;
+        letter-spacing: .03em;
+        text-transform: uppercase;
+      }
+      .api-badge--deprecated {
+        background: #fde8e8;
+        color: #9b2c2c;
+      }
+      .api-badge--override {
+        background: var(--surface-2);
+        color: var(--brand-600);
+      }
+      .api-badge--inherited {
+        background: var(--surface);
+        color: var(--text-faint);
+      }
+      .api-index-library {
+        margin: 22px 0;
+        padding: 18px 22px;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: var(--r-md);
+        box-shadow: var(--sh-1);
+      }
+      .api-index-library h3 {
+        margin: 0 0 4px;
+        font-size: 1.05rem;
+      }
+      .api-index-decls {
+        list-style: none;
+        margin: 8px 0 0;
+        padding: 0;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 2px 20px;
+      }
+      .api-index-decls a {
+        font-family: var(--font-mono);
+        font-size: .82rem;
+        color: var(--brand-600);
+        text-decoration: none;
+      }
+      .pageprose {
+        color: var(--text-soft);
+        line-height: 1.7;
+      }
+      .pageprose h2 {
+        margin: 32px 0 12px;
+        color: var(--ink-800);
+      }
+      .pageprose h3 {
+        margin: 24px 0 10px;
+        color: var(--ink-800);
+      }
+      .pageprose p {
+        margin: 0 0 16px;
+      }
+      .pageprose ul {
+        margin: 0 0 16px;
+        padding-left: 22px;
+      }
+      .pageprose li {
+        margin: 4px 0;
+      }
+      .mdtable {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0 0 20px;
+        font-size: .9rem;
+      }
+      .mdtable th {
+        text-align: left;
+        padding: 8px 12px;
+        border-bottom: 2px solid var(--line);
+        color: var(--ink-800);
+        font-weight: 700;
+      }
+      .mdtable td {
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--line);
+        color: var(--text-soft);
+      }
+    </style>
+    <script src="js/mermaid.min.js" defer></script>
+    <!--$-->
+    <title></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <!--/-->
+    <script src="main.client.dart.js" defer></script>
+  </head>
+  <body>
+    <div class="app">
+      <nav class="nav">
+        <div class="wrap">
+          <a class="brand" style="text-decoration: none; color: inherit" href="/">
+            <span><svg viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg" aria-label="Tom Framework logo" role="img">
+  <defs>
+    <linearGradient id="tom-f" x1="32" y1="28" x2="128" y2="140" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#0F9ED5"/><stop offset=".55" stop-color="#156082"/><stop offset="1" stop-color="#0E2841"/></linearGradient>
+    <linearGradient id="tom-e" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0F9ED5"/><stop offset="1" stop-color="#156082"/></linearGradient>
+    <radialGradient id="tom-s" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#7FE3A0"/><stop offset="1" stop-color="#4EA72E"/></radialGradient>
+  </defs>
+  <circle cx="44" cy="42" r="22" fill="url(#tom-e)"/><circle cx="116" cy="42" r="22" fill="url(#tom-e)"/>
+  <circle cx="44" cy="42" r="9" fill="#0E2841" opacity=".35"/><circle cx="116" cy="42" r="9" fill="#0E2841" opacity=".35"/>
+  <rect x="26" y="40" width="108" height="104" rx="46" fill="url(#tom-f)"/>
+  <circle cx="62" cy="86" r="7.5" fill="#EAF6FB"/><circle cx="98" cy="86" r="7.5" fill="#EAF6FB"/>
+  <circle cx="63.5" cy="87" r="3.2" fill="#0E2841"/><circle cx="99.5" cy="87" r="3.2" fill="#0E2841"/>
+  <rect x="60" y="104" width="40" height="30" rx="15" fill="#EAF6FB" opacity=".92"/>
+  <path d="M80 112 v8 M80 120 q-6 5 -12 4 M80 120 q6 5 12 4" stroke="#0E2841" stroke-width="3.4" stroke-linecap="round" fill="none"/>
+  <ellipse cx="80" cy="112" rx="6.5" ry="4.5" fill="#0E2841"/>
+  <circle cx="128" cy="118" r="5" fill="url(#tom-s)"/><circle cx="140" cy="110" r="3" fill="#4EA72E" opacity=".8"/><circle cx="139" cy="124" r="2.4" fill="#0F9ED5" opacity=".7"/>
+</svg></span>
+             Tom: Enterprise Flutter/Dart Platform
+          </a>
+          <div class="links">
+            <a href="/">Home</a>
+            <a href="/overview">Tom Overview</a>
+            <a href="/areas">Areas</a>
+            <a href="/components">Components</a>
+            <a href="/docs">Docs</a>
+            <a href="/api">API</a>
+            <a href="/about">About</a>
+            <a href="/process">Process</a>
+            <a href="/status">Status</a>
+          </div>
+        </div>
+      </nav>
+      <main class="site-main">
+        <div class="wrap">
+          <section class="section">
+            <div class="crumb">API / tom_som_dart_runtime / </div>
+            <h2></h2>
+            <a class="crosslink" href="/api/tom_som_dart_runtime">← tom_som_dart_runtime API</a>
+            <div class="treewrap">
+              <div class="treepane">
+                <div class="treenodes">
+                  <a class="leaf" href="#FormFieldSpec">FormFieldSpec</a>
+                  <a class="leaf" href="#KindLink">KindLink</a>
+                  <a class="leaf" href="#NoArtifactLink">NoArtifactLink</a>
+                  <a class="leaf" href="#OneOfGroup">OneOfGroup</a>
+                  <a class="leaf" href="#SpecAnnotation">SpecAnnotation</a>
+                  <a class="leaf" href="#SpecClass">SpecClass</a>
+                  <a class="leaf" href="#SpecField">SpecField</a>
+                  <a class="leaf" href="#SpecModel">SpecModel</a>
+                  <a class="leaf" href="#SpecModelStampCheck">SpecModelStampCheck</a>
+                  <a class="leaf" href="#SpecRoot">SpecRoot</a>
+                  <a class="leaf" href="#StandardReferences">StandardReferences</a>
+                  <a class="leaf" href="#SpecFieldKind">SpecFieldKind</a>
+                  <a class="leaf" href="#AnnotatedSpecNode">AnnotatedSpecNode</a>
+                  <a class="leaf" href="#_daysInMonth">_daysInMonth</a>
+                  <a class="leaf" href="#_stringMap">_stringMap</a>
+                  <a class="leaf" href="#_stripEnumPrefix">_stripEnumPrefix</a>
+                  <a class="leaf" href="#parseStampTimestamp">parseStampTimestamp</a>
+                  <a class="leaf" href="#somModelVersionString">somModelVersionString</a>
+                </div>
+              </div>
+              <div class="reader">
+                <h2 class="api-library-title">package:tom_som_dart_runtime/src/spec_model.dart</h2>
+                <code class="api-import">import 'package:tom_som_dart_runtime/src/spec_model.dart';</code>
+                <div class="api-doc">
+                  <p>
+                    In-memory representation of the exported TomSpecs class graph (the spec-model meta-data file produced by 
+                    <code>tom_specs_clitool/bin/model_json.dart</code>, schema documented in <code>tom_ai/ai_build/tom_specs_model/doc/tom_specs_model_meta_schema.md</code>).
+                  </p>
+                  <p>
+                    The model is a <em>class graph</em>, not an expanded tree: each class appears once and field <code>elementType</code>
+                     / <code>type</code> references are followed on demand by a traversal (which does its own cycle detection). This is the "reflection" surface — it describes any document's structure, independent of the values a concrete [SpecDocument] holds.
+                  </p>
+                </div>
+                <section id="FormFieldSpec" class="api-declaration">
+                  <h3 class="api-decl-title">class FormFieldSpec</h3>
+                  <code class="api-signature">class FormFieldSpec</code>
+                  <div class="api-doc"><p>A single form field within a <code>@Form</code> content section.</p></div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="FormFieldSpec.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          FormFieldSpec.new({required String name, required String label, required String type, String? hint, bool required = false, List&lt;String&gt; enumValues = const [], Map&lt;String, String&gt; enumValueDocs = const {}, List&lt;String&gt; refersTo = const []})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Only [name], [label] and [type] are required — the three a form line cannot be written without. Everything else defaults to the "nothing was declared" state: no [hint], not [required], and empty [enumValues] / [refersTo], each of which the export omits rather than emitting empty.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="FormFieldSpec.fromJson" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">factory FormFieldSpec.fromJson(Map&lt;String, dynamic&gt; j)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Reads one <code>formFields[]</code> entry (<code>tom_specs_model_meta_schema.md</code>, "<code>formFields[]</code>
+                           entry").
+                        </p>
+                        <p>
+                          Every optional key degrades rather than throws: an absent <code>label</code> falls back to [name], an absent 
+                          <code>type</code> to <code>String</code>, an absent <code>required</code> to <code>false</code>. <code>enumValues</code>
+                           / <code>refersTo</code> are stringified element-wise so a numerically-spelled entry still loads.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="FormFieldSpec.name" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String name</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The declared field name. This is the <em>machine</em> identity: it is the storage key, and — first letter upper-cased — the 
+                          <code>FieldName:</code> label the markdown form format writes and matches case-insensitively (SOM §11.4 rule 1). Renaming it breaks stored documents.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="FormFieldSpec.label" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String label</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The human-facing caption: the field's declared description, or a PascalCase split of [name] when none was authored. Never 
+                          <code>null</code>, so a renderer needs no fallback of its own — but it is display text only and must not be used as a key.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="FormFieldSpec.hint" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? hint</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Author-facing guidance for filling the field in, or <code>null</code> when none was declared. Omitted from the export when empty, so 
+                          <code>null</code> and "no hint" are the same state.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="FormFieldSpec.type" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String type</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The declared Dart type name (<code>String</code>, <code>int</code>, an enum type, …), defaulted to <code>String</code>
+                           on load. Consumers convert values against this — with [enumValues] supplying the legal set when it names a model enum.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="FormFieldSpec.required" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final bool required</code></div>
+                      <div class="api-doc">
+                        <p>Whether the field must be filled in.</p>
+                        <p>
+                          Nothing in this class enforces it — the flag is carried into the meta tree and into the generated schema's 
+                          <code>required:</code>, where the DocSpecs instance tier turns an absent or empty value into a <code>missingRequiredField</code>
+                           violation. It is a statement about a <em>filled</em> document; an unfilled model is not thereby invalid.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="FormFieldSpec.enumValues" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final List&lt;String&gt; enumValues</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Enum constant names when [type] is a model enum (YRD7); empty for non-enum field types. Lets consumers validate and convert values without the analyzer.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="FormFieldSpec.enumValueDocs" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Map&lt;String, String&gt; enumValueDocs</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Each constant's documentation, keyed by constant name; empty for a non-enum field and for a constant with no comment.
+                        </p>
+                        <p>
+                          This is the text that makes a <strong>closed</strong> vocabulary usable. The values alone say <em>which</em>
+                           choices are legal; the author's decision is between adjacent ones, and what distinguishes them lives nowhere else. Keyed rather than positional so a length divergence cannot silently misalign a constant with another's description.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="FormFieldSpec.refersTo" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final List&lt;String&gt; refersTo</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The registry key(s) this field's value is an id drawn from, each written <code>&lt;SECTIONID&gt;.&lt;formFieldName&gt;</code>
+                           (csrb3); empty for a non-reference field. A reference field holds a free-text id that must already be declared by some entry of the named registry, so a runtime can resolve it and report a dangling id instead of generating broken code.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="KindLink" class="api-declaration">
+                  <h3 class="api-decl-title">class KindLink</h3>
+                  <code class="api-signature">class KindLink</code>
+                  <div class="api-doc">
+                    <p>A list-valued taxonomy annotation: a set of enum codes plus an optional explanatory note.</p>
+                    <p>
+                      The model states where a subtree is headed with two such annotations, which share this shape exactly — 
+                      <code>@CodeSpecKind(List&lt;CodeSpecPart&gt;, {note})</code> names the CodeSpecs part(s) a section type must be realised as (<code>codespecs_mapping.md</code>
+                       §9.1/§9.5), and <code>@FollowUpKind(List&lt;FollowUpProcess&gt;, {note})</code> names the downstream 
+                      <em>process(es)</em> a non-code subtree feeds (codespecs_mapping.md §8.3). One reader serves both; which annotation a link came from is expressed by which accessor produced it.
+                    </p>
+                    <p>
+                      Obtaining a link at all means the annotation is present. That matters: a node with no link has not been classified yet, whereas a link with empty [kinds] is a recorded decision that the section belongs to no member of that taxonomy. The two are different statements, so they are different values rather than one nullable list.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="KindLink.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">const KindLink.new({List&lt;String&gt; kinds = const [], String? note})</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Both arguments are optional, because <em>constructing</em> the link is already the statement that the annotation was present: a link with no [kinds] and no [note] records a classification that resolved to no member of the taxonomy, which is a different fact from having no link at all.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="KindLink.fromAnnotation" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">factory KindLink.fromAnnotation(SpecAnnotation annotation, {required String listArgument})</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Reads a link out of [annotation], taking the code list from the argument named [listArgument] — <code>kinds</code>
+                           for <code>@CodeSpecKind</code>, <code>processes</code> for <code>@FollowUpKind</code>.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="KindLink.kinds" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final List&lt;String&gt; kinds</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The enum code names with their type prefix stripped — <code>validation</code>, not <code>CodeSpecPart.validation</code>; 
+                          <code>doc</code>, not <code>FollowUpProcess.doc</code>.
+                        </p>
+                        <p>
+                          Both annotations are list-valued because one section can be realised as several parts, or feed several processes; consumers must handle all of them, not just the first.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="KindLink.note" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? note</code></div>
+                      <div class="api-doc"><p>The annotation's free-text <code>note</code>, explaining the classification.</p></div>
+                    </div>
+                  </div>
+                </section>
+                <section id="NoArtifactLink" class="api-declaration">
+                  <h3 class="api-decl-title">class NoArtifactLink</h3>
+                  <code class="api-signature">class NoArtifactLink</code>
+                  <div class="api-doc">
+                    <p>
+                      The third routing verdict: <code>@NoArtifact(NoArtifactReason, {note})</code> — the section feeds neither a CodeSpecs part nor a follow-up process (<code>codespecs_mapping.md</code>
+                       §8.3).
+                    </p>
+                    <p>
+                      Single-valued where [KindLink] is a list, and the asymmetry is the point: a section can feed several parts or several processes at once, but it is unrouted for exactly one reason. That reason is what makes the absence of the other two markers readable as a decision rather than an omission, which is what 
+                      <code>tom_specs_model_rules.md</code> §10.2 invariant <code>ROUTE-TOTAL</code> checks.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="NoArtifactLink.new" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">const NoArtifactLink.new({required String reason, String? note})</code></div>
+                      <div class="api-doc">
+                        <p>
+                          [reason] is required and [note] is not, mirroring the annotation: the verdict is only readable as a decision if it says 
+                          <em>why</em>, whereas the prose gloss is optional. [NoArtifactLink.fromAnnotation] accordingly substitutes 
+                          <code>container</code> for a missing argument rather than admitting a reasonless verdict.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="NoArtifactLink.fromAnnotation" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">factory NoArtifactLink.fromAnnotation(SpecAnnotation annotation)</code></div>
+                      <div class="api-doc"><p>Reads the verdict out of [annotation].</p></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="NoArtifactLink.reason" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String reason</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The <code>NoArtifactReason</code> code name with its type prefix stripped — <code>container</code>, not 
+                          <code>NoArtifactReason.container</code>. One of <code>container</code>, <code>overview</code>, <code>view</code>.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="NoArtifactLink.note" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? note</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The annotation's free-text <code>note</code>. On an <code>overview</code> this customarily names the routed section that states the material normatively.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="OneOfGroup" class="api-declaration">
+                  <h3 class="api-decl-title">class OneOfGroup</h3>
+                  <code class="api-signature">class OneOfGroup</code>
+                  <div class="api-doc">
+                    <p>
+                      A closed choice declared by <code>@OneOf</code> on a container class (<code>codespecs_mapping.md</code>
+                       §8.2): a set of mutually exclusive subsections of which exactly one applies, selected by a discriminator form-field.
+                    </p>
+                    <p>
+                      The group is the strongest structural statement the model makes about a set of sibling fields, and the question it invites — 
+                      <em>is the case set complete, and is closure right here?</em> — is only answerable when the discriminator's full value set is visible next to the values actually covered. Hence [coveredValues] / [uncoveredValues] rather than just the case fields.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="OneOfGroup.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          const OneOfGroup.new({required String discriminator, required List&lt;SpecField&gt; caseFields, String? note, FormFieldSpec? discriminatorField})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          [discriminator] and [caseFields] are required — they are the choice itself, and a group without them says nothing. [discriminatorField] is optional so that an 
+                          <em>unresolvable</em> discriminator still yields a group rather than nothing at all — the case fields stay visible for review.
+                        </p>
+                        <p>
+                          A group built that way answers [hasDiscriminatorValues] <code>false</code>, and [isComplete] is defined against it — see both.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="OneOfGroup.discriminator" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String discriminator</code></div>
+                      <div class="api-doc"><p>The name of the <code>@Form</code> form-field whose value selects the alternative.</p></div>
+                    </div>
+                    <div id="OneOfGroup.note" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? note</code></div>
+                      <div class="api-doc"><p>The annotation's free-text <code>note</code>, explaining the closed choice.</p></div>
+                    </div>
+                    <div id="OneOfGroup.discriminatorField" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final FormFieldSpec? discriminatorField</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The resolved discriminator form-field, or <code>null</code> when the named field cannot be found on the class.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="OneOfGroup.caseFields" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final List&lt;SpecField&gt; caseFields</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The <code>@Case</code>-annotated fields, in declaration order. Common (uncased) fields are deliberately excluded — they are not alternatives.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="OneOfGroup.discriminatorValues" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">List&lt;String&gt; discriminatorValues</code></div>
+                    </div>
+                    <div id="OneOfGroup.coveredValues" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">List&lt;String&gt; coveredValues</code></div>
+                    </div>
+                    <div id="OneOfGroup.uncoveredValues" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">List&lt;String&gt; uncoveredValues</code></div>
+                    </div>
+                    <div id="OneOfGroup.hasDiscriminatorValues" class="api-member"><div class="api-member-head"><code class="api-signature">bool hasDiscriminatorValues</code></div></div>
+                    <div id="OneOfGroup.isComplete" class="api-member"><div class="api-member-head"><code class="api-signature">bool isComplete</code></div></div>
+                  </div>
+                </section>
+                <section id="SpecAnnotation" class="api-declaration">
+                  <h3 class="api-decl-title">class SpecAnnotation</h3>
+                  <code class="api-signature">class SpecAnnotation</code>
+                  <div class="api-doc">
+                    <p>
+                      A single annotation captured losslessly from the model source (SOM §5.3): its name and the resolved argument map (<code>{ '&lt;arg&gt;': &lt;value&gt; }</code>). This is the 
+                      <code>annotations[]</code> block emitted by <code>ModelJsonExporter</code> — the superset the curated convenience accessors ([SpecClass.sectionId], [SpecField.min], …) are projected from.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="SpecAnnotation.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">const SpecAnnotation.new({required String name, Map&lt;String, Object?&gt; arguments = const {}})</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          [name] is required because an unnamed annotation cannot be looked up; [arguments] defaults to empty so argumentless markers construct without ceremony.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecAnnotation.fromJson" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">factory SpecAnnotation.fromJson(Map&lt;String, dynamic&gt; j)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Reads one <code>annotations[]</code> entry. A missing <code>arguments</code> key is read as empty rather than as an error — the exporter omits it for markers.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="SpecAnnotation.name" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String name</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The annotation's source name <strong>without</strong> the <code>@</code> — <code>SectionId</code>, not 
+                          <code>@SectionId</code>. Every lookup on [AnnotatedSpecNode] matches on this string exactly, so it is the stable key the whole annotation surface turns on.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecAnnotation.arguments" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Map&lt;String, Object?&gt; arguments</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The resolved argument map, keyed by the <em>declared parameter name</em> — the exporter names positional arguments too, so 
+                          <code>@Case(Kind.x)</code> reads as <code>{'value': …}</code>. Values are the analyzer's resolved constants (String / int / double / bool / type-name / List), never expressions, so the map stays JSON-serializable.
+                        </p>
+                        <p>Empty for a marker annotation such as <code>@Unused</code>, where presence is the whole statement.</p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="SpecAnnotation.argument" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">Object? argument(String key)</code></div>
+                      <div class="api-doc"><p>The argument named [key], or <code>null</code> when absent.</p></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="SpecAnnotation.listFromJson" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static List&lt;SpecAnnotation&gt; listFromJson(Object? raw)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Reads a whole <code>annotations</code> block, preserving source order — which matters because repeatable annotations such as 
+                          <code>@Case</code> are read as a sequence by [AnnotatedSpecNode.annotationsNamed].
+                        </p>
+                        <p>
+                          Accepts <code>null</code> and returns the empty list: the exporter omits the block entirely when a node carries no annotations, so absent and empty must load identically.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="SpecClass" class="api-declaration">
+                  <h3 class="api-decl-title">class SpecClass</h3>
+                  <code class="api-signature">class SpecClass with AnnotatedSpecNode</code>
+                  <div class="api-doc"><p>A model class with its fields.</p></div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="SpecClass.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          SpecClass.new({required String name, String? sectionId, String? doc, String? help, String? headline, String? mapsTo, String? detailedIn, List&lt;SpecField&gt; fields = const [], List&lt;SpecAnnotation&gt; annotations = const [], StandardReferences? standardReferences})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          [name] alone is required — it is the graph's join key, and a class without one could neither be filed in [SpecModel.classes] nor referred to by a field.
+                        </p>
+                        <p>
+                          [fields] defaults to empty so a marker or projection class constructs without ceremony; every remaining argument is an annotation projection whose absence means "not annotated", never "empty".
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecClass.fromJson" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">factory SpecClass.fromJson(Map&lt;String, dynamic&gt; j)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Reads one <code>classes[name]</code> entry (<code>tom_specs_model_meta_schema.md</code>, "<code>classes[name]</code>
+                           entry").
+                        </p>
+                        <p>
+                          <code>name</code> and <code>fields</code> are read as mandatory and throw when absent — <code>fields</code>
+                           deliberately so, because a class entry with the key omitted rather than empty means the snapshot was truncated, and loading it as a field-less class would present a mutilated document as a valid one.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="SpecClass.name" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String name</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The exact source class name. This is the key the class is filed under in [SpecModel.classes] and the value [SpecField.type] / [SpecField.elementType] refer back to, so it is the join key of the whole graph — each class appears exactly once and every edge is this string.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecClass.sectionId" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? sectionId</code></div>
+                      <div class="api-doc">
+                        <p>The class-level <code>@SectionId</code>, or <code>null</code>.</p>
+                        <p>
+                          Used as the <em>key fallback</em>: a section or complex member whose own [SpecField.sectionId] is absent keys its markdown heading on this id while still pathing on the member name. The two ids are never merged (SOM §7.1).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecClass.doc" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? doc</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The cleaned class-level <code>///</code> doc comment, or <code>null</code> — developer-facing, as against the author-facing [help].
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecClass.help" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? help</code></div>
+                      <div class="api-doc">
+                        <p>The class-level <code>@ContentHelp(guidance)</code> authoring guidance, or <code>null</code>.</p>
+                        <p>
+                          A member-level [SpecField.help] on the instantiating field is the more specific statement; unlike [headline], this one is 
+                          <em>not</em> folded into a per-member fallback chain, so a consumer that wants the class default has to reach for it here deliberately.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecClass.headline" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? headline</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The class-level <code>@Headline(text)</code> default headline (YRD4), or <code>null</code>. A field-level 
+                          <code>@Headline</code> on the instantiating field wins over this.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecClass.mapsTo" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? mapsTo</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The <code>@MapsTo</code> traceability target — the name of the class this one is the counterpart of elsewhere in the model — or 
+                          <code>null</code>.
+                        </p>
+                        <p>
+                          A documentation-level cross-link only: nothing in this runtime dereferences it, and the named class may legitimately live outside [SpecModel.classes].
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecClass.detailedIn" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? detailedIn</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The <code>@DetailedIn</code> traceability target — the class that elaborates this one — or <code>null</code>. Carried on the same terms as [mapsTo]: a cross-link for readers and tooling, never followed here.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecClass.fields" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final List&lt;SpecField&gt; fields</code></div>
+                      <div class="api-doc">
+                        <p>The class's fields in source declaration order, as the exporter read them.</p>
+                        <p>
+                          This is a <em>display</em> order, not the serialization contract: on-disk member order is decided by the explicit [SpecField.serializationOrder] ordinals, which 
+                          <code>SpecSerializationOrder</code> sorts on. The two normally coincide, and a consumer that needs the guarantee must use the ordinals rather than this list's order.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecClass.annotations" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">final List&lt;SpecAnnotation&gt; annotations</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                      <div class="api-doc"><p>The lossless annotation list captured on this class (SOM §5.3).</p></div>
+                    </div>
+                    <div id="SpecClass.standardReferences" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">final StandardReferences? standardReferences</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="SpecClass.oneOf" class="api-member"><div class="api-member-head"><code class="api-signature">OneOfGroup? oneOf</code></div></div>
+                    <div id="SpecClass.isCodeSpecsProjection" class="api-member"><div class="api-member-head"><code class="api-signature">bool isCodeSpecsProjection</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="SpecClass.fieldNamed" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">SpecField? fieldNamed(String name)</code></div>
+                      <div class="api-doc"><p>The field named [name], or <code>null</code> when absent.</p></div>
+                    </div>
+                    <div id="SpecClass.formFieldNamed" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">FormFieldSpec? formFieldNamed(String name)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The form-field named [name] from whichever <code>@Form</code> section of this class declares it, or <code>null</code>
+                           when no section does.
+                        </p>
+                        <p>
+                          Form-fields are not [SpecField]s — they live inside a form section's [SpecField.formFields] — so a lookup that only walked [fields] would never find a discriminator.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="SpecField" class="api-declaration">
+                  <h3 class="api-decl-title">class SpecField</h3>
+                  <code class="api-signature">class SpecField with AnnotatedSpecNode</code>
+                  <div class="api-doc"><p>A single field of a [SpecClass].</p></div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="SpecField.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          SpecField.new({required String name, required SpecFieldKind kind, String? doc, String? help, String? headline, String? sectionId, String? sectionIdPattern, int? serializationOrder, String? elementType, bool elementIsComplex = false, int? min, String? contentType, String? sectionType, String? enumType, List&lt;String&gt; enumValues = const [], Map&lt;String, String&gt; enumValueDocs = const {}, String? type, List&lt;FormFieldSpec&gt; formFields = const [], List&lt;SpecAnnotation&gt; annotations = const [], StandardReferences? standardReferences})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Only [name] and [kind] are required: they are the two every exported field carries, and [kind] is what tells a reader which of the optional groups below it may consult.
+                        </p>
+                        <p>
+                          Every remaining argument is kind-specific and defaults to the "not applicable / not annotated" state, so constructing a field of one kind never forces null placeholders for another kind's keys. Nothing here cross-checks kind against the group actually supplied — the exporter is the authority on that, and a hand-built field that mixes them will simply be ignored by the traversal that branches on [kind].
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecField.fromJson" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">factory SpecField.fromJson(Map&lt;String, dynamic&gt; j)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Reads one <code>fields[]</code> entry (<code>tom_specs_model_meta_schema.md</code>, "<code>fields[]</code>
+                           entry").
+                        </p>
+                        <p>
+                          <code>name</code> and <code>kind</code> are the only keys read as mandatory — an entry missing either throws, because a nameless or kindless field cannot be addressed or rendered. Every other key is optional and absent means "not annotated"; unrecognised kind strings degrade via [SpecFieldKind.parse] rather than failing the load.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="SpecField.name" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String name</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The exact source member name. It is the path segment a resolver matches on when the field declares no [sectionId] (SOM §7.1), so it is part of the stored document's addressing grammar, not merely a label.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecField.kind" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final SpecFieldKind kind</code></div>
+                      <div class="api-doc">
+                        <p>
+                          How the field renders and which of the kind-specific members below are populated — see [SpecFieldKind] for the per-kind key sets. A traversal must branch on this before reading [type] / [elementType] / [formFields], because only one group is ever filled.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecField.doc" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? doc</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The cleaned <code>///</code> doc comment from the model source, or <code>null</code>. Written for a developer reading the model; [help] is what an 
+                          <em>author</em> filling the section in is shown.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecField.help" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? help</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The <code>@ContentHelp(guidance)</code> authoring guidance, or <code>null</code>. Distinct from [doc]: this is instruction for whoever fills the section in, and it is also what the schema generator emits as the section-type's 
+                          <code>description:</code> (SOM §13).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecField.headline" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? headline</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The <code>@Headline(text)</code> default headline (YRD4), or <code>null</code>. Render precedence: stored headline &gt; this default &gt; name derivation.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecField.sectionId" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? sectionId</code></div>
+                      <div class="api-doc">
+                        <p>The field-level <code>@SectionId</code>, or <code>null</code> when the member declares none.</p>
+                        <p>
+                          When present it both keys the markdown heading comment (<code>&lt;!--[&lt;id&gt;]--&gt;</code>) and replaces [name] as the path segment. When absent the member is 
+                          <em>transparent</em> — it keys on its target class's own section id while still pathing on [name] (SOM §7.1, SOM §11.6).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecField.sectionIdPattern" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? sectionIdPattern</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The <code>@SectionIdPattern</code> the field's <em>items</em> take (e.g. <code>GOAL-ITEM-xxx</code>), or 
+                          <code>null</code>.
+                        </p>
+                        <p>
+                          Independent of [sectionId], not a fallback for it: a list field routinely carries both — its own id and the pattern its elements are numbered under — so a consumer must read the pair (<code>tom_specs_model_meta_schema.md</code>, "<code>fields[]</code>
+                           entry"). The generated schema compiles the <code>xxx</code> stem to <code>.+</code>, so any id that keeps the stem validates (SOM §13).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecField.serializationOrder" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final int? serializationOrder</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The member's serialization ordinal from <code>@SerializationOrder(n)</code> (SOM source declaration order), or 
+                          <code>null</code> when unannotated. Drives the YAML member emission order (AA1 criterion 7).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecField.elementType" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? elementType</code></div>
+                      <div class="api-doc">
+                        <p>For [SpecFieldKind.list], the element's type name; <code>null</code> otherwise.</p>
+                        <p>
+                          Resolve it against [SpecModel.classes] only when [elementIsComplex] — otherwise it names a scalar to render directly.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecField.elementIsComplex" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final bool elementIsComplex</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Whether [elementType] names an exported model class (descend into it) rather than a scalar (render it).
+                        </p>
+                        <p>
+                          Carried explicitly instead of being inferred from a class-graph lookup so the eight non-Dart runtimes need no lookup at all, and so a truncated snapshot cannot silently turn a complex element into a scalar (<code>tom_specs_model_meta_schema.md</code>, "<code>fields[]</code>
+                           entry").
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecField.min" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final int? min</code></div>
+                      <div class="api-doc">
+                        <p>The <code>@Min(count)</code> minimum item count for a list, or <code>null</code> when unconstrained.</p>
+                        <p>
+                          Instance-tier only: the model is not invalid for having fewer, a <em>filled document</em> is — <code>validateDocument</code>
+                           reports a shortfall as a <code>minItems</code> error. It is also what the schema generator writes as the subsection 
+                          <code>min-count</code> (SOM §13).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecField.contentType" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? contentType</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The <code>@ContentType(type)</code> render classification of a section-kind or content-kind field — <code>text</code>
+                           by default, else a fenced form such as <code>mermaid</code>, <code>mermaid-flow</code> or <code>code-dart</code>. 
+                          <code>null</code> for every other kind.
+                        </p>
+                        <p>
+                          A renderer that ignores it will emit a diagram body as prose, and the generated schema turns the non-<code>text</code>
+                           values into a <code>format:</code> that <em>demands</em> a fenced block.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecField.sectionType" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? sectionType</code></div>
+                      <div class="api-doc">
+                        <p>
+                          For [SpecFieldKind.section], the declared class name with any <code>?</code> stripped; <code>null</code>
+                           otherwise.
+                        </p>
+                        <p>
+                          <strong>Descriptive metadata, not a lookup key — [type] is the lookup key even for a section.</strong>
+                           The distinction is easy to get backwards, so state it as the two cases it actually has:
+                        </p>
+                        <ul>
+                          <li>
+                            A <strong>wrapper</strong> section — <code>TextSection</code>, <code>FlowDiagramSection</code>, … — names
+                          </li>
+                        </ul>
+                        <p>
+                          a <code>tom_specs_core</code> class deliberately absent from [SpecModel.classes]. Such a field carries 
+                          <code>sectionType</code> and <strong>no</strong> [type], and is a content leaf whose rendering [contentType] decides. Every one of the 337 section fields the current 
+                          <code>tom_specs_model</code> exports is of this kind, which is why nothing in this package reads <code>sectionType</code>. 
+                          <em> A </em><em>collapsing</em>* section names a real class in [SpecModel.classes] and carries [type]. It behaves exactly like [SpecFieldKind.complex]: the path descends into the target class, keyed by 
+                          <code>sectionId ?? classSectionId</code> (SOM §12.2). The conformance corpus pins this case precisely because a port that treats every section as a leaf misresolves every path beneath one.
+                        </p>
+                        <p>
+                          So "no reader" is the correct state for this member, not a defect: it records what the model declared for a consumer that wants it, while descent is decided by [type] alone.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecField.enumType" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? enumType</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The Dart enum type name backing an <code>enum</code> field (e.g. <code>Probability</code>), or <code>null</code>
+                           for non-enum fields. Mirrors the exporter's <code>enumType</code> key.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecField.enumValues" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final List&lt;String&gt; enumValues</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The enum's constant names in declaration order, empty for a non-enum field. Declaration order is load-bearing: [OneOfGroup] reports case coverage against this sequence so the result reads against the enum a reviewer is checking.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecField.enumValueDocs" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Map&lt;String, String&gt; enumValueDocs</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Each constant's documentation, keyed by constant name; empty for a non-enum field and for a constant with no comment. The counterpart of [enumValues] — see [FormFieldSpec.enumValueDocs] for why it is keyed.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecField.type" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? type</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The declared type name with any <code>?</code> stripped, for [SpecFieldKind.complex] and [SpecFieldKind.scalar] fields, and for a 
+                          <strong>collapsing</strong> [SpecFieldKind.section] (see [sectionType]); <code>null</code> for every other kind, and for a list, whose element name lives in [elementType].
+                        </p>
+                        <p>
+                          For a complex or collapsing-section field this is the key to look up in [SpecModel.classes] to descend — the two kinds are handled together wherever the graph is walked, and a walker that treats 
+                          <code>section</code> as a leaf misresolves every path beneath one. For a scalar it is a primitive name (<code>int</code>, 
+                          <code>bool</code>, <code>DateTime</code>, …) to convert against.
+                        </p>
+                        <p>
+                          A wrapper section carries no [type] at all; the miss is what makes it a leaf, so no walker needs a separate branch for it.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecField.formFields" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final List&lt;FormFieldSpec&gt; formFields</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The <code>@Form</code> fields of a [SpecFieldKind.form] field, in <strong>model declaration order</strong>; empty for every other kind.
+                        </p>
+                        <p>
+                          The order is the on-disk emission order of the form lines (SOM §11.4), so it must be preserved rather than sorted. No entry ever restates the section's title or id — those live solely in the heading and its id comment.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecField.annotations" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">final List&lt;SpecAnnotation&gt; annotations</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                      <div class="api-doc"><p>The lossless annotation list captured on this field (SOM §5.3).</p></div>
+                    </div>
+                    <div id="SpecField.standardReferences" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">final StandardReferences? standardReferences</code>
+                        <span class="api-badge api-badge--override">override</span>
+                      </div>
+                    </div>
+                    <div id="SpecField.isExpandable" class="api-member"><div class="api-member-head"><code class="api-signature">bool isExpandable</code></div></div>
+                    <div id="SpecField.caseValues" class="api-member"><div class="api-member-head"><code class="api-signature">List&lt;String&gt; caseValues</code></div></div>
+                    <div id="SpecField.isCase" class="api-member"><div class="api-member-head"><code class="api-signature">bool isCase</code></div></div>
+                  </div>
+                </section>
+                <section id="SpecModel" class="api-declaration">
+                  <h3 class="api-decl-title">class SpecModel</h3>
+                  <code class="api-signature">class SpecModel</code>
+                  <div class="api-doc"><p>The complete exported model.</p></div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="SpecModel.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          SpecModel.new({required List&lt;SpecRoot&gt; roots, required Map&lt;String, SpecClass&gt; classes, int modelVersion = 0, String? modelVersionLabel, DateTime? generatedAt, int? metaSchemaVersion, int? classCount, int? rootCount, String? containerRoot})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Only [roots] and [classes] — the payload — are required. Every stamp argument is optional and defaults to the unstamped state ([modelVersion] to 
+                          <code>0</code>, the rest to <code>null</code>), so a hand-built or synthetic model constructs without inventing provenance it does not have.
+                        </p>
+                        <p>
+                          The consequence is that [checkStamp] reports no count disagreement for such a model: absent declarations are not compared. That is intended — only a snapshot that 
+                          <em>claimed</em> a size can contradict itself.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecModel.fromJson" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">factory SpecModel.fromJson(Map&lt;String, dynamic&gt; j)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Decodes a whole <code>meta/spec_model.meta.json</code> payload (<code>tom_specs_model_meta_schema.md</code>, "Top-level keys").
+                        </p>
+                        <p>
+                          <code>classes</code> and <code>roots</code> are mandatory and throw when absent or of the wrong shape — without them there is no model. Every stamp key is optional so that snapshots exported before the keys existed still load, and an empty 
+                          <code>modelVersionLabel</code> is normalised to <code>null</code> so "unstamped" has one representation rather than two.
+                        </p>
+                        <p>
+                          This constructor does <strong>not</strong> validate the payload; it only decodes it. Run <code>validateSpecModelMeta</code>
+                           first when the file's conformance is in question, and [checkStamp] afterwards to catch a file edited after export.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="SpecModel.roots" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final List&lt;SpecRoot&gt; roots</code></div>
+                      <div class="api-doc">
+                        <p>The document entry points, in export order — one per <code>@Document</code> class.</p>
+                        <p>
+                          These are the <em>authored</em> documents only; the canonical container named by [containerRoot] is not among them, and a generation input such as a CodeSpecs projection is (test it with [isGenerationInput] before offering it to an author).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecModel.classes" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Map&lt;String, SpecClass&gt; classes</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The whole class graph keyed by [SpecClass.name] — each class exactly once, with <code>type</code> / <code>elementType</code>
+                           edges followed on demand.
+                        </p>
+                        <p>
+                          A map rather than a list because resolution is the hot path: every descent through a complex field is one lookup here. Note the graph is 
+                          <em>not</em> closed — [SpecField.sectionType], [SpecClass.mapsTo] and [SpecClass.detailedIn] may name classes deliberately absent from it, so a missing key is not automatically a corrupt snapshot.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecModel.modelVersion" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final int modelVersion</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The model-version counter the meta-data was generated against. <code>0</code> means the file was produced by a manual, unstamped export rather than an official build.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecModel.modelVersionLabel" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? modelVersionLabel</code></div>
+                      <div class="api-doc">
+                        <p>
+                          A human-readable build label for the same stamp (e.g. <code>1.0.0+3.abc1234</code>), or <code>null</code>
+                           when the meta-data is unstamped.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecModel.generatedAt" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final DateTime? generatedAt</code></div>
+                      <div class="api-doc">
+                        <p>
+                          When the snapshot was exported (UTC), or <code>null</code> when it carries no <code>generatedAt</code>
+                           — an export predating the key, or a hand-built model.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecModel.metaSchemaVersion" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final int? metaSchemaVersion</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The <em>file format's</em> own version, distinct from [modelVersion] (which model the snapshot describes). 
+                          <code>null</code> when undeclared.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecModel.classCount" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final int? classCount</code></div>
+                      <div class="api-doc">
+                        <p>The class count the snapshot declares, or <code>null</code> when undeclared.</p>
+                        <p>
+                          Kept separate from <code>classes.length</code>: the declared value is what the exporter recorded, the actual value is what survived to the reader, and comparing them is the point ([checkStamp]).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecModel.rootCount" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final int? rootCount</code></div>
+                      <div class="api-doc"><p>The document-root count the snapshot declares, or <code>null</code> when undeclared.</p></div>
+                    </div>
+                    <div id="SpecModel.containerRoot" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? containerRoot</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The canonical container class — the single true tree root, which is not itself a document and so does not appear in [roots]. 
+                          <code>null</code> when the model has no container (e.g. a synthetic export).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecModel.modelVersionString" class="api-member"><div class="api-member-head"><code class="api-signature">String modelVersionString</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="SpecModel.checkStamp" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">SpecModelStampCheck checkStamp({Duration maxAge = defaultMaxSnapshotAge, DateTime? now})</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Checks the generation stamp against the payload and the clock.</p>
+                        <p>
+                          [now] is injectable so callers (and tests) can evaluate age against a fixed instant instead of the wall clock.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecModel.classNamed" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">SpecClass? classNamed(String? name)</code></div>
+                      <div class="api-doc">
+                        <p>The class named [name], or <code>null</code> when the graph does not carry it.</p>
+                        <p>
+                          Accepts <code>null</code> and answers <code>null</code> so callers can feed a nullable edge ([SpecField.type], [SpecField.elementType], [SpecRoot.type]) straight in — the traversals in this runtime chain these lookups per path segment, and a null-check at every call site would be noise.
+                        </p>
+                        <p>
+                          An unresolved name is <em>not</em> an error here: an edge may legitimately point outside the exported graph, so a caller that needs the distinction between "absent by design" and "truncated snapshot" must draw it itself (see [SpecModelStampCheck.countsDisagree]).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecModel.isGenerationInput" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool isGenerationInput(SpecRoot root)</code></div>
+                      <div class="api-doc">
+                        <p>Whether [root] is a <strong>generation input</strong> rather than an authored document.</p>
+                        <p>
+                          A generation input is an <code>@Document</code> root whose audience is a generator, not a spec author: it projects existing Solution Blueprint sections into the shape a downstream phase consumes. 
+                          <code>D13CodeSpecsProjection</code> is the only one today — it is <code>@CodeSpecKind</code>-driven, flat, locus-grouped, and carries no document identity anybody would sit down and write.
+                        </p>
+                        <p>
+                          Derived from the class's <code>@CodeSpecsProjection()</code> marker, which the export already carries losslessly in 
+                          <code>classes[type].annotations</code>. Reading it here keeps the classification single-sourced in the model — a consumer that hard-coded the root's type name would silently misclassify the next projection to be added.
+                        </p>
+                        <p>
+                          A root whose class is absent from [classes] (a synthetic or truncated model) is <em>not</em> a generation input: an unknown class is not evidence.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecModel.rootByType" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">SpecRoot rootByType(String type)</code></div>
+                      <div class="api-doc">
+                        <p>The document root whose [SpecRoot.type] equals [type] (SOM §21).</p>
+                        <p>
+                          Replaces the recurring <code>roots.firstWhere((r) =&gt; r.type == …)</code> boilerplate. Throws [ArgumentError] when no root carries that type — the same failure mode as an 
+                          <code>orElse</code>-less <code>firstWhere</code>, but with a message that names the missing type and the ones that do exist.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="SpecModelStampCheck" class="api-declaration">
+                  <h3 class="api-decl-title">class SpecModelStampCheck</h3>
+                  <code class="api-signature">class SpecModelStampCheck</code>
+                  <div class="api-doc">
+                    <p>
+                      The outcome of checking a loaded snapshot's generation stamp against its own payload and against the clock — see [SpecModel.checkStamp].
+                    </p>
+                    <p>
+                      The two findings are independent and can both hold at once: [isAged] says the snapshot is probably behind the live model, while [countsDisagree] says the file no longer describes itself correctly. Only the second is a defect in the file.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="SpecModelStampCheck.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          const SpecModelStampCheck.new({required Duration? age, required Duration maxAge, required int? declaredClassCount, required int actualClassCount, required int? declaredRootCount, required int actualRootCount})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>Every argument is required, including the three nullable ones.</p>
+                        <p>
+                          That is deliberate: each nullable field encodes "the snapshot declared nothing here", and defaulting any of them would let a caller construct a check that quietly reports no finding because a value was forgotten rather than because the snapshot was silent. The check is only meaningful when every input is stated.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="SpecModelStampCheck.age" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Duration? age</code></div>
+                      <div class="api-doc">
+                        <p>
+                          How long ago the snapshot was generated, or <code>null</code> when it carries no <code>generatedAt</code>
+                           (an older export, or a hand-built model).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecModelStampCheck.maxAge" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final Duration maxAge</code></div>
+                      <div class="api-doc"><p>The threshold [age] was judged against.</p></div>
+                    </div>
+                    <div id="SpecModelStampCheck.declaredClassCount" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final int? declaredClassCount</code></div>
+                      <div class="api-doc"><p>The class count the stamp declares, or <code>null</code> when it declares none.</p></div>
+                    </div>
+                    <div id="SpecModelStampCheck.actualClassCount" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final int actualClassCount</code></div>
+                      <div class="api-doc"><p>The number of classes the payload actually carries.</p></div>
+                    </div>
+                    <div id="SpecModelStampCheck.declaredRootCount" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final int? declaredRootCount</code></div>
+                      <div class="api-doc"><p>The root count the stamp declares, or <code>null</code> when it declares none.</p></div>
+                    </div>
+                    <div id="SpecModelStampCheck.actualRootCount" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final int actualRootCount</code></div>
+                      <div class="api-doc"><p>The number of document roots the payload actually carries.</p></div>
+                    </div>
+                    <div id="SpecModelStampCheck.isAged" class="api-member"><div class="api-member-head"><code class="api-signature">bool isAged</code></div></div>
+                    <div id="SpecModelStampCheck.classCountDisagrees" class="api-member"><div class="api-member-head"><code class="api-signature">bool classCountDisagrees</code></div></div>
+                    <div id="SpecModelStampCheck.rootCountDisagrees" class="api-member"><div class="api-member-head"><code class="api-signature">bool rootCountDisagrees</code></div></div>
+                    <div id="SpecModelStampCheck.countsDisagree" class="api-member"><div class="api-member-head"><code class="api-signature">bool countsDisagree</code></div></div>
+                    <div id="SpecModelStampCheck.isStale" class="api-member"><div class="api-member-head"><code class="api-signature">bool isStale</code></div></div>
+                    <div id="SpecModelStampCheck.warnings" class="api-member"><div class="api-member-head"><code class="api-signature">List&lt;String&gt; warnings</code></div></div>
+                  </div>
+                </section>
+                <section id="SpecRoot" class="api-declaration">
+                  <h3 class="api-decl-title">class SpecRoot</h3>
+                  <code class="api-signature">class SpecRoot</code>
+                  <div class="api-doc"><p>A document root (a class carrying <code>@Document</code>).</p></div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="SpecRoot.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">
+                          SpecRoot.new({required String type, required String title, String? sectionId, String? description, String? doc})
+                        </code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          [type] and [title] are required: the identity and the label, the two keys the meta schema marks mandatory on a 
+                          <code>roots[]</code> entry. The three optional arguments are annotation projections whose absence means the root simply was not annotated.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecRoot.fromJson" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">factory SpecRoot.fromJson(Map&lt;String, dynamic&gt; j)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Reads one <code>roots[]</code> entry (<code>tom_specs_model_meta_schema.md</code>, "<code>roots[]</code>
+                           entry"). <code>type</code> and <code>title</code> throw when absent; the rest degrade to <code>null</code>.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="SpecRoot.type" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String type</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The root's class name — the key into [SpecModel.classes], and what [SpecModel.rootByType] and [SpecModel.isGenerationInput] resolve against. A root whose type is absent from the class graph is a truncated snapshot, not a documentless root.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecRoot.title" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String title</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The document's display name: <code>@Document(name:)</code>, or a PascalCase split of [type] when the annotation named none. Never 
+                          <code>null</code>, so a picker has something to show without inventing a fallback — but it is display text, and [type] is the identity.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecRoot.sectionId" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? sectionId</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The root's <code>@SectionId</code>, or <code>null</code>. It is the id the document's level-1 heading carries, and the schema's 
+                          <code>title-format</code> demands it as the root heading id (SOM §11.2, SOM §13) — so a mismatch is a 
+                          <code>formatMismatch</code>, not a cosmetic difference.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecRoot.description" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? description</code></div>
+                      <div class="api-doc">
+                        <p>
+                          <code>@Document(description:)</code> when non-empty, else <code>null</code>. A one-line gloss for a chooser; the substantive prose is [doc].
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecRoot.doc" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? doc</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The cleaned class doc comment of the root class, or <code>null</code> — the developer-facing explanation of what the document is for.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="StandardReferences" class="api-declaration">
+                  <h3 class="api-decl-title">class StandardReferences</h3>
+                  <code class="api-signature">class StandardReferences</code>
+                  <div class="api-doc">
+                    <p>
+                      The provenance recorded by <code>@StandardReferences(standards, connotation)</code>: which public standard(s) a section or field derives from, and what the section 
+                      <em>means</em>.
+                    </p>
+                    <p>
+                      Distinct from the author-facing <code>@ContentHelp</code> guidance — [connotation] states intent and ownership ("what this section is"), not "how to fill it in". The exporter emits it as a curated top-level key rather than leaving it to be dug out of the annotation list, so this reads that key.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="StandardReferences.new" class="api-member">
+                      <div class="api-member-head">
+                        <code class="api-signature">const StandardReferences.new({List&lt;String&gt; standards = const [], String? connotation})</code>
+                      </div>
+                      <div class="api-doc">
+                        <p>
+                          Both halves are optional and independent: <code>@StandardReferences</code> is used both to cite standards without glossing them and to state a [connotation] for a node that traces to no published standard, so neither can be required without rejecting a legitimate annotation.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="StandardReferences.standards" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final List&lt;String&gt; standards</code></div>
+                      <div class="api-doc">
+                        <p>
+                          The standards this node traces back to; each entry is the standard's ID plus the clause in the standard's own wording.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="StandardReferences.connotation" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">final String? connotation</code></div>
+                      <div class="api-doc"><p>What the section means — its intent / what it owns.</p></div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="StandardReferences.fromJson" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static StandardReferences? fromJson(Object? raw)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Returns <code>null</code> for a missing block, so absent provenance stays distinguishable from provenance recorded as empty.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="SpecFieldKind" class="api-declaration">
+                  <h3 class="api-decl-title">enum SpecFieldKind</h3>
+                  <code class="api-signature">enum SpecFieldKind</code>
+                  <div class="api-doc"><p>The render kind of a field, mirroring the exporter's classification.</p></div>
+                  <h4 class="api-group-title">Values</h4>
+                  <div class="api-members">
+                    <div id="SpecFieldKind.list" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">list</code></div>
+                      <div class="api-doc">
+                        <p>
+                          A <code>List&lt;T&gt;</code> member. The kind-specific keys are [SpecField.elementType], [SpecField.elementIsComplex] and [SpecField.min]; in markdown the field heads a 
+                          <code>-LST</code> container heading whose items nest one level deeper (SOM §11.5), so a path cannot descend through it without an item suffix.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecFieldKind.form" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">form</code></div>
+                      <div class="api-doc">
+                        <p>
+                          A <code>@Form</code> member. [SpecField.formFields] carries the declared fields in model order, and the section body is 
+                          <code>FieldName: value</code> lines rather than prose (SOM §11.4) — which is why free-text length rules do not apply to it.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecFieldKind.section" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">section</code></div>
+                      <div class="api-doc">
+                        <p>
+                          A section-typed member, whose declared class is named by [SpecField.sectionType] and whose render classification is [SpecField.contentType].
+                        </p>
+                        <p>
+                          <strong>A traversal handles this exactly like [complex]: descend when [SpecField.type] resolves, treat it as a leaf when it does not.</strong>
+                           The two shapes are:
+                        </p>
+                        <ul>
+                          <li>
+                            a <strong>wrapper</strong> section (<code>TextSection</code>, <code>FlowDiagramSection</code>, …) — the
+                          </li>
+                        </ul>
+                        <p>
+                          class lives in <code>tom_specs_core</code> and is deliberately <em>not</em> exported into [SpecModel.classes], so the field carries no [SpecField.type] and the miss makes it a leaf without any special case; 
+                          <em> a </em><em>collapsing</em>* section, whose [SpecField.type] names a real class — the path descends into it, keyed by 
+                          <code>sectionId ?? classSectionId</code> (SOM §12.2).
+                        </p>
+                        <p>
+                          The whole of <code>tom_specs_model</code> is the first shape today, so a walker written for leaves alone passes every test the model can generate — and fails the conformance corpus, which pins the second shape for exactly that reason.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecFieldKind.content" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">content</code></div>
+                      <div class="api-doc">
+                        <p>
+                          A plain <code>String</code> member rendered as markdown prose under its own heading (SOM §11.3). [SpecField.contentType] distinguishes ordinary 
+                          <code>text</code> from the fenced variants (<code>mermaid</code>, <code>code-dart</code>, …).
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecFieldKind.enumValue" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">enumValue</code></div>
+                      <div class="api-doc">
+                        <p>
+                          An enum-typed member. Named <code>enumValue</code> rather than <code>enum</code> only because <code>enum</code>
+                           is a Dart keyword — the wire spelling is <code>enum</code>, which is why [parse] has to translate it. [SpecField.enumType] and [SpecField.enumValues] carry the constant set.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecFieldKind.complex" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">complex</code></div>
+                      <div class="api-doc">
+                        <p>
+                          A member whose type is another <em>exported</em> model class, i.e. one present in [SpecModel.classes]. Unlike [section] this is the kind a traversal descends through, resolving [SpecField.type] against the class graph.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="SpecFieldKind.scalar" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">scalar</code></div>
+                      <div class="api-doc">
+                        <p>
+                          A primitive leaf (<code>int</code>, <code>double</code>, <code>bool</code>, <code>num</code>, <code>DateTime</code>), typed by [SpecField.type]. Also the fallback [parse] returns for any unrecognised kind name, so a snapshot from a newer exporter degrades to a renderable leaf instead of failing to load.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <h4 class="api-group-title">Constructors</h4>
+                  <div class="api-members">
+                    <div id="SpecFieldKind.new" class="api-member"><div class="api-member-head"><code class="api-signature">const SpecFieldKind.new()</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Static</h4>
+                  <div class="api-members">
+                    <div id="SpecFieldKind.values" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static List&lt;SpecFieldKind&gt; values</code></div>
+                    </div>
+                    <div id="SpecFieldKind.parse" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">static SpecFieldKind parse(String raw)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Maps the meta file's <code>kind</code> string onto a constant, translating the wire spelling <code>enum</code>
+                           to [enumValue].
+                        </p>
+                        <p>
+                          Deliberately total: an unrecognised name yields [scalar] rather than throwing, because the meta file is a forward-compatible asset (SOM §20) and one unknown kind must not make a whole snapshot unloadable.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <section id="AnnotatedSpecNode" class="api-declaration">
+                  <h3 class="api-decl-title">mixin AnnotatedSpecNode</h3>
+                  <code class="api-signature">mixin AnnotatedSpecNode on Object</code>
+                  <div class="api-doc">
+                    <p>
+                      Shared behaviour of the two model nodes that carry annotations — classes and fields. Keeps the annotation lookups defined once instead of per node type.
+                    </p>
+                  </div>
+                  <h4 class="api-group-title">Properties</h4>
+                  <div class="api-members">
+                    <div id="AnnotatedSpecNode.annotations" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">List&lt;SpecAnnotation&gt; annotations</code></div>
+                    </div>
+                    <div id="AnnotatedSpecNode.standardReferences" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">StandardReferences? standardReferences</code></div>
+                    </div>
+                    <div id="AnnotatedSpecNode.isUnused" class="api-member"><div class="api-member-head"><code class="api-signature">bool isUnused</code></div></div>
+                    <div id="AnnotatedSpecNode.comment" class="api-member"><div class="api-member-head"><code class="api-signature">String? comment</code></div></div>
+                    <div id="AnnotatedSpecNode.reference" class="api-member"><div class="api-member-head"><code class="api-signature">String? reference</code></div></div>
+                    <div id="AnnotatedSpecNode.hasReferences" class="api-member"><div class="api-member-head"><code class="api-signature">bool hasReferences</code></div></div>
+                    <div id="AnnotatedSpecNode.codeSpecKind" class="api-member"><div class="api-member-head"><code class="api-signature">KindLink? codeSpecKind</code></div></div>
+                    <div id="AnnotatedSpecNode.followUpKind" class="api-member"><div class="api-member-head"><code class="api-signature">KindLink? followUpKind</code></div></div>
+                    <div id="AnnotatedSpecNode.noArtifact" class="api-member"><div class="api-member-head"><code class="api-signature">NoArtifactLink? noArtifact</code></div></div>
+                  </div>
+                  <h4 class="api-group-title">Methods</h4>
+                  <div class="api-members">
+                    <div id="AnnotatedSpecNode.annotation" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">SpecAnnotation? annotation(String name)</code></div>
+                      <div class="api-doc"><p>The annotation named [name], or <code>null</code> when absent.</p></div>
+                    </div>
+                    <div id="AnnotatedSpecNode.annotationsNamed" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">List&lt;SpecAnnotation&gt; annotationsNamed(String name)</code></div>
+                      <div class="api-doc">
+                        <p>Every annotation named [name], in source order — empty when absent.</p>
+                        <p>
+                          Distinct from [annotation] because some annotations are <em>repeatable</em>: <code>@Case</code> is applied once per discriminator value, so a single field can carry several. Reading only the first would silently drop the rest.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="AnnotatedSpecNode.hasAnnotation" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">bool hasAnnotation(String name)</code></div>
+                      <div class="api-doc">
+                        <p>
+                          Whether the annotation named [name] is present. For markers that carry no arguments, presence <em>is</em>
+                           the whole statement.
+                        </p>
+                      </div>
+                    </div>
+                    <div id="AnnotatedSpecNode._link" class="api-member">
+                      <div class="api-member-head"><code class="api-signature">KindLink? _link(String name, String listArgument)</code></div>
+                    </div>
+                  </div>
+                </section>
+                <section id="_daysInMonth" class="api-declaration">
+                  <h3 class="api-decl-title">function _daysInMonth</h3>
+                  <code class="api-signature">int _daysInMonth(int year, int month)</code>
+                  <div class="api-doc">
+                    <p>
+                      The length of [month] in [year], Gregorian. Used to reject a day that does not exist rather than letting it roll into the next month: 
+                      <code>DateTime.utc</code> would turn 31 February into 3 March, while several other SOM runtimes' date types reject it outright — so the grammar rejects it everywhere.
+                    </p>
+                  </div>
+                </section>
+                <section id="_stringMap" class="api-declaration">
+                  <h3 class="api-decl-title">function _stringMap</h3>
+                  <code class="api-signature">Map&lt;String, String&gt; _stringMap(Object? raw)</code>
+                  <div class="api-doc">
+                    <p>Reads a <code>{name: text}</code> JSON object into a string map, tolerating absence.</p>
+                    <p>
+                      Used for the <code>enumValueDocs</code> blocks. An absent or non-object value yields the empty map rather than throwing: the key is additive and optional, so a meta written before it existed must still load.
+                    </p>
+                  </div>
+                </section>
+                <section id="_stripEnumPrefix" class="api-declaration">
+                  <h3 class="api-decl-title">function _stripEnumPrefix</h3>
+                  <code class="api-signature">String _stripEnumPrefix(String raw)</code>
+                  <div class="api-doc">
+                    <p>
+                      <code>CodeSpecPart.validation</code> → <code>validation</code>. A name already given bare is returned unchanged, so readers do not depend on how the exporter chose to spell the enum constant. Splitting on the last dot rather than a fixed prefix keeps this working for any code enum the model adds.
+                    </p>
+                  </div>
+                </section>
+                <section id="parseStampTimestamp" class="api-declaration">
+                  <h3 class="api-decl-title">function parseStampTimestamp</h3>
+                  <code class="api-signature">DateTime? parseStampTimestamp(String? raw)</code>
+                  <div class="api-doc">
+                    <p>Parses a generation-stamp timestamp to UTC, or returns null.</p>
+                    <p>
+                      A timestamp carrying <strong>no</strong> zone is read as UTC. <code>DateTime.parse</code> would read it as the reader's local time, which would make a staleness verdict depend on where the reader sits — a defect in its own right, and one the other eight SOM runtimes could not mirror anyway (several have no timezone database). Fixing the fallback here is what lets all nine agree.
+                    </p>
+                    <p>
+                      Anything outside the grammar — or carrying an out-of-range field — degrades to null rather than throwing: an unreadable stamp is not worth failing a whole model over, and rolling 
+                      <code>2026-13-01</code> over into January is worse than admitting the stamp is unreadable.
+                    </p>
+                  </div>
+                </section>
+                <section id="somModelVersionString" class="api-declaration">
+                  <h3 class="api-decl-title">function somModelVersionString</h3>
+                  <code class="api-signature">String somModelVersionString(int major, String? label)</code>
+                  <div class="api-doc">
+                    <p>
+                      Computes the <code>major.minor</code> model-version string from a [major] version counter and an optional full [label] (the 
+                      <code>tom_specs_model</code> version stamp, e.g. <code>1.0.0+3.abc1234</code>).
+                    </p>
+                    <p>
+                      When [label] carries at least two leading numeric dotted components (<code>major.minor…</code>, ignoring any 
+                      <code>+build</code> metadata) those win, so a genuine authoring minor is preserved (<code>2.3.1+5</code>
+                       → <code>2.3</code>). Otherwise the result is <code>&lt;major&gt;.0</code>.
+                    </p>
+                  </div>
+                </section>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+      <footer class="site-footer">
+        <div class="wrap">
+          <span><svg viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg" aria-label="Tom Framework logo" role="img">
+  <defs>
+    <linearGradient id="tom-f" x1="32" y1="28" x2="128" y2="140" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#0F9ED5"/><stop offset=".55" stop-color="#156082"/><stop offset="1" stop-color="#0E2841"/></linearGradient>
+    <linearGradient id="tom-e" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0F9ED5"/><stop offset="1" stop-color="#156082"/></linearGradient>
+    <radialGradient id="tom-s" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#7FE3A0"/><stop offset="1" stop-color="#4EA72E"/></radialGradient>
+  </defs>
+  <circle cx="44" cy="42" r="22" fill="url(#tom-e)"/><circle cx="116" cy="42" r="22" fill="url(#tom-e)"/>
+  <circle cx="44" cy="42" r="9" fill="#0E2841" opacity=".35"/><circle cx="116" cy="42" r="9" fill="#0E2841" opacity=".35"/>
+  <rect x="26" y="40" width="108" height="104" rx="46" fill="url(#tom-f)"/>
+  <circle cx="62" cy="86" r="7.5" fill="#EAF6FB"/><circle cx="98" cy="86" r="7.5" fill="#EAF6FB"/>
+  <circle cx="63.5" cy="87" r="3.2" fill="#0E2841"/><circle cx="99.5" cy="87" r="3.2" fill="#0E2841"/>
+  <rect x="60" y="104" width="40" height="30" rx="15" fill="#EAF6FB" opacity=".92"/>
+  <path d="M80 112 v8 M80 120 q-6 5 -12 4 M80 120 q6 5 12 4" stroke="#0E2841" stroke-width="3.4" stroke-linecap="round" fill="none"/>
+  <ellipse cx="80" cy="112" rx="6.5" ry="4.5" fill="#0E2841"/>
+  <circle cx="128" cy="118" r="5" fill="url(#tom-s)"/><circle cx="140" cy="110" r="3" fill="#4EA72E" opacity=".8"/><circle cx="139" cy="124" r="2.4" fill="#0F9ED5" opacity=".7"/>
+</svg></span>
+          <span>Tom Framework</span>
+          <a class="copyright" href="/impressum">© 2026 Enterprise Flutter</a>
+        </div>
+      </footer>
+      <!--@mermaid_init-->
+      <span style="display: none"></span>
+      <!--/@mermaid_init-->
+    </div>
+  </body>
+</html>
