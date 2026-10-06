@@ -1343,7 +1343,7 @@
     </style>
     <script src="js/mermaid.min.js" defer></script>
     <!--$-->
-    <title>tom_core_d4rt</title>
+    <title>TypeScript tutorial — `tom_som_typescript_v0`</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <!--/-->
     <script src="main.client.dart.js" defer></script>
@@ -1386,167 +1386,208 @@
       </nav>
       <main class="site-main">
         <div class="wrap">
-          <div class="dhead" style="margin-top: 24px">
-            <a class="back" href="/components/core">← Core</a>
-            <div style="margin-top: 12px">
-              <span style="display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap"><span class="badge b-works"><span class="d"></span>In the works</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">license: proprietary</span></span>
+          <section class="section">
+            <h1>TypeScript tutorial — `tom_som_typescript_v0`</h1>
+            <div class="pageprose">
+              <p>
+                Using the TomSpecs Specification Object Model from TypeScript, end to end: install the package, open a document, read a section, edit it, validate it and serialize it. One program, run start to finish.
+              </p>
+              <p>
+                The object model itself, the two wire formats and the validator contract are the <strong>subject matter</strong>
+                 and are owned by <a href="/docs?module=tom_specs_model&amp;path=doc%2Fsom_multiplatform_spec_model.md"><code>som_multiplatform_spec_model.md</code></a>; this guide cites it and never restates it. The generic, reflective half of the same plane is 
+                <a href="/doc/tom_agent_container/tom_ai/ai_build/tom_som_typescript_runtime/doc/generic_access"><code>tom_som_typescript_runtime/doc/generic_access.md</code></a>.
+              </p>
+              <h2>Table of Contents</h2>
+              <ul>
+                <li><a href="#overview">Overview</a></li>
+                <li><a href="#quick-start">Quick Start</a></li>
+                <li><a href="#core-components">Core Components</a></li>
+                <li><a href="#the-whole-tutorial">The whole tutorial</a></li>
+                <li><a href="#reading-it-step-by-step">Reading it step by step</a></li>
+                <li><a href="#building-and-testing">Building and testing</a></li>
+                <li><a href="#the-api-reference">The API reference</a></li>
+                <li><a href="#error-handling">Error Handling</a></li>
+                <li><a href="#best-practices">Best Practices</a></li>
+              </ul>
+              <h2>Overview</h2>
+              <p>
+                <code>tom_som_typescript_v0</code> is the <strong>typed</strong> access path: one generated type per document section, so a specification is read and written through named members rather than string paths. It is a view over a document that the hand-written 
+                <code>tom_som_typescript_runtime</code> actually holds — the runtime carries the sparse, path-keyed store, the codecs and the validator; the facade carries only what changes when the model changes.
+              </p>
+              <p>
+                The package ships TypeScript sources and compiles to <code>dist/</code>, so consumers get declaration files and a mistyped section member is a 
+                <code>tsc</code> error rather than a run-time surprise.
+              </p>
+              <p>Five steps make up every non-trivial use, and the tutorial below is exactly those five in order:</p>
+              <table class="mdtable">
+                <thead><tr><th>Step</th><th>What it does</th></tr></thead>
+                <tbody>
+                  <tr><td>1</td><td>Open a document and wrap it in a typed root</td></tr>
+                  <tr><td>2</td><td>Edit through named members</td></tr>
+                  <tr><td>3</td><td>Read a value back</td></tr>
+                  <tr><td>4</td><td>Validate the document against the model</td></tr>
+                  <tr><td>5</td><td>Serialize to <code>*.docspecs.yaml</code>, and decode it again</td></tr>
+                </tbody>
+              </table>
+              <h2>Quick Start</h2>
+              <pre><code>npm install tom_som_typescript_v0</code></pre>
+              <p>
+                Both halves are versioned to the TomSpecs <strong>model version</strong> and must move together — <code>tom_som_typescript_v0</code>
+                 and <code>tom_som_typescript_runtime</code> always carry the same version. Every other dependency route is in 
+                <a href="/doc/tom_agent_container/tom_ai/ai_build/tom_som_typescript_v0/readme_howtointegrate"><code>readme_howtointegrate.md</code></a>.
+              </p>
+              <h2>Core Components</h2>
+              <table class="mdtable">
+                <thead><tr><th>Thing</th><th>Where it lives</th><th>Role</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><code>D00SolutionBlueprint</code> …</td>
+                    <td>this package</td>
+                    <td>The fourteen generated document roots — the typed entry points</td>
+                  </tr>
+                  <tr>
+                    <td><code>SpecDocument</code></td>
+                    <td>the runtime</td>
+                    <td>The sparse, path-keyed store the facade is a view over</td>
+                  </tr>
+                  <tr>
+                    <td>the metadata tree</td>
+                    <td>this package</td>
+                    <td>The model's shape as data; the codecs walk it</td>
+                  </tr>
+                  <tr>
+                    <td><code>validateDocument</code></td>
+                    <td>the runtime</td>
+                    <td>The instance tier — a filled document's values checked against the model</td>
+                  </tr>
+                  <tr>
+                    <td>the YAML codec</td>
+                    <td>the runtime</td>
+                    <td><code>*.docspecs.yaml</code>, byte-stable in all nine languages</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>
+                The document roots are listed in the <a href="/doc/tom_agent_container/tom_ai/ai_build/tom_som_typescript_v0/README#document-roots">README</a>; 
+                <code>D00SolutionBlueprint</code> is the master and the other thirteen are projections over the same sections.
+              </p>
+              <h2>The whole tutorial</h2>
+              <p>
+                Run this from the package root — it needs <code>meta/spec_model.meta.json</code>, which ships with the package:
+              </p>
+              <pre><code>import * as fs from 'fs';
+import {
+  SpecDocument, SpecModel, validateDocument, yamlEncode, yamlDecode,
+} from 'tom_som_typescript_runtime';
+import { D00SolutionBlueprint } from './tom_som_typescript_v0';
+import { d00SolutionBlueprintMetaTree } from './tom_som_typescript_v0_meta';
+
+// 1 — open a document and wrap it in a typed root.
+const doc = new SpecDocument();
+const blueprint = new D00SolutionBlueprint(doc);
+
+// 2 — edit through named members, not string paths.
+blueprint.content = 'A platform that unifies our fragmented order systems.';
+blueprint.currentLandscape.content =
+  'Three legacy systems with no shared customer record.';
+
+// 3 — read it back.
+console.log(blueprint.content);
+
+// 4 — validate against the model.
+const model = SpecModel.fromJson(
+  JSON.parse(fs.readFileSync('meta/spec_model.meta.json', 'utf8')));
+console.log(validateDocument(model, doc).length === 0);
+
+// 5 — serialize, then read the value back out of the decoded document.
+const y = yamlEncode(doc, d00SolutionBlueprintMetaTree, '1.0');
+const decoded = yamlDecode(y, d00SolutionBlueprintMetaTree);
+console.log(decoded.document.content('SBP/content'));
+console.log(decoded.modelVersion);</code></pre>
+              <p>Output:</p>
+              <pre><code>A platform that unifies our fragmented order systems.
+true
+A platform that unifies our fragmented order systems.
+1.0</code></pre>
+              <p>Run it with:</p>
+              <pre><code>npm run build &amp;&amp; node dist/tutorial.js</code></pre>
+              <h2>Reading it step by step</h2>
+              <p>
+                <strong>Step 1 — open and wrap.</strong> The document is the value; the typed root is a view onto it. Constructing a root also runs the model-version check, so a document stamped by a different model version is refused rather than silently misread.
+              </p>
+              <p>
+                <strong>Step 2 — edit through members.</strong> This is the whole point of the typed path: a mistyped section is a compile-time or attribute error here, where on the generic path it would be a string that resolves to nothing.
+              </p>
+              <p>
+                <strong>Step 3 — read back.</strong> The value comes from the same store the edit went into; the facade holds no state of its own.
+              </p>
+              <p>
+                <strong>Step 4 — validate.</strong> <code>validateDocument</code> is the <em>instance</em> tier — it checks a filled document's values against the model. It is distinct from the static tier, which checks that the model's own annotations are well-formed and runs once at generation time.
+              </p>
+              <p>
+                <strong>Step 5 — serialize and decode.</strong> The encoding walks the metadata tree, so sibling order is the model's declared order and emission is sparse — only populated subtrees appear. Decoding returns the document plus the file's 
+                <code>modelVersion</code> stamp, which is what a reader checks before trusting the content.
+              </p>
+              <h2>Building and testing</h2>
+              <pre><code>./run_tests.sh</code></pre>
+              <p>
+                Every SOM package carries that same script, whatever the ecosystem underneath, and <a href="https://github.com/al-the-bear/tom_ai_build/tree/main/tom_som_conformance"><code>tom_som_conformance</code></a>
+                 aggregates all eighteen. The per-language toolchain — what to install and how — is <a href="/docs?module=tom_specs_model&amp;path=doc%2Fsom_toolchains.md"><code>som_toolchains.md</code></a>.
+              </p>
+              <h2>The API reference</h2>
+              <p>
+                The full generated reference lives in <code>doc/api/reference/</code> and is <strong>not committed</strong>
+                 — it is output, and it regenerates:
+              </p>
+              <pre><code>cd ../tom_specs_clitool
+./tool/regenerate_api_references.sh typescript_v0</code></pre>
+              <p>
+                That renders it with <code>typedoc</code>. The reasoning behind not committing it, and the per-language generator notes, are in 
+                <a href="/docs?module=tom_specs_model&amp;path=doc%2Fsom_toolchains.md"><code>som_toolchains.md</code></a>, "Documentation generation".
+              </p>
+              <h2>Error Handling</h2>
+              <p>
+                Failures <code>throw</code>. <code>validateDocument</code> returns an array instead; an empty array is the pass. Path typos that would be run-time misses in JavaScript are compile errors here.
+              </p>
+              <p>Three failures are worth recognising by sight:</p>
+              <table class="mdtable">
+                <thead><tr><th>Symptom</th><th>Cause</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>The version check refuses a document</td>
+                    <td>Its stamp names a model version this facade was not generated from</td>
+                  </tr>
+                  <tr>
+                    <td>The encoder reports a value it cannot place</td>
+                    <td>The object tree holds something the metadata tree does not describe — nothing is silently dropped</td>
+                  </tr>
+                  <tr>
+                    <td>The decoder rejects a file</td>
+                    <td>A <code>version:</code> it does not support, a key the tree cannot place, or a malformed value shape</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>
+                The encoder's loudness is deliberate: the alternative to failing there is a file that silently lost data.
+              </p>
+              <h2>Best Practices</h2>
+              <ul><li><strong>Pin both halves together.</strong> The facade and the runtime carry the same</li></ul>
+              <p>
+                version because they are generated from one model; mixing them is the one configuration that fails in confusing ways. - 
+                <strong>Prefer the typed path.</strong> Reach for the generic store only when the path is computed rather than known — see 
+                <a href="/doc/tom_agent_container/tom_ai/ai_build/tom_som_typescript_runtime/doc/generic_access"><code>generic_access.md</code></a>. - 
+                <strong>Check the decoded <code>modelVersion</code> before trusting content.</strong> It is the stamp that says which model wrote the file. - 
+                <strong>Treat a validation result as data, not an error.</strong> A specification under construction is normally invalid; that is what drafts are. - 
+                <strong>Never hand-edit a file carrying the <code>GENERATED … do not edit by hand</code> banner.</strong>
+                 Change the model and regenerate. - <strong>Regenerate the API reference rather than looking for it in the repo.</strong>
+                 It is deliberately not committed.
+              </p>
+              <p>---</p>
+              <p>
+                Back to the <a href="/doc/tom_agent_container/tom_ai/ai_build/tom_som_typescript_v0/doc/index">documentation index</a>.
+              </p>
             </div>
-            <h2>tom_core_d4rt</h2>
-            <div class="mono" style="color: #9FB6C9">tom_core_d4rt · v1.0.0</div>
-            <p style="margin-top: 10px">
-              The D4rt scripting tool with full Tom-framework bridge support: a REPL (`d4rt`) and headless script runner that registers generated bridges for a dozen Tom packages — kernel, server, build, distributed, and document toolkits — so sandboxed DartScript can call straight into the framework.
-            </p>
-          </div>
-          <div class="statgrid">
-            <div class="stat">
-              <div class="k">Status</div>
-              <div class="v" style="font-size: 1.05rem; color: #D85F23">In the works</div>
-            </div>
-            <div class="stat"><div class="k">LOC</div><div class="v">51.3k</div></div>
-            <div class="stat"><div class="k">Tests</div><div class="v">33</div></div>
-            <div class="stat"><div class="k">Test LOC</div><div class="v">548</div></div>
-          </div>
-          <div class="dcols">
-            <div>
-              <div class="panel">
-                <h3>Overview</h3>
-                <p>From the module readme.md file:</p>
-                <h4 style="font-size: 1rem; margin-top: 18px">What it enables</h4>
-                <p class="muted" style="margin: 0">No downstream modules declared yet.</p>
-              </div>
-              <div class="panel"><h3>Relationships</h3><p class="muted" style="margin: 0">Standalone — no declared relationships.</p></div>
-            </div>
-            <aside>
-              <div class="panel">
-                <h3 style="font-size: 1.05rem">Documentation</h3>
-                <p class="muted" style="margin: 0 0 6px">Authored guides (<span class="mono">.md</span>)</p>
-                <div class="linkrow">
-                  <span class="ic">📄</span>
-                  <div class="linkmeta">
-                    <a class="linkname" href="/docs?module=tom_core_d4rt&amp;path=CHANGELOG.md">CHANGELOG.md</a>
-                    <span class="muted linkpath">CHANGELOG.md</span>
-                  </div>
-                </div>
-                <div class="linkrow">
-                  <span class="ic">📄</span>
-                  <div class="linkmeta">
-                    <a class="linkname" href="/docs?module=tom_core_d4rt&amp;path=README.md">README.md</a>
-                    <span class="muted linkpath">README.md</span>
-                  </div>
-                </div>
-                <div class="linkrow">
-                  <span class="ic">📄</span>
-                  <div class="linkmeta">
-                    <a class="linkname" href="/docs?module=tom_core_d4rt&amp;path=doc%2Fbuild.md">build.md</a>
-                    <span class="muted linkpath">doc/build.md</span>
-                  </div>
-                </div>
-                <div class="linkrow">
-                  <span class="ic">📄</span>
-                  <div class="linkmeta">
-                    <a class="linkname" href="/docs?module=tom_core_d4rt&amp;path=doc%2Fcli.md">cli.md</a>
-                    <span class="muted linkpath">doc/cli.md</span>
-                  </div>
-                </div>
-                <div class="linkrow">
-                  <span class="ic">📄</span>
-                  <div class="linkmeta">
-                    <a class="linkname" href="/docs?module=tom_core_d4rt&amp;path=doc%2Fd4rt_cli_api_design.md">d4rt_cli_api_design.md</a>
-                    <span class="muted linkpath">doc/d4rt_cli_api_design.md</span>
-                  </div>
-                </div>
-                <div class="linkrow">
-                  <span class="ic">📄</span>
-                  <div class="linkmeta">
-                    <a class="linkname" href="/docs?module=tom_core_d4rt&amp;path=doc%2Ftesting.md">testing.md</a>
-                    <span class="muted linkpath">doc/testing.md</span>
-                  </div>
-                </div>
-                <div class="linkrow">
-                  <span class="ic">📄</span>
-                  <div class="linkmeta">
-                    <a class="linkname" href="/docs?module=tom_core_d4rt&amp;path=doc%2Ftom_basics.md">tom_basics.md</a>
-                    <span class="muted linkpath">doc/tom_basics.md</span>
-                  </div>
-                </div>
-                <div class="linkrow">
-                  <span class="ic">📄</span>
-                  <div class="linkmeta">
-                    <a class="linkname" href="/docs?module=tom_core_d4rt&amp;path=doc%2Ftom_build.md">tom_build.md</a>
-                    <span class="muted linkpath">doc/tom_build.md</span>
-                  </div>
-                </div>
-                <div class="linkrow">
-                  <span class="ic">📄</span>
-                  <div class="linkmeta">
-                    <a class="linkname" href="/docs?module=tom_core_d4rt&amp;path=doc%2Ftom_core_kernel.md">tom_core_kernel.md</a>
-                    <span class="muted linkpath">doc/tom_core_kernel.md</span>
-                  </div>
-                </div>
-                <div class="linkrow">
-                  <span class="ic">📄</span>
-                  <div class="linkmeta">
-                    <a class="linkname" href="/docs?module=tom_core_d4rt&amp;path=doc%2Ftom_core_server.md">tom_core_server.md</a>
-                    <span class="muted linkpath">doc/tom_core_server.md</span>
-                  </div>
-                </div>
-                <div class="linkrow">
-                  <span class="ic">📄</span>
-                  <div class="linkmeta">
-                    <a class="linkname" href="/docs?module=tom_core_d4rt&amp;path=doc%2Ftom_dist_ledger.md">tom_dist_ledger.md</a>
-                    <span class="muted linkpath">doc/tom_dist_ledger.md</span>
-                  </div>
-                </div>
-                <div class="linkrow">
-                  <span class="ic">📄</span>
-                  <div class="linkmeta">
-                    <a class="linkname" href="/docs?module=tom_core_d4rt&amp;path=doc%2Ftom_doc_scanner.md">tom_doc_scanner.md</a>
-                    <span class="muted linkpath">doc/tom_doc_scanner.md</span>
-                  </div>
-                </div>
-                <div class="linkrow">
-                  <span class="ic">📄</span>
-                  <div class="linkmeta">
-                    <a class="linkname" href="/docs?module=tom_core_d4rt&amp;path=doc%2Ftom_doc_specs.md">tom_doc_specs.md</a>
-                    <span class="muted linkpath">doc/tom_doc_specs.md</span>
-                  </div>
-                </div>
-                <div class="linkrow">
-                  <span class="ic">📄</span>
-                  <div class="linkmeta">
-                    <a class="linkname" href="/docs?module=tom_core_d4rt&amp;path=doc%2Ftom_md2latex.md">tom_md2latex.md</a>
-                    <span class="muted linkpath">doc/tom_md2latex.md</span>
-                  </div>
-                </div>
-                <div class="linkrow">
-                  <span class="ic">📄</span>
-                  <div class="linkmeta">
-                    <a class="linkname" href="/docs?module=tom_core_d4rt&amp;path=doc%2Ftom_md2pdf.md">tom_md2pdf.md</a>
-                    <span class="muted linkpath">doc/tom_md2pdf.md</span>
-                  </div>
-                </div>
-                <div class="linkrow">
-                  <span class="ic">📄</span>
-                  <div class="linkmeta">
-                    <a class="linkname" href="/docs?module=tom_core_d4rt&amp;path=doc%2Ftom_process_monitor.md">tom_process_monitor.md</a>
-                    <span class="muted linkpath">doc/tom_process_monitor.md</span>
-                  </div>
-                </div>
-                <div class="linkrow">
-                  <span class="ic">📄</span>
-                  <div class="linkmeta">
-                    <a class="linkname" href="/docs?module=tom_core_d4rt&amp;path=doc%2Ftom_reflection.md">tom_reflection.md</a>
-                    <span class="muted linkpath">doc/tom_reflection.md</span>
-                  </div>
-                </div>
-              </div>
-              <div class="panel">
-                <h3 style="font-size: 1.05rem">API</h3>
-                <p class="muted" style="margin: 0 0 6px">API surface / generated</p>
-                <p class="muted" style="margin: 6px 0 0">No API yet.</p>
-              </div>
-            </aside>
-          </div>
+          </section>
         </div>
       </main>
       <footer class="site-footer">

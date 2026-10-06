@@ -1343,7 +1343,7 @@
     </style>
     <script src="js/mermaid.min.js" defer></script>
     <!--$-->
-    <title>tom_core_bridge</title>
+    <title>Generic access — `tom_som_typescript_runtime`</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <!--/-->
     <script src="main.client.dart.js" defer></script>
@@ -1386,76 +1386,206 @@
       </nav>
       <main class="site-main">
         <div class="wrap">
-          <div class="dhead" style="margin-top: 24px">
-            <a class="back" href="/components/core">← Core</a>
-            <div style="margin-top: 12px">
-              <span style="display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap"><span class="badge b-ns"><span class="d"></span>Not started</span><span class="tagrole" style="background: rgba(255,255,255,.12); color: #cfe2ee">license: proprietary</span></span>
+          <section class="section">
+            <h1>Generic access — `tom_som_typescript_runtime`</h1>
+            <div class="pageprose">
+              <p>
+                The reflective, untyped half of the TypeScript SOM plane: the document as a sparse path-keyed store, the model as data, and the question of when to prefer this over the generated typed facade.
+              </p>
+              <p>
+                The object model, the two wire formats and the validator contract are the <strong>subject matter</strong>
+                 and are owned by <a href="/docs?module=tom_specs_model&amp;path=doc%2Fsom_multiplatform_spec_model.md"><code>som_multiplatform_spec_model.md</code></a>; this guide cites it and never restates it. The typed half is 
+                <a href="/doc/tom_agent_container/tom_ai/ai_build/tom_som_typescript_v0/doc/tutorial"><code>tom_som_typescript_v0/doc/tutorial.md</code></a>.
+              </p>
+              <h2>Table of Contents</h2>
+              <ul>
+                <li><a href="#overview">Overview</a></li>
+                <li><a href="#quick-start">Quick Start</a></li>
+                <li><a href="#core-components">Core Components</a></li>
+                <li><a href="#driving-a-document-by-path">Driving a document by path</a></li>
+                <li><a href="#the-model-as-data">The model as data</a></li>
+                <li><a href="#when-to-prefer-the-generic-path">When to prefer the generic path</a></li>
+                <li><a href="#building-and-testing">Building and testing</a></li>
+                <li><a href="#the-api-reference">The API reference</a></li>
+                <li><a href="#error-handling">Error Handling</a></li>
+                <li><a href="#best-practices">Best Practices</a></li>
+              </ul>
+              <h2>Overview</h2>
+              <p>
+                A TomSpecs document is <strong>sparse and path-keyed</strong>: a value lives under the globally-unique section-id path it belongs to, and an absent key means "no value" rather than an empty one. This package is that store, plus everything that is the same in every language — the codecs, the validator, the reflection surface and the editing tiers.
+              </p>
+              <p>
+                It holds <strong>no document values of its own</strong> and contains <strong>no generated typed classes</strong>. Those belong to 
+                <code>tom_som_typescript_v0</code>, which is a view over exactly the store this package provides. Both halves address the same document; the difference is only whether a member is named at compile time or resolved from a string at run time.
+              </p>
+              <p>
+                The package ships TypeScript sources and compiles to <code>dist/</code>, so consumers get declaration files and a mistyped section member is a 
+                <code>tsc</code> error rather than a run-time surprise.
+              </p>
+              <h2>Quick Start</h2>
+              <pre><code>npm install tom_som_typescript_runtime</code></pre>
+              <p>
+                Most consumers depend on the typed facade, which pulls this in. Depend on it directly when you drive documents by path — tooling, migration, bulk edits, or anything that computes the path rather than knowing it.
+              </p>
+              <h2>Core Components</h2>
+              <table class="mdtable">
+                <thead><tr><th>Type</th><th>Role</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><code>SpecDocument</code></td>
+                    <td>The sparse, path-keyed store of content, form and list values</td>
+                  </tr>
+                  <tr>
+                    <td><code>SpecModel</code></td>
+                    <td>The exported class graph — roots, classes, fields, annotations</td>
+                  </tr>
+                  <tr>
+                    <td><code>SpecReflection</code></td>
+                    <td>Resolves and enumerates paths against the model <strong>without reading values</strong></td>
+                  </tr>
+                  <tr>
+                    <td><code>SpecValidator</code> / <code>validateDocument</code></td>
+                    <td>The instance tier: a filled document's values checked against the model</td>
+                  </tr>
+                  <tr>
+                    <td>the YAML and Markdown codecs</td>
+                    <td><code>*.docspecs.yaml</code> and DocSpecs markdown, byte-stable across all nine languages</td>
+                  </tr>
+                  <tr>
+                    <td>the editing-facade bases</td>
+                    <td>What the generated <code>tom_som_typescript_v0</code> types extend</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>
+                The full catalogue is the <a href="/doc/tom_agent_container/tom_ai/ai_build/tom_som_typescript_runtime/README">README</a>; this guide is about using them.
+              </p>
+              <h2>Driving a document by path</h2>
+              <p>
+                A facade is a view; the document is the value. Reach past the typed types whenever a path is computed rather than known — both sides address exactly the same store.
+              </p>
+              <pre><code>import { SpecDocument, yamlEncode } from 'tom_som_typescript_runtime';
+import { d00SolutionBlueprintMetaTree } from 'tom_som_typescript_v0';
+
+const doc = new SpecDocument();
+doc.setContent(
+  'SBP/content', 'A platform that unifies our fragmented order systems.');
+
+// A repeated section: append an item, then fill a content leaf under it.
+const item = doc.addListItem('SBP/currentLandscape/CUOPME-OPER-LST');
+doc.setContent(`\${item}/content`, 'Average order turnaround: 4.2 days.');
+
+// The whole document serializes to the canonical wire format.
+console.log(yamlEncode(doc, d00SolutionBlueprintMetaTree, '1.0'));</code></pre>
+              <p>
+                The path grammar is the model's: a root segment, then a member per level, with list items addressed by the path the store hands back when you append. Nothing here needs a generated class, which is why this half of the plane is what tooling reaches for.
+              </p>
+              <h2>The model as data</h2>
+              <p>
+                The exported class graph answers "what <em>can</em> the model hold?" with no document values involved — enumerate roots and fields, or resolve a concrete path to the model node it lands on (<code>SOM §7</code>).
+              </p>
+              <pre><code>import * as fs from 'fs';
+import { SpecModel, SpecReflection } from 'tom_som_typescript_runtime';
+
+const model = SpecModel.fromJson(
+  JSON.parse(fs.readFileSync('meta/spec_model.meta.json', 'utf8')));
+const reflection = new SpecReflection(model);
+
+for (const root of reflection.roots) {
+  console.log(reflection.rootSegment(root), root.title);
+}
+
+const res = reflection.resolve('SBP/currentLandscape/content');
+console.log(`kind=\${res.kind}  valueLeaf=\${res.isValueLeaf}`);</code></pre>
+              <p>
+                This is the surface that makes generic editing safe rather than blind: before writing to a path you can ask whether the model has one, what kind of node it is, and whether it is a value leaf.
+              </p>
+              <h2>When to prefer the generic path</h2>
+              <table class="mdtable">
+                <thead>
+                  <tr>
+                    <th>Prefer the <strong>typed facade</strong> when</th>
+                    <th>Prefer the <strong>generic store</strong> when</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>The section is known at authoring time</td><td>The path is computed, or comes from data</td></tr>
+                  <tr><td>You want the compiler to catch a typo</td><td>You are walking every section of a document</td></tr>
+                  <tr>
+                    <td>You are writing application code</td>
+                    <td>You are writing tooling, a migration or a bulk edit</td>
+                  </tr>
+                  <tr><td>The document root is fixed</td><td>The root varies, or several are handled uniformly</td></tr>
+                </tbody>
+              </table>
+              <p>
+                The two are not alternatives at run time — the facade <em>is</em> a view over this store, so a program can use both on one document and see one set of values. The choice is per call site, not per program.
+              </p>
+              <h2>Building and testing</h2>
+              <pre><code>./run_tests.sh</code></pre>
+              <p>
+                Every SOM package carries that same script, whatever the ecosystem underneath, and <a href="https://github.com/al-the-bear/tom_ai_build/tree/main/tom_som_conformance"><code>tom_som_conformance</code></a>
+                 aggregates all eighteen — which is also what proves this port reads a document identically to the other eight. The per-language toolchain is 
+                <a href="/docs?module=tom_specs_model&amp;path=doc%2Fsom_toolchains.md"><code>som_toolchains.md</code></a>.
+              </p>
+              <h2>The API reference</h2>
+              <p>
+                The full generated reference lives in <code>doc/api/reference/</code> and is <strong>not committed</strong>
+                 — it is output, and it regenerates:
+              </p>
+              <pre><code>cd ../tom_specs_clitool
+./tool/regenerate_api_references.sh typescript_runtime</code></pre>
+              <p>
+                That renders it with <code>typedoc</code>. The reasoning behind not committing it, and the per-language generator notes, are in 
+                <a href="/docs?module=tom_specs_model&amp;path=doc%2Fsom_toolchains.md"><code>som_toolchains.md</code></a>, "Documentation generation".
+              </p>
+              <h2>Error Handling</h2>
+              <p>
+                Failures <code>throw</code>. <code>validateDocument</code> returns an array instead; an empty array is the pass. Path typos that would be run-time misses in JavaScript are compile errors here.
+              </p>
+              <p>The generic path has one failure mode the typed path does not:</p>
+              <table class="mdtable">
+                <thead><tr><th>Symptom</th><th>Cause</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>A read returns nothing</td>
+                    <td>
+                      The path is absent from the document — 
+                      <strong>or</strong>
+                       it names a section the model does not have. The store cannot tell you which
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>The encoder reports a value it cannot place</td>
+                    <td>The document holds a path the metadata tree does not describe</td>
+                  </tr>
+                  <tr>
+                    <td>Validation reports an error the typed path would not have allowed</td>
+                    <td>The generic store accepts any path; validation is where that is caught</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p>
+                That first row is the price of the generic path, and the reason to resolve a path against <code>SpecReflection</code>
+                 before writing to it: a typo and a genuinely empty section are indistinguishable afterwards.
+              </p>
+              <h2>Best Practices</h2>
+              <ul>
+                <li><strong>Resolve before you write.</strong> <code>SpecReflection</code> turns "did I spell it right?"</li>
+              </ul>
+              <p>
+                into a question with an answer. - <strong>Treat an absent value and an absent path as different questions.</strong>
+                 The store answers the first; only the model answers the second. - <strong>Pin the runtime and the facade together.</strong>
+                 They carry the same version because they are generated from one model. - <strong>Use the generic path for tooling, the typed path for application code.</strong>
+                 The choice is per call site. - <strong>Validate after a bulk edit.</strong> The generic store accepts paths the model does not have; validation is the check that catches it. - 
+                <strong>Regenerate the API reference rather than looking for it in the repo.</strong> It is deliberately not committed.
+              </p>
+              <p>---</p>
+              <p>
+                Back to the <a href="/doc/tom_agent_container/tom_ai/ai_build/tom_som_typescript_runtime/doc/index">documentation index</a>.
+              </p>
             </div>
-            <h2>tom_core_bridge</h2>
-            <div class="mono" style="color: #9FB6C9">tom_core_bridge · v1.0.0</div>
-            <p style="margin-top: 10px">
-              An alternative VS Code bridge server binary (`core_bs`): the base `tom_bs` from `tom_vscode_bridge` plus the complete Tom-framework D4rt bridge set registered by `tom_core_d4rt`, so editor scripts can drive a running app's core, server, and build APIs.
-            </p>
-          </div>
-          <div class="statgrid">
-            <div class="stat">
-              <div class="k">Status</div>
-              <div class="v" style="font-size: 1.05rem; color: #5A6B7A">Not started</div>
-            </div>
-            <div class="stat"><div class="k">LOC</div><div class="v">11</div></div>
-            <div class="stat"><div class="k">Tests</div><div class="v">0</div></div>
-            <div class="stat"><div class="k">Test LOC</div><div class="v">0</div></div>
-          </div>
-          <div class="dcols">
-            <div>
-              <div class="panel">
-                <h3>Overview</h3>
-                <p>From the module readme.md file:</p>
-                <h4 style="font-size: 1rem; margin-top: 18px">What it enables</h4>
-                <p class="muted" style="margin: 0">No downstream modules declared yet.</p>
-              </div>
-              <div class="panel"><h3>Relationships</h3><p class="muted" style="margin: 0">Standalone — no declared relationships.</p></div>
-            </div>
-            <aside>
-              <div class="panel">
-                <h3 style="font-size: 1.05rem">Documentation</h3>
-                <p class="muted" style="margin: 0 0 6px">Authored guides (<span class="mono">.md</span>)</p>
-                <div class="linkrow">
-                  <span class="ic">📄</span>
-                  <div class="linkmeta">
-                    <a class="linkname" href="/docs?module=tom_core_bridge&amp;path=CHANGELOG.md">CHANGELOG.md</a>
-                    <span class="muted linkpath">CHANGELOG.md</span>
-                  </div>
-                </div>
-                <div class="linkrow">
-                  <span class="ic">📄</span>
-                  <div class="linkmeta">
-                    <a class="linkname" href="/docs?module=tom_core_bridge&amp;path=README.md">README.md</a>
-                    <span class="muted linkpath">README.md</span>
-                  </div>
-                </div>
-                <div class="linkrow">
-                  <span class="ic">📄</span>
-                  <div class="linkmeta">
-                    <a class="linkname" href="/docs?module=tom_core_bridge&amp;path=doc%2Foperations.md">operations.md</a>
-                    <span class="muted linkpath">doc/operations.md</span>
-                  </div>
-                </div>
-                <div class="linkrow">
-                  <span class="ic">📄</span>
-                  <div class="linkmeta">
-                    <a class="linkname" href="/docs?module=tom_core_bridge&amp;path=doc%2Fsmoke_test.md">smoke_test.md</a>
-                    <span class="muted linkpath">doc/smoke_test.md</span>
-                  </div>
-                </div>
-              </div>
-              <div class="panel">
-                <h3 style="font-size: 1.05rem">API</h3>
-                <p class="muted" style="margin: 0 0 6px">API surface / generated</p>
-                <p class="muted" style="margin: 6px 0 0">No API yet.</p>
-              </div>
-            </aside>
-          </div>
+          </section>
         </div>
       </main>
       <footer class="site-footer">

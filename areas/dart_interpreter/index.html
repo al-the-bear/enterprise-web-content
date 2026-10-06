@@ -1390,7 +1390,8 @@
           <div class="fambody">
             <div class="pageprose">
               <p>
-                The D4rt Interpreter is where Tom runs and generates Dart code at runtime, inside a permission-guarded sandbox, without ahead-of-time compilation. It is the engine beneath Tom's AI scripting, the application-creation flow, and the agentic UI that renders live inside a Flutter client — one of the seven building blocks of the framework, and the most mature of them.
+                The D4rt Interpreter is where Tom runs and generates Dart code at runtime, inside a permission-guarded sandbox, without ahead-of-time compilation. It is the engine beneath Tom's AI scripting, the application-creation flow, and the agentic UI that renders live inside a Flutter client — one of the seven building blocks of the framework, and the most mature of them: 
+                <code>tom_d4rt</code> is at release 1.229 and every library package of the family is published on pub.dev.
               </p>
               <p>
                 The core problem D4rt solves is that a framework which lets AI and users <em>write code that the application then executes</em>
@@ -1410,13 +1411,14 @@
                 on the Dart <code>analyzer</code> package to get a full parse tree, then walks it in two passes — a declaration pass (registering classes and mixins) followed by an interpretation pass (resolving members and calling the entry point). It supports both full-script execution (<code>execute()</code>) and REPL-style incremental evaluation (<code>eval()</code>, which keeps the previous scope alive). This is the stable line every existing project depends on, and — because it parses source directly — the 
                 <strong>usually preferable</strong> choice for command-line, server, and desktop embeddings. - The <strong>analyzer-free line</strong>
                  exists because the Dart analyzer is large and tree-shaking-hostile, so it cannot ship inside a deployed app (especially on the 
-                <strong>web</strong>). This line parses source on a build machine into a serializable AST bundle and interprets that bundle on-device, so the analyzer never travels with the application — which is also what unlocks 
+                <strong>web</strong>). <code>tom_d4rt</code> itself makes no web platform claim — it depends on <code>analyzer</code>
+                 and <code>dart:io</code>. This line parses source on a build machine into a serializable AST bundle and interprets that bundle on-device, so the analyzer never travels with the application — which is also what unlocks 
                 <strong>over-the-air UI updates</strong>. Its bridge API is kept in 1:1 lockstep with the analyzer-based line, so generated bridges run unchanged against either interpreter. Because the AST bundles it consumes are comparatively large, it is best understood as a 
                 <strong>complete alternative for the web/OTA case</strong>, not a drop-in default.
               </p>
               <h2>The components and modules</h2>
               <p>
-                The area is delivered by the <strong>D4rt</strong> component (<code>d4rt</code>) and its thirteen modules.
+                The area is delivered by the <strong>D4rt</strong> component (<code>d4rt</code>) and its twelve modules, plus a runnable sample corpus.
               </p>
               <h3>Analyzer-based foundation</h3>
               <ul>
@@ -1424,7 +1426,9 @@
               </ul>
               <p>
                 reference implementation the rest of the family tracks. Its public API (<code>D4rt</code>, <code>BridgedClass</code>, 
-                <code>D4</code>, the permission classes) is held in lockstep with the analyzer-free successor so bridges work against either. - 
+                <code>D4</code>, the permission classes) is held in lockstep with the analyzer-free successor so bridges work against either. The sandbox gates the working directory and process execution as well as files, network, and isolates: a process starts only when a 
+                <code>ProcessRunPermission</code> covers the command or a filesystem grant carries <code>execute</code>
+                 for the executable. A module exports only its own declarations and its <code>export</code>s — an importer never sees an import's imports. - 
                 <strong><code>tom_d4rt_flutter</code></strong> — the source-based interpreter with the full Flutter Material bridge surface (<code>SourceFlutterD4rt</code>): feed it raw Dart source and it returns a live 
                 <code>Widget</code>. It is the <strong>primary, recommended</strong> way to run interpreted Dart UI on Flutter for desktop and mobile.
               </p>
@@ -1467,7 +1471,15 @@
                  — the analyzer-free counterpart, built on <code>tom_d4rt_exec</code>: the same DCli-equipped, extensible REPL base (with a 
                 <code>cli</code> global inside every script) for the analyzer-free line.
               </p>
-              <h3>Test and example apps</h3>
+              <h3>Samples, test and example apps</h3>
+              <ul>
+                <li><strong><code>tom_d4rt_samples</code></strong> — five runnable, self-contained samples ordered as a</li>
+              </ul>
+              <p>
+                learning path, each introducing one capability on top of the last: multi-file D4rt programs and shebang launchers (<code>d4rt_introduction_sample</code>, start here), bridging a native library through 
+                <code>tom_d4rt_generator</code> (<code>d4rt_advanced_sample</code>), hand-written user-bridge overrides (<code>d4rt_userbridges_sample</code>), shell scripting through the 
+                <code>dcli</code> REPL (<code>d4rt_dcli_sample</code>), and interpreting a live Flutter UI from source (<code>d4rt_flutter_sample</code>).
+              </p>
               <ul>
                 <li>
                   <strong><code>tom_d4rt_flutter_test</code></strong> / <strong><code>tom_d4rt_flutter_ast_test</code></strong>
@@ -1475,8 +1487,9 @@
                 </li>
               </ul>
               <p>
-                test/demo apps for the two Flutter bridges: the first exercises the source-based <code>tom_d4rt_flutter</code>, the second loads pre-compiled 
-                <code>AstBundle</code>s through the analyzer-free, web-safe <code>tom_d4rt_flutter_ast</code>, running a shared sample set across both lines.
+                test/demo apps for the two Flutter bridges: the first exercises the source-based <code>tom_d4rt_flutter</code>
+                 over a 37-app sample corpus (with script playback and an AI-assisted UI generator), the second loads 33 of those samples as pre-compiled 
+                <code>AstBundle</code>s through the analyzer-free, web-safe <code>tom_d4rt_flutter_ast</code> — the same UIs across both lines.
               </p>
               <h2>How it fits the rest of Tom</h2>
               <p>
@@ -1497,7 +1510,7 @@
                 <div class="cat">d4rt · 12 modules</div>
                 <div class="metricline">6.8M loc · 17.8k tests · 3.4M test LOC</div>
                 <div class="sum">
-                  D4rt runs Dart source at runtime in a permission-guarded sandbox. It is the dynamic-execution engine that lets Tom's AI scripting and flow layers generate and run code safely.
+                  D4rt runs Dart source at runtime in a permission-guarded sandbox, in two execution families that share one bridge API: the source-based reference line for CLI, server and desktop, and an analyzer-free line that runs pre-compiled AST bundles on the web and for over-the-air UI updates. It is the dynamic-execution engine that lets Tom's AI scripting and flow layers generate and run code safely, with a five-step sample learning path.
                 </div>
                 <div class="extra">
                   <div class="dist">

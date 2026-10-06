@@ -1398,75 +1398,97 @@
                 <em>is</em>.
               </p>
               <p>
-                Its defining promise is uniformity by construction. Tom Core guarantees — for every app, regardless of how that app's business logic was written or generated — a resource-driven configurable UI, full and uniform internationalization, uniform authentication, a uniform (now four-state, per-resource) authorization system, one architecture, and uniform deployment, operations, and provisioning. These cross- cutting features live in Core, so they are present in every Tom app automatically; the application creation flow only generates business logic on top of them.
+                Its defining promise is uniformity by construction. Tom Core guarantees — for every app, regardless of how that app's business logic was written or generated — a resource-driven configurable UI, full and uniform internationalization, uniform authentication, a uniform four-state, per-resource authorization system, one architecture, and uniform deployment, operations, and provisioning. These cross- cutting features live in Core, so they are present in every Tom app automatically; the application creation flow only generates business logic on top of them.
               </p>
               <h2>The shape of a Tom application</h2>
               <pre><code>        client app (Flutter)            server app (Dart / Shelf)
                 │                                  │
-          tom_core_flutter                   tom_core_server
+     tom_core_flutter + tom_flutter_ui       tom_core_server
                 └──────────────┬──────────────────┘
                         tom_core_kernel
                           tom_basics</code></pre>
-              <ul>
-                <li>The <strong>client</strong> is a Flutter app built on <code>tom_core_flutter</code>.</li>
-                <li>The <strong>server</strong> is a Dart/Shelf server built on <code>tom_core_server</code>, reaching</li>
-              </ul>
+              <ul><li>The <strong>client</strong> is a Flutter app built on <code>tom_core_flutter</code> and the</li></ul>
               <p>
-                external services and an application-owned relational <strong>(MySQL/MariaDB)</strong> database over a pluggable datasource layer. - A 
-                <strong>typed interface</strong> is the client⇄server contract between them. - Both halves rest on a shared 
-                <code>tom_core_kernel</code> and the <code>tom_basics</code> utility floor.
+                <code>tom_flutter_ui</code> widget library. - The <strong>server</strong> is a Dart/Shelf server built on 
+                <code>tom_core_server</code>, reaching external services and an application-owned relational <strong>(MySQL/MariaDB)</strong>
+                 database over a pluggable datasource layer. - A <strong>typed interface</strong> is the client⇄server contract between them. - Both halves rest on a shared 
+                <code>tom_core_kernel</code> and the <code>tom_basics</code> utility floor. The two runtimes re-export the kernel, so an app depends on one of them and gets the kernel API for free.
               </p>
               <h2>The components and modules</h2>
               <p>The area is delivered by the <strong>Core</strong> component (<code>core</code>) and its modules.</p>
               <h3>The layered base</h3>
               <ul>
-                <li><strong><code>tom_core_kernel</code></strong> — the platform-independent base shared by client and</li>
+                <li><strong><code>tom_core_kernel</code></strong> — the platform-neutral foundation every other layer is</li>
               </ul>
               <p>
-                server: dependency injection / bean locator, the observable/reactive system, security, logging, isolate pooling, settings, JSON, timezone handling, and the reflection glue that turns generated reflection data into runtime wiring. - 
-                <strong><code>tom_core_server</code></strong> — the Dart/Shelf server foundation: authentication, authorization, data sources, database migration, endpoints, transactions, object persistence, caching, and health checks. - 
-                <strong><code>tom_core_flutter</code></strong> — the Flutter client foundation: resource-driven UI, forms, the observing/runtime layer, and client-side security.
+                composed from: dependency injection (bean locator), observable state, security and the four-state authorization model, resource resolution, logging, JSON, isolate pooling, settings, runtime utilities, and the reflection glue that turns generated reflection data into runtime wiring. No UI and no server runtime, so it runs unchanged on CLI, server, and Flutter targets. - 
+                <strong><code>tom_core_server</code></strong> — the server stack from one dependency: an HTTP host, an endpoint pipeline, a relational persistence layer with a type-safe query model, datasources and migrations, server configuration, caching, transactions, health checks, and authentication/authorization. - 
+                <strong><code>tom_core_flutter</code></strong> — the thin binding layer that brings the kernel onto a Flutter target: it re-exports the kernel and 
+                <code>tom_reflection</code>, and adds widgets that bind to observable kernel state, form primitives, typed UI properties, client-side platform detection, and client auth helpers.
               </p>
               <h3>The UI library</h3>
               <ul>
                 <li>
-                  <strong><code>tom_flutter_ui</code></strong> — the resource-driven widget and form library: the widgets,
+                  <strong><code>tom_flutter_ui</code></strong> — the Flutter widget library: a Material/Cupertino-aware
                 </li>
               </ul>
               <p>
-                form authorizers, theming, groups, and actions that make a Tom UI configurable from resources rather than hard-coded. - 
+                widget set, a declarative form system with authorizers, the Tom Action system, theming, and the fluent row-based 
+                <strong>Advanced Container Layout</strong> (ACL) engine. Every widget understands the kernel's <code>tomId</code>/<code>tomGroup</code>
+                 visibility, the four-state authorization model, and resource-driven styling, so a UI is configured from resources rather than hard-coded. - 
                 <strong><code>tom_flutter_form_test</code></strong> / <strong><code>tom_flutter_ui_test</code></strong>
-                 — the demonstration and test apps that exercise the forms and widgets.
+                 — two runnable Flutter showcases (two tabs for the form framework, four tabs for the whole widget library) that exercise the layer end-to-end against the live Flutter engine and remain the broadest live reference for the UI layer. Each ships a demo catalogue.
               </p>
-              <h3>Bridging and agentic glue</h3>
+              <h3>Agentic and CodeSpecs glue</h3>
               <ul>
-                <li>
-                  <strong><code>tom_core_agentic</code></strong> — domain-free, <code>dart:io</code>-free agentic infrastructure:
-                </li>
+                <li><strong><code>tom_core_agentic</code></strong> — generic, domain-free building blocks for agentic</li>
               </ul>
               <p>
-                cooperative cancellation, a use-after-close guard, category logging, async shutdown coordination, and typed YAML config read/write. Its lightweight tier (it depends only on 
-                <code>tom_basics</code>) is what lets even <code>dart:io</code>-forbidding packages build on it, which is why Tom Brain shares it. (The brain-specific 
-                <code>BrainEventBus</code> lives in <code>tom_brain_shared</code>, not here.) - <strong><code>tom_core_d4rt</code></strong>
-                 — the D4rt scripting tool with full Tom-framework bridge support: a REPL (<code>d4rt</code>) and headless script runner that registers generated bridges for a dozen Tom packages (kernel, server, build, distributed, and document toolkits), so sandboxed DartScript can call straight into the framework. - 
-                <strong><code>tom_core_bridge</code></strong> — an extended VS Code bridge server binary (<code>core_bs</code>): the base 
-                <code>tom_bs</code> from <code>tom_vscode_bridge</code> plus the complete Tom-framework D4rt bridge set that 
-                <code>tom_core_d4rt</code> registers, so editor scripts can drive a running app's core, server, and build APIs.
+                systems: placeholder resolution, path-scoped sandboxing, content-hash conventions, cooperative cancellation, category logging, shutdown coordination, and typed YAML config read/write. It depends only on 
+                <code>tom_basics</code>, and 31 of its 36 exports are <code>dart:io</code>-free — the subset that lets 
+                <code>dart:io</code>-forbidding packages such as <code>tom_brain_shared</code> build on it, which is why Tom Brain shares it. - 
+                <strong><code>tom_core_codespecs</code></strong> — the CodeSpecs gap classes for the <code>tom_core</code>
+                 family. TomSpecs Phase 4 generates a skeletal application in which every instantiated class must come from 
+                <code>tom_core_kernel</code>, <code>tom_core_flutter</code>, <code>tom_core_server</code>, or <code>tom_flutter_ui</code>; for the handful of parts where the framework has the runtime half but not the authoring half, this package supplies the concrete classes — kept outside 
+                <code>tom_core</code> so it stays free of concerns only a generator has. It is the one member of the TomSpecs release-1 chain that lives in the Core tree.
+              </p>
+              <h3>Samples and learning path</h3>
+              <p>
+                Core is taught through code, not only prose. <strong><code>tom_core_samples</code></strong> builds a single todo-management application across a shared domain and six subprojects, ordered as a learning path from the backend up to responsive UI:
+              </p>
+              <p>
+                0. <strong><code>todo_domain</code></strong> — the shared reflected entities (<code>User</code>, <code>Project</code>, 
+                <code>TodoList</code>, <code>TodoItem</code>) every other sample reuses. 1. <strong><code>core_server_sample</code></strong>
+                 — the server stack against MySQL-in-Docker: endpoints, persistence, auth, healthcheck. 2. <strong><code>core_client_sample</code></strong>
+                 — a Flutter todo app with four-state field authorization; in-memory backend by default, live read path to the server. 3. 
+                <strong><code>core_flutter_ui_showcase</code></strong> — every <code>tom_flutter_ui</code> widget group, each shown beside its instantiation code. 4. 
+                <strong><code>core_flutter_form_showcase</code></strong> — the forms framework in depth: field types, validation, layout, theming, master-detail, lists. 5. 
+                <strong><code>core_flutter_acl_sample</code></strong> — the ACL engine: sizing, growth, alignment, nesting, borders, variants, and the four authorization states. 6. 
+                <strong><code>core_flutter_acl_responsive</code></strong> — responsive UIs on the ACL engine across phone, tablet, and desktop.
+              </p>
+              <p>
+                The <strong>Advanced Tom Core Full-Stack Sample</strong> is the secured successor to the basic server/client pair: eight packages forming three servers (a JWT auth/admin server, a secured task-manager app server, a back-office operations server), two databases, and two Flutter clients (an end-user app and an administrator console), sharing one reflected domain and one wire contract with live four-state field authorization and cross-user sharing. Its map doubles as the long-form 
+                <strong>Tom Core user guide</strong>, which walks the architecture and the implementation rules the framework imposes.
+              </p>
+              <p>
+                Samples are <code>publish_to: none</code> and carry no API mirror by design — each ships an article-grade README instead, and the two demo apps above stay the broadest runnable reference.
               </p>
               <h2>How it fits the rest of Tom</h2>
               <p>
                 Core is the <strong>destination</strong> of the application creation flow and the <strong>host</strong>
-                 of the agentic line. The Software Factory produces business logic that targets Core's contracts; the implementation phase fills in the CodeSpec against 
-                <code>tom_core_server</code> and <code>tom_core_flutter</code>. Reflection (<code>tom_reflection</code>, via the kernel's reflection glue) is what lets an application assemble itself from resources at runtime. And in the agentic variant, the server can expose 
+                 of the agentic line. The Software Factory produces business logic that targets Core's contracts: TomSpecs Phase 4 derives the CodeSpecs skeleton against the four 
+                <code>tom_core</code>-family packages (plus <code>tom_core_codespecs</code>), and the implementation phase fills it in. Reflection (<code>tom_reflection</code>, via the kernel's reflection glue) is what lets an application assemble itself from resources at runtime. And in the agentic variant, the server can expose 
                 <code>tom_brain</code> as an external service whose generated agent surfaces run inside the Core-based Flutter client through 
                 <code>tom_d4rt_flutter</code>.
               </p>
               <p>
                 The two companion applications — <code>tom_uam</code> (users &amp; authorization) and <code>tom_sqm</code>
-                 (subscriptions &amp; quota) — are themselves built on Core, serving double duty as production apps and as canonical samples of how to build on the framework.
+                 (subscriptions &amp; quota) — are themselves built on Core, serving double duty as production apps and as canonical samples of how to build on the framework; 
+                <code>tom_uam</code> is the application-sized consumer the repository's gates keep on Core's current level.
               </p>
               <p>
-                &gt; <strong>Maturity note.</strong> Tom Core is functionally feature-complete — a skeletal app has &gt; already run on it end-to-end. The remaining work is documentation, tests, a &gt; code-cleanliness refactor, and targeted hardening (notably routing the four-state &gt; authorization through all security code and ensuring the data-access layer always &gt; uses prepared statements).
+                &gt; <strong>Maturity note.</strong> Tom Core is complete: the packages are documented and tested &gt; (every package suite plus a repository-wide documentation gate suite that holds &gt; the prose to the code run before a change is called finished), the samples and &gt; the full-stack sample are built, analyze-clean and green, and the four-state authorization model runs through the security code &gt; end to end. The packages are BSD-3-Clause licensed and internal &gt; (<code>publish_to: none</code>): consume them from the 
+                <code>tom_core</code> repository by path, not &gt; from pub.dev, and expect no backwards-compatibility guarantee until the layer is &gt; published.
               </p>
             </div>
             <div class="grouplbl">In this area</div>
@@ -1474,23 +1496,23 @@
               <a class="mcard" style="text-decoration: none; color: inherit; display: block" href="/components/core">
                 <span class="cardarrow">→</span>
                 <h3>Core</h3>
-                <div class="cat">core · 10 modules</div>
+                <div class="cat">core · 8 modules</div>
                 <div class="metricline">496.2k loc · 12.3k tests · 1.4M test LOC</div>
                 <div class="sum">
-                  The Flutter-client and Dart-server foundation every Tom application is built on, over a shared kernel and the tom_basics floor. It guarantees a resource-driven UI, i18n, authentication, four-state authorization, and uniform deployment by construction.
+                  The foundation every Tom application is built on: a platform-neutral kernel (dependency injection, observable state, security and four-state authorization, resources, logging) with a Dart server stack, a Flutter integration layer and a Flutter widget library layered on top, plus the agentic building blocks beside it. Every app gets a resource-driven UI, i18n, uniform authentication and authorization, and one architecture by construction. Taught by a seven-step sample learning path and an eight-package secured full-stack sample; BSD-3-Clause, consumed from the repository.
                 </div>
                 <div class="extra">
                   <div class="dist">
                     <span style="width: 0.00%; background: #4EA72E"></span>
-                    <span style="width: 10.00%; background: #0F9ED5"></span>
-                    <span style="width: 80.00%; background: #E97132"></span>
-                    <span style="width: 10.00%; background: #8497A8"></span>
+                    <span style="width: 12.50%; background: #0F9ED5"></span>
+                    <span style="width: 87.50%; background: #E97132"></span>
+                    <span style="width: 0.00%; background: #8497A8"></span>
                   </div>
                   <div class="distlbl">
                     <span><b style="color: #3E8F25">0</b> rel</span>
                     <span><b style="color: #0F7FB0">1</b> pub</span>
-                    <span><b style="color: #D85F23">8</b> wip</span>
-                    <span><b style="color: #5A6B7A">1</b> ns</span>
+                    <span><b style="color: #D85F23">7</b> wip</span>
+                    <span><b style="color: #5A6B7A">0</b> ns</span>
                   </div>
                 </div>
               </a>

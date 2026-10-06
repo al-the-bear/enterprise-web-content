@@ -1343,7 +1343,7 @@
     </style>
     <script src="js/mermaid.min.js" defer></script>
     <!--$-->
-    <title>Tom Overview</title>
+    <title>tom_som_typescript_v0 — typed TomSpecs object model for TypeScript</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <!--/-->
     <script src="main.client.dart.js" defer></script>
@@ -1386,324 +1386,400 @@
       </nav>
       <main class="site-main">
         <div class="wrap">
-          <div class="hero">
-            <div class="dotgrid"></div>
-            <div class="hero-grid">
-              <div class="hero-main">
-                <h1>The Tom framework</h1>
-                <p>
-                  A Dart/Flutter enterprise &amp; AI ecosystem — explore every module and component, what it does, and how far along it is.
-                </p>
-                <div class="snapshot">
-                  <div><b style="color: #86E0A2">0</b><br/>released</div>
-                  <div><b style="color: #56BEE6">29</b><br/>published</div>
-                  <div><b style="color: #F08A4F">15</b><br/>in the works</div>
-                  <div><b style="color: #9FB6C9">4</b><br/>not started</div>
-                </div>
-              </div>
-            </div>
-          </div>
           <section class="section">
+            <h1>tom_som_typescript_v0 — typed TomSpecs object model for TypeScript</h1>
             <div class="pageprose">
-              <h2>What Tom is</h2>
               <p>
-                The Tom framework is a Dart/Flutter ecosystem for building uniform enterprise applications — and for generating their business logic with AI. A Tom application is a Flutter 
-                <strong>client</strong> and a Dart <strong>server</strong> joined by a typed interface, with the server reaching external services and an application-owned 
-                <strong>MySQL/MariaDB</strong> database. Both halves are built on <strong>Tom Core</strong>, so every app gets the same guarantees by construction: a resource-driven configurable UI, full internationalization, uniform authentication and a four-state authorization system, one architecture, and uniform deployment, operations, and provisioning — regardless of how its business logic was written.
+                &gt; <strong>Cross-references.</strong> &gt; <a href="/docs?module=tom_specs_model&amp;path=doc%2Fsom_multiplatform_spec_model.md"><code>tom_specs_model/doc/som_multiplatform_spec_model.md</code></a>
+                 &gt; is the SOM authority: <code>SOM §6</code> decides the split between this &gt; typed access path and the generic one, 
+                <code>SOM §8</code> decides what &gt; this generated surface contains, <code>SOM §4.2</code> decides the model &gt; version stamp and the editing rules it enforces, and &gt; 
+                <code>SOM §17</code> decides how the package is built and published. &gt; <a href="/docs?module=tom_specs_model&amp;path=doc%2Findex.md"><code>tom_specs_model/doc/index.md</code></a>
+                 catalogues every &gt; TomSpecs subject-matter document and owns the <code>§</code> citation &gt; convention. This README says how to 
+                <strong>use this package's code</strong>; &gt; those documents own the model, the formats and the rules, and &gt; nothing here restates them.
               </p>
               <p>
-                That business logic is produced by a staged, AI-assisted flow — <strong>manual specification → DocSpec → CodeSpec → implementation</strong>
-                 — specified by <strong>TomSpecs</strong> (released, with a typed Specification Object Model generated into nine languages) and orchestrated by 
-                <code>tom_ai_build</code>, which scripts the steps on <code>tom_flow</code>, draws on <code>tom_brain</code>
-                 for the AI work through external interfaces, and executes dynamic, sandboxed code through <strong>D4rt</strong>. 
-                <code>tom_reflection</code> provides the runtime reflection that lets an application assemble itself. The same architecture can also host AI-generated agents: a server can expose 
-                <code>tom_brain</code> as a service whose agent surfaces run inside the Flutter client via <code>tom_d4rt_flutter</code>.
+                Generated typed TomSpecs object model (v0). An editing facade over the generic tom_som_typescript_runtime; see the meta-data file and DocSpecs schemas in this package. Regenerate with tom_specs_clitool/bin/generate_som.dart.
               </p>
-              <h2>The seven building blocks</h2>
+              <h2>Where this fits</h2>
               <p>
-                Tom is organised into seven areas. Five provide runtime and authoring capabilities, one is the AI cognition, and one is the process that creates applications.
+                <code>tom_som_typescript_v0</code> is the <strong>generated typed face</strong> of the TomSpecs object model for TypeScript: one type per document section, so a specification is read and written through named members rather than through string paths. It exists because a string path is checked only at run time — a mistyped one reads as an absent value instead of an error — and a specification is exactly the kind of document where that failure is silent and expensive. It is one half of a pair: the hand-written 
+                <a href="https://github.com/al-the-bear/tom_ai_build/tree/main/tom_som_typescript_runtime"><code>tom_som_typescript_runtime</code></a>
+                 holds everything identical in every language (the sparse document store, the codecs, the validator) and this half holds only what changes when the model changes, so a regeneration rewrites the typed types and touches nothing else. The same pair exists for all nine SOM languages, generated from one model, so a document written through any of them reads identically through the other eight. The package ships TypeScript sources and compiles to 
+                <code>dist/</code>, so consumers get the declaration files and the section types are checked by <code>tsc</code>
+                 rather than at run time.
               </p>
-              <ul>
-                <li><strong>Reflection</strong> — the base technology for runtime introspection and analyzer-based</li>
-              </ul>
+              <h2>Overview</h2>
               <p>
-                API extraction. It lets applications assemble themselves at runtime and lets tools read a codebase's API without re-running the analyzer.
+                A TomSpecs document is <strong>sparse and path-keyed</strong>: a value lives under the globally-unique section-id path it belongs to, and an absent key means "no value" rather than an empty one. This package holds none of those values — 
+                <code>SpecDocument</code>, in the runtime, does. What it holds is a typed <strong>view</strong>: each generated type wraps a document together with the path prefix it is rooted at, and its members resolve to the paths beneath that prefix. Constructing a document root also runs the model-version check (<code>SOM §4.2</code>), so a document stamped by a different model version is refused rather than silently misread.
               </p>
-              <ul>
-                <li><strong>D4rt Interpreter</strong> — a sandboxed Dart interpreter family that runs and generates</li>
-              </ul>
               <p>
-                code at runtime, with an analyzer-based line and an analyzer-free line sharing one bridge API. It is the dynamic-execution engine beneath Tom's scripting, creation flow, and agentic UI.
+                Everything generated here is derived from the <code>tom_specs_model</code> Dart model and rewritten wholesale on every run of 
+                <code>tom_specs_clitool/bin/generate_som.dart</code>. Beside the typed types the package ships the lossless meta-data file (<code>meta/spec_model.meta.json</code>, 
+                <code>SOM §5.3</code>), the generated DocSpecs schemas (<code>schemas/</code>, <code>SOM §13</code>), and the metadata trees that drive the dot-notation and id-tree access surfaces (<code>SOM §8</code>). The hand-written trees beside them — 
+                <code>examples/</code>, the tests, <code>doc/</code> — are preserved across regeneration; the generator writes files, it never wipes the output root.
               </p>
-              <ul>
-                <li><strong>Tom Brain Agent</strong> — the intelligence layer: an OpenAI-format server that runs</li>
-              </ul>
+              <h2>Installation</h2>
+              <p>Install the facade (it depends on <code>tom_som_typescript_runtime</code>):</p>
+              <pre><code>npm install tom_som_typescript_v0</code></pre>
+              <p>or pin it in your <code>package.json</code>:</p>
+              <pre><code>"dependencies": {
+  "tom_som_typescript_v0": "^1.3.2"
+}</code></pre>
               <p>
-                D4rt <strong>procedures</strong> over a self-organising, dreaming graph memory, turning a language model into a process that produces answers rather than just tokens, bound to a user-dedicated assistant persona.
+                The published package ships compiled <code>dist/</code> (<code>.js</code> + <code>.d.ts</code>), so no build step is required to consume it.
               </p>
-              <ul><li><strong>Docspecs/Codespecs Software Factory</strong> — the staged, AI-assisted process that</li></ul>
               <p>
-                turns an idea into specified, generated, tested code, with full traceability from a requirement through DocSpec and CodeSpec to its implementation and test. Its tooling ships as TomSpecs release 1.
+                <code>tom_som_typescript_v0</code> and <code>tom_som_typescript_runtime</code> both carry version <code>1.3.2</code>, taken from the TomSpecs model version — pin them together. Every other dependency route (git, path, vendored, build-from-source) is in 
+                <a href="/doc/tom_agent_container/tom_ai/ai_build/tom_som_typescript_v0/readme_howtointegrate">readme_howtointegrate.md</a>.
               </p>
-              <ul>
-                <li><strong>Build tools</strong> — the command-line machinery that builds, tests, documents, and</li>
-              </ul>
+              <h2>Features</h2>
+              <h3>Document roots</h3>
               <p>
-                deploys the framework and its applications, all built on the shared <code>tom_build_base</code> CLI foundation.
+                Each root is a whole TomSpecs document, and the first segment of every path beneath it is its section id. Construct the root you need over a 
+                <code>SpecDocument</code>; the 1254 model classes are reached through it.
               </p>
-              <ul><li><strong>Core Application Framework</strong> — the client+server foundation every Tom app is</li></ul>
+              <table class="mdtable">
+                <thead><tr><th>Section id</th><th>Document</th><th>Generated root type</th></tr></thead>
+                <tbody>
+                  <tr><td><code>SBP</code></td><td>Solution Blueprint</td><td><code>D00SolutionBlueprint</code></td></tr>
+                  <tr>
+                    <td><code>CLA</code></td>
+                    <td>Current Landscape Assessment</td>
+                    <td><code>D01CurrentLandscapeAssessment</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>TOM</code></td>
+                    <td>Target Operating Model</td>
+                    <td><code>D02TargetOperatingModel</code></td>
+                  </tr>
+                  <tr><td><code>IFM</code></td><td>Information Model</td><td><code>D03InformationModel</code></td></tr>
+                  <tr>
+                    <td><code>RSP</code></td>
+                    <td>Requirements Specification</td>
+                    <td><code>D04RequirementsSpecification</code></td>
+                  </tr>
+                  <tr><td><code>ISC</code></td><td>Interaction Scenarios</td><td><code>D05InteractionScenarios</code></td></tr>
+                  <tr>
+                    <td><code>ATS</code></td>
+                    <td>Architecture &amp; Technology Specification</td>
+                    <td><code>D06ArchitectureTechnologySpecification</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>IIS</code></td>
+                    <td>Integration &amp; Interface Specification</td>
+                    <td><code>D07IntegrationInterfaceSpecification</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>SAS</code></td>
+                    <td>Security &amp; Access Specification</td>
+                    <td><code>D08SecurityAccessSpecification</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>XDS</code></td>
+                    <td>Experience Design Specification</td>
+                    <td><code>D09ExperienceDesignSpecification</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>QAP</code></td>
+                    <td>Quality &amp; Acceptance Plan</td>
+                    <td><code>D10QualityAcceptancePlan</code></td>
+                  </tr>
+                  <tr><td><code>DRM</code></td><td>Delivery Roadmap</td><td><code>D11DeliveryRoadmap</code></td></tr>
+                  <tr>
+                    <td><code>TRP</code></td>
+                    <td>Transition &amp; Rollout Plan</td>
+                    <td><code>D12TransitionRolloutPlan</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>CGP</code></td>
+                    <td>CodeSpecs Generation Projection</td>
+                    <td><code>D13CodeSpecsProjection</code></td>
+                  </tr>
+                </tbody>
+              </table>
+              <h2>Quick start</h2>
               <p>
-                built on, over a shared kernel and the <code>tom_basics</code> floor. It is what enforces the cross-cutting uniformity described above — complete, tested, and taught by a sample learning path and a secured full-stack sample.
+                Add <code>tom_som_typescript_v0</code> to your project (<code>npm install tom_som_typescript_v0</code>), then:
               </p>
-              <ul><li><strong>VS Code Extension and VS Code Scripting</strong> — Dart-first editor automation: a</li></ul>
+              <pre><code>import { SpecDocument } from 'tom_som_typescript_runtime';
+import { D00SolutionBlueprint } from 'tom_som_typescript_v0';
+
+// A typed Solution Blueprint over a fresh document.
+const doc = new SpecDocument();
+const blueprint = new D00SolutionBlueprint(doc);
+
+blueprint.content = 'A platform that unifies our fragmented order systems.';
+blueprint.currentLandscape.content =
+    'Three legacy systems with no shared customer record.';
+
+console.log(blueprint.content);</code></pre>
               <p>
-                TypeScript extension hosts a Dart bridge so framework tooling runs in Dart through D4rt with full VS Code API access.
+                Prints <code>A platform that unifies our fragmented order systems.</code> — the value just written, read back through the typed getter.
               </p>
-              <h2>How a Tom application is built</h2>
+              <h2>Examples</h2>
+              <table class="mdtable">
+                <thead><tr><th>Sample</th><th>Demonstrates</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_ai_build/blob/main/tom_som_typescript_v0/examples/a_typed_access.ts"><code>a_typed_access.ts</code></a>
+                    </td>
+                    <td>
+                      The generated typed facade — named members, nested-section navigation, and the typed 
+                      <code>SomList</code>
+                       collection.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_ai_build/blob/main/tom_som_typescript_v0/examples/b_generic_document.ts"><code>b_generic_document.ts</code></a>
+                    </td>
+                    <td>The generic runtime underneath — string paths into a sparse store, plus JSON and YAML serialization.</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_ai_build/blob/main/tom_som_typescript_v0/examples/c_reflection_metadata.ts"><code>c_reflection_metadata.ts</code></a>
+                    </td>
+                    <td>
+                      The value-free reflection surface — load 
+                      <code>meta/spec_model.meta.json</code>
+                      , enumerate roots and fields, resolve a path to the model node it lands on.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
               <p>
-                A Tom application is a client+server pair on Tom Core, and its business logic is produced by the DocSpec/CodeSpec Software Factory and authored in Tom Forge. Three views tell the story: the 
-                <strong>anatomy</strong> of the running application, the <strong>spec-to-code flow</strong> that derives it, and the 
-                <strong>development environment</strong> that drives that flow.
+                <a href="/doc/tom_agent_container/tom_ai/ai_build/tom_som_typescript_v0/examples/README"><code>examples/README.md</code></a>
+                 gives the run command for each.
               </p>
-              <h3>Anatomy of a Tom application</h3>
-              <img alt="Anatomy of a Tom application — a Flutter client and a Dart server over a REST API, with the framework stack (tom_core_flutter, tom_flutter_ui, tom_core_server, tom_core_kernel, tom_basics) inside the application and the database, external services and tom_uam outside." loading="lazy" src="/images/diagrams/home/anatomy.svg"/>
               <p>
-                A Tom application is a Flutter <strong>client</strong> and a Dart <strong>server</strong> that talk over a REST API. Its whole framework stack lives 
-                <strong>inside</strong> the application: the client is built on <code>tom_core_flutter</code> and the 
-                <code>tom_flutter_ui</code> widget layer, the server on <code>tom_core_server</code>, all three rest on the shared 
-                <code>tom_core_kernel</code>, and that in turn stands on the <code>tom_basics</code> floor — so both halves share one type system and the same cross-cutting guarantees. 
-                <strong>Outside</strong> the application sit only the things it talks to at runtime: its own <strong>database</strong>, any 
-                <strong>external services</strong> the server integrates, and the <strong><code>tom_uam</code></strong>
-                 authentication/authorization server that issues and validates identities.
+                For complete, runnable <strong>sample projects</strong> — a whole task carried end to end across several packages rather than one package's API — see 
+                <a href="/doc/tom_agent_container/tom_ai/ai_build/tom_specs_samples/README"><code>tom_specs_samples/</code></a>.
               </p>
-              <h3>DocSpec/CodeSpec-driven development</h3>
-              <img alt="DocSpec/CodeSpec-driven development — a free-form specification becomes a project definition, which fans out into detailed sub-documents (UI, Server API, Object model, Data model, and more as needed); each sub-document drives a matching CodeSpec, and each CodeSpec generates the corresponding part of the application." loading="lazy" src="/images/diagrams/home/docspec-codespec.svg"/>
+              <h2>Usage</h2>
+              <h3>The generic store underneath</h3>
               <p>
-                The application's four facets — its <strong>UI</strong>, <strong>server API</strong>, <strong>object model</strong>, and 
-                <strong>data model</strong> — are not hand-written from scratch but derived. A <strong>free-form specification</strong>
-                 is distilled into a <strong>project definition</strong> — the TomSpecs <strong>Solution Blueprint</strong>, the initial whole-application spec — which fans out into 
-                <strong>detailed sub-documents</strong>, one per facet the application needs — and as many more as it calls for. Each sub-document drives a matching 
-                <strong>CodeSpec</strong> — UI/forms, the abstract API definition, the abstract object-model classes, and the data-model classes — and each CodeSpec in turn generates the corresponding part of the running application. The chain keeps every generated artifact traceable back to the document, and ultimately the requirement, that produced it.
+                A facade is a view; the document is the value. Reach past the typed types whenever a path is computed rather than known — both sides address exactly the same store.
               </p>
-              <h3>The development environment</h3>
-              <img alt="The development environment — a manual specification seeds the creation flow (DocSpecs → CodeSpecs → Implementation); Tom Forge's three development surfaces point to the matching flow stages and all rely on a multi-role agent driver with D4rt access, which reaches out to the LLM providers (with Tom Brain as an optional layer in between)." loading="lazy" src="/images/diagrams/home/dev-environment.svg"/>
+              <pre><code>import { SpecDocument, yamlEncode } from 'tom_som_typescript_runtime';
+import { d00SolutionBlueprintMetaTree } from 'tom_som_typescript_v0';
+
+const doc = new SpecDocument();
+doc.setContent(
+  'SBP/content', 'A platform that unifies our fragmented order systems.');
+
+// A repeated section: append an item, then fill a content leaf under it.
+const item = doc.addListItem('SBP/currentLandscape/CUOPME-OPER-LST');
+doc.setContent(`${item}/content`, 'Average order turnaround: 4.2 days.');
+
+// The whole document serializes to the canonical wire format.
+console.log(yamlEncode(doc, d00SolutionBlueprintMetaTree, '1.0'));</code></pre>
+              <h3>Metadata and reflection</h3>
               <p>
-                Day to day, the creation flow simplifies to three stages — <strong>DocSpecs → CodeSpecs → Implementation</strong>
-                 — seeded by a <strong>manual specification</strong> that sits outside the automated pipeline. <strong>Tom Forge</strong>
-                 is the environment that drives those stages: it pairs each stage with a development surface (<strong>DocSpec development</strong>, 
-                <strong>CodeSpec development</strong>, <strong>Implementation</strong>), all of which run on a shared 
-                <strong>multi-role agent driver and tool set with D4rt access</strong>. That driver is what reaches out to the 
-                <strong>LLM providers</strong>; when richer, memory-backed cognition is wanted, <strong>Tom Brain</strong>
-                 can sit optionally between the driver and the raw providers.
+                The exported class graph answers "what <em>can</em> the model hold?" with no document values involved — enumerate roots and fields, or resolve a concrete path to the model node it lands on (<code>SOM §7</code>).
               </p>
-            </div>
-          </section>
-          <section class="section">
-            <h2 style="font-size: 1.5rem">Areas</h2>
-            <p class="muted" style="margin-top: -6px">Start with an area — the big picture — then drill into its components and modules.</p>
-            <div class="grid cols-3" style="margin-top: 16px">
-              <a class="mcard" style="text-decoration: none; color: inherit; display: block" href="/areas/reflection">
-                <span class="cardarrow">→</span>
-                <h3>Reflection</h3>
-                <div class="cat">1 member</div>
-                <div class="sum">
-                  Reflection is the base technology that lets a Tom application assemble itself at runtime and lets tools read a codebase's API without re-running the analyzer.
-                </div>
-              </a>
-              <a class="mcard" style="text-decoration: none; color: inherit; display: block" href="/areas/dart_interpreter">
-                <span class="cardarrow">→</span>
-                <h3>D4rt Interpreter</h3>
-                <div class="cat">1 member</div>
-                <div class="sum">
-                  The D4rt Interpreter is where Tom runs and generates Dart code at runtime, inside a permission-guarded sandbox, without ahead-of-time compilation.
-                </div>
-              </a>
-              <a class="mcard" style="text-decoration: none; color: inherit; display: block" href="/areas/tom_brain">
-                <span class="cardarrow">→</span>
-                <h3>Tom Brain Agent</h3>
-                <div class="cat">1 member</div>
-                <div class="sum">
-                  Tom Brain is the intelligence layer of the Tom framework: from the outside it looks like an ordinary OpenAI-format LLM API server, but inside it is a single always-running engine that runs procedures — sandboxed D4rt scripts — over a self-organising, "dreaming" graph memory.
-                </div>
-              </a>
-              <a class="mcard" style="text-decoration: none; color: inherit; display: block" href="/areas/software_factory">
-                <span class="cardarrow">→</span>
-                <h3>Docspecs/Codespecs Software Factory</h3>
-                <div class="cat">1 member</div>
-                <div class="sum">
-                  The Docspecs/Codespecs Software Factory is the staged, AI-assisted process by which Tom applications are created — from an initial idea, through structured specifications, to working, tested code — with complete traceability from a business requirement to the implementation and the test that covers it.
-                </div>
-              </a>
-              <a class="mcard" style="text-decoration: none; color: inherit; display: block" href="/areas/build_tools">
-                <span class="cardarrow">→</span>
-                <h3>Build tools</h3>
-                <div class="cat">2 members</div>
-                <div class="sum">
-                  Build tools are the command-line machinery that develops, builds, tests, documents, and deploys the Tom framework and the applications made with it.
-                </div>
-              </a>
-              <a class="mcard" style="text-decoration: none; color: inherit; display: block" href="/areas/core_framework">
-                <span class="cardarrow">→</span>
-                <h3>Core Application Framework</h3>
-                <div class="cat">1 member</div>
-                <div class="sum">
-                  The Core Application Framework is the foundation every Tom application is built on: a Flutter client and a Dart server joined by a typed interface, both resting on a shared kernel.
-                </div>
-              </a>
-              <a class="mcard" style="text-decoration: none; color: inherit; display: block" href="/areas/vscode">
-                <span class="cardarrow">→</span>
-                <h3>VS Code Extension and VS Code Scripting</h3>
-                <div class="cat">1 member</div>
-                <div class="sum">
-                  This area is how the Tom framework is developed inside the editor: a VS Code extension that hosts a Dart bridge, so framework tooling and automation can be written in Dart — the same language as the framework itself — with full access to the VS Code API.
-                </div>
-              </a>
-            </div>
-          </section>
-          <section class="section">
-            <h2 style="font-size: 1.5rem">Components</h2>
-            <p class="muted" style="margin-top: -6px">Each component is a family of modules — hover for its status mix, click to open its modules.</p>
-            <div class="grid cols-3" style="margin-top: 16px">
-              <a class="mcard" style="text-decoration: none; color: inherit; display: block" href="/components/ai_build">
-                <span class="cardarrow">→</span>
-                <h3>TomSpecs</h3>
-                <div class="cat">ai_build · 8 modules</div>
-                <div class="metricline">291.6k loc · 2.1k tests · 46.0k test LOC</div>
-                <div class="sum">
-                  TomSpecs is the structured, AI-assistable process for creating software systems, carried by a typed Specification Object Model (SOM) generated into nine languages (Dart, Python, Java, JavaScript, TypeScript, Go, Rust, C, C++) from a single Dart source model. Author a Solution Blueprint, validate it mechanically, and run the CodeSpecs extract that turns it into bounded, cited inputs for code generation. Release 1 lists the Dart chain here; the sixteen non-Dart runtime and facade packages ship source-only in the same repository.
-                  
-                </div>
-                <div class="extra">
-                  <div class="dist">
-                    <span style="width: 0.00%; background: #4EA72E"></span>
-                    <span style="width: 100.00%; background: #0F9ED5"></span>
-                    <span style="width: 0.00%; background: #E97132"></span>
-                    <span style="width: 0.00%; background: #8497A8"></span>
-                  </div>
-                  <div class="distlbl">
-                    <span><b style="color: #3E8F25">0</b> rel</span>
-                    <span><b style="color: #0F7FB0">8</b> pub</span>
-                    <span><b style="color: #D85F23">0</b> wip</span>
-                    <span><b style="color: #5A6B7A">0</b> ns</span>
-                  </div>
-                </div>
-              </a>
-              <a class="mcard" style="text-decoration: none; color: inherit; display: block" href="/components/basics">
-                <span class="cardarrow">→</span>
-                <h3>Basics</h3>
-                <div class="cat">basics · 12 modules</div>
-                <div class="metricline">22.7k loc · 1.5k tests · 25.1k test LOC</div>
-                <div class="sum">
-                  The foundation layer beneath the Tom stack: a minimal-dependency utility floor and the unified CLI/build framework, surrounded by focused libraries for console, network, crypto, chat, and documentation/workspace tooling.
-                </div>
-                <div class="extra">
-                  <div class="dist">
-                    <span style="width: 0.00%; background: #4EA72E"></span>
-                    <span style="width: 58.33%; background: #0F9ED5"></span>
-                    <span style="width: 16.67%; background: #E97132"></span>
-                    <span style="width: 25.00%; background: #8497A8"></span>
-                  </div>
-                  <div class="distlbl">
-                    <span><b style="color: #3E8F25">0</b> rel</span>
-                    <span><b style="color: #0F7FB0">7</b> pub</span>
-                    <span><b style="color: #D85F23">2</b> wip</span>
-                    <span><b style="color: #5A6B7A">3</b> ns</span>
-                  </div>
-                </div>
-              </a>
-              <a class="mcard" style="text-decoration: none; color: inherit; display: block" href="/components/core">
-                <span class="cardarrow">→</span>
-                <h3>Core</h3>
-                <div class="cat">core · 8 modules</div>
-                <div class="metricline">496.2k loc · 12.3k tests · 1.4M test LOC</div>
-                <div class="sum">
-                  The foundation every Tom application is built on: a platform-neutral kernel (dependency injection, observable state, security and four-state authorization, resources, logging) with a Dart server stack, a Flutter integration layer and a Flutter widget library layered on top, plus the agentic building blocks beside it. Every app gets a resource-driven UI, i18n, uniform authentication and authorization, and one architecture by construction. Taught by a seven-step sample learning path and an eight-package secured full-stack sample; BSD-3-Clause, consumed from the repository.
-                </div>
-                <div class="extra">
-                  <div class="dist">
-                    <span style="width: 0.00%; background: #4EA72E"></span>
-                    <span style="width: 12.50%; background: #0F9ED5"></span>
-                    <span style="width: 87.50%; background: #E97132"></span>
-                    <span style="width: 0.00%; background: #8497A8"></span>
-                  </div>
-                  <div class="distlbl">
-                    <span><b style="color: #3E8F25">0</b> rel</span>
-                    <span><b style="color: #0F7FB0">1</b> pub</span>
-                    <span><b style="color: #D85F23">7</b> wip</span>
-                    <span><b style="color: #5A6B7A">0</b> ns</span>
-                  </div>
-                </div>
-              </a>
-              <a class="mcard" style="text-decoration: none; color: inherit; display: block" href="/components/d4rt">
-                <span class="cardarrow">→</span>
-                <h3>D4rt</h3>
-                <div class="cat">d4rt · 12 modules</div>
-                <div class="metricline">6.8M loc · 17.8k tests · 3.4M test LOC</div>
-                <div class="sum">
-                  D4rt runs Dart source at runtime in a permission-guarded sandbox, in two execution families that share one bridge API: the source-based reference line for CLI, server and desktop, and an analyzer-free line that runs pre-compiled AST bundles on the web and for over-the-air UI updates. It is the dynamic-execution engine that lets Tom's AI scripting and flow layers generate and run code safely, with a five-step sample learning path.
-                </div>
-                <div class="extra">
-                  <div class="dist">
-                    <span style="width: 0.00%; background: #4EA72E"></span>
-                    <span style="width: 83.33%; background: #0F9ED5"></span>
-                    <span style="width: 16.67%; background: #E97132"></span>
-                    <span style="width: 0.00%; background: #8497A8"></span>
-                  </div>
-                  <div class="distlbl">
-                    <span><b style="color: #3E8F25">0</b> rel</span>
-                    <span><b style="color: #0F7FB0">10</b> pub</span>
-                    <span><b style="color: #D85F23">2</b> wip</span>
-                    <span><b style="color: #5A6B7A">0</b> ns</span>
-                  </div>
-                </div>
-              </a>
-              <a class="mcard" style="text-decoration: none; color: inherit; display: block" href="/components/reflection">
-                <span class="cardarrow">→</span>
-                <h3>Reflection</h3>
-                <div class="cat">reflection · 5 modules</div>
-                <div class="metricline">24.1k loc · 490 tests · 287.1k test LOC</div>
-                <div class="sum">
-                  The reflection layer gives Tom programs runtime introspection and dynamic invocation, plus analyzer-based extraction of a codebase's API. It is the base technology behind auto-assembling Tom applications at runtime.
-                  
-                </div>
-                <div class="extra">
-                  <div class="dist">
-                    <span style="width: 0.00%; background: #4EA72E"></span>
-                    <span style="width: 40.00%; background: #0F9ED5"></span>
-                    <span style="width: 40.00%; background: #E97132"></span>
-                    <span style="width: 20.00%; background: #8497A8"></span>
-                  </div>
-                  <div class="distlbl">
-                    <span><b style="color: #3E8F25">0</b> rel</span>
-                    <span><b style="color: #0F7FB0">2</b> pub</span>
-                    <span><b style="color: #D85F23">2</b> wip</span>
-                    <span><b style="color: #5A6B7A">1</b> ns</span>
-                  </div>
-                </div>
-              </a>
-              <a class="mcard" style="text-decoration: none; color: inherit; display: block" href="/components/vscode">
-                <span class="cardarrow">→</span>
-                <h3>Vscode</h3>
-                <div class="cat">vscode · 3 modules</div>
-                <div class="metricline">118.7k loc · 2.4k tests · 29.3k test LOC</div>
-                <div class="sum">
-                  The VS Code extension ecosystem used to develop the Tom framework. A TypeScript extension hosts a Dart bridge that runs Dart scripts inside the editor with full VS Code API access, driven by a typed Dart scripting layer.
-                </div>
-                <div class="extra">
-                  <div class="dist">
-                    <span style="width: 0.00%; background: #4EA72E"></span>
-                    <span style="width: 33.33%; background: #0F9ED5"></span>
-                    <span style="width: 66.67%; background: #E97132"></span>
-                    <span style="width: 0.00%; background: #8497A8"></span>
-                  </div>
-                  <div class="distlbl">
-                    <span><b style="color: #3E8F25">0</b> rel</span>
-                    <span><b style="color: #0F7FB0">1</b> pub</span>
-                    <span><b style="color: #D85F23">2</b> wip</span>
-                    <span><b style="color: #5A6B7A">0</b> ns</span>
-                  </div>
-                </div>
-              </a>
+              <pre><code>import * as fs from 'fs';
+import { SpecModel, SpecReflection } from 'tom_som_typescript_runtime';
+
+const model = SpecModel.fromJson(
+  JSON.parse(fs.readFileSync('meta/spec_model.meta.json', 'utf8')));
+const reflection = new SpecReflection(model);
+
+for (const root of reflection.roots) {
+  console.log(reflection.rootSegment(root), root.title);
+}
+
+const res = reflection.resolve('SBP/currentLandscape/content');
+console.log(`kind=${res.kind}  valueLeaf=${res.isValueLeaf}`);</code></pre>
+              <h3>Regenerating</h3>
+              <p>
+                This package is output. When the model changes, regenerate it rather than editing it — every file carrying the 
+                <code>GENERATED … do not edit by hand</code> banner is overwritten:
+              </p>
+              <pre><code>dart run tom_specs_clitool/bin/generate_som.dart</code></pre>
+              <h2>Architecture</h2>
+              <pre><code>  tom_som_typescript_v0          the typed path — this package
+    D00SolutionBlueprint …        one type per document root
+            │  extends
+            ▼
+     SomNode / SomScalar / SomList     editing-facade bases
+            │  bound to
+            ▼
+      SpecDocument                sparse, path-keyed value store
+            │                     (tom_som_typescript_runtime)
+            ▼
+  SpecReflection · SpecValidator · YAML + Markdown codecs
+            ▲
+            │  described by
+      SomMetaTree  ◀── meta/spec_model.meta.json</code></pre>
+              <table class="mdtable">
+                <thead><tr><th>Type</th><th>Responsibility</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><code>D00SolutionBlueprint</code> …</td>
+                    <td>
+                      The generated document roots — one per row of the table above, each the typed entry point to a whole document.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>SomNode</code></td>
+                    <td>
+                      The base every generated section type extends: a document plus the path prefix this section is rooted at.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>SomScalar</code></td>
+                    <td>
+                      A typed leaf — parse and format at the store boundary, so 
+                      <code>int</code>
+                       / 
+                      <code>bool</code>
+                       / enum members read as themselves.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>SomList</code></td>
+                    <td>A typed repeated section — append, index and enumerate items whose paths the store generates.</td>
+                  </tr>
+                  <tr>
+                    <td><code>SomMetaTree</code> / <code>SomMetaNode</code></td>
+                    <td>
+                      The generated metadata trees (
+                      <code>SOM §7</code>
+                      ): the model's shape as data, behind the dot-notation and id-tree access surfaces.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>SomEditability</code></td>
+                    <td>
+                      The 
+                      <code>SOM §4.2</code>
+                       version-check outcome — whether a stamped document may be edited by this facade.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>SpecDocument</code></td>
+                    <td>
+                      The value store itself. Lives in 
+                      <code>tom_som_typescript_runtime</code>
+                      ; every type above is a view onto it.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <h2>Ecosystem</h2>
+              <pre><code>  tom_specs_model          the Dart model — the source of truth
+         │
+         ▼  generate_som
+  tom_specs_clitool        the generator
+         │
+         ▼  emits
+  tom_som_typescript_v0   ← this package (typed)
+         │
+         ▼  depends on
+  tom_som_typescript_runtime  (generic, hand-written)
+         │
+         ▼  validated against
+  tom_som_conformance      the shared cross-language corpus</code></pre>
+              <p>
+                The same shape repeats for all nine languages; the corpus at the bottom is shared, which is what makes "identical in every language" a measured claim rather than an intention (<code>SOM §19</code>).
+              </p>
+              <h2>Further documentation</h2>
+              <p><strong>TomSpecs subject matter</strong> — the authorities this package implements:</p>
+              <table class="mdtable">
+                <thead><tr><th>Document</th><th>Authority for</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><a href="/docs?module=tom_specs_model&amp;path=doc%2Findex.md">index.md</a></td>
+                    <td>The catalogue of every TomSpecs subject-matter document, and the <code>§</code> citation convention.</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="/docs?module=tom_specs_model&amp;path=doc%2Fsom_multiplatform_spec_model.md">som_multiplatform_spec_model.md</a>
+                    </td>
+                    <td>
+                      The two access paths, what this generated surface contains, the version stamp and editing rules, the 
+                      <code>*.md</code>
+                       and 
+                      <code>*.docspecs.yaml</code>
+                       formats, and the conformance corpus.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><a href="/docs?module=tom_specs_model&amp;path=doc%2Fsom_toolchains.md">som_toolchains.md</a></td>
+                    <td>This language plane's build and verify toolchain, and the reference host.</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="/docs?module=tom_specs_model&amp;path=doc%2Ftom_specs_model_meta_schema.md">tom_specs_model_meta_schema.md</a>
+                    </td>
+                    <td>The on-disk schema of <code>meta/spec_model.meta.json</code>.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p><strong>This package</strong> — its own guides:</p>
+              <table class="mdtable">
+                <thead><tr><th>Guide</th><th>Covers</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <a href="/doc/tom_agent_container/tom_ai/ai_build/tom_som_typescript_v0/doc/tutorial">doc/tutorial.md</a>
+                    </td>
+                    <td>
+                      A TypeScript walkthrough end to end — install, open a document, read and edit a section, validate it, and serialize to 
+                      <code>*.docspecs.yaml</code>
+                       and Markdown.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="/doc/tom_agent_container/tom_ai/ai_build/tom_som_typescript_v0/readme_howtointegrate">readme_howtointegrate.md</a>
+                    </td>
+                    <td>Every dependency route, how to pin the version, and building from source.</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="/doc/tom_agent_container/tom_ai/ai_build/tom_som_typescript_v0/examples/README">examples/README.md</a>
+                    </td>
+                    <td>The runnable samples and how to run each.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p><strong>Siblings</strong> — packages you will reach for next:</p>
+              <table class="mdtable">
+                <thead><tr><th>Package</th><th>What it is</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_ai_build/tree/main/tom_som_typescript_runtime">tom_som_typescript_runtime</a>
+                    </td>
+                    <td>The generic runtime this facade is a view over — reach for it directly to drive a document by path.</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_ai_build/tree/main/tom_som_conformance">tom_som_conformance</a>
+                    </td>
+                    <td>The shared corpus and the cross-language drivers that run every port against it.</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="https://github.com/al-the-bear/tom_ai_build/tree/main/tom_specs_clitool">tom_specs_clitool</a>
+                    </td>
+                    <td>The generator that writes this package.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h2>Status</h2>
+              <p>
+                Version <strong>1.3.2</strong>, tracking the TomSpecs model version and matching <code>tom_som_typescript_runtime</code>. Generated surface: 14 document roots, 1254 model classes. Verify the package with:
+              </p>
+              <pre><code>npm install
+npm run build
+./run_tests.sh   # the compiled suites + the three samples</code></pre>
+              <p>
+                A generated README states no fixed test count: the count moves with the model, and a number this file could not update would go stale the first time the model did. The command above is the standing answer — it runs this package against the shared cross-language corpus (<code>SOM §19</code>).
+              </p>
             </div>
           </section>
         </div>
